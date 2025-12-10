@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/config/schema.json",
+    "rules": {
+        "correctness": "error",
+        "suspicious": "error",
+        "perf": "warn",
+        "style": "allow",
+        "restriction": "allow"
+    },
+    "ignorePatterns": ["node_modules/", "app/.nuxt", "backend/prisma/generated"]
+}
