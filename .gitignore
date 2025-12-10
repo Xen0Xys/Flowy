@@ -39,4 +39,4 @@ app/.output
 app/dist
 
 # Backend
-backend/prisma/generated
+server/prisma/generated

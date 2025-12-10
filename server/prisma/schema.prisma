@@ -1,0 +1,14 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Users {
+  id String @id @default(uuid(7))
+
+  @@map("users")
+}
