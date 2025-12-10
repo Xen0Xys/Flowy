@@ -7,5 +7,5 @@
         "style": "allow",
         "restriction": "allow"
     },
-    "ignorePatterns": ["node_modules/", "app/.nuxt", "backend/prisma/generated"]
+    "ignorePatterns": ["node_modules", "app/.nuxt", "backend/prisma/generated"]
 }
