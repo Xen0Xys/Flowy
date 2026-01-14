@@ -10,10 +10,12 @@ import {NestFactory} from "@nestjs/core";
 import {AppModule} from "./app.module";
 import {Logger} from "@nestjs/common";
 import * as fs from "fs";
+import path from "node:path";
 
 const logger: Logger = new Logger("App");
 
-const pkg = JSON.parse(fs.readFileSync("../package.json", "utf-8"));
+const pkgJsonPath = path.resolve(process.cwd(), "package.json");
+const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
 
 process.env.APP_NAME = process.env.npm_package_name
     ?.split("-")

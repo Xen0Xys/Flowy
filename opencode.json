@@ -1,0 +1,7 @@
+{
+    "autoupdate": true,
+    "permission": {
+        "write": "allow",
+        "bash": "ask"
+    }
+}
