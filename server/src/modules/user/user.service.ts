@@ -3,7 +3,6 @@ import {
     Injectable,
     UnauthorizedException,
 } from "@nestjs/common";
-import {UserRoles} from "../../../prisma/generated/enums";
 import {UserEntity} from "./models/entities/user.entity";
 import {PrismaService} from "../helper/prisma.service";
 import {Users} from "../../../prisma/generated/client";
@@ -52,7 +51,6 @@ export class UserService {
                 username,
                 email,
                 password,
-                role: UserRoles.ADMIN, // User that register is always their family's admin
                 jwt_id: crypto.randomBytes(16).toString("hex"),
             },
         });
