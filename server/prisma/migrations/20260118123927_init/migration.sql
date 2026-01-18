@@ -28,7 +28,7 @@ CREATE TABLE "users" (
     "password" TEXT NOT NULL,
     "jwt_id" TEXT NOT NULL,
     "role" "user_roles" NOT NULL DEFAULT 'USER',
-    "family_id" UUID NOT NULL,
+    "family_id" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -64,4 +64,4 @@ CREATE UNIQUE INDEX "users_jwt_id_key" ON "users"("jwt_id");
 ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "users" ADD CONSTRAINT "users_family_id_fkey" FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "users" ADD CONSTRAINT "users_family_id_fkey" FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE SET NULL ON UPDATE CASCADE;

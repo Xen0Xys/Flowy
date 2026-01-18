@@ -1,25 +1,42 @@
-import {ConflictException, Injectable} from "@nestjs/common";
+import {
+    ConflictException,
+    Injectable,
+    UnauthorizedException,
+} from "@nestjs/common";
 import {UserRoles} from "../../../prisma/generated/enums";
 import {UserEntity} from "./models/entities/user.entity";
 import {PrismaService} from "../helper/prisma.service";
 import {Users} from "../../../prisma/generated/client";
 import crypto from "crypto";
+import {InstanceConfigService} from "../helper/instance-config.service";
+import {JwtService} from "@nestjs/jwt";
+import {LoginUserEntity} from "./models/entities/login-user.entity";
 
 @Injectable()
 export class UserService {
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly instanceConfigService: InstanceConfigService,
+        private readonly jwtService: JwtService,
+    ) {}
+
+    async generateToken(user: UserEntity): Promise<string> {
+        // Generate JWT
+        const payload = {sub: user.id};
+        return this.jwtService.signAsync(payload, {
+            jwtid: user.jwt_id,
+        });
+    }
 
     async register(
         username: string,
         email: string,
         password: string,
-    ): Promise<UserEntity> {
-        // Check if first user
-        const userCount: number = await this.prismaService.users.count();
-        // If self-hosted, there are only one admin user allowed
-        if (userCount > 0)
-            throw new ConflictException(
-                "There are already an admin registered in the instance",
+    ): Promise<LoginUserEntity> {
+        // Check if registration is allowed
+        if (!(await this.instanceConfigService.registrationAllowed()))
+            throw new UnauthorizedException(
+                "Registration is disabled on this instance",
             );
         const existingUser: Users | null =
             await this.prismaService.users.findFirst({
@@ -29,15 +46,6 @@ export class UserService {
             });
         if (existingUser)
             throw new ConflictException("Username or email already exists");
-        // Create new family
-        const family = await this.prismaService.family.create({
-            data: {
-                name: `${username}'s Family`,
-            },
-        });
-        if (!family) {
-            throw new ConflictException("Failed to create family");
-        }
         // Create user
         const user = await this.prismaService.users.create({
             data: {
@@ -46,10 +54,25 @@ export class UserService {
                 password,
                 role: UserRoles.ADMIN, // User that register is always their family's admin
                 jwt_id: crypto.randomBytes(16).toString("hex"),
-                family_id: family.id,
             },
         });
 
-        return new UserEntity(user);
+        const userEntity = new UserEntity(user);
+        return new LoginUserEntity({
+            user: userEntity,
+            token: await this.generateToken(userEntity),
+        });
+    }
+    async login(email: string, password: string): Promise<LoginUserEntity> {
+        const user = await this.prismaService.users.findFirst({
+            where: {email, password},
+        });
+        if (!user) throw new UnauthorizedException("Invalid email or password");
+
+        const userEntity = new UserEntity(user);
+        return new LoginUserEntity({
+            user: userEntity,
+            token: await this.generateToken(userEntity),
+        });
     }
 }
