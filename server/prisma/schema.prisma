@@ -52,17 +52,24 @@ model Users {
 }
 
 model Family {
-  id       String  @id @default(uuid(7)) @db.Uuid
-  name     String  @db.VarChar(50)
-  currency String  @default("USD") @db.VarChar(3)
-  members  Users[]
+  id         String          @id @default(uuid(7)) @db.Uuid
+  name       String          @db.VarChar(50)
+  currency   String          @default("USD") @db.VarChar(3)
+  members    Users[]
+  invites    FamilyInvites[]
+  created_at DateTime        @default(now())
+  updated_at DateTime        @updatedAt
 
   @@map("families")
 }
 
-model JoinCodes {
+model FamilyInvites {
   code       String   @id
+  email      String   @db.VarChar(255)
+  family_id  String   @db.Uuid
+  family     Family   @relation(fields: [family_id], references: [id])
+  created_at DateTime @default(now())
   expires_at DateTime
 
-  @@map("join_codes")
+  @@map("family_invites")
 }

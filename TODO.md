@@ -7,8 +7,10 @@
 - User choose to create a new family (self-hosted is limited to one family)
 - User configure family settings
 - User create code for family members to join
+- User have access to his dashboard
 
 ### Family member registration
 - User create account
 - User enter family code to join existing family
 - User is added to the family with member role
+- User have access to his dashboard

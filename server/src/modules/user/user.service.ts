@@ -1,6 +1,7 @@
 import {
     ConflictException,
     Injectable,
+    NotFoundException,
     UnauthorizedException,
 } from "@nestjs/common";
 import {InstanceConfigService} from "../helper/instance-config.service";
@@ -76,7 +77,7 @@ export class UserService {
         const user = await this.prismaService.users.findUnique({
             where: {id: userId},
         });
-        if (!user) throw new UnauthorizedException("User not found");
+        if (!user) throw new NotFoundException("User not found");
         return new UserEntity(user);
     }
 }

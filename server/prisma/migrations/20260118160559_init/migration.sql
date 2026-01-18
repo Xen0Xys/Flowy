@@ -39,16 +39,21 @@ CREATE TABLE "families" (
     "id" UUID NOT NULL,
     "name" VARCHAR(50) NOT NULL,
     "currency" VARCHAR(3) NOT NULL DEFAULT 'USD',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "families_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "join_codes" (
+CREATE TABLE "family_invites" (
     "code" TEXT NOT NULL,
+    "email" VARCHAR(255) NOT NULL,
+    "family_id" UUID NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expires_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "join_codes_pkey" PRIMARY KEY ("code")
+    CONSTRAINT "family_invites_pkey" PRIMARY KEY ("code")
 );
 
 -- CreateIndex
@@ -65,3 +70,6 @@ ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_family_id_fkey" FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "family_invites" ADD CONSTRAINT "family_invites_family_id_fkey" FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

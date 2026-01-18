@@ -5,6 +5,7 @@ export class UserEntity {
     id: string;
     username: string;
     email: string;
+    @Exclude()
     jwt_id: string;
     family_id: string | null;
     family_role: UserRoles | null;

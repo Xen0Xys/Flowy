@@ -1,4 +1,5 @@
 import {ClassSerializerInterceptor, Module} from "@nestjs/common";
+import {FamilyModule} from "./modules/family/family.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import HelperModule from "./modules/helper/helper.module";
 import {UserModule} from "./modules/user/user.module";
@@ -36,6 +37,7 @@ import {JwtModule} from "@nestjs/jwt";
         ]),
         HelperModule,
         UserModule,
+        FamilyModule,
     ],
     controllers: [AppController],
     providers: [
