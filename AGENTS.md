@@ -64,7 +64,8 @@
 53. COMPONENT PLACEMENT — UI components belong under `app/app/components/ui/`; follow shadcn-nuxt scaffolding.
 54. SCRIPT SETUP — Prefer `<script setup lang="ts">`; avoid Options API unless migration requires it.
 55. TYPES — Use `defineProps`/`withDefaults` for prop typing; export shared types via `*.ts` modules inside component directories.
-56. STYLING — Tailwind is primary; utility combos should go through `cn()` from `app/app/lib/utils.ts` to deduplicate classes.
+56. STYLING — Tailwind is primary; utility combos should go through `cn()` from `app/app/lib/utils.ts` to deduplicate classes; prefer padding, flex, and grid for spacing and avoid margins unless a layout truly needs them.
+
 57. VARIANTS — Build component variants using `class-variance-authority` like `buttonVariants`; keep tokens consistent with Tailwind palette.
 58. ICONS — Use `@nuxt/icon` or `lucide-vue-next`; ensure icons are tree-shakeable.
 59. STATE — Prefer Nuxt composables (`useState`, `useFetch`) or VueUse utilities; avoid global mutable singletons.
@@ -73,7 +74,6 @@
 62. FORMS — Use `<form>` with native validation where possible; for advanced validation integrate vee-validate or zod-late as needed.
 63. TESTING (FRONTEND) — When adding tests, prefer Vitest via Bun once configured; align directories under `app/tests/` or alongside components.
 64. ACCESSIBILITY — Buttons always expose `aria` props; ensure focus-visible styles align with Prettier class wrapping.
-65. INTERNATIONALIZATION — Not configured yet; isolate user-visible strings in constants to ease future i18n work.
 
 ## BACKEND (NEST FASTIFY)
 
@@ -126,9 +126,9 @@
 
 101. STRICTNESS — Server tsconfig enables `strictNullChecks`; treat `undefined` cases explicitly.
 102. ANY USAGE — If `any` is unavoidable, wrap it in a helper type and document why.
-103. GENERICS — Prefer generics for reusable utilities (e.g., service helpers) rather than casting.
-104. LITERALS — Use `as const` for discriminated unions where helpful (e.g., button variant tables).
-105. DOM TYPES — Import from `vue`/`reka-ui` for prop typing rather than relying on ambient globals.
+
+103. LITERALS — Use `as const` for discriminated unions where helpful (e.g., button variant tables).
+104. DOM TYPES — Import from `vue`/`reka-ui` for prop typing rather than relying on ambient globals.
 
 ## NAMING & STRUCTURE
 
@@ -140,11 +140,9 @@
 
 ## ERROR REPORTING & OBSERVABILITY
 
-111. SWAGGER — Document every public API (`@ApiTags`, `@ApiResponse`). Keep descriptions human-readable.
-112. HEALTH CHECK — Expose `/version` (already implemented). Extend with `/healthz` if infra requires.
-113. METRICS — If adding Prometheus/Grafana, isolate under `server/src/modules/metrics` and document endpoints.
-114. RATE LIMITS — Respect configured throttler; for open endpoints consider stronger limits or captcha.
-115. AUDIT — Log successful admin actions (user creation, config changes) at INFO level.
+111. HEALTH CHECK — Expose `/version` (already implemented). Extend with `/healthz` if infra requires.
+112. RATE LIMITS — Respect configured throttler; for open endpoints consider stronger limits or captcha.
+113. AUDIT — Log successful admin actions (user creation, config changes) at INFO level.
 
 ## PULL REQUEST EXPECTATIONS
 
