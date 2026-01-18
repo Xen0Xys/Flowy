@@ -62,6 +62,7 @@ export class FamilyController {
 
     @Post("join/:code")
     @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard)
     async joinFamily(
         @User() user: UserEntity,
         @Param("code") code: string,
