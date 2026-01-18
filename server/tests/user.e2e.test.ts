@@ -54,9 +54,9 @@ describe("UserController (e2e)", () => {
     });
 
     beforeEach(async () => {
-        await prisma.familyMembers.deleteMany();
         await prisma.userSettings.deleteMany();
         await prisma.users.deleteMany();
+        await prisma.family.deleteMany();
         await prisma.config.update({
             where: {key: ConfigKey.REGISTRATION_ENABLED},
             data: {value: "true"},
@@ -100,6 +100,41 @@ describe("UserController (e2e)", () => {
         );
     });
 
+    test("rejects registration when registration is disabled", async () => {
+        await prisma.config.update({
+            where: {key: ConfigKey.REGISTRATION_ENABLED},
+            data: {value: "false"},
+        });
+
+        const payload = buildRegisterPayload();
+        const response = await request(server)
+            .post("/user/register")
+            .send(payload);
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe(
+            "Registration is disabled on this instance",
+        );
+    });
+
+    test("rejects invalid registration payload", async () => {
+        const response = await request(server).post("/user/register").send({
+            username: "ab",
+            email: "not-an-email",
+            password: "weak",
+        });
+
+        expect(response.status).toBe(400);
+        expect(Array.isArray(response.body.message)).toBe(true);
+        expect(response.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "username"}),
+                expect.objectContaining({property: "email"}),
+                expect.objectContaining({property: "password"}),
+            ]),
+        );
+    });
+
     test("logs in an existing user", async () => {
         const payload = buildRegisterPayload();
         await request(server).post("/user/register").send(payload);
@@ -121,6 +156,67 @@ describe("UserController (e2e)", () => {
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Invalid email or password");
+    });
+
+    test("returns current user when token is valid", async () => {
+        const payload = buildRegisterPayload();
+        const login = await request(server)
+            .post("/user/register")
+            .send(payload);
+
+        expect(login.status).toBe(201);
+        const token = login.body.token;
+
+        const response = await request(server)
+            .get("/user/me")
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.email).toBe(payload.email);
+        expect(response.body).not.toHaveProperty("password");
+    });
+
+    test("rejects access to /user/me without token", async () => {
+        const response = await request(server).get("/user/me");
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authorization token is missing");
+    });
+
+    test("rejects access to /user/me with invalid token", async () => {
+        const response = await request(server)
+            .get("/user/me")
+            .set("Authorization", "Bearer invalid-token");
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Invalid or expired token");
+    });
+
+    test("responds with 500 when registration config is missing", async () => {
+        await prisma.config.delete({
+            where: {key: ConfigKey.REGISTRATION_ENABLED},
+        });
+
+        try {
+            const payload = buildRegisterPayload();
+            const response = await request(server)
+                .post("/user/register")
+                .send(payload);
+
+            expect(response.status).toBe(500);
+            expect(response.body.message).toBe(
+                "Registration configuration not found",
+            );
+        } finally {
+            await prisma.config.upsert({
+                where: {key: ConfigKey.REGISTRATION_ENABLED},
+                update: {value: "true"},
+                create: {
+                    key: ConfigKey.REGISTRATION_ENABLED,
+                    value: "true",
+                },
+            });
+        }
     });
 });
 

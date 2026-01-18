@@ -1,8 +1,11 @@
-import {UserService} from "./user.service";
-import {Body, Controller, Post} from "@nestjs/common";
-import {RegisterDto} from "./models/dto/register.dto";
+import {Body, Controller, Get, Post, UseGuards} from "@nestjs/common";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
+import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
+import {User} from "../../common/decorators/user.decorator";
+import {UserEntity} from "./models/entities/user.entity";
+import {RegisterDto} from "./models/dto/register.dto";
 import {LoginDto} from "./models/dto/login.dto";
+import {UserService} from "./user.service";
 
 @Controller("user")
 export class UserController {
@@ -18,5 +21,11 @@ export class UserController {
     async login(@Body() body: LoginDto): Promise<LoginUserEntity> {
         const {email, password} = body;
         return this.userService.login(email, password);
+    }
+
+    @Get("me")
+    @UseGuards(JwtAuthGuard)
+    async me(@User() user: UserEntity): Promise<UserEntity> {
+        return user;
     }
 }

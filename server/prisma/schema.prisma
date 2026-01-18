@@ -22,9 +22,8 @@ model Config {
 }
 
 model UserSettings {
-  user_id  String @id @unique @db.Uuid
-  user     Users  @relation(fields: [user_id], references: [id])
-  currency String @default("USD") @db.VarChar(3)
+  user_id String @id @unique @db.Uuid
+  user    Users  @relation(fields: [user_id], references: [id])
 
   @@map("user_settings")
 }
@@ -37,33 +36,26 @@ enum UserRoles {
 }
 
 model Users {
-  id            String         @id @default(uuid(7)) @db.Uuid
-  username      String         @db.VarChar(30)
-  email         String         @unique
+  id            String        @id @default(uuid(7)) @db.Uuid
+  username      String        @db.VarChar(30)
+  email         String        @unique
   password      String
-  jwt_id        String         @unique
+  jwt_id        String        @unique
   user_settings UserSettings?
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
-  family_member FamilyMembers?
+  family_role   UserRoles?
+  family_id     String?       @db.Uuid
+  family        Family?       @relation(fields: [family_id], references: [id])
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
 
   @@map("users")
 }
 
-model FamilyMembers {
-  user_id   String    @id @db.Uuid
-  user      Users     @relation(fields: [user_id], references: [id])
-  family_id String    @db.Uuid
-  family    Family    @relation(fields: [family_id], references: [id])
-  role      UserRoles @default(USER)
-
-  @@map("family_members")
-}
-
 model Family {
-  id      String          @id @default(uuid(7)) @db.Uuid
-  name    String          @db.VarChar(50)
-  members FamilyMembers[]
+  id       String  @id @default(uuid(7)) @db.Uuid
+  name     String  @db.VarChar(50)
+  currency String  @default("USD") @db.VarChar(3)
+  members  Users[]
 
   @@map("families")
 }

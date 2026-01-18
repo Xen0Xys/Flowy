@@ -3,13 +3,13 @@ import {
     Injectable,
     UnauthorizedException,
 } from "@nestjs/common";
+import {InstanceConfigService} from "../helper/instance-config.service";
+import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UserEntity} from "./models/entities/user.entity";
 import {PrismaService} from "../helper/prisma.service";
 import {Users} from "../../../prisma/generated/client";
-import crypto from "crypto";
-import {InstanceConfigService} from "../helper/instance-config.service";
 import {JwtService} from "@nestjs/jwt";
-import {LoginUserEntity} from "./models/entities/login-user.entity";
+import crypto from "crypto";
 
 @Injectable()
 export class UserService {
@@ -20,7 +20,6 @@ export class UserService {
     ) {}
 
     async generateToken(user: UserEntity): Promise<string> {
-        // Generate JWT
         const payload = {sub: user.id};
         return this.jwtService.signAsync(payload, {
             jwtid: user.jwt_id,
@@ -32,7 +31,6 @@ export class UserService {
         email: string,
         password: string,
     ): Promise<LoginUserEntity> {
-        // Check if registration is allowed
         if (!(await this.instanceConfigService.registrationAllowed()))
             throw new UnauthorizedException(
                 "Registration is disabled on this instance",
@@ -45,7 +43,6 @@ export class UserService {
             });
         if (existingUser)
             throw new ConflictException("Username or email already exists");
-        // Create user
         const user = await this.prismaService.users.create({
             data: {
                 username,
@@ -61,6 +58,7 @@ export class UserService {
             token: await this.generateToken(userEntity),
         });
     }
+
     async login(email: string, password: string): Promise<LoginUserEntity> {
         const user = await this.prismaService.users.findFirst({
             where: {email, password},
@@ -72,5 +70,13 @@ export class UserService {
             user: userEntity,
             token: await this.generateToken(userEntity),
         });
+    }
+
+    async getUserById(userId: string): Promise<UserEntity> {
+        const user = await this.prismaService.users.findUnique({
+            where: {id: userId},
+        });
+        if (!user) throw new UnauthorizedException("User not found");
+        return new UserEntity(user);
     }
 }
