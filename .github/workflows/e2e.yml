@@ -44,6 +44,7 @@ jobs:
                   bun-version: 1.3.6
 
             - name: Install dependencies
+              working-directory: server
               run: bun install
 
             - name: Generate Prisma client

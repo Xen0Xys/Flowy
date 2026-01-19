@@ -11,6 +11,7 @@ import {PrismaService} from "../helper/prisma.service";
 import {Users} from "../../../prisma/generated/client";
 import {JwtService} from "@nestjs/jwt";
 import crypto from "crypto";
+import argon2 from "argon2";
 
 @Injectable()
 export class UserService {
@@ -44,11 +45,18 @@ export class UserService {
             });
         if (existingUser)
             throw new ConflictException("Username or email already exists");
+        const hashed = await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 2 ** 16, // 64 MiB
+            timeCost: 4,
+            parallelism: 2,
+        });
+
         const user = await this.prismaService.users.create({
             data: {
                 username,
                 email,
-                password,
+                password: hashed,
                 jwt_id: crypto.randomBytes(16).toString("hex"),
             },
         });
@@ -62,9 +70,14 @@ export class UserService {
 
     async login(email: string, password: string): Promise<LoginUserEntity> {
         const user = await this.prismaService.users.findFirst({
-            where: {email, password},
+            where: {email},
         });
         if (!user) throw new UnauthorizedException("Invalid email or password");
+
+        // verify password using argon2
+        const valid = await argon2.verify(user.password, password);
+        if (!valid)
+            throw new UnauthorizedException("Invalid email or password");
 
         const userEntity = new UserEntity(user);
         return new LoginUserEntity({

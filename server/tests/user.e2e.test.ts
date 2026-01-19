@@ -218,6 +218,23 @@ describe("UserController (e2e)", () => {
             });
         }
     });
+    test("stores passwords hashed in DB (not plain text)", async () => {
+        const payload = buildRegisterPayload({password: "NotPlainP@ss1"});
+
+        const register = await request(server)
+            .post("/user/register")
+            .send(payload);
+        expect(register.status).toBe(201);
+
+        const dbUser = await prisma.users.findFirst({
+            where: {email: payload.email},
+        });
+        expect(dbUser).not.toBeNull();
+        // should not store plain password
+        expect(dbUser?.password).not.toBe(payload.password);
+        // expect argon2 hash prefix
+        expect(dbUser?.password.startsWith("$argon2")).toBe(true);
+    });
 });
 
 function buildRegisterPayload(
