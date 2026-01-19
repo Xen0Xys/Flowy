@@ -7,7 +7,7 @@
 5. CURSOR / COPILOT RULES — None detected (.cursor/ and .github/copilot-instructions.md absent); keep this section updated if that changes.
 6. TOOLCHAIN DEFAULTS — Use Bun 1.3.x and Node 20+; prefer Bun for scripts already defined with `bun`.
 7. PACKAGE MANAGERS — Do not mix npm/pnpm/yarn within the same workspace; `bun install` at repo root installs everything.
-8. MONOREPO LAYOUT — `app/` hosts the Nuxt frontend, `server/` contains the Nest backend, and shared configs live at root.
+8. MONOREPO LAYOUT — `web/` hosts the Nuxt frontend, `server/` contains the Nest backend, and shared configs live at root.
 9. WORKSPACES — The root `package.json` defines workspaces as `./*`; so `bun install` at root triggers hoisted installs for both subprojects.
 10. ENV FILES — Never commit .env artifacts; Prisma + Nest rely on `DATABASE_URL`, `APP_SECRET`, `APP_NAME`, and optionally `PREFIX`.
 11. GIT HYGIENE — Keep commits focused per task; do not amend someone else’s commits.
@@ -24,7 +24,7 @@
 19. ROOT TEST SUITE — `bun test` (Bun’s built-in test runner; respects `bunfig.toml` if present).
 20. SINGLE TEST FILE — `bun test path/to/file.test.ts` (replace with the relative file you want to isolate).
 21. WATCHING TESTS — `bun test --watch path/to/file.test.ts` will re-run on file changes.
-22. FRONTEND DEV — From `app/`: `bun run dev` for Nuxt dev server (Vite under the hood).
+22. FRONTEND DEV — From `web/`: `bun run dev` for Nuxt dev server (Vite under the hood).
 23. FRONTEND BUILD — `bun run build` (emits `.output/` for deployment).
 24. FRONTEND PREVIEW — `bun run preview` to serve the production build locally.
 25. FRONTEND GENERATE — `bun run generate` for static output; respects Nuxt route rules.
@@ -38,7 +38,7 @@
 33. PRISMA MIGRATE DEPLOY — `bunx prisma migrate deploy` (used automatically by Docker entrypoint before seeding).
 34. PRISMA STUDIO — `bunx prisma studio` for manual DB inspection (only when safe).
 35. DATABASE SEED — `bunx prisma db seed` runs `server/prisma/seed.ts`.
-36. DOCKER FRONTEND — `docker build -f app/Dockerfile -t flowy-nuxt app`.
+36. DOCKER FRONTEND — `docker build -f web/Dockerfile -t flowy-nuxt web`.
 37. DOCKER BACKEND — `docker build -f server/Dockerfile -t flowy-nest server` (needs `DATABASE_URL` build-arg value).
 38. LOGGING — Backend logs with Nest’s Logger plus custom Prisma query timing; keep log noise low in commits.
 
@@ -60,19 +60,19 @@
 
 ## FRONTEND (NUXT 4)
 
-52. ENTRY — Core app located in `app/app/`; Global layout resides in `app/app/app.vue` with `<NuxtLayout>` usage.
-53. COMPONENT PLACEMENT — UI components belong under `app/app/components/ui/`; follow shadcn-nuxt scaffolding.
+52. ENTRY — Core app located in `web/app/`; Global layout resides in `web/app/app.vue` with `<NuxtLayout>` usage.
+53. COMPONENT PLACEMENT — UI components belong under `web/app/components/ui/`; follow shadcn-nuxt scaffolding.
 54. SCRIPT SETUP — Prefer `<script setup lang="ts">`; avoid Options API unless migration requires it.
 55. TYPES — Use `defineProps`/`withDefaults` for prop typing; export shared types via `*.ts` modules inside component directories.
-56. STYLING — Tailwind is primary; utility combos should go through `cn()` from `app/app/lib/utils.ts` to deduplicate classes; prefer padding, flex, and grid for spacing and avoid margins unless a layout truly needs them.
+56. STYLING — Tailwind is primary; utility combos should go through `cn()` from `web/app/lib/utils.ts` to deduplicate classes; prefer padding, flex, and grid for spacing and avoid margins unless a layout truly needs them.
 
 57. VARIANTS — Build component variants using `class-variance-authority` like `buttonVariants`; keep tokens consistent with Tailwind palette.
 58. ICONS — Use `@nuxt/icon` or `lucide-vue-next`; ensure icons are tree-shakeable.
 59. STATE — Prefer Nuxt composables (`useState`, `useFetch`) or VueUse utilities; avoid global mutable singletons.
 60. SSR SAFETY — When accessing `window`, guard with `if (process.client)`; plugin example `plugins/ssr-width.ts` shows server-safe setup.
-61. ROUTING — Pages live under `app/app/pages/`; route naming follows file path conventions. Keep default layout lean.
+61. ROUTING — Pages live under `web/app/pages/`; route naming follows file path conventions. Keep default layout lean.
 62. FORMS — Use `<form>` with native validation where possible; for advanced validation integrate vee-validate or zod-late as needed.
-63. TESTING (FRONTEND) — When adding tests, prefer Vitest via Bun once configured; align directories under `app/tests/` or alongside components.
+63. TESTING (FRONTEND) — When adding tests, prefer Vitest via Bun once configured; align directories under `web/tests/` or alongside components.
 64. ACCESSIBILITY — Buttons always expose `aria` props; ensure focus-visible styles align with Prettier class wrapping.
 
 ## BACKEND (NEST FASTIFY)

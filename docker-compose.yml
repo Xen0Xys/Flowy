@@ -39,7 +39,7 @@ services:
 
     frontend:
         build:
-            context: ./app
+            context: ./web
             dockerfile: Dockerfile
         environment:
             HOST: 0.0.0.0
