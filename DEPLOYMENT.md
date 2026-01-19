@@ -98,11 +98,11 @@ The container automatically runs `prisma migrate deploy` and `prisma db seed` be
 ### 5.1 Build the image
 
 ```bash
-cd app
+cd web
 bun install
 bun run build
 cd ..
-docker build -f app/Dockerfile -t flowy-frontend app
+docker build -f web/Dockerfile -t flowy-frontend web
 ```
 
 ### 5.2 Run the container
