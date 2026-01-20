@@ -11,10 +11,8 @@ export function useApi() {
         if (token?.value) headers.Authorization = `Bearer ${token.value}`;
 
         // ensure URL uses base if provided and not absolute
-        const finalUrl =
-            url.startsWith("http") || url.startsWith("/")
-                ? `${base}${url}`.replace(/\/\//g, "/")
-                : `${base}/${url}`;
+        if (!url.startsWith("/")) url = `/${url}`;
+        const finalUrl = `${base}${url}`;
 
         return $fetch<T>(finalUrl, {...opts, headers});
     }

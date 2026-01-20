@@ -61,7 +61,7 @@
 ## FRONTEND (NUXT 4)
 
 52. ENTRY — Core app located in `web/app/`; Global layout resides in `web/app/app.vue` with `<NuxtLayout>` usage.
-53. COMPONENT PLACEMENT — UI components belong under `web/app/components/ui/`; follow shadcn-nuxt scaffolding.
+53. COMPONENT PLACEMENT — UI components belong under `web/app/components/ui/`; follow shadcn-vue scaffolding. Do not edit shadcn-vue files. Use `bunx shadcn-vue@latest add <component>` to add new ones.
 54. SCRIPT SETUP — Prefer `<script setup lang="ts">`; avoid Options API unless migration requires it.
 55. TYPES — Use `defineProps`/`withDefaults` for prop typing; export shared types via `*.ts` modules inside component directories.
 56. STYLING — Tailwind is primary; utility combos should go through `cn()` from `web/app/lib/utils.ts` to deduplicate classes; prefer padding, flex, and grid for spacing and avoid margins unless a layout truly needs them.
