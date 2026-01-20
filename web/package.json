@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@nuxt/icon": "2.2.1",
+        "@nuxtjs/color-mode": "4.0.0",
         "@nuxtjs/tailwindcss": "7.0.0-beta.1",
         "@pinia/nuxt": "0.11.3",
         "@vee-validate/zod": "^4.15.1",
@@ -27,6 +28,7 @@
         "vee-validate": "^4.15.1",
         "vue": "^3.5.27",
         "vue-router": "^4.6.4",
+        "vue-sonner": "^2.0.9",
         "zod": "4.3.5"
     },
     "devDependencies": {

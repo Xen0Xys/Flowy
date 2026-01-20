@@ -114,6 +114,9 @@
     * {
         @apply border-border outline-ring/50 select-none;
     }
+    main {
+        @apply bg-background text-foreground;
+    }
     body {
         @apply bg-background text-foreground;
     }
@@ -142,10 +145,10 @@
         @apply even:bg-muted m-0 border-t p-0;
     }
     th {
-        @apply border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right;
+        @apply border px-4 py-2 text-left font-bold [[align=center]]:text-center [[align=right]]:text-right;
     }
     td {
-        @apply border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right;
+        @apply border px-4 py-2 text-left [[align=center]]:text-center [[align=right]]:text-right;
     }
     code {
         @apply bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold;

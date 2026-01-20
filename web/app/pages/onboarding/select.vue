@@ -6,6 +6,14 @@ import {useApi} from "@/composables/useApi";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Card} from "@/components/ui/card";
+import {
+    Stepper,
+    StepperDescription,
+    StepperIndicator,
+    StepperItem,
+    StepperTitle,
+    StepperTrigger,
+} from "@/components/ui/stepper";
 
 const router = useRouter();
 const store = useUserStore();
@@ -13,6 +21,14 @@ const {apiFetch} = useApi();
 const code = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
+
+const steps = [
+    {title: "Welcome", description: "Get started with Flowy"},
+    {title: "Create/Join", description: "Create or join a family"},
+    {title: "Invite", description: "Invite members"},
+];
+
+const active = ref(1);
 
 function goCreate() {
     return router.push("/onboarding/create-family");
@@ -47,50 +63,92 @@ async function joinFamily() {
 </script>
 
 <template>
-    <main>
-        <h1>Onboarding — Select Family</h1>
-        <p>Please create a new family or join an existing one to continue.</p>
+    <div class="flex w-240 grow flex-col justify-center self-center">
+        <Card innerClass="p-3">
+            <Stepper class="flex items-center justify-center gap-6">
+                <template v-for="(s, i) in steps" :key="i">
+                    <StepperItem
+                        :data-state="
+                            i === active
+                                ? 'active'
+                                : i < active
+                                  ? 'completed'
+                                  : 'inactive'
+                        "
+                        :step="i"
+                        class="flex items-center">
+                        <StepperTrigger
+                            class="px-3 py-2"
+                            @click="() => (active = i)">
+                            <div class="flex items-center gap-3">
+                                <StepperIndicator>
+                                    <span
+                                        class="inline-flex h-8 w-8 items-center justify-center"
+                                        >{{ i + 1 }}</span
+                                    >
+                                </StepperIndicator>
+                                <div class="text-left">
+                                    <StepperTitle>{{ s.title }}</StepperTitle>
+                                    <StepperDescription>{{
+                                        s.description
+                                    }}</StepperDescription>
+                                </div>
+                            </div>
+                        </StepperTrigger>
+                    </StepperItem>
+                </template>
+            </Stepper>
+        </Card>
 
-        <div
-            style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-                margin-top: 1rem;
-            ">
-            <Card>
-                <h2>Create</h2>
-                <p>
-                    Create a new family to manage shared expenses and invite
-                    members. The creator becomes the family admin and can send
-                    invites.
-                </p>
-                <div>
+        <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+            <Card innerClass="h-72 flex flex-col justify-between">
+                <div class="flex flex-col gap-1">
+                    <h2 class="text-lg font-medium">Create</h2>
+                    <p class="text-muted-foreground text-sm">
+                        Create a new family to manage shared expenses and invite
+                        members. The creator becomes the family admin and can
+                        send invites.
+                    </p>
+                </div>
+                <div class="flex justify-end">
                     <Button :as="'button'" @click="goCreate"
                         >Create a new family</Button
                     >
                 </div>
             </Card>
 
-            <Card>
-                <h2>Join</h2>
-                <p>
-                    If someone already created a family, enter the invite code
-                    they sent you to join. You will be added as a family member.
-                </p>
-                <div>
-                    <Input v-model="code" placeholder="Invite code" />
+            <Card innerClass="h-72 flex flex-col justify-between">
+                <div class="flex flex-col gap-2">
+                    <div>
+                        <h2 class="text-lg font-medium">Join</h2>
+                        <p class="text-muted-foreground text-sm">
+                            If someone already created a family, enter the
+                            invite code they sent you to join.
+                        </p>
+                    </div>
+                    <div>
+                        <Input v-model="code" placeholder="Invite code" />
+                    </div>
                 </div>
-                <div style="margin-top: 0.5rem">
-                    <Button
-                        :as="'button'"
-                        :disabled="loading"
-                        @click="joinFamily"
-                        >{{ loading ? "Joining..." : "Join" }}</Button
-                    >
+
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-end">
+                        <Button
+                            :as="'button'"
+                            :disabled="loading"
+                            @click="joinFamily"
+                            >{{ loading ? "Joining..." : "Join" }}</Button
+                        >
+                    </div>
+
+                    <div
+                        v-if="error"
+                        class="text-destructive text-sm"
+                        role="alert">
+                        {{ error }}
+                    </div>
                 </div>
-                <div v-if="error" role="alert">{{ error }}</div>
             </Card>
         </div>
-    </main>
+    </div>
 </template>
