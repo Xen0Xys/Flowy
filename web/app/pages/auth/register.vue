@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {ref} from "vue";
+import { toast } from "vue-sonner";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {cn} from "@/lib/utils";
@@ -25,7 +26,9 @@ const bgImage =
 
 function validate() {
   if (!form.value.username || !form.value.email || !form.value.password) {
-    error.value = "All fields are required";
+    const msg = "All fields are required";
+    if (process.client) toast.error(msg);
+    error.value = null;
     return false;
   }
   return true;
@@ -43,7 +46,8 @@ async function submit() {
     });
     await router.push("/");
   } catch (err: any) {
-    error.value = err?.message ?? "Registration failed";
+    // store.register already shows a toast for server validation; keep inline error cleared
+    error.value = null;
   } finally {
     loading.value = false;
   }

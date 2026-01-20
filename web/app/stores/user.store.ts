@@ -1,4 +1,5 @@
 import {defineStore} from "pinia";
+import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 
 export type User = {
@@ -80,15 +81,21 @@ export const useUserStore = defineStore("user", {
                     method: "POST",
                     body: credentials,
                 });
-                if (!data || !data.token)
-                    throw new Error("Login response missing token");
+                if (!data || !data.token) {
+                    toast.error(
+                        "Registration failed: missing token from server",
+                    );
+                    throw new Error("Register response missing token");
+                }
                 this.setToken(data.token);
                 this.user = data.user ?? null; // keep user in memory only
+                toast.success("Connecté");
                 return data;
             } catch (err: any) {
                 // bubble server validation errors where possible
                 const message =
                     err?.data?.message ?? err?.message ?? "Login failed";
+                toast.error(message);
                 throw new Error(message);
             }
         },
@@ -104,14 +111,20 @@ export const useUserStore = defineStore("user", {
                     method: "POST",
                     body: payload,
                 });
-                if (!data || !data.token)
+                if (!data || !data.token) {
+                    toast.error(
+                        "Registration failed: missing token from server",
+                    );
                     throw new Error("Register response missing token");
+                }
                 this.setToken(data.token);
                 this.user = data.user ?? null;
+                toast.success("Compte créé");
                 return data;
             } catch (err: any) {
                 const message =
                     err?.data?.message ?? err?.message ?? "Registration failed";
+                toast.error(message);
                 throw new Error(message);
             }
         },
@@ -128,13 +141,19 @@ export const useUserStore = defineStore("user", {
                 // if unauthorized, clear
                 if (err?.status === 401 || err?.response?.status === 401) {
                     this.logout();
+                    toast.info("Session expirée. Veuillez vous reconnecter.");
                 }
-                throw new Error(err?.message ?? "Failed fetching profile");
+                const message = err?.message ?? "Failed fetching profile";
+                toast.error(message);
+                throw new Error(message);
             }
         },
 
         updateLocalProfile(patch: Partial<User>) {
             if (!this.user && !patch.id) {
+                toast.error(
+                    "Impossible de créer un utilisateur sans identifiant",
+                );
                 throw new Error("Cannot create user without id");
             }
             this.user = {...this.user, ...patch} as unknown as User;

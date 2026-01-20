@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {ref} from "vue";
+import { toast } from "vue-sonner";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {useApi} from "@/composables/useApi";
@@ -53,10 +54,14 @@ async function joinFamily() {
         } catch {
             // ignore profile refresh failures
         }
+        if (process.client) toast.success("Vous avez rejoint la famille");
+        // clear inline error when success is displayed via toast
+        error.value = null;
         await router.push("/");
     } catch (err: any) {
-        error.value =
-            err?.data?.message ?? err?.message ?? "Failed to join family";
+        const msg = err?.data?.message ?? err?.message ?? "Failed to join family";
+        if (process.client) toast.error(msg);
+        error.value = null;
     } finally {
         loading.value = false;
     }

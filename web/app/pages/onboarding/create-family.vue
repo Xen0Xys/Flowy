@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {ref} from "vue";
+import { toast } from "vue-sonner";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {useApi} from "@/composables/useApi";
@@ -47,7 +48,10 @@ function goBack() {
 
 function validate() {
     if (!form.value.name) {
-        error.value = "Family name is required";
+        const msg = "Family name is required";
+        if (process.client) toast.error(msg);
+        // remove inline error when using toast
+        error.value = null;
         return false;
     }
     return true;
@@ -74,10 +78,13 @@ async function submit() {
         }
 
         // optionally navigate to invite page so creator can invite members
+        if (process.client) toast.success("Family created");
         await router.push("/onboarding/invite");
     } catch (err: any) {
-        error.value =
-            err?.data?.message ?? err?.message ?? "Failed to create family";
+        const msg = err?.data?.message ?? err?.message ?? "Failed to create family";
+        if (process.client) toast.error(msg);
+        // ensure no inline error is left visible when using toast
+        error.value = null;
     } finally {
         loading.value = false;
     }

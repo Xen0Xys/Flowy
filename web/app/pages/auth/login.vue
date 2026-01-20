@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {ref} from "vue";
+import { toast } from "vue-sonner";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {cn} from "@/lib/utils";
@@ -25,7 +26,9 @@ const bgImage =
 
 function validate() {
   if (!form.value.email || !form.value.password) {
-    error.value = "Email and password are required";
+    const msg = "Email and password are required";
+    if (process.client) toast.error(msg);
+    error.value = null;
     return false;
   }
   return true;
@@ -43,7 +46,8 @@ async function submit() {
     // redirect after successful login
     await router.push("/");
   } catch (err: any) {
-    error.value = err?.message ?? "Login failed";
+    // store.login already displays a toast for server errors; remove inline error
+    error.value = null;
   } finally {
     loading.value = false;
   }
