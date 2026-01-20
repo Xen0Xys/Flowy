@@ -98,6 +98,8 @@ async function submit() {
             </div>
         </form>
 
-        <p>Already have an account? <NuxtLink to="/auth/login">Login</NuxtLink></p>
+        <p>
+            Already have an account? <NuxtLink to="/auth/login">Login</NuxtLink>
+        </p>
     </main>
 </template>

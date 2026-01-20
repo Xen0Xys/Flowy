@@ -89,7 +89,8 @@ async function submit() {
         </form>
 
         <p>
-            Don't have an account? <NuxtLink to="/auth/register">Register</NuxtLink>
+            Don't have an account?
+            <NuxtLink to="/auth/register">Register</NuxtLink>
         </p>
     </main>
 </template>

@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { ref } from "vue";
-import { useRouter } from "#app";
-import { useApi } from "@/composables/useApi";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {ref} from "vue";
+import {useRouter} from "#app";
+import {useApi} from "@/composables/useApi";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
 
 const router = useRouter();
-const { apiFetch } = useApi();
+const {apiFetch} = useApi();
 
 const email = ref("");
 const loading = ref(false);
@@ -30,13 +30,14 @@ async function sendInvite() {
     try {
         const data = await apiFetch("/family/invite", {
             method: "POST",
-            body: { email: email.value },
+            body: {email: email.value},
         });
         success.value = `Invite sent to ${email.value}`;
         invitedCount.value += 1;
         email.value = "";
     } catch (err: any) {
-        error.value = err?.data?.message ?? err?.message ?? "Failed to send invite";
+        error.value =
+            err?.data?.message ?? err?.message ?? "Failed to send invite";
     } finally {
         loading.value = false;
     }
@@ -52,15 +53,28 @@ function skip() {
     <main>
         <h1>Invite members</h1>
 
-        <p>Invite members by email. They will receive a code to join your family.</p>
+        <p>
+            Invite members by email. They will receive a code to join your
+            family.
+        </p>
 
         <div>
             <Input v-model="email" placeholder="member@example.com" />
         </div>
 
-        <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
-            <Button :as="'button'" :disabled="loading" @click="sendInvite">{{ loading ? 'Sending...' : 'Send invite' }}</Button>
-            <Button :as="'button'" variant="outline" @click="skip">{{ invitedCount > 0 ? 'Continue' : 'Skip' }}</Button>
+        <div
+            style="
+                margin-top: 0.5rem;
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            ">
+            <Button :as="'button'" :disabled="loading" @click="sendInvite">{{
+                loading ? "Sending..." : "Send invite"
+            }}</Button>
+            <Button :as="'button'" variant="outline" @click="skip">{{
+                invitedCount > 0 ? "Continue" : "Skip"
+            }}</Button>
         </div>
 
         <div v-if="error" role="alert">{{ error }}</div>
