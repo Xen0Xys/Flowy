@@ -1,8 +1,14 @@
-import {IsISO4217CurrencyCode, IsNotEmpty, IsString} from "class-validator";
+import {
+    IsISO4217CurrencyCode,
+    IsNotEmpty,
+    IsString,
+    Length,
+} from "class-validator";
 
 export class CreateFamilyDto {
     @IsString()
     @IsNotEmpty()
+    @Length(3, 50)
     name: string;
 
     @IsString()
