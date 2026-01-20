@@ -5,9 +5,9 @@ import {
 } from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
 import {UserEntity} from "../user/models/entities/user.entity";
+import {ConfigKey} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
 import argon2 from "argon2";
-import {ConfigKey} from "../../../prisma/generated/enums";
 
 @Injectable()
 export class AdminService {
@@ -26,8 +26,8 @@ export class AdminService {
     async updateRegistrationEnabled(value: boolean): Promise<void> {
         const val = value ? "true" : "false";
         await this.prisma.config.upsert({
-            where: {key: ConfigKey.REGISTRATION_ENABLED as any},
-            create: {key: ConfigKey.REGISTRATION_ENABLED as any, value: val},
+            where: {key: ConfigKey.REGISTRATION_ENABLED},
+            create: {key: ConfigKey.REGISTRATION_ENABLED, value: val},
             update: {value: val},
         });
     }
@@ -49,8 +49,8 @@ export class AdminService {
         });
         if (!user) throw new NotFoundException("User not found");
         await this.prisma.config.upsert({
-            where: {key: ConfigKey.INSTANCE_OWNER as any},
-            create: {key: ConfigKey.INSTANCE_OWNER as any, value: newOwnerId},
+            where: {key: ConfigKey.INSTANCE_OWNER},
+            create: {key: ConfigKey.INSTANCE_OWNER, value: newOwnerId},
             update: {value: newOwnerId},
         });
     }

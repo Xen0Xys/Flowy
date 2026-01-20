@@ -2,6 +2,7 @@ import {ClassSerializerInterceptor, Module} from "@nestjs/common";
 import {FamilyModule} from "./modules/family/family.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import HelperModule from "./modules/helper/helper.module";
+import {AdminModule} from "./modules/admin/admin.module";
 import {UserModule} from "./modules/user/user.module";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
@@ -36,8 +37,8 @@ import {JwtModule} from "@nestjs/jwt";
             },
         ]),
         HelperModule,
-        require("./modules/admin/admin.module").default,
         UserModule,
+        AdminModule,
         FamilyModule,
     ],
     controllers: [AppController],

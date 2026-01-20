@@ -21,7 +21,7 @@ import {AdminService} from "./admin.service";
 import {SetPasswordDto} from "./models/dto/set-password.dto";
 
 @Controller("admin")
-export default class AdminController {
+export class AdminController {
     constructor(
         private readonly prisma: PrismaService,
         private readonly adminService: AdminService,

@@ -1,5 +1,4 @@
-// @ts-ignore
-await Bun.build({
+Bun.build({
     entrypoints: ["./src/app.ts"],
     format: "esm",
     outdir: "./dist",

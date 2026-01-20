@@ -1,8 +1,0 @@
-{
-    "autoupdate": true,
-    "permission": {
-        "write": "allow",
-        "bash": "ask"
-    },
-    "$schema": "https://opencode.ai/config.json"
-}
