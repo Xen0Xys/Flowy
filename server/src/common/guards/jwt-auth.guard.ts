@@ -9,7 +9,7 @@ import {PrismaService} from "../../modules/helper/prisma.service";
 import {FastifyRequest} from "fastify";
 import {JwtService} from "@nestjs/jwt";
 
-interface AuthenticatedRequest extends FastifyRequest {
+export interface AuthenticatedRequest extends FastifyRequest {
     user?: UserEntity;
 }
 

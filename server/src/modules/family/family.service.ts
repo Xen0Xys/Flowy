@@ -168,4 +168,35 @@ export class FamilyService {
             },
         });
     }
+
+    async updateFamilySettings(
+        user: UserEntity,
+        body: {name?: string; currency?: string},
+    ) {
+        if (!user.family_id)
+            throw new NotFoundException("User is not in a family");
+        const family = await this.prismaService.family.findUnique({
+            where: {id: user.family_id},
+        });
+        if (!family) throw new NotFoundException("Family does not exist");
+
+        // Only family admin can update
+        if (user.family_role !== UserRoles.ADMIN)
+            throw new UnauthorizedException("User must be a family admin");
+
+        const data: any = {};
+        if (body.name) data.name = body.name;
+        if (body.currency) data.currency = body.currency;
+
+        const updated = await this.prismaService.family.update({
+            where: {id: user.family_id},
+            data,
+        });
+
+        return new FamilyEntity({
+            name: updated.name,
+            currency: updated.currency,
+            owner: user,
+        });
+    }
 }

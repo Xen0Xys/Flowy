@@ -144,7 +144,7 @@ describe("FamilyController (e2e)", () => {
         ]);
     });
 
-    test("prevents non-admin members from inviting others", async () => {
+    test("admin can invite and member can accept invite", async () => {
         const admin = await registerUser();
         const family = await createFamily(admin.token);
         const member = await registerUser();
@@ -160,6 +160,31 @@ describe("FamilyController (e2e)", () => {
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
 
+        const memberRecord = await prisma.users.findUnique({
+            where: {email: member.user.email},
+        });
+        expect(memberRecord?.family_id).toBe(family.id);
+        expect(memberRecord?.family_role).toBe(UserRoles.USER);
+    });
+
+    test("non-admin member cannot invite others", async () => {
+        const admin = await registerUser();
+        await createFamily(admin.token);
+        const member = await registerUser();
+
+        // admin invites and member joins
+        const inviteResponse = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await request(server)
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        // now the member (non-admin) attempts to invite
         const forbiddenInvite = await request(server)
             .post("/family/invite")
             .set("Authorization", `Bearer ${member.token}`)
@@ -169,12 +194,6 @@ describe("FamilyController (e2e)", () => {
         expect(forbiddenInvite.body.message).toBe(
             "User must be a family admin",
         );
-
-        const memberRecord = await prisma.users.findUnique({
-            where: {email: member.user.email},
-        });
-        expect(memberRecord?.family_id).toBe(family.id);
-        expect(memberRecord?.family_role).toBe(UserRoles.USER);
     });
 
     test("allows admins to revoke invites", async () => {

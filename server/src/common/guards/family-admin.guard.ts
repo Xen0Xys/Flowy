@@ -4,19 +4,17 @@ import {
     ForbiddenException,
     Injectable,
 } from "@nestjs/common";
-import {FastifyRequest} from "fastify";
 import {UserEntity} from "../../modules/user/models/entities/user.entity";
 import {UserRoles} from "../../../prisma/generated/enums";
-
-interface RequestWithUser extends FastifyRequest {
-    user?: UserEntity;
-}
+import {AuthenticatedRequest} from "./jwt-auth.guard";
 
 @Injectable()
 export class FamilyAdminGuard implements CanActivate {
     canActivate(context: ExecutionContext): boolean {
-        const request = context.switchToHttp().getRequest<RequestWithUser>();
-        const user = request.user;
+        const request: AuthenticatedRequest = context
+            .switchToHttp()
+            .getRequest<AuthenticatedRequest>();
+        const user: UserEntity | undefined = request.user;
 
         if (!user) throw new ForbiddenException("Authentication required");
 

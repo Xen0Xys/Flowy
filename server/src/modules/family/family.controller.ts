@@ -7,6 +7,7 @@ import {
     HttpStatus,
     Param,
     Post,
+    Patch,
     UseGuards,
 } from "@nestjs/common";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
@@ -15,6 +16,7 @@ import {FamilyAdminGuard} from "../../common/guards/family-admin.guard";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {CreateFamilyDto} from "./models/dto/create-family.dto";
 import {InviteMemberDto} from "./models/dto/invite-member.dto";
+import {UpdateFamilyDto} from "./models/dto/update-family.dto";
 import {UserEntity} from "../user/models/entities/user.entity";
 import {FamilyEntity} from "./models/entities/family.entity";
 import {User} from "../../common/decorators/user.decorator";
@@ -75,5 +77,14 @@ export class FamilyController {
     @UseGuards(JwtAuthGuard)
     async quitFamily(@User() user: UserEntity): Promise<void> {
         return await this.familyService.quitFamily(user);
+    }
+
+    @Patch("settings")
+    @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    async updateFamilySettings(
+        @User() user: UserEntity,
+        @Body() body: UpdateFamilyDto,
+    ): Promise<FamilyEntity> {
+        return await this.familyService.updateFamilySettings(user, body);
     }
 }

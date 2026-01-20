@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "config_keys" AS ENUM ('SELF_HOSTED', 'REGISTRATION_ENABLED');
+CREATE TYPE "config_keys" AS ENUM ('SELF_HOSTED', 'REGISTRATION_ENABLED', 'INSTANCE_OWNER');
 
 -- CreateEnum
 CREATE TYPE "user_roles" AS ENUM ('ADMIN', 'USER');
@@ -66,7 +66,7 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE UNIQUE INDEX "users_jwt_id_key" ON "users"("jwt_id");
 
 -- AddForeignKey
-ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_family_id_fkey" FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE SET NULL ON UPDATE CASCADE;

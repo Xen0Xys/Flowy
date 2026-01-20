@@ -235,6 +235,136 @@ describe("UserController (e2e)", () => {
         // expect argon2 hash prefix
         expect(dbUser?.password.startsWith("$argon2")).toBe(true);
     });
+
+    test("updates username when authenticated and validates conflicts", async () => {
+        const a = buildRegisterPayload();
+        const b = buildRegisterPayload();
+
+        const regA = await request(server).post("/user/register").send(a);
+        expect(regA.status).toBe(201);
+        const tokenA = regA.body.token;
+
+        const regB = await request(server).post("/user/register").send(b);
+        expect(regB.status).toBe(201);
+
+        // successful update
+        const newUsername = `new-${a.username}`;
+        const upd = await request(server)
+            .patch("/user/me/username")
+            .set("Authorization", `Bearer ${tokenA}`)
+            .send({username: newUsername});
+        expect(upd.status).toBe(200);
+        expect(upd.body.username).toBe(newUsername);
+
+        // conflict with existing username
+        const conflict = await request(server)
+            .patch("/user/me/username")
+            .set("Authorization", `Bearer ${tokenA}`)
+            .send({username: regB.body.user.username});
+        expect(conflict.status).toBe(409);
+        expect(conflict.body.message).toContain("Username or email already exists");
+    });
+
+    test("updates email when authenticated and validates conflicts", async () => {
+        const a = buildRegisterPayload();
+        const b = buildRegisterPayload();
+
+        const regA = await request(server).post("/user/register").send(a);
+        expect(regA.status).toBe(201);
+        const tokenA = regA.body.token;
+
+        const regB = await request(server).post("/user/register").send(b);
+        expect(regB.status).toBe(201);
+
+        const newEmail = `changed-${a.email}`;
+        const upd = await request(server)
+            .patch("/user/me/email")
+            .set("Authorization", `Bearer ${tokenA}`)
+            .send({email: newEmail});
+        expect(upd.status).toBe(200);
+        expect(upd.body.email).toBe(newEmail);
+
+        const conflict = await request(server)
+            .patch("/user/me/email")
+            .set("Authorization", `Bearer ${tokenA}`)
+            .send({email: regB.body.user.email});
+        expect(conflict.status).toBe(409);
+        expect(conflict.body.message).toContain("Username or email already exists");
+    });
+
+    test("changes password, rotates jwt and requires new token", async () => {
+        const payload = buildRegisterPayload({password: "OldP@ss1"});
+        const reg = await request(server).post("/user/register").send(payload);
+        expect(reg.status).toBe(201);
+        const oldToken = reg.body.token;
+
+        // change password
+        const change = await request(server)
+            .patch("/user/me/password")
+            .set("Authorization", `Bearer ${oldToken}`)
+            .send({old_password: payload.password, password: "NewP@ss2"});
+        expect(change.status).toBe(200);
+
+        // old token must be invalid now
+        const now = await request(server)
+            .get("/user/me")
+            .set("Authorization", `Bearer ${oldToken}`);
+        expect(now.status).toBe(401);
+        expect(now.body.message).toBe("Invalid or expired token");
+
+        // login with new password works
+        const login = await request(server)
+            .post("/user/login")
+            .send({email: payload.email, password: "NewP@ss2"});
+        expect(login.status).toBe(201);
+        expect(typeof login.body.token).toBe("string");
+
+        const me = await request(server)
+            .get("/user/me")
+            .set("Authorization", `Bearer ${login.body.token}`);
+        expect(me.status).toBe(200);
+        expect(me.body.email).toBe(payload.email);
+    });
+
+    test("rejects password change with wrong current password or weak new password", async () => {
+        const payload = buildRegisterPayload({password: "RightP@ss1"});
+        const reg = await request(server).post("/user/register").send(payload);
+        expect(reg.status).toBe(201);
+        const token = reg.body.token;
+
+        // wrong current password
+        const wrong = await request(server)
+            .patch("/user/me/password")
+            .set("Authorization", `Bearer ${token}`)
+            .send({old_password: "Incorrect1", password: "AnotherP@ss1"});
+        expect(wrong.status).toBe(403);
+        expect(wrong.body.message).toBe("Invalid current password");
+
+        // weak new password should be rejected by validation
+        const weak = await request(server)
+            .patch("/user/me/password")
+            .set("Authorization", `Bearer ${token}`)
+            .send({old_password: payload.password, password: "weak"});
+        expect(weak.status).toBe(400);
+        expect(Array.isArray(weak.body.message)).toBe(true);
+        expect(weak.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "password"}),
+            ]),
+        );
+    });
+
+    // Additional admin-related tests (edge cases)
+    test("user cannot access admin endpoints even if token present", async () => {
+        const payload = buildRegisterPayload();
+        const reg = await request(server).post("/user/register").send(payload);
+        expect(reg.status).toBe(201);
+
+        const resp = await request(server)
+            .get("/admin/users")
+            .set("Authorization", `Bearer ${reg.body.token}`);
+        expect(resp.status).toBe(401);
+    });
 });
 
 function buildRegisterPayload(

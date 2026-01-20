@@ -36,6 +36,7 @@ import {JwtModule} from "@nestjs/jwt";
             },
         ]),
         HelperModule,
+        require("./modules/admin/admin.module").default,
         UserModule,
         FamilyModule,
     ],

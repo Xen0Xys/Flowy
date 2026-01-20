@@ -10,6 +10,7 @@ datasource db {
 enum ConfigKey {
   SELF_HOSTED
   REGISTRATION_ENABLED
+  INSTANCE_OWNER
 
   @@map("config_keys")
 }
@@ -23,7 +24,7 @@ model Config {
 
 model UserSettings {
   user_id String @id @unique @db.Uuid
-  user    Users  @relation(fields: [user_id], references: [id])
+  user    Users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
 }
@@ -44,7 +45,7 @@ model Users {
   user_settings UserSettings?
   family_role   UserRoles?
   family_id     String?       @db.Uuid
-  family        Family?       @relation(fields: [family_id], references: [id])
+  family        Family?       @relation(fields: [family_id], references: [id], onDelete: SetNull)
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
 

@@ -1,5 +1,6 @@
 import {
     ConflictException,
+    ForbiddenException,
     Injectable,
     NotFoundException,
     UnauthorizedException,
@@ -61,6 +62,16 @@ export class UserService {
             },
         });
 
+        // If no instance owner is set, set this user as the instance owner
+        const existingOwner = await this.prismaService.config.findUnique({
+            where: {key: "INSTANCE_OWNER" as any},
+        });
+        if (!existingOwner) {
+            await this.prismaService.config.create({
+                data: {key: "INSTANCE_OWNER" as any, value: user.id},
+            });
+        }
+
         const userEntity = new UserEntity(user);
         return new LoginUserEntity({
             user: userEntity,
@@ -92,5 +103,72 @@ export class UserService {
         });
         if (!user) throw new NotFoundException("User not found");
         return new UserEntity(user);
+    }
+
+    async updateUsername(user: UserEntity, newUsername: string) {
+        // ensure username not used by another user
+        const existing = await this.prismaService.users.findFirst({
+            where: {username: newUsername},
+        });
+        if (existing && existing.id !== user.id)
+            throw new ConflictException("Username or email already exists");
+        const updated = await this.prismaService.users.update({
+            where: {id: user.id},
+            data: {username: newUsername},
+        });
+        return new UserEntity(updated);
+    }
+
+    async updateEmail(user: UserEntity, newEmail: string) {
+        const existing = await this.prismaService.users.findFirst({
+            where: {email: newEmail},
+        });
+        if (existing)
+            throw new ConflictException("Username or email already exists");
+        const updated = await this.prismaService.users.update({
+            where: {id: user.id},
+            data: {email: newEmail},
+        });
+        return new UserEntity(updated);
+    }
+
+    // public API: change password with current password verification
+    async changePassword(
+        user: UserEntity,
+        oldPassword: string,
+        newPassword: string,
+    ) {
+        const db = await this.prismaService.users.findUnique({
+            where: {id: user.id},
+        });
+        if (!db) throw new NotFoundException("User not found");
+        const valid = await argon2
+            .verify(db.password, oldPassword)
+            .catch(() => false);
+        if (!valid) throw new ForbiddenException("Invalid current password");
+        return this.persistPassword(user.id, newPassword);
+    }
+
+    // public API: set password without old password (used by admin/owner flows)
+    async updatePassword(user: UserEntity, dto: {password: string}) {
+        return this.persistPassword(user.id, dto.password);
+    }
+
+    // internal helper: hash + persist new password and rotate jwt_id
+    private async persistPassword(userId: string, password: string) {
+        const hashed = await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 2 ** 16,
+            timeCost: 4,
+            parallelism: 2,
+        });
+        const updated = await this.prismaService.users.update({
+            where: {id: userId},
+            data: {
+                password: hashed,
+                jwt_id: crypto.randomBytes(16).toString("hex"),
+            },
+        });
+        return new UserEntity(updated);
     }
 }

@@ -1,6 +1,6 @@
 import {Injectable, InternalServerErrorException} from "@nestjs/common";
-import {PrismaService} from "./prisma.service";
 import {ConfigKey} from "../../../prisma/generated/enums";
+import {PrismaService} from "./prisma.service";
 
 @Injectable()
 export class InstanceConfigService {
