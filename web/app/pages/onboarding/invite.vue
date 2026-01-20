@@ -13,6 +13,7 @@ import {
     StepperTrigger,
 } from "@/components/ui/stepper";
 import {Card} from "~/components/ui/card";
+import {cn} from "@/lib/utils";
 import {
     FormControl,
     FormField,
@@ -75,10 +76,21 @@ function skip() {
 </script>
 
 <template>
-    <div class="flex w-240 grow flex-col justify-center self-center">
+    <div
+        :class="
+            cn(
+                'flex w-full grow flex-col justify-center self-center px-4',
+                'max-w-3xl',
+            )
+        ">
         <Card innerClass="p-3">
             <Stepper
-                class="flex w-full flex-row items-center justify-center gap-4">
+                :class="
+                    cn(
+                        'flex w-max justify-center gap-6 md:items-center',
+                        'flex-col md:flex-row',
+                    )
+                ">
                 <template v-for="(s, i) in steps" :key="i">
                     <StepperItem
                         :data-state="
@@ -89,7 +101,7 @@ function skip() {
                                   : 'inactive'
                         "
                         :step="i"
-                        class="group inline-flex items-center">
+                        class="flex">
                         <StepperTrigger
                             class="px-3 py-2"
                             @click="() => (active = i)">
@@ -113,7 +125,9 @@ function skip() {
             </Stepper>
         </Card>
 
-        <Card class="w-120 self-center" innerClass="p-6">
+        <Card
+            :class="cn('w-full self-center', 'max-w-md')"
+            :innerClass="cn('p-6')">
             <header class="text-center">
                 <h1 class="text-2xl font-semibold">Invite members</h1>
             </header>

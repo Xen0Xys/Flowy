@@ -14,6 +14,7 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
+import {cn} from "@/lib/utils";
 
 const router = useRouter();
 const store = useUserStore();
@@ -63,9 +64,21 @@ async function joinFamily() {
 </script>
 
 <template>
-    <div class="flex w-240 grow flex-col justify-center self-center">
+    <div
+        :class="
+            cn(
+                'flex w-full grow flex-col justify-center self-center px-4',
+                'max-w-3xl',
+            )
+        ">
         <Card innerClass="p-3">
-            <Stepper class="flex items-center justify-center gap-6">
+            <Stepper
+                :class="
+                    cn(
+                        'flex w-max justify-center gap-6 md:items-center',
+                        'flex-col md:flex-row',
+                    )
+                ">
                 <template v-for="(s, i) in steps" :key="i">
                     <StepperItem
                         :data-state="
@@ -76,7 +89,7 @@ async function joinFamily() {
                                   : 'inactive'
                         "
                         :step="i"
-                        class="flex items-center">
+                        class="flex">
                         <StepperTrigger
                             class="px-3 py-2"
                             @click="() => (active = i)">
@@ -101,7 +114,10 @@ async function joinFamily() {
         </Card>
 
         <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-            <Card innerClass="h-72 flex flex-col justify-between">
+            <Card
+                :innerClass="
+                    cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')
+                ">
                 <div class="flex flex-col gap-1">
                     <h2 class="text-lg font-medium">Create</h2>
                     <p class="text-muted-foreground text-sm">
@@ -117,7 +133,10 @@ async function joinFamily() {
                 </div>
             </Card>
 
-            <Card innerClass="h-72 flex flex-col justify-between">
+            <Card
+                :innerClass="
+                    cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')
+                ">
                 <div class="flex flex-col gap-2">
                     <div>
                         <h2 class="text-lg font-medium">Join</h2>

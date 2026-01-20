@@ -21,6 +21,7 @@ import {
     StepperTrigger,
 } from "@/components/ui/stepper";
 import {Card} from "@/components/ui/card";
+import {cn} from "@/lib/utils";
 
 const router = useRouter();
 const store = useUserStore();
@@ -84,10 +85,21 @@ async function submit() {
 </script>
 
 <template>
-    <div class="flex w-240 grow flex-col justify-center self-center">
+    <div
+        :class="
+            cn(
+                'flex w-full grow flex-col justify-center self-center px-4',
+                'max-w-3xl',
+            )
+        ">
         <Card innerClass="p-3">
             <Stepper
-                class="flex w-full flex-row items-center justify-center gap-4">
+                :class="
+                    cn(
+                        'flex w-max justify-center gap-6 md:items-center',
+                        'flex-col md:flex-row',
+                    )
+                ">
                 <template v-for="(s, i) in steps" :key="i">
                     <StepperItem
                         :data-state="
@@ -98,7 +110,7 @@ async function submit() {
                                   : 'inactive'
                         "
                         :step="i"
-                        class="group inline-flex items-center">
+                        class="flex">
                         <StepperTrigger
                             class="px-3 py-2"
                             @click="() => (active = i)">
@@ -122,7 +134,9 @@ async function submit() {
             </Stepper>
         </Card>
 
-        <Card class="w-120 self-center" innerClass="p-6">
+        <Card
+            :class="cn('w-full self-center', 'max-w-md')"
+            :innerClass="cn('p-6')">
             <header class="text-center">
                 <h1 class="text-2xl font-semibold">Create family</h1>
             </header>
@@ -147,7 +161,11 @@ async function submit() {
                             <select
                                 id="currency"
                                 v-model="form.currency"
-                                class="w-full rounded-md border bg-transparent px-3 py-2">
+                                :class="
+                                    cn(
+                                        'w-full rounded-md border bg-transparent px-3 py-2',
+                                    )
+                                ">
                                 <option value="EUR">EUR</option>
                                 <option value="USD">USD</option>
                                 <option value="GBP">GBP</option>
