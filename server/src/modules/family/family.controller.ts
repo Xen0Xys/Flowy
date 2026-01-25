@@ -102,4 +102,23 @@ export class FamilyController {
     async getFamilyInfo(@User() user: UserEntity): Promise<FamilyEntity> {
         return await this.familyService.getFamilyInfo(user.familyId);
     }
+
+    @Delete("members/:id")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @ApiBearerAuth()
+    async removeMember(
+        @User() user: UserEntity,
+        @Param("id") id: string,
+    ): Promise<void> {
+        return await this.familyService.removeMember(user, id);
+    }
+
+    @Delete()
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @ApiBearerAuth()
+    async deleteFamily(@User() user: UserEntity): Promise<void> {
+        return await this.familyService.deleteFamily(user);
+    }
 }

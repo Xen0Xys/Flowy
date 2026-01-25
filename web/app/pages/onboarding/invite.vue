@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {ref} from "vue";
-import { toast } from "vue-sonner";
+import {toast} from "vue-sonner";
 import {useRouter} from "#app";
 import {useApi} from "@/composables/useApi";
 import {Button} from "@/components/ui/button";
@@ -66,7 +66,8 @@ async function submit() {
         if (process.client) toast.success(success.value);
         form.value.email = "";
     } catch (err: any) {
-        const msg = err?.data?.message ?? err?.message ?? "Failed to send invite";
+        const msg =
+            err?.data?.message ?? err?.message ?? "Failed to send invite";
         if (process.client) toast.error(msg);
         error.value = null;
     } finally {

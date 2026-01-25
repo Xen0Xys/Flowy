@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {ref} from "vue";
-import { toast } from "vue-sonner";
+import {toast} from "vue-sonner";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {useApi} from "@/composables/useApi";
@@ -59,7 +59,8 @@ async function joinFamily() {
         error.value = null;
         await router.push("/");
     } catch (err: any) {
-        const msg = err?.data?.message ?? err?.message ?? "Failed to join family";
+        const msg =
+            err?.data?.message ?? err?.message ?? "Failed to join family";
         if (process.client) toast.error(msg);
         error.value = null;
     } finally {

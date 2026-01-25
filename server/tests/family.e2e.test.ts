@@ -334,6 +334,45 @@ describe("FamilyController (e2e)", () => {
         expect(invalidQuit.body.message).toBe("User is not in a family");
     });
 
+    test("allows admin to delete a family and only admin can do it", async () => {
+        const admin = await registerUser();
+        const family = await createFamily(admin.token);
+
+        // Create another member
+        const member = await registerUser();
+        const inviteResponse = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await request(server)
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        // Non-admin cannot delete
+        const forbidden = await request(server)
+            .delete("/family")
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(forbidden.status).toBe(403);
+
+        // Admin deletes family
+        const del = await request(server)
+            .delete("/family")
+            .set("Authorization", `Bearer ${admin.token}`);
+        expect(del.status).toBe(204);
+
+        const stored = await prisma.family.findUnique({where: {id: family.id}});
+        expect(stored).toBeNull();
+
+        const refreshedMember = await prisma.users.findUnique({
+            where: {id: member.user.id},
+        });
+        expect(refreshedMember?.family_id).toBeNull();
+        expect(refreshedMember?.family_role).toBeNull();
+    });
+
     /**
      * GET FAMILY INFO
      */
@@ -389,6 +428,78 @@ describe("FamilyController (e2e)", () => {
         expect(memberRes.status).toBe(200);
         expect(memberRes.body.name).toBe(family.name);
         expect(memberRes.body.owner.email).toBe(admin.user.email);
+    });
+
+    /**
+     * REMOVE MEMBER
+     */
+    test("allows admin to remove a non-admin member", async () => {
+        const admin = await registerUser();
+        const family = await createFamily(admin.token);
+
+        // invite and join member
+        const member = await registerUser();
+        const inviteResponse = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await request(server)
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        // admin removes member
+        const removeResponse = await request(server)
+            .delete(`/family/members/${member.user.id}`)
+            .set("Authorization", `Bearer ${admin.token}`);
+        expect(removeResponse.status).toBe(204);
+
+        const refreshed = await prisma.users.findUnique({
+            where: {id: member.user.id},
+        });
+        expect(refreshed?.family_id).toBeNull();
+        expect(refreshed?.family_role).toBeNull();
+    });
+
+    test("rejects removing the family admin/owner", async () => {
+        const admin = await registerUser();
+        await createFamily(admin.token);
+
+        const resp = await request(server)
+            .delete(`/family/members/${admin.user.id}`)
+            .set("Authorization", `Bearer ${admin.token}`);
+
+        expect(resp.status).toBe(409);
+        expect(resp.body.message).toBe("Cannot remove family admin/owner");
+    });
+
+    test("rejects removing a member not in your family", async () => {
+        const admin = await registerUser();
+        await createFamily(admin.token);
+
+        const outsider = await registerUser();
+
+        const resp = await request(server)
+            .delete(`/family/members/${outsider.user.id}`)
+            .set("Authorization", `Bearer ${admin.token}`);
+
+        expect(resp.status).toBe(401);
+        expect(resp.body.message).toBe("Member is not part of your family");
+    });
+
+    test("returns 404 when member does not exist", async () => {
+        const admin = await registerUser();
+        await createFamily(admin.token);
+
+        const fakeId = crypto.randomUUID();
+        const resp = await request(server)
+            .delete(`/family/members/${fakeId}`)
+            .set("Authorization", `Bearer ${admin.token}`);
+
+        expect(resp.status).toBe(404);
+        expect(resp.body.message).toBe("Member not found");
     });
 });
 

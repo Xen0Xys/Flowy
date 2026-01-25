@@ -4,6 +4,7 @@ import {
     Injectable,
     NotFoundException,
     UnauthorizedException,
+    Logger,
 } from "@nestjs/common";
 import {UserService} from "../user/user.service";
 import {UserEntity} from "../user/models/entities/user.entity";
@@ -18,6 +19,8 @@ export class FamilyService {
         private readonly prismaService: PrismaService,
         private readonly userService: UserService,
     ) {}
+
+    private readonly logger = new Logger(FamilyService.name);
 
     async createFamily(name: string, currency: string, owner: UserEntity) {
         // Check if owner is already in a family
@@ -169,6 +172,56 @@ export class FamilyService {
         });
     }
 
+    async deleteFamily(user: UserEntity) {
+        if (!user.familyId)
+            throw new NotFoundException("User is not in a family");
+
+        if (user.familyRole !== UserRoles.ADMIN)
+            throw new UnauthorizedException("User must be a family admin");
+
+        const familyId = user.familyId;
+
+        // Use a transaction to remove invites, unlink members and delete the family
+        await this.prismaService.$transaction([
+            this.prismaService.familyInvites.deleteMany({
+                where: {family_id: familyId},
+            }),
+            this.prismaService.users.updateMany({
+                where: {family_id: familyId},
+                data: {family_id: null, family_role: null},
+            }),
+            this.prismaService.family.delete({where: {id: familyId}}),
+        ]);
+
+        this.logger.log(`Family ${familyId} deleted by user ${user.id}`);
+    }
+
+    async removeMember(user: UserEntity, memberId: string) {
+        if (!user.familyId)
+            throw new NotFoundException("User is not in a family");
+
+        const member = await this.prismaService.users.findUnique({
+            where: {id: memberId},
+        });
+        if (!member) throw new NotFoundException("Member not found");
+
+        if (member.family_id !== user.familyId) {
+            throw new UnauthorizedException(
+                "Member is not part of your family",
+            );
+        }
+
+        // Prevent removing the family owner/admin
+        if (member.family_role === UserRoles.ADMIN) {
+            throw new ConflictException("Cannot remove family admin/owner");
+        }
+
+        await this.prismaService.users.update({
+            where: {id: memberId},
+            data: {family_id: null, family_role: null},
+        });
+    }
+
     async updateFamilySettings(
         user: UserEntity,
         body: {name?: string; currency?: string},
@@ -207,27 +260,25 @@ export class FamilyService {
         });
         if (!family) throw new NotFoundException("Family does not exist");
 
-        const members = await this.prismaService.users.findMany({
+        let members = await this.prismaService.users.findMany({
             where: {family_id: familyId},
         });
 
-        const memberEntities = members.map(
-            (member) =>
-                new UserEntity({
-                    id: member.id,
-                    email: member.email,
-                    username: member.username,
-                    familyId: member.family_id,
-                    familyRole: member.family_role,
-                }),
+        const owner = members.find(
+            (member) => member.family_role === UserRoles.ADMIN,
+        );
+        if (!owner) throw new NotFoundException("Family owner does not exist");
+        members = members.filter((member) => member.id !== owner?.id);
+
+        const memberEntities = members.map((member) =>
+            UserService.toUserEntity(member),
         );
 
         return new FamilyEntity({
             name: family.name,
             currency: family.currency,
-            owner: memberEntities.find(
-                (member) => member.familyRole === UserRoles.ADMIN,
-            )!,
+            owner: UserService.toUserEntity(owner),
+            members: memberEntities,
         });
     }
 }

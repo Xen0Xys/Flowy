@@ -1,20 +1,26 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  runtimeConfig: {
-    public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || "",
+    runtimeConfig: {
+        public: {
+            apiBase: process.env.NUXT_PUBLIC_API_BASE || "",
+        },
     },
-  },
-  compatibilityDate: "2025-07-15",
-  devtools: { enabled: true },
-  modules: ["@nuxt/icon", "@nuxtjs/tailwindcss", "@nuxtjs/color-mode", "shadcn-nuxt", "@pinia/nuxt"],
-  // Make dark theme the default
-  colorMode: {
-    preference: "dark",
-    classSuffix: "",
-  },
-  shadcn: {
-    prefix: "",
-    componentDir: "@/components/ui",
-  },
+    compatibilityDate: "2025-07-15",
+    devtools: {enabled: true},
+    modules: [
+        "@nuxt/icon",
+        "@nuxtjs/tailwindcss",
+        "@nuxtjs/color-mode",
+        "shadcn-nuxt",
+        "@pinia/nuxt",
+    ],
+    // Make dark theme the default
+    colorMode: {
+        preference: "dark",
+        classSuffix: "",
+    },
+    shadcn: {
+        prefix: "",
+        componentDir: "@/components/ui",
+    },
 });
