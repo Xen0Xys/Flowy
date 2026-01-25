@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {ref} from "vue";
-import { toast } from "vue-sonner";
+import {toast} from "vue-sonner";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {useApi} from "@/composables/useApi";
@@ -38,7 +38,9 @@ const steps = [
     {title: "Invite", description: "Invite members"},
 ];
 
-const active = ref(1);
+// stepper indexes the steps from 0 in the template loop, start at 0 so
+// the first step is active by default
+const active = ref(0);
 
 // rely on global background token
 
@@ -81,7 +83,8 @@ async function submit() {
         if (process.client) toast.success("Family created");
         await router.push("/onboarding/invite");
     } catch (err: any) {
-        const msg = err?.data?.message ?? err?.message ?? "Failed to create family";
+        const msg =
+            err?.data?.message ?? err?.message ?? "Failed to create family";
         if (process.client) toast.error(msg);
         // ensure no inline error is left visible when using toast
         error.value = null;

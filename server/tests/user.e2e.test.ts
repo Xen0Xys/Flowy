@@ -262,7 +262,9 @@ describe("UserController (e2e)", () => {
             .set("Authorization", `Bearer ${tokenA}`)
             .send({username: regB.body.user.username});
         expect(conflict.status).toBe(409);
-        expect(conflict.body.message).toContain("Username or email already exists");
+        expect(conflict.body.message).toContain(
+            "Username or email already exists",
+        );
     });
 
     test("updates email when authenticated and validates conflicts", async () => {
@@ -289,10 +291,12 @@ describe("UserController (e2e)", () => {
             .set("Authorization", `Bearer ${tokenA}`)
             .send({email: regB.body.user.email});
         expect(conflict.status).toBe(409);
-        expect(conflict.body.message).toContain("Username or email already exists");
+        expect(conflict.body.message).toContain(
+            "Username or email already exists",
+        );
     });
 
-    test("changes password, rotates jwt and requires new token", async () => {
+    test("changes password and keeps existing tokens valid", async () => {
         const payload = buildRegisterPayload({password: "OldP@ss1"});
         const reg = await request(server).post("/user/register").send(payload);
         expect(reg.status).toBe(201);
@@ -302,17 +306,17 @@ describe("UserController (e2e)", () => {
         const change = await request(server)
             .patch("/user/me/password")
             .set("Authorization", `Bearer ${oldToken}`)
-            .send({old_password: payload.password, password: "NewP@ss2"});
+            .send({currentPassword: payload.password, newPassword: "NewP@ss2"});
         expect(change.status).toBe(200);
 
-        // old token must be invalid now
+        // old token should still be valid (we no longer rotate jwt_id on password change)
         const now = await request(server)
             .get("/user/me")
             .set("Authorization", `Bearer ${oldToken}`);
-        expect(now.status).toBe(401);
-        expect(now.body.message).toBe("Invalid or expired token");
+        expect(now.status).toBe(200);
+        expect(now.body.email).toBe(payload.email);
 
-        // login with new password works
+        // login with new password also works
         const login = await request(server)
             .post("/user/login")
             .send({email: payload.email, password: "NewP@ss2"});
@@ -336,7 +340,7 @@ describe("UserController (e2e)", () => {
         const wrong = await request(server)
             .patch("/user/me/password")
             .set("Authorization", `Bearer ${token}`)
-            .send({old_password: "Incorrect1", password: "AnotherP@ss1"});
+            .send({currentPassword: "Incorrect1", newPassword: "AnotherP@ss1"});
         expect(wrong.status).toBe(403);
         expect(wrong.body.message).toBe("Invalid current password");
 
@@ -344,12 +348,12 @@ describe("UserController (e2e)", () => {
         const weak = await request(server)
             .patch("/user/me/password")
             .set("Authorization", `Bearer ${token}`)
-            .send({old_password: payload.password, password: "weak"});
+            .send({currentPassword: payload.password, newPassword: "weak"});
         expect(weak.status).toBe(400);
         expect(Array.isArray(weak.body.message)).toBe(true);
         expect(weak.body.message).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({property: "password"}),
+                expect.objectContaining({property: "newPassword"}),
             ]),
         );
     });

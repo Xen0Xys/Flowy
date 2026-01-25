@@ -6,9 +6,9 @@ export type User = {
     id: string;
     username: string;
     email: string;
-    jwt_id?: string;
-    family_id?: string | null;
-    family_role?: string | null;
+    jwtId?: string;
+    familyId?: string | null;
+    familyRole?: string | null;
     [key: string]: any;
 };
 
@@ -27,9 +27,22 @@ export const useUserStore = defineStore("user", {
 
     getters: {
         isAuthenticated: (state) => !!state.token,
-        hasFamily: (state) => !!state.user?.family_id,
+        hasFamily: (state) => !!state.user?.familyId,
         getUser: (state) => state.user,
         getToken: (state) => state.token,
+        isFamilyAdmin: (state) => state.user?.familyRole === "ADMIN",
+        isInstanceOwner: async (state) => {
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch("/admin/instance/settings");
+                return true;
+            } catch (err: any) {
+                if (err?.status === 403 || err?.response?.status === 403) {
+                    return false;
+                }
+                throw err;
+            }
+        },
     },
 
     actions: {
@@ -89,7 +102,7 @@ export const useUserStore = defineStore("user", {
                 }
                 this.setToken(data.token);
                 this.user = data.user ?? null; // keep user in memory only
-                toast.success("Connecté");
+                toast.success("Connected");
                 return data;
             } catch (err: any) {
                 // bubble server validation errors where possible
@@ -119,7 +132,7 @@ export const useUserStore = defineStore("user", {
                 }
                 this.setToken(data.token);
                 this.user = data.user ?? null;
-                toast.success("Compte créé");
+                toast.success("Account created");
                 return data;
             } catch (err: any) {
                 const message =
@@ -141,7 +154,7 @@ export const useUserStore = defineStore("user", {
                 // if unauthorized, clear
                 if (err?.status === 401 || err?.response?.status === 401) {
                     this.logout();
-                    toast.info("Session expirée. Veuillez vous reconnecter.");
+                    toast.info("Session expired. Please log in again.");
                 }
                 const message = err?.message ?? "Failed fetching profile";
                 toast.error(message);
@@ -149,14 +162,59 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        updateLocalProfile(patch: Partial<User>) {
-            if (!this.user && !patch.id) {
-                toast.error(
-                    "Impossible de créer un utilisateur sans identifiant",
-                );
-                throw new Error("Cannot create user without id");
+        async saveUsername(newUsername: string) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                const updatedUser = await apiFetch<User>("/user/me/username", {
+                    method: "PATCH",
+                    body: {username: newUsername},
+                });
+                this.user = updatedUser;
+                toast.success("Username updated");
+                return updatedUser;
+            } catch (err: any) {
+                const message = err?.message ?? "Failed updating username";
+                toast.error(message);
+                throw new Error(message);
             }
-            this.user = {...this.user, ...patch} as unknown as User;
+        },
+
+        async saveEmail(newEmail: string) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                const updatedUser = await apiFetch<User>("/user/me/email", {
+                    method: "PATCH",
+                    body: {email: newEmail},
+                });
+                this.user = updatedUser;
+                toast.success("Email updated");
+                return updatedUser;
+            } catch (err: any) {
+                const message = err?.message ?? "Failed updating email";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async changePassword(currentPassword: string, newPassword: string) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch("/user/me/password", {
+                    method: "PATCH",
+                    body: {
+                        currentPassword,
+                        newPassword,
+                    },
+                });
+                toast.success("Password updated");
+            } catch (err: any) {
+                const message = err?.message ?? "Failed updating password";
+                toast.error(message);
+                throw new Error(message);
+            }
         },
     },
 });

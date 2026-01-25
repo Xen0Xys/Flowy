@@ -63,8 +63,8 @@ export class UserController {
     ): Promise<UserEntity> {
         return this.userService.changePassword(
             user,
-            body.old_password,
-            body.password,
+            body.currentPassword,
+            body.newPassword,
         );
     }
 }

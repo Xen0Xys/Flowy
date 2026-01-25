@@ -172,7 +172,7 @@ export class UserService {
         return this.persistPassword(user.id, dto.password);
     }
 
-    // internal helper: hash + persist new password and rotate jwt_id
+    // internal helper: hash + persist new password (do NOT rotate jwt_id)
     private async persistPassword(
         userId: string,
         password: string,
@@ -187,7 +187,6 @@ export class UserService {
             where: {id: userId},
             data: {
                 password: hashed,
-                jwt_id: crypto.randomBytes(16).toString("hex"),
             },
         });
         return UserService.toUserEntity(updated);

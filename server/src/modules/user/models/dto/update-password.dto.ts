@@ -2,7 +2,7 @@ import {IsString, IsStrongPassword, Length} from "class-validator";
 
 export class UpdatePasswordDto {
     @IsString()
-    old_password: string;
+    currentPassword: string;
 
     @IsString()
     @Length(6, 128)
@@ -13,5 +13,5 @@ export class UpdatePasswordDto {
         minNumbers: 1,
         minSymbols: 1,
     })
-    password: string;
+    newPassword: string;
 }
