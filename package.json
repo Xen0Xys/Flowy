@@ -21,7 +21,7 @@
     "dependencies": {
         "@prettier/plugin-oxc": "^0.1.3",
         "oxlint": "^1.41.0",
-        "prettier": "^3.8.0",
+        "prettier": "^3.8.1",
         "prettier-plugin-tailwindcss": "^0.7.2"
     }
 }
