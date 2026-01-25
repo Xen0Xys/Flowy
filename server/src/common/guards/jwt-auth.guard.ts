@@ -8,6 +8,7 @@ import {UserEntity} from "../../modules/user/models/entities/user.entity";
 import {PrismaService} from "../../modules/helper/prisma.service";
 import {FastifyRequest} from "fastify";
 import {JwtService} from "@nestjs/jwt";
+import {UserService} from "../../modules/user/user.service";
 
 export interface AuthenticatedRequest extends FastifyRequest {
     user?: UserEntity;
@@ -51,7 +52,7 @@ export class JwtAuthGuard implements CanActivate {
             if (payload.jti && payload.jti !== user.jwt_id)
                 throw new UnauthorizedException("Invalid authentication token");
 
-            request.user = new UserEntity(user);
+            request.user = UserService.toUserEntity(user);
             return true;
         } catch {
             throw new UnauthorizedException("Invalid or expired token");

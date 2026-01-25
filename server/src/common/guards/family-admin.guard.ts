@@ -18,12 +18,12 @@ export class FamilyAdminGuard implements CanActivate {
 
         if (!user) throw new ForbiddenException("Authentication required");
 
-        if (!user.family_id)
+        if (!user.familyId)
             throw new ForbiddenException(
                 "User is not associated with a family",
             );
 
-        if (user.family_role !== UserRoles.ADMIN)
+        if (user.familyRole !== UserRoles.ADMIN)
             throw new ForbiddenException("User must be a family admin");
 
         return true;

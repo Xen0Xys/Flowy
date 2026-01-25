@@ -333,6 +333,63 @@ describe("FamilyController (e2e)", () => {
         expect(invalidQuit.status).toBe(404);
         expect(invalidQuit.body.message).toBe("User is not in a family");
     });
+
+    /**
+     * GET FAMILY INFO
+     */
+    test("requires authentication to get family info", async () => {
+        const response = await request(server).get("/family/family");
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authorization token is missing");
+    });
+
+    test("rejects when user is not in a family", async () => {
+        const stranger = await registerUser();
+
+        const response = await request(server)
+            .get("/family/family")
+            .set("Authorization", `Bearer ${stranger.token}`);
+
+        expect(response.status).toBe(404);
+        expect(response.body.message).toBe("User is not in a family");
+    });
+
+    test("returns family info for admin and members", async () => {
+        const admin = await registerUser();
+        const family = await createFamily(admin.token);
+
+        // Admin can fetch family info
+        const adminRes = await request(server)
+            .get("/family/family")
+            .set("Authorization", `Bearer ${admin.token}`);
+
+        expect(adminRes.status).toBe(200);
+        expect(adminRes.body.name).toBe(family.name);
+        expect(adminRes.body.currency).toBe(family.currency);
+        expect(adminRes.body.owner.email).toBe(admin.user.email);
+
+        // Member (after joining) can also fetch family info and sees same owner
+        const member = await registerUser();
+        const inviteResponse = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await request(server)
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        const memberRes = await request(server)
+            .get("/family/family")
+            .set("Authorization", `Bearer ${member.token}`);
+
+        expect(memberRes.status).toBe(200);
+        expect(memberRes.body.name).toBe(family.name);
+        expect(memberRes.body.owner.email).toBe(admin.user.email);
+    });
 });
 
 interface RegisteredUser {

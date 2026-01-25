@@ -6,8 +6,8 @@ import {
     HttpCode,
     HttpStatus,
     Param,
-    Post,
     Patch,
+    Post,
     UseGuards,
 } from "@nestjs/common";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
@@ -49,7 +49,7 @@ export class FamilyController {
     @Get("invites")
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     async getInvites(@User() user: UserEntity): Promise<FamilyInviteEntity[]> {
-        return await this.familyService.getInvites(user.family_id);
+        return await this.familyService.getInvites(user.familyId);
     }
 
     @Delete("invites/:code")
@@ -86,5 +86,11 @@ export class FamilyController {
         @Body() body: UpdateFamilyDto,
     ): Promise<FamilyEntity> {
         return await this.familyService.updateFamilySettings(user, body);
+    }
+
+    @Get("family")
+    @UseGuards(JwtAuthGuard)
+    async getFamilyInfo(@User() user: UserEntity): Promise<FamilyEntity> {
+        return await this.familyService.getFamilyInfo(user.familyId);
     }
 }

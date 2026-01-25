@@ -22,10 +22,22 @@ export class UserService {
         private readonly jwtService: JwtService,
     ) {}
 
+    static toUserEntity(user: Users): UserEntity {
+        return new UserEntity({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            jwtId: user.jwt_id,
+            familyId: user.family_id,
+            familyRole: user.family_role,
+            password: user.password,
+        });
+    }
+
     async generateToken(user: UserEntity): Promise<string> {
         const payload = {sub: user.id};
         return this.jwtService.signAsync(payload, {
-            jwtid: user.jwt_id,
+            jwtid: user.jwtId,
         });
     }
 
@@ -72,7 +84,7 @@ export class UserService {
             });
         }
 
-        const userEntity = new UserEntity(user);
+        const userEntity: UserEntity = UserService.toUserEntity(user);
         return new LoginUserEntity({
             user: userEntity,
             token: await this.generateToken(userEntity),
@@ -90,7 +102,7 @@ export class UserService {
         if (!valid)
             throw new UnauthorizedException("Invalid email or password");
 
-        const userEntity = new UserEntity(user);
+        const userEntity: UserEntity = UserService.toUserEntity(user);
         return new LoginUserEntity({
             user: userEntity,
             token: await this.generateToken(userEntity),
@@ -102,10 +114,13 @@ export class UserService {
             where: {id: userId},
         });
         if (!user) throw new NotFoundException("User not found");
-        return new UserEntity(user);
+        return UserService.toUserEntity(user);
     }
 
-    async updateUsername(user: UserEntity, newUsername: string) {
+    async updateUsername(
+        user: UserEntity,
+        newUsername: string,
+    ): Promise<UserEntity> {
         // ensure username not used by another user
         const existing = await this.prismaService.users.findFirst({
             where: {username: newUsername},
@@ -116,10 +131,10 @@ export class UserService {
             where: {id: user.id},
             data: {username: newUsername},
         });
-        return new UserEntity(updated);
+        return UserService.toUserEntity(updated);
     }
 
-    async updateEmail(user: UserEntity, newEmail: string) {
+    async updateEmail(user: UserEntity, newEmail: string): Promise<UserEntity> {
         const existing = await this.prismaService.users.findFirst({
             where: {email: newEmail},
         });
@@ -129,7 +144,7 @@ export class UserService {
             where: {id: user.id},
             data: {email: newEmail},
         });
-        return new UserEntity(updated);
+        return UserService.toUserEntity(updated);
     }
 
     // public API: change password with current password verification
@@ -137,7 +152,7 @@ export class UserService {
         user: UserEntity,
         oldPassword: string,
         newPassword: string,
-    ) {
+    ): Promise<UserEntity> {
         const db = await this.prismaService.users.findUnique({
             where: {id: user.id},
         });
@@ -150,12 +165,18 @@ export class UserService {
     }
 
     // public API: set password without old password (used by admin/owner flows)
-    async updatePassword(user: UserEntity, dto: {password: string}) {
+    async updatePassword(
+        user: UserEntity,
+        dto: {password: string},
+    ): Promise<UserEntity> {
         return this.persistPassword(user.id, dto.password);
     }
 
     // internal helper: hash + persist new password and rotate jwt_id
-    private async persistPassword(userId: string, password: string) {
+    private async persistPassword(
+        userId: string,
+        password: string,
+    ): Promise<UserEntity> {
         const hashed = await argon2.hash(password, {
             type: argon2.argon2id,
             memoryCost: 2 ** 16,
@@ -169,6 +190,6 @@ export class UserService {
                 jwt_id: crypto.randomBytes(16).toString("hex"),
             },
         });
-        return new UserEntity(updated);
+        return UserService.toUserEntity(updated);
     }
 }
