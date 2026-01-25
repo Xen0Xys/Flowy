@@ -351,6 +351,99 @@ export const useUserStore = defineStore("user", {
             }
         },
 
+        // Admin helpers (instance owner only)
+        async listAdminUsers() {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                const users = await apiFetch<any[]>("/admin/users");
+                return users;
+            } catch (err: any) {
+                const message = err?.message ?? "Failed listing users";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async getInstanceSettings() {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                const settings = await apiFetch<any>(
+                    "/admin/instance/settings",
+                );
+                return settings;
+            } catch (err: any) {
+                const message =
+                    err?.message ?? "Failed fetching instance settings";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async updateRegistrationEnabled(value: boolean) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch("/admin/instance/registration_enabled", {
+                    method: "PATCH",
+                    body: {registrationEnabled: value},
+                });
+                toast.success("Registration setting updated");
+            } catch (err: any) {
+                const message =
+                    err?.message ?? "Failed updating registration setting";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async updateInstanceOwner(newOwnerId: string) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch("/admin/instance/owner", {
+                    method: "PATCH",
+                    body: {ownerId: newOwnerId},
+                });
+                toast.success("Instance owner updated");
+            } catch (err: any) {
+                const message =
+                    err?.message ?? "Failed updating instance owner";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async adminDeleteUser(id: string) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch(`/admin/users/${id}`, {method: "DELETE"});
+                toast.success("User deleted");
+            } catch (err: any) {
+                const message = err?.message ?? "Failed deleting user";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async adminUpdateUserPassword(id: string, password: string) {
+            if (!this.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch(`/admin/users/${id}/password`, {
+                    method: "PATCH",
+                    body: {password},
+                });
+                toast.success("Password updated");
+            } catch (err: any) {
+                const message = err?.message ?? "Failed updating password";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
         async removeFamilyMember(memberId: string) {
             if (!this.token) throw new Error("No token available");
             const {apiFetch} = useApi();

@@ -1,80 +1,167 @@
-<script setup lang="ts">
+<script lang="ts" setup>
+import {onMounted, ref} from "vue";
 import {useUserStore} from "~/stores/user.store";
-import {watch} from "vue";
 import {Card} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const userStore = useUserStore();
 
-// Fetch lazily on client once token is available to avoid SSR/client mismatches
-const {
-    data: instanceSettings,
-    pending: loading,
-    error,
-    execute: fetchInstanceSettings,
-} = useLazyAsyncData(
-    "instanceSettings",
-    () => userStore.fetchInstanceSettings(),
-    {server: false},
-);
+const loading = ref(false);
+const settings = ref<any>(null);
+const ownerId = ref("");
+const registrationEnabled = ref(false);
+const savingRegistration = ref(false);
+const savingOwner = ref(false);
 
-watch(
-    () => userStore.token,
-    (t) => {
-        if (t) fetchInstanceSettings();
-    },
-    {immediate: true},
-);
+async function load() {
+    if (!userStore.token) return;
+    loading.value = true;
+    try {
+        const s = await userStore.getInstanceSettings();
+        settings.value = s;
+        ownerId.value = s?.instanceOwner ?? "";
+        registrationEnabled.value = !!s?.registrationEnabled;
+    } finally {
+        loading.value = false;
+    }
+}
 
-function toggleRegistration(e: Event) {
-    const target = e.target as HTMLInputElement;
-    userStore.updateRegistrationEnabled(target.checked);
+onMounted(() => {
+    load();
+});
+
+async function saveRegistration() {
+    savingRegistration.value = true;
+    try {
+        await userStore.updateRegistrationEnabled(registrationEnabled.value);
+    } finally {
+        savingRegistration.value = false;
+    }
+}
+
+async function saveOwner() {
+    if (!ownerId.value) return;
+    savingOwner.value = true;
+    try {
+        await userStore.updateInstanceOwner(ownerId.value);
+    } finally {
+        savingOwner.value = false;
+    }
 }
 </script>
 
 <template>
-    <Card class="max-w-2xl" innerClass="p-4">
-        <header class="mb-4">
-            <h2 class="text-lg font-semibold">Instance settings</h2>
-            <p class="text-muted-foreground text-sm">
-                Global settings for the instance
-            </p>
-        </header>
-
-        <div v-if="loading">Loading...</div>
-        <div v-else-if="!userStore.token">
-            You are not authenticated. Please log in.
-        </div>
-        <div v-else>
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <p class="font-medium">Registration</p>
-                    <p class="text-muted-foreground text-sm">
-                        Allow new user signups
-                    </p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <label class="inline-flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            :checked="instanceSettings?.registrationEnabled"
-                            @change="toggleRegistration"
-                            aria-label="Enable registrations" />
-                    </label>
-                    <Button variant="ghost" @click="fetchInstanceSettings"
-                        >Refresh</Button
-                    >
-                </div>
+    <div class="w-full">
+        <div class="mx-auto w-full max-w-4xl py-6">
+            <div class="mb-6">
+                <h1 class="text-2xl font-semibold">Instance settings</h1>
+                <p class="text-muted-foreground text-sm">
+                    Manage global instance settings
+                </p>
             </div>
 
-            <div
-                v-if="!instanceSettings"
-                class="text-muted-foreground mt-3 text-sm">
-                No data available
-            </div>
-            <div v-if="error" class="text-destructive mt-3 text-sm">
-                Error while loading
-            </div>
+            <Card>
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-medium">Registration</div>
+                            <div class="text-muted-foreground text-xs">
+                                Allow users to register
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input
+                                v-model="registrationEnabled"
+                                type="checkbox" />
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        :disabled="savingRegistration"
+                                        size="sm"
+                                        >Save</Button
+                                    >
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle
+                                            >Save registration
+                                            setting</AlertDialogTitle
+                                        >
+                                        <AlertDialogDescription>
+                                            Changing registration setting
+                                            affects who can create accounts. Are
+                                            you sure?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel
+                                            >Cancel</AlertDialogCancel
+                                        >
+                                        <AlertDialogAction
+                                            @click="saveRegistration"
+                                            >Save</AlertDialogAction
+                                        >
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-medium">
+                                Instance owner
+                            </div>
+                            <div class="text-muted-foreground text-xs">
+                                Set the owner of this instance (user id)
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Input v-model="ownerId" placeholder="owner id" />
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button :disabled="savingOwner" size="sm"
+                                        >Save</Button
+                                    >
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle
+                                            >Change instance
+                                            owner</AlertDialogTitle
+                                        >
+                                        <AlertDialogDescription>
+                                            Changing the instance owner
+                                            transfers administrative control.
+                                            This is destructive. Proceed?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel
+                                            >Cancel</AlertDialogCancel
+                                        >
+                                        <AlertDialogAction @click="saveOwner"
+                                            >Save</AlertDialogAction
+                                        >
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    </div>
+                </div>
+            </Card>
         </div>
-    </Card>
+    </div>
 </template>
