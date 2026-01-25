@@ -14,6 +14,7 @@ import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entit
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
 import {FamilyAdminGuard} from "../../common/guards/family-admin.guard";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
+import {ApiBearerAuth} from "@nestjs/swagger";
 import {CreateFamilyDto} from "./models/dto/create-family.dto";
 import {InviteMemberDto} from "./models/dto/invite-member.dto";
 import {UpdateFamilyDto} from "./models/dto/update-family.dto";
@@ -28,6 +29,7 @@ export class FamilyController {
 
     @Post("create")
     @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
     async createFamily(
         @User() user: UserEntity,
         @Body() body: CreateFamilyDto,
@@ -38,6 +40,7 @@ export class FamilyController {
 
     @Post("invite")
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @ApiBearerAuth()
     async inviteMember(
         @User() user: UserEntity,
         @Body() body: InviteMemberDto,
@@ -48,6 +51,7 @@ export class FamilyController {
 
     @Get("invites")
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @ApiBearerAuth()
     async getInvites(@User() user: UserEntity): Promise<FamilyInviteEntity[]> {
         return await this.familyService.getInvites(user.familyId);
     }
@@ -55,6 +59,7 @@ export class FamilyController {
     @Delete("invites/:code")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @ApiBearerAuth()
     async revokeInvite(
         @User() user: UserEntity,
         @Param("code") code: string,
@@ -65,6 +70,7 @@ export class FamilyController {
     @Post("join/:code")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
     async joinFamily(
         @User() user: UserEntity,
         @Param("code") code: string,
@@ -75,12 +81,14 @@ export class FamilyController {
     @Delete("quit")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
     async quitFamily(@User() user: UserEntity): Promise<void> {
         return await this.familyService.quitFamily(user);
     }
 
     @Patch("settings")
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @ApiBearerAuth()
     async updateFamilySettings(
         @User() user: UserEntity,
         @Body() body: UpdateFamilyDto,
@@ -90,6 +98,7 @@ export class FamilyController {
 
     @Get("family")
     @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
     async getFamilyInfo(@User() user: UserEntity): Promise<FamilyEntity> {
         return await this.familyService.getFamilyInfo(user.familyId);
     }

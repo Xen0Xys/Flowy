@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {InstanceOwnerGuard} from "../../common/guards/instance-owner.guard";
+import {ApiBearerAuth} from "@nestjs/swagger";
 import {PrismaService} from "../helper/prisma.service";
 import {User} from "../../common/decorators/user.decorator";
 import {UserEntity} from "../user/models/entities/user.entity";
@@ -29,12 +30,14 @@ export class AdminController {
 
     @Get("instance/settings")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
     async getInstanceSettings(): Promise<InstanceSettingsDto> {
         return this.adminService.getInstanceSettings();
     }
 
     @Patch("instance/registration_enabled")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
     async updateRegistrationEnabled(
         @User() user: UserEntity,
         @Body() body: RegistrationEnabledDto,
@@ -46,6 +49,7 @@ export class AdminController {
 
     @Get("users")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
     async listUsers(): Promise<UserEntity[]> {
         return this.adminService.listUsers();
     }
@@ -53,6 +57,7 @@ export class AdminController {
     @Delete("users/:id")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
     async deleteUser(
         @Param("id") id: string,
         @User() user: UserEntity,
@@ -63,12 +68,14 @@ export class AdminController {
     @Patch("instance/owner")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiBearerAuth()
     async updateInstanceOwner(@Body() body: UpdateOwnerDto): Promise<void> {
         return this.adminService.updateInstanceOwner(body.ownerId);
     }
 
     @Patch("users/:id/password")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
     async adminUpdateUserPassword(
         @Param("id") id: string,
         @Body() body: SetPasswordDto,
