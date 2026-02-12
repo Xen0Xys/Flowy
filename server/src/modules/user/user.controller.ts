@@ -1,7 +1,17 @@
-import {Body, Controller, Get, Patch, Post, UseGuards} from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    Patch,
+    Post,
+    UseGuards,
+} from "@nestjs/common";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UpdatePasswordDto} from "./models/dto/update-password.dto";
 import {UpdateUsernameDto} from "./models/dto/update-username.dto";
+import {DeleteAccountDto} from "./models/dto/delete-account.dto";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {UpdateEmailDto} from "./models/dto/update-email.dto";
 import {User} from "../../common/decorators/user.decorator";
@@ -66,5 +76,16 @@ export class UserController {
             body.currentPassword,
             body.newPassword,
         );
+    }
+
+    @Delete("me")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(204)
+    async deleteAccount(
+        @User() user: UserEntity,
+        @Body() body: DeleteAccountDto,
+    ): Promise<void> {
+        await this.userService.deleteOwnAccount(user, body.currentPassword);
     }
 }

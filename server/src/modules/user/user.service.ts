@@ -13,6 +13,7 @@ import {Users} from "../../../prisma/generated/client";
 import {JwtService} from "@nestjs/jwt";
 import crypto from "crypto";
 import argon2 from "argon2";
+import {Logger} from "@nestjs/common";
 
 @Injectable()
 export class UserService {
@@ -32,6 +33,44 @@ export class UserService {
             familyRole: user.family_role,
             password: user.password,
         });
+    }
+
+    // allow a user to delete their own account by confirming current password
+    async deleteOwnAccount(
+        user: UserEntity,
+        currentPassword: string,
+    ): Promise<void> {
+        const db = await this.prismaService.users.findUnique({
+            where: {id: user.id},
+        });
+        if (!db) throw new NotFoundException("User not found");
+
+        const valid = await argon2
+            .verify(db.password, currentPassword)
+            .catch(() => false);
+        if (!valid) throw new ForbiddenException("Invalid current password");
+
+        const logger = new Logger(UserService.name);
+
+        try {
+            // execute cleanup steps inside a single transaction
+            await this.prismaService.$transaction([
+                // explicitly remove user settings (schema already has cascade but be explicit)
+                this.prismaService.userSettings.deleteMany({
+                    where: {user_id: user.id},
+                }),
+                // remove instance owner config if set to this user
+                this.prismaService.config.deleteMany({
+                    where: {key: "INSTANCE_OWNER" as any, value: user.id},
+                }),
+                // finally delete the user
+                this.prismaService.users.delete({where: {id: user.id}}),
+            ]);
+        } catch (e) {
+            logger.error("Failed to delete user account", e as any);
+            // do not leak internal error details
+            throw new ForbiddenException("Unable to delete account");
+        }
     }
 
     async generateToken(user: UserEntity): Promise<string> {

@@ -1,9 +1,23 @@
 <script lang="ts" setup>
 import {useUserStore} from "~/stores/user.store";
-import {computed, ref as vueRef, watchEffect} from "vue";
+import {computed, onMounted, ref, watchEffect} from "vue";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {useApi} from "@/composables/useApi";
+import {toast} from "vue-sonner";
+import {useRouter} from "#app";
 
 const userStore = useUserStore();
 
@@ -15,7 +29,7 @@ const initials = computed(() => {
     return (parts[0][0] + parts[1][0]).toUpperCase();
 });
 
-const effectiveRole = vueRef("Member");
+const effectiveRole = ref("Member");
 
 async function computeEffectiveRole() {
     if (await userStore.isInstanceOwner) effectiveRole.value = "Instance Owner";
@@ -32,6 +46,33 @@ const changingPassword = ref(false);
 // password fields
 const currentPassword = ref("");
 const newPassword = ref("");
+// delete account
+const deleting = ref(false);
+const confirmPassword = ref("");
+
+const {apiFetch} = useApi();
+
+async function deleteAccountNow() {
+    if (!userStore.token) return;
+    if (!confirmPassword.value) return;
+    deleting.value = true;
+    try {
+        await apiFetch("/user/me", {
+            method: "DELETE",
+            body: {currentPassword: confirmPassword.value},
+        });
+        toast.success("Account deleted");
+        deleting.value = false;
+        // always clear local session
+        userStore.logout();
+        await useRouter().push("/auth/login");
+    } catch (err: any) {
+        const message =
+            err?.data?.message ?? err?.message ?? "Failed deleting account";
+        toast.error(message);
+        throw new Error(message);
+    }
+}
 
 watchEffect(() => {
     username.value = userStore.user?.username || "";
@@ -204,6 +245,64 @@ async function changePasswordNow() {
                                     >
                                     <span v-else>Updating...</span>
                                 </Button>
+                            </div>
+                            <hr class="border-border my-4" />
+                            <div class="mt-6">
+                                <AlertDialog>
+                                    <div
+                                        class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm font-medium">
+                                                Danger zone
+                                            </p>
+                                            <p
+                                                class="text-muted-foreground text-xs">
+                                                Permanently delete your account
+                                            </p>
+                                        </div>
+                                        <AlertDialogTrigger>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                >Delete account</Button
+                                            >
+                                        </AlertDialogTrigger>
+                                    </div>
+
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle
+                                                >Delete
+                                                account</AlertDialogTitle
+                                            >
+                                            <AlertDialogDescription>
+                                                This action is irreversible.
+                                                Please enter your current
+                                                password to confirm.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <div class="mt-4">
+                                            <Input
+                                                v-model="confirmPassword"
+                                                aria-label="Confirm password"
+                                                placeholder="Current password"
+                                                type="password" />
+                                        </div>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel
+                                                >Cancel</AlertDialogCancel
+                                            >
+                                            <AlertDialogAction
+                                                :disabled="deleting"
+                                                @click="deleteAccountNow">
+                                                <span v-if="!deleting"
+                                                    >Delete</span
+                                                >
+                                                <span v-else>Deleting...</span>
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
                     </Card>

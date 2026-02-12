@@ -369,6 +369,68 @@ describe("UserController (e2e)", () => {
             .set("Authorization", `Bearer ${reg.body.token}`);
         expect(resp.status).toBe(401);
     });
+
+    test("deletes own account when providing correct current password", async () => {
+        const payload = buildRegisterPayload();
+        const reg = await request(server).post("/user/register").send(payload);
+        expect(reg.status).toBe(201);
+        const token = reg.body.token;
+
+        const del = await request(server)
+            .delete("/user/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({currentPassword: payload.password});
+
+        expect(del.status).toBe(204);
+
+        const dbUser = await prisma.users.findFirst({
+            where: {email: payload.email},
+        });
+        expect(dbUser).toBeNull();
+
+        // token should no longer authenticate (user removed)
+        const me = await request(server)
+            .get("/user/me")
+            .set("Authorization", `Bearer ${token}`);
+        expect(me.status).toBe(401);
+    });
+
+    test("rejects account deletion with wrong current password", async () => {
+        const payload = buildRegisterPayload();
+        const reg = await request(server).post("/user/register").send(payload);
+        expect(reg.status).toBe(201);
+        const token = reg.body.token;
+
+        const del = await request(server)
+            .delete("/user/me")
+            .set("Authorization", `Bearer ${token}`)
+            .send({currentPassword: "incorrect-password"});
+
+        expect(del.status).toBe(403);
+        expect(del.body.message).toBe("Invalid current password");
+
+        const dbUser = await prisma.users.findFirst({
+            where: {email: payload.email},
+        });
+        expect(dbUser).not.toBeNull();
+    });
+
+    test("rejects delete account without or with invalid token", async () => {
+        const payload = buildRegisterPayload();
+        const reg = await request(server).post("/user/register").send(payload);
+        expect(reg.status).toBe(201);
+
+        const without = await request(server).delete("/user/me");
+        expect(without.status).toBe(401);
+        expect(without.body.message).toBe("Authorization token is missing");
+
+        const invalid = await request(server)
+            .delete("/user/me")
+            .set("Authorization", "Bearer invalid-token")
+            .send({currentPassword: payload.password});
+        expect(invalid.status).toBe(401);
+        expect(invalid.body.message).toBe("Invalid or expired token");
+    });
 });
 
 function buildRegisterPayload(
