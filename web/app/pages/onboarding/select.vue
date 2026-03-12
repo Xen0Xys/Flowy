@@ -152,16 +152,19 @@ async function joinFamily() {
                         </p>
                     </div>
                     <div>
-                        <Input v-model="code" placeholder="Invite code" />
+                        <Input
+                            v-model="code"
+                            placeholder="Invite code"
+                            autofocus />
                     </div>
                 </div>
 
-                <div class="flex flex-col">
+                <form class="flex flex-col" @submit.prevent="joinFamily">
                     <div class="flex items-center justify-end">
                         <Button
                             :as="'button'"
                             :disabled="loading"
-                            @click="joinFamily"
+                            type="submit"
                             >{{ loading ? "Joining..." : "Join" }}</Button
                         >
                     </div>
@@ -172,7 +175,7 @@ async function joinFamily() {
                         role="alert">
                         {{ error }}
                     </div>
-                </div>
+                </form>
             </Card>
         </div>
     </div>

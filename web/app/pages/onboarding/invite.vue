@@ -151,7 +151,8 @@ function skip() {
                                 v-model="form.email"
                                 placeholder="member@example.org"
                                 required
-                                type="email" />
+                                type="email"
+                                autofocus />
                         </FormControl>
                         <FormMessage />
                     </FormField>
@@ -167,6 +168,7 @@ function skip() {
                     }}</Button>
                     <Button
                         :as="'button'"
+                        type="button"
                         variant="outline"
                         @click.prevent="skip"
                         >{{ invitedCount > 0 ? "Continue" : "Skip" }}</Button

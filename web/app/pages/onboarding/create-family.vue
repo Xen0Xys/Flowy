@@ -158,7 +158,11 @@ async function submit() {
                     <FormField name="name">
                         <FormLabel for="name">Family name</FormLabel>
                         <FormControl>
-                            <Input id="name" v-model="form.name" required />
+                            <Input
+                                id="name"
+                                v-model="form.name"
+                                required
+                                autofocus />
                         </FormControl>
                         <FormMessage />
                     </FormField>
@@ -193,6 +197,7 @@ async function submit() {
                 <div class="flex justify-between">
                     <Button
                         :as="'button'"
+                        type="button"
                         variant="destructive"
                         @click.prevent="goBack"
                         >Retour</Button

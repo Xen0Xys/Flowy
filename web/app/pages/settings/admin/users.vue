@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import {ref, watch} from "vue";
+import {toast} from "vue-sonner";
+import {useClipboard} from "@vueuse/core";
 import {useUserStore} from "~/stores/user.store";
 import {Card} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -24,6 +35,7 @@ const deletingId = ref<string | null>(null);
 const resettingId = ref<string | null>(null);
 const newPasswords = ref<Record<string, string>>({});
 const instanceOwnerId = ref<string | null>(null);
+const resetDialogId = ref<string | null>(null);
 
 async function loadUsers() {
     if (!userStore.token) return;
@@ -72,6 +84,25 @@ async function triggerResetPassword(id: string) {
         resettingId.value = null;
     }
 }
+
+async function handleResetPassword(id: string) {
+    try {
+        await triggerResetPassword(id);
+        resetDialogId.value = null;
+    } catch {
+        resetDialogId.value = null;
+    }
+}
+
+async function copyUserId(id: string) {
+    try {
+        const {copy} = useClipboard();
+        await copy(id);
+        toast.success("UUID copied to clipboard");
+    } catch {
+        toast.error("Failed to copy UUID");
+    }
+}
 </script>
 
 <template>
@@ -93,6 +124,7 @@ async function triggerResetPassword(id: string) {
                         <tr class="text-left">
                             <th>Username</th>
                             <th>Email</th>
+                            <th>UUID</th>
                             <th class="text-right">Actions</th>
                         </tr>
                     </thead>
@@ -100,22 +132,88 @@ async function triggerResetPassword(id: string) {
                         <tr v-for="u in users" :key="u.id" class="border-t">
                             <td class="py-3">{{ u.username }}</td>
                             <td class="py-3">{{ u.email }}</td>
+                            <td class="py-3">
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="text-muted-foreground max-w-[220px] truncate font-mono text-xs"
+                                        :title="u.id"
+                                        >{{ u.id }}</span
+                                    >
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        @click="copyUserId(u.id)"
+                                        >Copy</Button
+                                    >
+                                </div>
+                            </td>
                             <td class="py-3 text-right">
                                 <div
                                     class="flex items-center justify-end gap-2">
-                                    <Input
-                                        v-model="newPasswords[u.id]"
-                                        placeholder="New password"
-                                        class="w-48" />
-                                    <Button
-                                        :disabled="resettingId === u.id"
-                                        size="sm"
-                                        @click="triggerResetPassword(u.id)">
-                                        <span v-if="resettingId !== u.id"
-                                            >Reset</span
-                                        >
-                                        <span v-else>Resetting...</span>
-                                    </Button>
+                                    <Dialog
+                                        :open="resetDialogId === u.id"
+                                        @update:open="
+                                            (value) =>
+                                                (resetDialogId = value
+                                                    ? u.id
+                                                    : null)
+                                        ">
+                                        <DialogTrigger as-child>
+                                            <Button size="sm"
+                                                >Reset Password</Button
+                                            >
+                                        </DialogTrigger>
+                                        <DialogContent class="max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle
+                                                    >Reset Password</DialogTitle
+                                                >
+                                                <DialogDescription>
+                                                    Set a new password for
+                                                    {{ u.username }}.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div class="grid gap-2">
+                                                <Input
+                                                    v-model="newPasswords[u.id]"
+                                                    placeholder="New password"
+                                                    type="password" />
+                                                <div
+                                                    class="text-muted-foreground text-xs">
+                                                    Leave empty to use the
+                                                    default password.
+                                                </div>
+                                            </div>
+                                            <DialogFooter>
+                                                <Button
+                                                    variant="outline"
+                                                    @click="
+                                                        resetDialogId = null
+                                                    "
+                                                    >Cancel</Button
+                                                >
+                                                <Button
+                                                    :disabled="
+                                                        resettingId === u.id
+                                                    "
+                                                    @click="
+                                                        handleResetPassword(
+                                                            u.id,
+                                                        )
+                                                    ">
+                                                    <span
+                                                        v-if="
+                                                            resettingId !== u.id
+                                                        "
+                                                        >Reset Password</span
+                                                    >
+                                                    <span v-else
+                                                        >Resetting...</span
+                                                    >
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
 
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>

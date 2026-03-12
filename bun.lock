@@ -5,16 +5,16 @@
     "": {
       "name": "flowly",
       "dependencies": {
-        "@prettier/plugin-oxc": "latest",
-        "oxlint": "latest",
-        "prettier": "latest",
-        "prettier-plugin-tailwindcss": "latest",
+        "@prettier/plugin-oxc": "^0.1.3",
+        "oxlint": "^1.55.0",
+        "prettier": "^3.8.1",
+        "prettier-plugin-tailwindcss": "^0.7.2",
       },
       "devDependencies": {
-        "@types/bun": "latest",
+        "@types/bun": "^1.3.10",
       },
       "peerDependencies": {
-        "typescript": "latest",
+        "typescript": "^5.9.3",
       },
     },
     "server": {
