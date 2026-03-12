@@ -51,7 +51,7 @@ function goBack() {
 function validate() {
     if (!form.value.name) {
         const msg = "Family name is required";
-        if (process.client) toast.error(msg);
+        toast.error(msg);
         // remove inline error when using toast
         error.value = null;
         return false;
@@ -80,12 +80,12 @@ async function submit() {
         }
 
         // optionally navigate to invite page so creator can invite members
-        if (process.client) toast.success("Family created");
+        toast.success("Family created");
         await router.push("/onboarding/invite");
     } catch (err: any) {
         const msg =
             err?.data?.message ?? err?.message ?? "Failed to create family";
-        if (process.client) toast.error(msg);
+        toast.error(msg);
         // ensure no inline error is left visible when using toast
         error.value = null;
     } finally {

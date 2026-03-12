@@ -27,7 +27,7 @@ const bgImage =
 function validate() {
     if (!form.value.email || !form.value.password) {
         const msg = "Email and password are required";
-        if (process.client) toast.error(msg);
+        toast.error(msg);
         error.value = null;
         return false;
     }
@@ -95,6 +95,8 @@ async function submit() {
                                             id="email"
                                             v-model="form.email"
                                             aria-label="Email"
+                                            autocomplete="email"
+                                            name="email"
                                             required
                                             type="email" />
                                     </FormControl>
@@ -112,6 +114,8 @@ async function submit() {
                                             id="password"
                                             v-model="form.password"
                                             aria-label="Password"
+                                            autocomplete="current-password"
+                                            name="password"
                                             required
                                             type="password" />
                                     </FormControl>

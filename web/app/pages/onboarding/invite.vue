@@ -42,7 +42,7 @@ const active = ref(2);
 function validate() {
     if (!form.value.email) {
         const msg = "Email is required";
-        if (process.client) toast.error(msg);
+        toast.error(msg);
         error.value = null;
         return false;
     }
@@ -63,12 +63,12 @@ async function submit() {
         });
         success.value = `Invite sent to ${form.value.email}`;
         invitedCount.value += 1;
-        if (process.client) toast.success(success.value);
+        toast.success(success.value);
         form.value.email = "";
     } catch (err: any) {
         const msg =
             err?.data?.message ?? err?.message ?? "Failed to send invite";
-        if (process.client) toast.error(msg);
+        toast.error(msg);
         error.value = null;
     } finally {
         loading.value = false;
