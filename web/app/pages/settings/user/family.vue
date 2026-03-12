@@ -1,10 +1,12 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useUserStore} from "~/stores/user.store";
+import {useFamilyStore} from "~/stores/family.store";
 import {toast} from "vue-sonner";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
+import {Skeleton} from "@/components/ui/skeleton";
 import {useClipboard} from "@vueuse/core";
 import {
     AlertDialog,
@@ -20,6 +22,7 @@ import {
 import {useRouter} from "#app";
 
 const userStore = useUserStore();
+const familyStore = useFamilyStore();
 
 type Family = {
     name: string;
@@ -32,6 +35,7 @@ const family = ref<Family | null>(null);
 const invites = ref<any[]>([]);
 
 const loading = ref(false);
+const familyLoaded = ref(false);
 const creating = ref(false);
 const inviting = ref(false);
 
@@ -45,15 +49,17 @@ const familyActionLoading = ref(false);
 
 async function loadFamily() {
     if (!userStore.token) return;
+    familyLoaded.value = false;
     loading.value = true;
     try {
-        family.value = await userStore.fetchFamily();
+        family.value = await familyStore.fetchFamily();
         if (userStore.isFamilyAdmin)
-            invites.value = await userStore.getInvites();
+            invites.value = await familyStore.getInvites();
     } catch (err) {
         // errors are handled in the store (toasts)
     } finally {
         loading.value = false;
+        familyLoaded.value = true;
     }
 }
 
@@ -62,7 +68,7 @@ async function handleCreateFamily() {
     if (!newFamilyName.value) return;
     creating.value = true;
     try {
-        await userStore.createFamily({
+        await familyStore.createFamily({
             name: newFamilyName.value,
             currency: newFamilyCurrency.value,
         });
@@ -78,9 +84,9 @@ async function handleInvite() {
     if (!inviteEmail.value) return;
     inviting.value = true;
     try {
-        await userStore.inviteMember(inviteEmail.value);
+        await familyStore.inviteMember(inviteEmail.value);
         inviteEmail.value = "";
-        invites.value = await userStore.getInvites();
+        invites.value = await familyStore.getInvites();
     } finally {
         inviting.value = false;
     }
@@ -89,8 +95,8 @@ async function handleInvite() {
 async function handleRevoke(code: string) {
     if (!userStore.token) return;
     try {
-        await userStore.revokeInvite(code);
-        invites.value = await userStore.getInvites();
+        await familyStore.revokeInvite(code);
+        invites.value = await familyStore.getInvites();
     } catch (err) {
         // store will toast
     }
@@ -111,7 +117,7 @@ async function handleDeleteFamily() {
     if (!userStore.token || !userStore.isFamilyAdmin) return;
     familyActionLoading.value = true;
     try {
-        await userStore.deleteFamily();
+        await familyStore.deleteFamily();
         family.value = null;
         await useRouter().push({path: "/onboarding/select"});
     } catch (err) {
@@ -125,7 +131,7 @@ async function handleLeaveFamily() {
     if (!userStore.token) return;
     familyActionLoading.value = true;
     try {
-        await userStore.quitFamily();
+        await familyStore.quitFamily();
         family.value = null;
         await useRouter().push({path: "/onboarding/select"});
     } catch (err) {
@@ -137,6 +143,7 @@ async function handleLeaveFamily() {
 
 onMounted(async () => {
     if (hasFamily.value) await loadFamily();
+    else familyLoaded.value = true;
 });
 
 async function removeMember(id: string) {
@@ -144,10 +151,10 @@ async function removeMember(id: string) {
     if (!userStore.isFamilyAdmin) return;
     try {
         removingMemberId.value = id;
-        await userStore.removeFamilyMember(id);
+        await familyStore.removeFamilyMember(id);
         // refresh local list
-        family.value = await userStore.fetchFamily();
-        invites.value = await userStore.getInvites();
+        family.value = await familyStore.fetchFamily();
+        invites.value = await familyStore.getInvites();
     } catch (err) {
         // store will toast
     } finally {
@@ -210,116 +217,132 @@ async function removeMember(id: string) {
                                 </template>
                                 <template v-else>
                                     <div class="text-muted-foreground text-sm">
-                                        <div>{{ family?.name }}</div>
-                                        <div class="text-xs">
-                                            Currency: {{ family?.currency }}
+                                        <div v-if="!familyLoaded || loading">
+                                            <Skeleton class="mb-2 h-4 w-32" />
+                                            <Skeleton class="h-3 w-28" />
                                         </div>
-                                        <div class="mt-3">
-                                            <template
-                                                v-if="userStore.isFamilyAdmin">
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            :disabled="
-                                                                familyActionLoading
-                                                            "
-                                                            aria-label="Delete family"
-                                                            size="sm"
-                                                            variant="destructive">
-                                                            <span
-                                                                v-if="
-                                                                    !familyActionLoading
+                                        <div v-else>
+                                            <div>{{ family?.name }}</div>
+                                            <div class="text-xs">
+                                                Currency: {{ family?.currency }}
+                                            </div>
+                                            <div class="mt-3">
+                                                <template
+                                                    v-if="
+                                                        userStore.isFamilyAdmin
+                                                    ">
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger
+                                                            asChild>
+                                                            <Button
+                                                                :disabled="
+                                                                    familyActionLoading
                                                                 "
-                                                                >Delete
-                                                                family</span
-                                                            >
-                                                            <span v-else
-                                                                >Processing...</span
-                                                            >
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle
-                                                                >Delete
-                                                                family</AlertDialogTitle
-                                                            >
-                                                            <AlertDialogDescription>
-                                                                This action will
-                                                                permanently
-                                                                delete the
-                                                                family, remove
-                                                                all invites and
-                                                                unlink members.
-                                                                This cannot be
-                                                                undone.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel
-                                                                >Cancel</AlertDialogCancel
-                                                            >
-                                                            <AlertDialogAction
-                                                                @click="
-                                                                    handleDeleteFamily
+                                                                aria-label="Delete family"
+                                                                size="sm"
+                                                                variant="destructive">
+                                                                <span
+                                                                    v-if="
+                                                                        !familyActionLoading
+                                                                    "
+                                                                    >Delete
+                                                                    family</span
+                                                                >
+                                                                <span v-else
+                                                                    >Processing...</span
+                                                                >
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle
+                                                                    >Delete
+                                                                    family</AlertDialogTitle
+                                                                >
+                                                                <AlertDialogDescription>
+                                                                    This action
+                                                                    will
+                                                                    permanently
+                                                                    delete the
+                                                                    family,
+                                                                    remove all
+                                                                    invites and
+                                                                    unlink
+                                                                    members.
+                                                                    This cannot
+                                                                    be undone.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel
+                                                                    >Cancel</AlertDialogCancel
+                                                                >
+                                                                <AlertDialogAction
+                                                                    @click="
+                                                                        handleDeleteFamily
+                                                                    "
+                                                                    >Delete</AlertDialogAction
+                                                                >
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </template>
+                                                <template v-else>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger
+                                                            asChild>
+                                                            <Button
+                                                                :disabled="
+                                                                    familyActionLoading
                                                                 "
-                                                                >Delete</AlertDialogAction
-                                                            >
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </template>
-                                            <template v-else>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            :disabled="
-                                                                familyActionLoading
-                                                            "
-                                                            aria-label="Leave family"
-                                                            size="sm"
-                                                            variant="destructive">
-                                                            <span
-                                                                v-if="
-                                                                    !familyActionLoading
-                                                                "
-                                                                >Leave
-                                                                family</span
-                                                            >
-                                                            <span v-else
-                                                                >Processing...</span
-                                                            >
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle
-                                                                >Leave
-                                                                family</AlertDialogTitle
-                                                            >
-                                                            <AlertDialogDescription>
-                                                                Are you sure you
-                                                                want to leave
-                                                                the family? You
-                                                                will no longer
-                                                                have access to
-                                                                shared data.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel
-                                                                >Cancel</AlertDialogCancel
-                                                            >
-                                                            <AlertDialogAction
-                                                                @click="
-                                                                    handleLeaveFamily
-                                                                "
-                                                                >Leave</AlertDialogAction
-                                                            >
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </template>
+                                                                aria-label="Leave family"
+                                                                size="sm"
+                                                                variant="destructive">
+                                                                <span
+                                                                    v-if="
+                                                                        !familyActionLoading
+                                                                    "
+                                                                    >Leave
+                                                                    family</span
+                                                                >
+                                                                <span v-else
+                                                                    >Processing...</span
+                                                                >
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle
+                                                                    >Leave
+                                                                    family</AlertDialogTitle
+                                                                >
+                                                                <AlertDialogDescription>
+                                                                    Are you sure
+                                                                    you want to
+                                                                    leave the
+                                                                    family? You
+                                                                    will no
+                                                                    longer have
+                                                                    access to
+                                                                    shared data.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel
+                                                                    >Cancel</AlertDialogCancel
+                                                                >
+                                                                >
+                                                                <AlertDialogAction
+                                                                    @click="
+                                                                        handleLeaveFamily
+                                                                    "
+                                                                    >Leave</AlertDialogAction
+                                                                >
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </template>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -330,10 +353,21 @@ async function removeMember(id: string) {
 
                 <main class="md:col-span-2">
                     <Card class="h-full" innerClass="p-6">
-                        <div
-                            v-if="loading"
-                            class="text-muted-foreground text-sm">
-                            Loading...
+                        <div v-if="!familyLoaded || loading">
+                            <div class="space-y-4">
+                                <Skeleton class="h-6 w-40" />
+                                <Skeleton class="h-4 w-64" />
+                                <div class="space-y-2">
+                                    <Skeleton class="h-4 w-28" />
+                                    <Skeleton class="h-10 w-full" />
+                                    <Skeleton class="h-10 w-full" />
+                                </div>
+                                <div class="space-y-2">
+                                    <Skeleton class="h-4 w-32" />
+                                    <Skeleton class="h-10 w-full" />
+                                    <Skeleton class="h-10 w-full" />
+                                </div>
+                            </div>
                         </div>
 
                         <div v-else>

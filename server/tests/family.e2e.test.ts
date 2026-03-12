@@ -435,7 +435,7 @@ describe("FamilyController (e2e)", () => {
      */
     test("allows admin to remove a non-admin member", async () => {
         const admin = await registerUser();
-        const family = await createFamily(admin.token);
+        await createFamily(admin.token);
 
         // invite and join member
         const member = await registerUser();
