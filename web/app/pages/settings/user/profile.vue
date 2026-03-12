@@ -4,6 +4,7 @@ import {computed, onMounted, ref, watchEffect} from "vue";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,6 +29,7 @@ const initials = computed(() => {
     if (parts.length === 1) return parts[0]?.slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
 });
+const avatarUrl = computed(() => userStore.user?.avatar || "");
 
 const effectiveRole = ref("Member");
 
@@ -141,11 +143,15 @@ async function changePasswordNow() {
                     <Card class="h-full" innerClass="p-6">
                         <div
                             class="flex flex-col items-center gap-4 text-center">
-                            <div
-                                aria-hidden="true"
-                                class="bg-primary text-primary-foreground flex h-20 w-20 items-center justify-center rounded-full text-2xl font-semibold">
-                                {{ initials }}
-                            </div>
+                            <Avatar class="h-20 w-20 rounded-full">
+                                <AvatarImage
+                                    :alt="userStore.user?.username ?? username"
+                                    :src="avatarUrl" />
+                                <AvatarFallback
+                                    class="rounded-full text-2xl font-semibold">
+                                    {{ initials }}
+                                </AvatarFallback>
+                            </Avatar>
                             <div>
                                 <div class="text-lg font-medium">
                                     {{ userStore.user?.username ?? username }}
