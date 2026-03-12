@@ -15,13 +15,7 @@ export default defineNuxtConfig({
             tailwindcss(),
         ],
     },
-    modules: [
-        "@nuxt/icon",
-        "@nuxtjs/tailwindcss",
-        "@nuxtjs/color-mode",
-        "shadcn-nuxt",
-        "@pinia/nuxt",
-    ],
+    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "shadcn-nuxt", "@pinia/nuxt"],
     // Make dark theme the default
     colorMode: {
         preference: "dark",
