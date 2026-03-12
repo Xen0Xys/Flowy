@@ -130,12 +130,14 @@ async function handleLogout() {
             <SidebarGroup
                 :aria-hidden="!inSettings"
                 :class="{hidden: !inSettings}">
-                <SidebarGroupLabel>Dashbord</SidebarGroupLabel>
+                <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <!-- User settings category -->
                         <SidebarMenuItem>
-                            <SidebarMenuButton as-child>
+                            <SidebarMenuButton
+                                :is-active="isActiveFunction('/')"
+                                as-child>
                                 <NuxtLink to="/">
                                     <Icon name="iconoir:arrow-left"></Icon>
                                     Back to Dashboard
@@ -149,7 +151,11 @@ async function handleLogout() {
                     <SidebarMenu>
                         <!-- User settings category -->
                         <SidebarMenuItem>
-                            <SidebarMenuButton as-child>
+                            <SidebarMenuButton
+                                :is-active="
+                                    isActiveFunction('/settings/user/profile')
+                                "
+                                as-child>
                                 <NuxtLink to="/settings/user/profile">
                                     <Icon name="iconoir:user"></Icon>
                                     Profile
@@ -157,7 +163,11 @@ async function handleLogout() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton as-child>
+                            <SidebarMenuButton
+                                :is-active="
+                                    isActiveFunction('/settings/user/family')
+                                "
+                                as-child>
                                 <NuxtLink to="/settings/user/family">
                                     <Icon name="iconoir:community"></Icon>
                                     Family</NuxtLink
@@ -171,7 +181,11 @@ async function handleLogout() {
                 >
                 <SidebarGroupContent v-if="showAdminLinks">
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child>
+                        <SidebarMenuButton
+                            :is-active="
+                                isActiveFunction('/settings/admin/instance')
+                            "
+                            as-child>
                             <NuxtLink to="/settings/admin/instance">
                                 <Icon name="iconoir:server"></Icon>
                                 Instance</NuxtLink
@@ -179,7 +193,11 @@ async function handleLogout() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child>
+                        <SidebarMenuButton
+                            :is-active="
+                                isActiveFunction('/settings/admin/users')
+                            "
+                            as-child>
                             <NuxtLink to="/settings/admin/users">
                                 <Icon name="iconoir:user-crown"></Icon>
                                 Users</NuxtLink
@@ -192,7 +210,10 @@ async function handleLogout() {
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton aria-disabled="true" as-child>
+                    <SidebarMenuButton
+                        :is-active="isActiveFunction('/unknown')"
+                        aria-disabled="true"
+                        as-child>
                         <NuxtLink>
                             <Icon name="iconoir:help-circle"></Icon>
                             <span>Get Help</span>
@@ -203,7 +224,10 @@ async function handleLogout() {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                    <SidebarMenuButton aria-disabled="true" as-child>
+                    <SidebarMenuButton
+                        :is-active="isActiveFunction('/unknown')"
+                        aria-disabled="true"
+                        as-child>
                         <NuxtLink>
                             <Icon name="iconoir:search"></Icon>
                             <span>Search</span>

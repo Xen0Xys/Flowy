@@ -4,6 +4,7 @@ import {useUserStore} from "~/stores/user.store";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
+import {Switch} from "@/components/ui/switch";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -21,7 +22,7 @@ const userStore = useUserStore();
 const loading = ref(false);
 const settings = ref<any>(null);
 const ownerId = ref("");
-const registrationEnabled = ref(false);
+const registrationEnabled = ref(true);
 const savingRegistration = ref(false);
 const savingOwner = ref(false);
 
@@ -82,9 +83,9 @@ async function saveOwner() {
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <input
+                            <Switch
                                 v-model="registrationEnabled"
-                                type="checkbox" />
+                                aria-label="Registration enabled" />
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button
