@@ -59,7 +59,7 @@ async function computeAdminVisibility() {
     try {
         // the store getter is async and may call the admin endpoint
         // await the result and update local state
-        showAdminLinks.value = !!(await userStore.isInstanceOwner);
+        showAdminLinks.value = await userStore.isInstanceOwner;
     } catch (err) {
         // if any error occurs, be conservative and hide admin links
         showAdminLinks.value = false;
