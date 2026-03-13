@@ -2,6 +2,7 @@ import {
     ConflictException,
     ForbiddenException,
     Injectable,
+    Logger,
     NotFoundException,
     UnauthorizedException,
 } from "@nestjs/common";
@@ -13,7 +14,6 @@ import {Users} from "../../../prisma/generated/client";
 import {JwtService} from "@nestjs/jwt";
 import crypto from "crypto";
 import argon2 from "argon2";
-import {Logger} from "@nestjs/common";
 
 @Injectable()
 export class UserService {
@@ -209,6 +209,11 @@ export class UserService {
         dto: {password: string},
     ): Promise<UserEntity> {
         return this.persistPassword(user.id, dto.password);
+    }
+
+    async listUsers(): Promise<UserEntity[]> {
+        const users = await this.prismaService.users.findMany();
+        return users.map((u) => UserService.toUserEntity(u));
     }
 
     // internal helper: hash + persist new password (do NOT rotate jwt_id)

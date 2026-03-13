@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore, type User} from "~/stores/user.store";
+import {type User, useUserStore} from "~/stores/user.store";
 
 export type Family = {
     name: string;
@@ -17,8 +17,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const family = await apiFetch<Family>("/family/family");
-                return family;
+                return await apiFetch<Family>("/family/family");
             } catch (err: any) {
                 const message = err?.message ?? "Failed fetching family";
                 toast.error(message);
@@ -190,6 +189,18 @@ export const useFamilyStore = defineStore("family", {
                     throw new Error(msg);
                 }
                 const message = err?.message ?? "Failed deleting family";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+        async adminGetFamily(familyId: string): Promise<Family> {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                return await apiFetch<Family>(`/admin/family/${familyId}`);
+            } catch (err: any) {
+                const message = err?.message ?? "Failed fetching family";
                 toast.error(message);
                 throw new Error(message);
             }

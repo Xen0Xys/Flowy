@@ -12,7 +12,6 @@ import {
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {InstanceOwnerGuard} from "../../common/guards/instance-owner.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
-import {PrismaService} from "../helper/prisma.service";
 import {User} from "../../common/decorators/user.decorator";
 import {UserEntity} from "../user/models/entities/user.entity";
 import {RegistrationEnabledDto} from "./models/dto/registration-enabled.dto";
@@ -20,12 +19,16 @@ import {UpdateOwnerDto} from "./models/dto/update-owner.dto";
 import {InstanceSettingsDto} from "./models/dto/instance-settings.dto";
 import {AdminService} from "./admin.service";
 import {SetPasswordDto} from "./models/dto/set-password.dto";
+import {FamilyEntity} from "../family/models/entities/family.entity";
+import {FamilyService} from "../family/family.service";
+import {UserService} from "../user/user.service";
 
 @Controller("admin")
 export class AdminController {
     constructor(
-        private readonly prisma: PrismaService,
         private readonly adminService: AdminService,
+        private readonly familyService: FamilyService,
+        private readonly usersService: UserService,
     ) {}
 
     @Get("instance/settings")
@@ -51,7 +54,16 @@ export class AdminController {
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @ApiBearerAuth()
     async listUsers(): Promise<UserEntity[]> {
-        return this.adminService.listUsers();
+        return this.usersService.listUsers();
+    }
+
+    @Get("family/:family_id")
+    @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
+    async getFamily(
+        @Param("family_id") familyId: string,
+    ): Promise<FamilyEntity> {
+        return this.familyService.getFamilyInfo(familyId);
     }
 
     @Delete("users/:id")

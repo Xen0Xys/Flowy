@@ -31,6 +31,44 @@ async function main() {
         `\n✅  Default config seeded successfully! (${Date.now() - start}ms)`,
     );
 
+    // Development-only data population using Faker
+    if (process.env.NODE_ENV === "development") {
+        console.log("\n🔧 NODE_ENV=development detected — seeding dev data...");
+
+        // dynamic imports so modules are only loaded in development
+        const {Faker, en} = await import("@faker-js/faker");
+        const fakerSeed = Number(process.env.SEED_FAKER_SEED) || Date.now();
+        // create Faker instance using provided seed (Faker constructor expects locale definitions)
+        const faker = new Faker({locale: en});
+        // explicit seed to make generated data reproducible when desired
+        faker.seed(fakerSeed);
+
+        const {seedFamilies} = await import("./seeds/families.js");
+        const {seedUsers} = await import("./seeds/users.js");
+        const {seedInvites} = await import("./seeds/invites.js");
+
+        // Families
+        start = Date.now();
+        const families = await (seedFamilies as any)(prisma, faker);
+        console.log(
+            `✅  Families seeded (${families.length}) (${Date.now() - start}ms)`,
+        );
+
+        // Users
+        start = Date.now();
+        const userIds = await (seedUsers as any)(prisma, families, faker);
+        console.log(
+            `✅  Users seeded (${userIds.length}) (${Date.now() - start}ms)`,
+        );
+
+        // Invites
+        start = Date.now();
+        const invites = await (seedInvites as any)(prisma, families, faker);
+        console.log(
+            `✅  Invites seeded (${invites.length}) (${Date.now() - start}ms)`,
+        );
+    }
+
     console.log(`\n✅  Seeding completed ! (${Date.now() - gStart}ms)`);
 }
 

@@ -7,6 +7,6 @@ import {Module} from "@nestjs/common";
     controllers: [FamilyController],
     providers: [FamilyService],
     imports: [UserModule],
-    exports: [],
+    exports: [FamilyService],
 })
 export class FamilyModule {}

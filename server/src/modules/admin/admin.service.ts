@@ -4,7 +4,6 @@ import {
     UnauthorizedException,
 } from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
-import {UserEntity} from "../user/models/entities/user.entity";
 import {ConfigKey} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
 import argon2 from "argon2";
@@ -30,11 +29,6 @@ export class AdminService {
             create: {key: ConfigKey.REGISTRATION_ENABLED, value: val},
             update: {value: val},
         });
-    }
-
-    async listUsers(): Promise<UserEntity[]> {
-        const users = await this.prisma.users.findMany();
-        return users.map((u) => new UserEntity(u));
     }
 
     async deleteUser(id: string, currentUserId: string) {
