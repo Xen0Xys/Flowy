@@ -58,4 +58,5 @@ jobs:
                   bunx prisma db seed
 
             - name: Run e2e tests
+              working-directory: server
               run: bun test

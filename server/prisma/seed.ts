@@ -43,9 +43,12 @@ async function main() {
         // explicit seed to make generated data reproducible when desired
         faker.seed(fakerSeed);
 
-        const {seedFamilies} = await import("./seeds/families.js");
-        const {seedUsers} = await import("./seeds/users.js");
-        const {seedInvites} = await import("./seeds/invites.js");
+        // @ts-ignore
+        const {seedFamilies} = await import("./seeds/families");
+        // @ts-ignore
+        const {seedUsers} = await import("./seeds/users");
+        // @ts-ignore
+        const {seedInvites} = await import("./seeds/invites");
 
         // Families
         start = Date.now();

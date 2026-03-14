@@ -2,6 +2,7 @@ import {
     ConflictException,
     ForbiddenException,
     Injectable,
+    InternalServerErrorException,
     Logger,
     NotFoundException,
     UnauthorizedException,
@@ -68,8 +69,7 @@ export class UserService {
             ]);
         } catch (e) {
             logger.error("Failed to delete user account", e as any);
-            // do not leak internal error details
-            throw new ForbiddenException("Unable to delete account");
+            throw new InternalServerErrorException("Unable to delete account");
         }
     }
 
