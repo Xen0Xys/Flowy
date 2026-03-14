@@ -54,7 +54,7 @@ jobs:
             - name: Prepare database
               working-directory: server
               env:
-                NODE_ENV: test
+                  NODE_ENV: test
               run: |
                   bunx prisma migrate deploy
                   bunx prisma db seed

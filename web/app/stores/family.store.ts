@@ -193,6 +193,7 @@ export const useFamilyStore = defineStore("family", {
                 throw new Error(message);
             }
         },
+
         async adminGetFamily(familyId: string): Promise<Family> {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");

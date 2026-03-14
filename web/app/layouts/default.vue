@@ -14,8 +14,6 @@ const showSidebar = computed(() => {
     return !(p.startsWith("/auth") || p.startsWith("/onboarding"));
 });
 
-const inSettings = computed(() => route.path.startsWith("/settings"));
-
 const defaultOpen = useCookie<boolean>("sidebar_state");
 </script>
 

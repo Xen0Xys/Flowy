@@ -2,8 +2,6 @@
 import {ref} from "vue";
 import {toast} from "vue-sonner";
 import {useRouter} from "#app";
-import {useUserStore} from "@/stores/user.store";
-import {useApi} from "@/composables/useApi";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {
@@ -32,8 +30,7 @@ import {
 } from "@/lib/validation";
 
 const router = useRouter();
-const store = useUserStore();
-const {apiFetch} = useApi();
+const familyStore = useFamilyStore();
 
 const form = ref({name: "", currency: "EUR"});
 const loading = ref(false);
@@ -91,23 +88,10 @@ async function submit() {
     if (!validate()) return;
     loading.value = true;
     try {
-        const data = await apiFetch("/family/create", {
-            method: "POST",
-            body: {
-                name: form.value.name,
-                currency: form.value.currency,
-            },
+        await familyStore.createFamily({
+            name: form.value.name,
+            currency: form.value.currency,
         });
-
-        // refresh profile to pick up family membership
-        try {
-            await store.fetchProfile();
-        } catch {
-            // ignore
-        }
-
-        // optionally navigate to invite page so creator can invite members
-        toast.success("Family created");
         await router.push("/onboarding/invite");
     } catch (err: any) {
         const msg =
@@ -188,8 +172,8 @@ async function submit() {
                             <Input
                                 id="name"
                                 v-model="form.name"
-                                required
-                                autofocus />
+                                autofocus
+                                required />
                         </FormControl>
                         <FormMessage />
                     </FormField>

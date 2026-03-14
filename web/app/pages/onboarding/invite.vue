@@ -2,7 +2,6 @@
 import {ref} from "vue";
 import {toast} from "vue-sonner";
 import {useRouter} from "#app";
-import {useApi} from "@/composables/useApi";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {
@@ -25,7 +24,7 @@ import {
 import {isValidEmail} from "@/lib/validation";
 
 const router = useRouter();
-const {apiFetch} = useApi();
+const familyStore = useFamilyStore();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -69,13 +68,8 @@ async function submit() {
     if (!validate()) return;
     loading.value = true;
     try {
-        const data = await apiFetch("/family/invite", {
-            method: "POST",
-            body: {email: form.value.email},
-        });
-        success.value = `Invite sent to ${form.value.email}`;
+        await familyStore.inviteMember(form.value.email);
         invitedCount.value += 1;
-        toast.success(success.value);
         form.value.email = "";
     } catch (err: any) {
         const msg =
@@ -155,16 +149,16 @@ function skip() {
                 novalidate
                 @submit.prevent="submit">
                 <FormItem>
-                    <FormField name="name">
-                        <FormLabel for="name">Member email</FormLabel>
+                    <FormField name="email">
+                        <FormLabel for="email">Member email</FormLabel>
                         <FormControl>
                             <Input
-                                id="name"
+                                id="email"
                                 v-model="form.email"
+                                autofocus
                                 placeholder="member@example.org"
                                 required
-                                type="email"
-                                autofocus />
+                                type="email" />
                         </FormControl>
                         <FormMessage />
                     </FormField>
