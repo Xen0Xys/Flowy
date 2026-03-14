@@ -19,6 +19,7 @@ import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import crypto from "node:crypto";
 import request from "supertest";
+import {buildRegisterPayload, ensureInstanceConfig} from "./test-utils";
 
 const envPath = path.resolve(__dirname, "../.env");
 if (fs.existsSync(envPath)) {
@@ -544,33 +545,4 @@ async function createFamily(
 
     const createdFamily = await prisma.family.findFirstOrThrow();
     return createdFamily;
-}
-
-function buildRegisterPayload(
-    overrides: Partial<{
-        username: string;
-        email: string;
-        password: string;
-    }> = {},
-) {
-    const fallbackPassword = "SuiteP@ss1";
-    const unique = crypto.randomUUID();
-    return {
-        username: overrides.username ?? `user-${unique.slice(0, 8)}`,
-        email: overrides.email ?? `user-${unique}@e2e.test`,
-        password: overrides.password ?? fallbackPassword,
-    };
-}
-
-async function ensureInstanceConfig(prismaClient: PrismaClient) {
-    await prismaClient.config.upsert({
-        where: {key: ConfigKey.SELF_HOSTED},
-        update: {value: "true"},
-        create: {key: ConfigKey.SELF_HOSTED, value: "true"},
-    });
-    await prismaClient.config.upsert({
-        where: {key: ConfigKey.REGISTRATION_ENABLED},
-        update: {value: "true"},
-        create: {key: ConfigKey.REGISTRATION_ENABLED, value: "true"},
-    });
 }

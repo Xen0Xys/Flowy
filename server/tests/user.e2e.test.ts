@@ -17,8 +17,12 @@ import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
-import crypto from "node:crypto";
 import request from "supertest";
+import {
+    buildRegisterPayload,
+    ensureInstanceConfig,
+    PASSWORD_BASE,
+} from "./test-utils";
 
 const envPath = path.resolve(__dirname, "../.env");
 if (fs.existsSync(envPath)) {
@@ -37,7 +41,7 @@ describe("UserController (e2e)", () => {
             }),
         });
         await prisma.$connect();
-        await ensureRegistrationEnabled(prisma);
+        await ensureInstanceConfig(prisma);
 
         const moduleRef = await Test.createTestingModule({
             imports: [AppModule],
@@ -219,7 +223,9 @@ describe("UserController (e2e)", () => {
         }
     });
     test("stores passwords hashed in DB (not plain text)", async () => {
-        const payload = buildRegisterPayload({password: "NotPlainP@ss1"});
+        const payload = buildRegisterPayload({
+            password: `NotPlain${PASSWORD_BASE}`,
+        });
 
         const register = await request(server)
             .post("/user/register")
@@ -297,7 +303,7 @@ describe("UserController (e2e)", () => {
     });
 
     test("changes password and keeps existing tokens valid", async () => {
-        const payload = buildRegisterPayload({password: "OldP@ss1"});
+        const payload = buildRegisterPayload({password: `Old${PASSWORD_BASE}`});
         const reg = await request(server).post("/user/register").send(payload);
         expect(reg.status).toBe(201);
         const oldToken = reg.body.token;
@@ -306,7 +312,10 @@ describe("UserController (e2e)", () => {
         const change = await request(server)
             .patch("/user/me/password")
             .set("Authorization", `Bearer ${oldToken}`)
-            .send({currentPassword: payload.password, newPassword: "NewP@ss2"});
+            .send({
+                currentPassword: payload.password,
+                newPassword: `New${PASSWORD_BASE}`,
+            });
         expect(change.status).toBe(200);
 
         // old token should still be valid (we no longer rotate jwt_id on password change)
@@ -319,7 +328,7 @@ describe("UserController (e2e)", () => {
         // login with new password also works
         const login = await request(server)
             .post("/user/login")
-            .send({email: payload.email, password: "NewP@ss2"});
+            .send({email: payload.email, password: `New${PASSWORD_BASE}`});
         expect(login.status).toBe(201);
         expect(typeof login.body.token).toBe("string");
 
@@ -331,7 +340,9 @@ describe("UserController (e2e)", () => {
     });
 
     test("rejects password change with wrong current password or weak new password", async () => {
-        const payload = buildRegisterPayload({password: "RightP@ss1"});
+        const payload = buildRegisterPayload({
+            password: `Right${PASSWORD_BASE}`,
+        });
         const reg = await request(server).post("/user/register").send(payload);
         expect(reg.status).toBe(201);
         const token = reg.body.token;
@@ -340,7 +351,10 @@ describe("UserController (e2e)", () => {
         const wrong = await request(server)
             .patch("/user/me/password")
             .set("Authorization", `Bearer ${token}`)
-            .send({currentPassword: "Incorrect1", newPassword: "AnotherP@ss1"});
+            .send({
+                currentPassword: "Incorrect1",
+                newPassword: `Another${PASSWORD_BASE}`,
+            });
         expect(wrong.status).toBe(403);
         expect(wrong.body.message).toBe("Invalid current password");
 
@@ -432,32 +446,3 @@ describe("UserController (e2e)", () => {
         expect(invalid.body.message).toBe("Invalid or expired token");
     });
 });
-
-function buildRegisterPayload(
-    overrides: Partial<{
-        username: string;
-        email: string;
-        password: string;
-    }> = {},
-) {
-    const fallbackPassword = "SuiteP@ss1";
-    const unique = crypto.randomUUID();
-    return {
-        username: overrides.username ?? `user-${unique.slice(0, 8)}`,
-        email: overrides.email ?? `user-${unique}@e2e.test`,
-        password: overrides.password ?? fallbackPassword,
-    };
-}
-
-async function ensureRegistrationEnabled(prisma: PrismaClient) {
-    await prisma.config.upsert({
-        where: {key: ConfigKey.SELF_HOSTED},
-        update: {value: "true"},
-        create: {key: ConfigKey.SELF_HOSTED, value: "true"},
-    });
-    await prisma.config.upsert({
-        where: {key: ConfigKey.REGISTRATION_ENABLED},
-        update: {value: "true"},
-        create: {key: ConfigKey.REGISTRATION_ENABLED, value: "true"},
-    });
-}
