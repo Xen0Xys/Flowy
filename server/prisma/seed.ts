@@ -32,7 +32,10 @@ async function main() {
     );
 
     // Development-only data population using Faker
-    if (process.env.NODE_ENV === "development") {
+    if (
+        process.env.NODE_ENV === "development" ||
+        process.env.NODE_ENV === "dev"
+    ) {
         console.log("\n🔧 NODE_ENV=development detected — seeding dev data...");
 
         // dynamic imports so modules are only loaded in development
