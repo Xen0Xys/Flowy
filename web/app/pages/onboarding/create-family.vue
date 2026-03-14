@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/stepper";
 import {Card} from "@/components/ui/card";
 import {cn} from "@/lib/utils";
+import {
+    FAMILY_NAME_MAX_LENGTH,
+    FAMILY_NAME_MIN_LENGTH,
+    isValidCurrencyCode,
+    isValidFamilyName,
+    normalizeCurrencyCode,
+} from "@/lib/validation";
 
 const router = useRouter();
 const store = useUserStore();
@@ -49,13 +56,33 @@ function goBack() {
 }
 
 function validate() {
-    if (!form.value.name) {
-        const msg = "Family name is required";
+    const name = form.value.name.trim();
+    const currency = normalizeCurrencyCode(form.value.currency);
+
+    if (!name) {
+        const msg = "Family name is required.";
         toast.error(msg);
         // remove inline error when using toast
         error.value = null;
         return false;
     }
+
+    if (!isValidFamilyName(name)) {
+        const msg = `Family name must be between ${FAMILY_NAME_MIN_LENGTH} and ${FAMILY_NAME_MAX_LENGTH} characters.`;
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    if (!isValidCurrencyCode(currency)) {
+        const msg = "Currency must be a valid 3-letter ISO code.";
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    form.value.name = name;
+    form.value.currency = currency;
     return true;
 }
 

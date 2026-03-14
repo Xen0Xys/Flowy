@@ -7,6 +7,14 @@ import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {
+    isValidEmail,
+    isValidPassword,
+    isValidUsername,
+    PASSWORD_MIN_LENGTH,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+} from "@/lib/validation";
+import {
     FormControl,
     FormField,
     FormItem,
@@ -25,12 +33,40 @@ const bgImage =
     "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&q=80&auto=format&fit=crop";
 
 function validate() {
-    if (!form.value.username || !form.value.email || !form.value.password) {
-        const msg = "All fields are required";
+    const username = form.value.username.trim();
+    const email = form.value.email.trim();
+    const password = form.value.password;
+
+    if (!username || !email || !password) {
+        const msg = "All fields are required.";
         toast.error(msg);
         error.value = null;
         return false;
     }
+
+    if (!isValidUsername(username)) {
+        const msg = `Username must be between ${USERNAME_MIN_LENGTH} and ${USERNAME_MAX_LENGTH} characters.`;
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    if (!isValidEmail(email)) {
+        const msg = "Please enter a valid email address.";
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    if (!isValidPassword(password)) {
+        const msg = `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    form.value.username = username;
+    form.value.email = email;
     return true;
 }
 

@@ -22,6 +22,7 @@ import {
     FormLabel,
     FormMessage,
 } from "~/components/ui/form";
+import {isValidEmail} from "@/lib/validation";
 
 const router = useRouter();
 const {apiFetch} = useApi();
@@ -40,12 +41,23 @@ const steps = [
 const active = ref(2);
 
 function validate() {
-    if (!form.value.email) {
-        const msg = "Email is required";
+    const email = form.value.email.trim();
+
+    if (!email) {
+        const msg = "Email is required.";
         toast.error(msg);
         error.value = null;
         return false;
     }
+
+    if (!isValidEmail(email)) {
+        const msg = "Please enter a valid email address.";
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    form.value.email = email;
     return true;
 }
 

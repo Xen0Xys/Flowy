@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/dialog";
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -55,6 +54,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {valueUpdater} from "@/components/ui/table/utils";
+import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
 
 type AdminUser = {
     id: string;
@@ -71,6 +71,7 @@ type DetailsState = {
 
 const userStore = useUserStore();
 const familyStore = useFamilyStore();
+const {copy, isSupported} = useClipboard({legacy: true});
 
 const users = ref<AdminUser[]>([]);
 const loading = ref(false);
@@ -85,6 +86,7 @@ const detailsState = ref<DetailsState | null>(null);
 const loadingDetails = ref(false);
 const resetDialogUser = ref<AdminUser | null>(null);
 const deleteDialogUser = ref<AdminUser | null>(null);
+const isDeleteDialogOpen = ref(false);
 const resetPasswordValue = ref("");
 const isResettingCurrentUser = computed(() =>
     Boolean(
@@ -230,9 +232,11 @@ async function openDetailsDialog(user: AdminUser) {
 
 async function handleDelete() {
     const user = deleteDialogUser.value;
+    console.log("handleDelete called with user:", user);
     if (!user) return;
     deletingId.value = user.id;
     try {
+        console.log(`Deleting user ${user.id}...`);
         await userStore.adminDeleteUser(user.id);
         deleteDialogUser.value = null;
         await loadUsers();
@@ -244,18 +248,23 @@ async function handleDelete() {
 async function handleResetPassword() {
     const user = resetDialogUser.value;
     if (!user) return;
-    resettingId.value = user.id;
-    // Prevent reset with empty new password
-    if (!resetPasswordValue.value) {
+    const password = resetPasswordValue.value;
+
+    if (!password.trim()) {
         toast.error("Please enter a new password.");
-        resettingId.value = null;
         return;
     }
-    try {
-        await userStore.adminUpdateUserPassword(
-            user.id,
-            resetPasswordValue.value,
+
+    if (!isValidPassword(password)) {
+        toast.error(
+            `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
         );
+        return;
+    }
+
+    resettingId.value = user.id;
+    try {
+        await userStore.adminUpdateUserPassword(user.id, password);
         resetDialogUser.value = null;
         resetPasswordValue.value = "";
     } finally {
@@ -264,8 +273,12 @@ async function handleResetPassword() {
 }
 
 async function copyUserId(id: string) {
+    if (!isSupported.value) {
+        toast.error("Clipboard is not supported in this browser");
+        return;
+    }
+
     try {
-        const {copy} = useClipboard();
         await copy(id);
         toast.success("UUID copied to clipboard");
     } catch {
@@ -486,7 +499,7 @@ async function copyUserId(id: string) {
                         class="flex items-center gap-2">
                         <p
                             :title="detailsState.user.familyId"
-                            class="text-muted-foreground max-w-[260px] truncate font-mono text-xs">
+                            class="text-muted-foreground max-w-65 truncate font-mono text-xs">
                             {{ detailsState.user.familyId }}
                         </p>
                         <Button
@@ -598,7 +611,7 @@ async function copyUserId(id: string) {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
+                <Button
                     :disabled="
                         Boolean(
                             deleteDialogUser &&
@@ -606,8 +619,9 @@ async function copyUserId(id: string) {
                                 deletingId === deleteDialogUser.id),
                         )
                     "
+                    variant="destructive"
                     @click="handleDelete"
-                    >Delete</AlertDialogAction
+                    >Delete</Button
                 >
             </AlertDialogFooter>
         </AlertDialogContent>

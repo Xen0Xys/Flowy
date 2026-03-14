@@ -11,7 +11,7 @@ import {
     test,
 } from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
-import {ConfigKey, PrismaClient} from "../prisma/generated/client";
+import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
 import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
@@ -266,5 +266,118 @@ describe("AdminController (e2e)", () => {
             .post("/user/login")
             .send({email: other.user.email, password: newPass});
         expect(newLogin.status).toBe(201);
+    });
+
+    test("deleting a solo family admin also deletes their family", async () => {
+        const ownerReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(ownerReg.status).toBe(201);
+        const owner = ownerReg.body;
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const targetReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(targetReg.status).toBe(201);
+        const target = targetReg.body;
+
+        const createFamily = await request(server)
+            .post("/family/create")
+            .set("Authorization", `Bearer ${target.token}`)
+            .send({name: "SoloFamily", currency: "EUR"});
+        expect(createFamily.status).toBe(201);
+
+        const family = await prisma.family.findFirstOrThrow({
+            where: {name: "SoloFamily"},
+        });
+
+        const del = await request(server)
+            .delete(`/admin/users/${target.user.id}`)
+            .set("Authorization", `Bearer ${owner.token}`);
+        expect(del.status).toBe(204);
+
+        const deletedUser = await prisma.users.findUnique({
+            where: {id: target.user.id},
+        });
+        expect(deletedUser).toBeNull();
+
+        const deletedFamily = await prisma.family.findUnique({
+            where: {id: family.id},
+        });
+        expect(deletedFamily).toBeNull();
+    });
+
+    test("deleting a family admin transfers admin role to another member", async () => {
+        const ownerReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(ownerReg.status).toBe(201);
+        const owner = ownerReg.body;
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const adminReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(adminReg.status).toBe(201);
+        const familyAdmin = adminReg.body;
+
+        const memberReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(memberReg.status).toBe(201);
+        const member = memberReg.body;
+
+        const createFamily = await request(server)
+            .post("/family/create")
+            .set("Authorization", `Bearer ${familyAdmin.token}`)
+            .send({name: "SharedFamily", currency: "EUR"});
+        expect(createFamily.status).toBe(201);
+
+        const family = await prisma.family.findFirstOrThrow({
+            where: {name: "SharedFamily"},
+        });
+
+        const invite = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${familyAdmin.token}`)
+            .send({email: member.user.email});
+        expect(invite.status).toBe(201);
+
+        const join = await request(server)
+            .post(`/family/join/${invite.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(join.status).toBe(204);
+
+        const del = await request(server)
+            .delete(`/admin/users/${familyAdmin.user.id}`)
+            .set("Authorization", `Bearer ${owner.token}`);
+        expect(del.status).toBe(204);
+
+        const deletedUser = await prisma.users.findUnique({
+            where: {id: familyAdmin.user.id},
+        });
+        expect(deletedUser).toBeNull();
+
+        const keptFamily = await prisma.family.findUnique({
+            where: {id: family.id},
+        });
+        expect(keptFamily).not.toBeNull();
+
+        const refreshedMember = await prisma.users.findUnique({
+            where: {id: member.user.id},
+        });
+        expect(refreshedMember?.family_id).toBe(family.id);
+        expect(refreshedMember?.family_role).toBe(UserRoles.ADMIN);
     });
 });

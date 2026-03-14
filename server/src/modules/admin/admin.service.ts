@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
 import {ConfigKey} from "../../../prisma/generated/enums";
+import {UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
 import argon2 from "argon2";
 
@@ -34,7 +35,40 @@ export class AdminService {
     async deleteUser(id: string, currentUserId: string) {
         if (id === currentUserId)
             throw new UnauthorizedException("Cannot delete yourself");
-        await this.prisma.users.delete({where: {id}});
+
+        const user = await this.prisma.users.findUnique({where: {id}});
+        if (!user) throw new NotFoundException("User not found");
+
+        await this.prisma.$transaction(async (tx) => {
+            if (user.family_id && user.family_role === UserRoles.ADMIN) {
+                const remainingMembers = await tx.users.findMany({
+                    where: {
+                        family_id: user.family_id,
+                        id: {not: user.id},
+                    },
+                    select: {id: true},
+                    orderBy: {created_at: "asc"},
+                });
+
+                if (remainingMembers.length === 0) {
+                    await tx.familyInvites.deleteMany({
+                        where: {family_id: user.family_id},
+                    });
+                    await tx.users.updateMany({
+                        where: {family_id: user.family_id},
+                        data: {family_id: null, family_role: null},
+                    });
+                    await tx.family.delete({where: {id: user.family_id}});
+                } else {
+                    await tx.users.update({
+                        where: {id: remainingMembers[0].id},
+                        data: {family_role: UserRoles.ADMIN},
+                    });
+                }
+            }
+
+            await tx.users.delete({where: {id: user.id}});
+        });
     }
 
     async updateInstanceOwner(newOwnerId: string): Promise<void> {

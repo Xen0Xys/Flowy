@@ -20,6 +20,12 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {useRouter} from "#app";
+import {
+    isValidCurrencyCode,
+    isValidEmail,
+    isValidFamilyName,
+    normalizeCurrencyCode,
+} from "@/lib/validation";
 
 const userStore = useUserStore();
 const familyStore = useFamilyStore();
@@ -65,13 +71,32 @@ async function loadFamily() {
 
 async function handleCreateFamily() {
     if (!userStore.token) return;
-    if (!newFamilyName.value) return;
+    const name = newFamilyName.value.trim();
+    const currency = normalizeCurrencyCode(newFamilyCurrency.value);
+
+    if (!name) {
+        toast.error("Family name is required.");
+        return;
+    }
+
+    if (!isValidFamilyName(name)) {
+        toast.error("Family name must be between 3 and 50 characters.");
+        return;
+    }
+
+    if (!isValidCurrencyCode(currency)) {
+        toast.error("Currency must be a valid 3-letter ISO code.");
+        return;
+    }
+
     creating.value = true;
     try {
         await familyStore.createFamily({
-            name: newFamilyName.value,
-            currency: newFamilyCurrency.value,
+            name,
+            currency,
         });
+        newFamilyName.value = "";
+        newFamilyCurrency.value = currency;
         // refresh profile and family
         await loadFamily();
     } finally {
@@ -81,10 +106,20 @@ async function handleCreateFamily() {
 
 async function handleInvite() {
     if (!userStore.token) return;
-    if (!inviteEmail.value) return;
+    const nextInviteEmail = inviteEmail.value.trim();
+    if (!nextInviteEmail) {
+        toast.error("Email is required.");
+        return;
+    }
+
+    if (!isValidEmail(nextInviteEmail)) {
+        toast.error("Please enter a valid email address.");
+        return;
+    }
+
     inviting.value = true;
     try {
-        await familyStore.inviteMember(inviteEmail.value);
+        await familyStore.inviteMember(nextInviteEmail);
         inviteEmail.value = "";
         invites.value = await familyStore.getInvites();
     } finally {

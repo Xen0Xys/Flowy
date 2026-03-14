@@ -16,6 +16,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {isValidUuidV7} from "@/lib/validation";
+import {toast} from "vue-sonner";
 
 const userStore = useUserStore();
 
@@ -53,10 +55,21 @@ async function saveRegistration() {
 }
 
 async function saveOwner() {
-    if (!ownerId.value) return;
+    const nextOwnerId = ownerId.value.trim();
+    if (!nextOwnerId) {
+        toast.error("Owner ID is required.");
+        return;
+    }
+
+    if (!isValidUuidV7(nextOwnerId)) {
+        toast.error("Owner ID must be a valid UUID v7.");
+        return;
+    }
+
     savingOwner.value = true;
     try {
-        await userStore.updateInstanceOwner(ownerId.value);
+        ownerId.value = nextOwnerId;
+        await userStore.updateInstanceOwner(nextOwnerId);
     } finally {
         savingOwner.value = false;
     }

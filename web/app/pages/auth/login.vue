@@ -6,6 +6,7 @@ import {useUserStore} from "@/stores/user.store";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {isValidEmail} from "@/lib/validation";
 import {
     FormControl,
     FormField,
@@ -25,12 +26,23 @@ const bgImage =
     "https://images.unsplash.com/photo-1508780709619-79562169bc64?w=1600&q=80&auto=format&fit=crop";
 
 function validate() {
-    if (!form.value.email || !form.value.password) {
-        const msg = "Email and password are required";
+    const email = form.value.email.trim();
+
+    if (!email || !form.value.password) {
+        const msg = "Email and password are required.";
         toast.error(msg);
         error.value = null;
         return false;
     }
+
+    if (!isValidEmail(email)) {
+        const msg = "Please enter a valid email address.";
+        toast.error(msg);
+        error.value = null;
+        return false;
+    }
+
+    form.value.email = email;
     return true;
 }
 

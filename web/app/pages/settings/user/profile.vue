@@ -19,6 +19,14 @@ import {
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
 import {useRouter} from "#app";
+import {
+    isValidEmail,
+    isValidPassword,
+    isValidUsername,
+    PASSWORD_MIN_LENGTH,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+} from "@/lib/validation";
 
 const userStore = useUserStore();
 
@@ -56,12 +64,15 @@ const {apiFetch} = useApi();
 
 async function deleteAccountNow() {
     if (!userStore.token) return;
-    if (!confirmPassword.value) return;
+    if (!confirmPassword.value.trim()) {
+        toast.error("Current password is required to delete your account.");
+        return;
+    }
     deleting.value = true;
     try {
         await apiFetch("/user/me", {
             method: "DELETE",
-            body: {currentPassword: confirmPassword.value},
+            body: {currentPassword: confirmPassword.value.trim()},
         });
         toast.success("Account deleted");
         deleting.value = false;
@@ -89,9 +100,18 @@ onMounted(async () => {
 
 async function saveUsernameOnly() {
     if (!userStore.token) return;
+    const nextUsername = username.value.trim();
+    if (!isValidUsername(nextUsername)) {
+        toast.error(
+            `Username must be between ${USERNAME_MIN_LENGTH} and ${USERNAME_MAX_LENGTH} characters.`,
+        );
+        return;
+    }
+
     savingUsername.value = true;
     try {
-        await userStore.saveUsername(username.value);
+        username.value = nextUsername;
+        await userStore.saveUsername(nextUsername);
     } finally {
         savingUsername.value = false;
     }
@@ -99,9 +119,16 @@ async function saveUsernameOnly() {
 
 async function saveEmailOnly() {
     if (!userStore.token) return;
+    const nextEmail = email.value.trim();
+    if (!isValidEmail(nextEmail)) {
+        toast.error("Please enter a valid email address.");
+        return;
+    }
+
     savingEmail.value = true;
     try {
-        await userStore.saveEmail(email.value);
+        email.value = nextEmail;
+        await userStore.saveEmail(nextEmail);
     } finally {
         savingEmail.value = false;
     }
@@ -109,16 +136,25 @@ async function saveEmailOnly() {
 
 async function changePasswordNow() {
     if (!userStore.token) return;
-    if (!currentPassword.value || !newPassword.value) {
-        // rely on store to toast errors if API returns; keep quick guard
+    const current = currentPassword.value.trim();
+    const next = newPassword.value;
+
+    if (!current || !next) {
+        toast.error("Current password and new password are required.");
         return;
     }
+
+    if (!isValidPassword(next)) {
+        toast.error(
+            `New password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+        );
+        return;
+    }
+
     changingPassword.value = true;
     try {
-        await userStore.changePassword(
-            currentPassword.value,
-            newPassword.value,
-        );
+        currentPassword.value = current;
+        await userStore.changePassword(current, next);
         // clear on success
         currentPassword.value = "";
         newPassword.value = "";
