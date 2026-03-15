@@ -144,8 +144,8 @@
     small {
         @apply text-sm leading-none font-medium;
     }
-    span.iconify {
-        @apply size-4;
+    :where(span.iconify, i.iconify, svg.lucide) {
+        @apply size-5!;
     }
     button {
         @apply cursor-pointer;
