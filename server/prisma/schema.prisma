@@ -109,7 +109,7 @@ model Transactions {
   account      Accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade)
   amount       Float
   description  String          @db.VarChar(255)
-  date         DateTime
+  date         DateTime        @default(now())
   merchant_id  String?         @db.Uuid
   merchant     UserMerchants?  @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
   category_id  String?         @db.Uuid

@@ -1,7 +1,7 @@
 import {Faker} from "@faker-js/faker";
 
-const MIN_TRANSACTIONS_PER_ACCOUNT = 3;
-const MAX_TRANSACTIONS_PER_ACCOUNT = 50;
+const MIN_TRANSACTIONS_PER_ACCOUNT = 0;
+const MAX_TRANSACTIONS_PER_ACCOUNT = 300;
 
 function randomAmount(faker: Faker) {
     const sign = faker.helpers.arrayElement([-1, 1]);
@@ -22,6 +22,16 @@ export async function seedTransactionsForAccount(
     });
 
     let accountBalance = 0;
+    const transactionsData: Array<{
+        id: string;
+        account_id: string;
+        amount: number;
+        description: string;
+        date: Date;
+        merchant_id: string | null;
+        category_id: string | null;
+        is_rebalance: boolean;
+    }> = [];
 
     for (let txIndex = 0; txIndex < txCount; txIndex++) {
         const amount = randomAmount(faker);
@@ -36,20 +46,24 @@ export async function seedTransactionsForAccount(
                 ? faker.helpers.arrayElement(categories).id
                 : null;
 
-        await prisma.transactions.create({
-            data: {
-                id: Bun.randomUUIDv7(),
-                account_id: accountId,
-                amount,
-                description: faker.commerce.productName().slice(0, 255),
-                date: faker.date.between({
-                    from: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
-                    to: new Date(),
-                }),
-                merchant_id: merchantId,
-                category_id: categoryId,
-                is_rebalance: txIndex === 0,
-            },
+        transactionsData.push({
+            id: Bun.randomUUIDv7(),
+            account_id: accountId,
+            amount,
+            description: faker.commerce.productName().slice(0, 255),
+            date: faker.date.between({
+                from: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+                to: new Date(),
+            }),
+            merchant_id: merchantId,
+            category_id: categoryId,
+            is_rebalance: txIndex === 0,
+        });
+    }
+
+    if (transactionsData.length > 0) {
+        await prisma.transactions.createMany({
+            data: transactionsData,
         });
     }
 

@@ -11,13 +11,19 @@ export type Family = {
 };
 
 export const useFamilyStore = defineStore("family", {
+    state: () => ({
+        family: null as Family | null,
+    }),
+
     actions: {
         async fetchFamily() {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                return await apiFetch<Family>("/family/family");
+                const family = await apiFetch<Family>("/family/family");
+                this.family = family;
+                return family;
             } catch (err: any) {
                 const message = err?.message ?? "Failed fetching family";
                 toast.error(message);
@@ -136,6 +142,10 @@ export const useFamilyStore = defineStore("family", {
                     method: "PATCH",
                     body,
                 });
+                if (this.family) {
+                    if (body.name) this.family.name = body.name;
+                    if (body.currency) this.family.currency = body.currency;
+                }
                 toast.success("Family updated");
                 return family;
             } catch (err: any) {

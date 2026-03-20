@@ -122,7 +122,7 @@ export class AccountService implements OnModuleInit {
         accountType: AccountTypes,
         balance?: number,
     ): Promise<AccountEntity> {
-        const account = await this.prismaService.accounts.create({
+        const account: Accounts = await this.prismaService.accounts.create({
             data: {
                 user_id: user.id,
                 name,
@@ -130,6 +130,15 @@ export class AccountService implements OnModuleInit {
                 type: accountType,
             },
         });
+        if (balance)
+            await this.prismaService.transactions.create({
+                data: {
+                    account_id: account.id,
+                    amount: balance,
+                    description: "Account rebalance adjustment",
+                    is_rebalance: true,
+                },
+            });
         return this.toAccountEntity(account);
     }
 
@@ -221,7 +230,6 @@ export class AccountService implements OnModuleInit {
                             account_id: accountId,
                             amount: rebalanceAmount,
                             description: "Account rebalance adjustment",
-                            date: new Date(),
                             is_rebalance: true,
                         },
                     });
@@ -288,16 +296,61 @@ export class AccountService implements OnModuleInit {
         let runningBalance = this.toDecimal(
             balanceBeforeStartRaw._sum.amount ?? 0,
         );
+
+        const transactionsByDate = new Map<string, number>();
+        for (const t of transactions) {
+            const dateStr = t.date.toISOString().split("T")[0];
+            const currentAmount = transactionsByDate.get(dateStr) || 0;
+            transactionsByDate.set(dateStr, currentAmount + t.amount);
+        }
+
         const evolution: Array<{date: Date; balance: number}> = [];
 
-        for (const transaction of transactions) {
-            runningBalance = this.toDecimal(
-                runningBalance + transaction.amount,
-            );
+        let actualStart = new Date(start);
+        if (actualStart.getFullYear() === 2000) {
+            const firstTx = await this.prismaService.transactions.findFirst({
+                where: {account_id: accountId},
+                orderBy: {date: "asc"},
+            });
+            const earliestDate =
+                firstTx && firstTx.date < account.created_at
+                    ? firstTx.date
+                    : account.created_at;
+
+            if (actualStart < earliestDate) {
+                actualStart = new Date(earliestDate);
+            }
+        }
+
+        if (actualStart > end) {
+            actualStart = new Date(end);
+        }
+
+        const currentDate = new Date(actualStart);
+        currentDate.setUTCHours(0, 0, 0, 0);
+        const endDay = new Date(end);
+        endDay.setUTCHours(0, 0, 0, 0);
+
+        if (currentDate > endDay) {
             evolution.push({
-                date: transaction.date,
+                date: new Date(endDay),
                 balance: runningBalance,
             });
+            return evolution;
+        }
+
+        while (currentDate <= endDay) {
+            const dateStr = currentDate.toISOString().split("T")[0];
+            if (transactionsByDate.has(dateStr)) {
+                runningBalance = this.toDecimal(
+                    runningBalance + transactionsByDate.get(dateStr)!,
+                );
+            }
+            evolution.push({
+                date: new Date(currentDate),
+                balance: runningBalance,
+            });
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
         return evolution;

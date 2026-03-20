@@ -34,7 +34,8 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
                             orientation="vertical" />
                         <h3>Flowy</h3>
                     </header>
-                    <div class="flex flex-1 flex-col overflow-y-auto p-4">
+                    <div
+                        class="flex flex-1 flex-col overflow-y-auto p-4 md:p-6 md:pb-0">
                         <slot />
                     </div>
                 </div>

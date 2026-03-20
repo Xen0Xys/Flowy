@@ -20,7 +20,7 @@ CREATE TABLE "transactions" (
     "account_id" UUID NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "description" VARCHAR(255) NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "merchant_id" UUID,
     "category_id" UUID,
     "is_rebalance" BOOLEAN NOT NULL DEFAULT false,
