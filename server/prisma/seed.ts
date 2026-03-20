@@ -52,6 +52,15 @@ async function main() {
         const {seedUsers} = await import("./seeds/users");
         // @ts-ignore
         const {seedInvites} = await import("./seeds/invites");
+        // @ts-ignore
+        const {seedAccounts} = await import("./seeds/accounts.js");
+        // @ts-ignore
+        const {seedTransactionsForAccount} =
+            await import("./seeds/transactions.js");
+        // @ts-ignore
+        const {seedUserMerchants} = await import("./seeds/user-merchants.js");
+        // @ts-ignore
+        const {seedUserCategories} = await import("./seeds/user-categories.js");
 
         // Families
         start = Date.now();
@@ -72,6 +81,75 @@ async function main() {
         const invites = await (seedInvites as any)(prisma, families, faker);
         console.log(
             `✅  Invites seeded (${invites.length}) (${Date.now() - start}ms)`,
+        );
+
+        // Accounts / Transactions / Merchants / Categories
+        start = Date.now();
+        console.log("🧹  Cleaning accounting tables...");
+        await prisma.transactions.deleteMany({});
+        await prisma.accounts.deleteMany({});
+        await prisma.userMerchants.deleteMany({});
+        await prisma.userCategories.deleteMany({});
+        console.log("✅  Accounting tables cleaned");
+
+        const users = await prisma.users.findMany({
+            select: {
+                id: true,
+            },
+        });
+        console.log(`👥  Seeding accounting data for ${users.length} users...`);
+
+        let accountsCount = 0;
+        let transactionsCount = 0;
+        let merchantsCount = 0;
+        let categoriesCount = 0;
+
+        for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            const merchants = await (seedUserMerchants as any)(
+                prisma,
+                user.id,
+                faker,
+            );
+            merchantsCount += merchants.length;
+
+            const categories = await (seedUserCategories as any)(
+                prisma,
+                user.id,
+                faker,
+            );
+            categoriesCount += categories.length;
+
+            const accounts = await (seedAccounts as any)(
+                prisma,
+                user.id,
+                faker,
+            );
+            accountsCount += accounts.length;
+
+            for (const account of accounts) {
+                transactionsCount += await (seedTransactionsForAccount as any)(
+                    prisma,
+                    account.id,
+                    merchants,
+                    categories,
+                    faker,
+                );
+            }
+
+            console.log(
+                `   • User ${i + 1}/${users.length}: accounts=${accounts.length}, merchants=${merchants.length}, categories=${categories.length}`,
+            );
+        }
+
+        const accountingSeed = {
+            accounts: accountsCount,
+            transactions: transactionsCount,
+            merchants: merchantsCount,
+            categories: categoriesCount,
+        };
+        console.log(
+            `✅  Accounts seeded (${accountingSeed.accounts}), transactions (${accountingSeed.transactions}), merchants (${accountingSeed.merchants}), categories (${accountingSeed.categories}) (${Date.now() - start}ms)`,
         );
     }
 
