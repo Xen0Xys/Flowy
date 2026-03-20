@@ -128,6 +128,16 @@ describe("AccountController (e2e)", () => {
         expect(create.body.name).toBe("Main checking");
         expect(create.body.type).toBe("CHECKING");
         expect(create.body.balance).toBe(1523.45);
+
+        const transactions = await prisma.transactions.findMany({
+            where: {account_id: create.body.id},
+        });
+        expect(transactions).toHaveLength(1);
+        expect(transactions[0].amount).toBe(1523.45);
+        expect(transactions[0].is_rebalance).toBe(true);
+        expect(transactions[0].description).toBe(
+            "Account rebalance adjustment",
+        );
     });
 
     test("lists only current user's accounts", async () => {
@@ -283,11 +293,14 @@ describe("AccountController (e2e)", () => {
 
         const transactions = await prisma.transactions.findMany({
             where: {account_id: create.body.id},
+            orderBy: {date: "asc"},
         });
-        expect(transactions).toHaveLength(1);
-        expect(transactions[0].amount).toBe(50.25);
+        expect(transactions).toHaveLength(2);
+        expect(transactions[0].amount).toBe(100);
+        expect(transactions[1].amount).toBe(50.25);
         expect(transactions[0].is_rebalance).toBe(true);
-        expect(transactions[0].description).toBe(
+        expect(transactions[1].is_rebalance).toBe(true);
+        expect(transactions[1].description).toBe(
             "Account rebalance adjustment",
         );
     });
@@ -391,11 +404,15 @@ describe("AccountController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`);
 
         expect(response.status).toBe(200);
-        expect(response.body).toHaveLength(2);
-        expect(response.body[0].date).toBe(inRangeA.toISOString());
+        expect(response.body).toHaveLength(22);
+        expect(response.body[0].date).toBe("2025-01-10T00:00:00.000Z");
         expect(response.body[0].balance).toBe(65);
-        expect(response.body[1].date).toBe(inRangeB.toISOString());
-        expect(response.body[1].balance).toBe(85.5);
+        expect(response.body[9].date).toBe("2025-01-19T00:00:00.000Z");
+        expect(response.body[9].balance).toBe(65);
+        expect(response.body[10].date).toBe("2025-01-20T00:00:00.000Z");
+        expect(response.body[10].balance).toBe(85.5);
+        expect(response.body[21].date).toBe("2025-01-31T00:00:00.000Z");
+        expect(response.body[21].balance).toBe(85.5);
     });
 
     test("rejects balance evolution access when requester is not owner", async () => {

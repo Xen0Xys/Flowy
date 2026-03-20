@@ -311,6 +311,52 @@ describe("FamilyController (e2e)", () => {
     /**
      * QUIT
      */
+    test("requires authentication to quit a family", async () => {
+        const response = await request(server).delete("/family/quit");
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authorization token is missing");
+    });
+
+    test("allows a non-admin member to quit while family remains", async () => {
+        const admin = await registerUser(server);
+        const family = await createFamily(admin.token);
+        const member = await registerUser(server);
+
+        const inviteResponse = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await request(server)
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        const quitResponse = await request(server)
+            .delete("/family/quit")
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(quitResponse.status).toBe(204);
+
+        const refreshedMember = await prisma.users.findUnique({
+            where: {id: member.user.id},
+        });
+        expect(refreshedMember?.family_id).toBeNull();
+        expect(refreshedMember?.family_role).toBeNull();
+
+        const storedFamily = await prisma.family.findUnique({
+            where: {id: family.id},
+        });
+        expect(storedFamily).not.toBeNull();
+
+        const refreshedAdmin = await prisma.users.findUnique({
+            where: {id: admin.user.id},
+        });
+        expect(refreshedAdmin?.family_id).toBe(family.id);
+        expect(refreshedAdmin?.family_role).toBe(UserRoles.ADMIN);
+    });
+
     test("allows members to quit and disallows quitting when not in a family", async () => {
         const admin = await registerUser(server);
         await createFamily(admin.token);
@@ -333,6 +379,83 @@ describe("FamilyController (e2e)", () => {
 
         expect(invalidQuit.status).toBe(404);
         expect(invalidQuit.body.message).toBe("User is not in a family");
+    });
+
+    /**
+     * SETTINGS
+     */
+    test("requires authentication to update family settings", async () => {
+        const response = await request(server).patch("/family/settings").send({
+            name: "Renamed family",
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authorization token is missing");
+    });
+
+    test("allows admin to update family settings", async () => {
+        const admin = await registerUser(server);
+        const family = await createFamily(admin.token);
+
+        const response = await request(server)
+            .patch("/family/settings")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({name: "Renamed family", currency: "USD"});
+
+        expect(response.status).toBe(200);
+        expect(response.body.name).toBe("Renamed family");
+        expect(response.body.currency).toBe("USD");
+        expect(response.body.owner.email).toBe(admin.user.email);
+
+        const updatedFamily = await prisma.family.findUnique({
+            where: {id: family.id},
+        });
+        expect(updatedFamily?.name).toBe("Renamed family");
+        expect(updatedFamily?.currency).toBe("USD");
+    });
+
+    test("rejects settings update for non-admin family member", async () => {
+        const admin = await registerUser(server);
+        await createFamily(admin.token);
+        const member = await registerUser(server);
+
+        const inviteResponse = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await request(server)
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        const response = await request(server)
+            .patch("/family/settings")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({name: "Nope"});
+
+        expect(response.status).toBe(403);
+        expect(response.body.message).toBe("User must be a family admin");
+    });
+
+    test("rejects invalid settings payload", async () => {
+        const admin = await registerUser(server);
+        await createFamily(admin.token);
+
+        const response = await request(server)
+            .patch("/family/settings")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({name: "", currency: "EURO"});
+
+        expect(response.status).toBe(400);
+        expect(Array.isArray(response.body.message)).toBe(true);
+        expect(response.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "name"}),
+                expect.objectContaining({property: "currency"}),
+            ]),
+        );
     });
 
     test("allows admin to delete a family and only admin can do it", async () => {
