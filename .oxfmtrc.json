@@ -12,5 +12,5 @@
     "printWidth": 80,
     "sortPackageJson": false,
     "ignorePatterns": ["node_modules", "web/.nuxt", "server/prisma/generated"],
-    "endOfLine": "crlf"
+    "endOfLine": "lf"
 }
