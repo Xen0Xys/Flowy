@@ -17,7 +17,12 @@ import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "~/components/ui/dropdown-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,9 +33,24 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import {Collapsible, CollapsibleContent, CollapsibleTrigger,} from "~/components/ui/collapsible";
-import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent,} from "~/components/ui/chart";
-import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer,} from "@unovis/vue";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "~/components/ui/collapsible";
+import {
+    ChartContainer,
+    ChartCrosshair,
+    ChartTooltip,
+    ChartTooltipContent,
+} from "~/components/ui/chart";
+import {
+    VisArea,
+    VisAxis,
+    VisLine,
+    VisScatter,
+    VisXYContainer,
+} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
 
 const chartConfig = {
