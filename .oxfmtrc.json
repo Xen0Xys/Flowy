@@ -1,0 +1,16 @@
+{
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
+    "sortTailwindcss": {},
+    "trailingComma": "all",
+    "tabWidth": 4,
+    "semi": true,
+    "singleQuote": false,
+    "bracketSpacing": false,
+    "bracketSameLine": true,
+    "arrowParens": "always",
+    "objectWrap": "preserve",
+    "printWidth": 80,
+    "sortPackageJson": false,
+    "ignorePatterns": ["node_modules", "web/.nuxt", "server/prisma/generated"],
+    "endOfLine": "crlf"
+}
