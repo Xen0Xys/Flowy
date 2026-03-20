@@ -8,7 +8,7 @@ export type Account = {
     name: string;
     type: string;
     balance: number;
-    userId: string;
+    ownerId: string;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -19,10 +19,22 @@ export type CreateAccountPayload = {
     balance: number;
 };
 
+export type UpdateAccountPayload = {
+    name?: string;
+    type?: string;
+    balance?: number;
+};
+
+export type AccountBalanceEvolutionPoint = {
+    date: string;
+    balance: number;
+};
+
 export const useAccountStore = defineStore("account", {
     state: () => ({
         accounts: [] as Account[],
         currentAccount: null as Account | null,
+        currentAccountEvolution: [] as AccountBalanceEvolutionPoint[],
     }),
 
     actions: {
@@ -94,6 +106,60 @@ export const useAccountStore = defineStore("account", {
                 toast.success("Account deleted");
             } catch (err: any) {
                 const message = err?.message ?? "Failed deleting account";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async updateAccount(id: string, payload: UpdateAccountPayload) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const updated = await apiFetch<Account>(`/account/${id}`, {
+                    method: "PATCH",
+                    body: payload,
+                });
+
+                this.accounts = this.accounts.map((account) =>
+                    account.id === id ? updated : account,
+                );
+
+                if (this.currentAccount?.id === id) {
+                    this.currentAccount = updated;
+                }
+
+                toast.success("Account updated");
+                return updated;
+            } catch (err: any) {
+                const message = err?.message ?? "Failed updating account";
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async fetchAccountBalanceEvolution(
+            id: string,
+            startDate: string,
+            endDate: string,
+        ) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const evolution = await apiFetch<
+                    AccountBalanceEvolutionPoint[]
+                >(
+                    `/account/${id}/evolution?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+                );
+
+                this.currentAccountEvolution = evolution;
+                return evolution;
+            } catch (err: any) {
+                const message =
+                    err?.message ?? "Failed fetching account balance evolution";
                 toast.error(message);
                 throw new Error(message);
             }

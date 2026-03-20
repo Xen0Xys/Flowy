@@ -93,6 +93,18 @@ describe("AccountController (e2e)", () => {
         const remove = await request(server).delete("/account/any-id");
         expect(remove.status).toBe(401);
         expect(remove.body.message).toBe("Authorization token is missing");
+
+        const update = await request(server).patch("/account/any-id").send({
+            name: "Updated",
+        });
+        expect(update.status).toBe(401);
+        expect(update.body.message).toBe("Authorization token is missing");
+
+        const evolution = await request(server).get(
+            "/account/any-id/evolution?startDate=2025-01-01T00:00:00.000Z&endDate=2025-01-31T23:59:59.999Z",
+        );
+        expect(evolution.status).toBe(401);
+        expect(evolution.body.message).toBe("Authorization token is missing");
     });
 
     test("rejects invalid token for protected account routes", async () => {
@@ -224,6 +236,220 @@ describe("AccountController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`);
         expect(remove.status).toBe(404);
         expect(remove.body.message).toBe("Account not found");
+
+        const update = await request(server)
+            .patch(`/account/${fakeId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Updated"});
+        expect(update.status).toBe(404);
+        expect(update.body.message).toBe("Account not found");
+    });
+
+    test("updates account name and type", async () => {
+        const user = await registerUser(server);
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Starter", type: "CHECKING", balance: 120});
+        expect(create.status).toBe(201);
+
+        const update = await request(server)
+            .patch(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Primary", type: "SAVINGS"});
+
+        expect(update.status).toBe(200);
+        expect(update.body.id).toBe(create.body.id);
+        expect(update.body.name).toBe("Primary");
+        expect(update.body.type).toBe("SAVINGS");
+        expect(update.body.balance).toBe(120);
+    });
+
+    test("updates account balance and creates rebalance transaction", async () => {
+        const user = await registerUser(server);
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Rebalance", type: "CHECKING", balance: 100});
+        expect(create.status).toBe(201);
+
+        const update = await request(server)
+            .patch(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({balance: 150.25});
+
+        expect(update.status).toBe(200);
+        expect(update.body.balance).toBe(150.25);
+
+        const transactions = await prisma.transactions.findMany({
+            where: {account_id: create.body.id},
+        });
+        expect(transactions).toHaveLength(1);
+        expect(transactions[0].amount).toBe(50.25);
+        expect(transactions[0].is_rebalance).toBe(true);
+        expect(transactions[0].description).toBe(
+            "Account rebalance adjustment",
+        );
+    });
+
+    test("rejects account update when requester is not the owner", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Private", type: "CHECKING", balance: 20});
+        expect(create.status).toBe(201);
+
+        const update = await request(server)
+            .patch(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({name: "Hacked"});
+
+        expect(update.status).toBe(403);
+        expect(update.body.message).toBe(
+            "You do not have permission to update this account",
+        );
+    });
+
+    test("rejects invalid update account payloads", async () => {
+        const user = await registerUser(server);
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Main", type: "CHECKING", balance: 10});
+        expect(create.status).toBe(201);
+
+        const response = await request(server)
+            .patch(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "ab",
+                type: "INVALID_TYPE",
+                balance: 10.123,
+            });
+
+        expect(response.status).toBe(400);
+        expect(Array.isArray(response.body.message)).toBe(true);
+        expect(response.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "name"}),
+                expect.objectContaining({property: "type"}),
+                expect.objectContaining({property: "balance"}),
+            ]),
+        );
+    });
+
+    test("returns account balance evolution in date order for range", async () => {
+        const user = await registerUser(server);
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "History", type: "CHECKING", balance: 0});
+        expect(create.status).toBe(201);
+
+        const accountId = create.body.id;
+        const beforeRange = new Date("2025-01-01T08:00:00.000Z");
+        const inRangeA = new Date("2025-01-10T10:00:00.000Z");
+        const inRangeB = new Date("2025-01-20T12:30:00.000Z");
+        const afterRange = new Date("2025-02-01T09:00:00.000Z");
+
+        await prisma.transactions.createMany({
+            data: [
+                {
+                    account_id: accountId,
+                    amount: 100,
+                    description: "Before range",
+                    date: beforeRange,
+                },
+                {
+                    account_id: accountId,
+                    amount: -35,
+                    description: "In range A",
+                    date: inRangeA,
+                },
+                {
+                    account_id: accountId,
+                    amount: 20.5,
+                    description: "In range B",
+                    date: inRangeB,
+                },
+                {
+                    account_id: accountId,
+                    amount: 999,
+                    description: "After range",
+                    date: afterRange,
+                },
+            ],
+        });
+
+        const response = await request(server)
+            .get(
+                `/account/${accountId}/evolution?startDate=2025-01-10T00:00:00.000Z&endDate=2025-01-31T23:59:59.999Z`,
+            )
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveLength(2);
+        expect(response.body[0].date).toBe(inRangeA.toISOString());
+        expect(response.body[0].balance).toBe(65);
+        expect(response.body[1].date).toBe(inRangeB.toISOString());
+        expect(response.body[1].balance).toBe(85.5);
+    });
+
+    test("rejects balance evolution access when requester is not owner", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Private history", type: "CHECKING", balance: 50});
+        expect(create.status).toBe(201);
+
+        const response = await request(server)
+            .get(
+                `/account/${create.body.id}/evolution?startDate=2025-01-01T00:00:00.000Z&endDate=2025-01-31T23:59:59.999Z`,
+            )
+            .set("Authorization", `Bearer ${outsider.token}`);
+
+        expect(response.status).toBe(403);
+        expect(response.body.message).toBe(
+            "You do not have permission to access this account",
+        );
+    });
+
+    test("rejects invalid balance evolution date query", async () => {
+        const user = await registerUser(server);
+        const create = await request(server)
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Date checks", type: "CHECKING", balance: 10});
+        expect(create.status).toBe(201);
+
+        const invalidDate = await request(server)
+            .get(
+                `/account/${create.body.id}/evolution?startDate=not-a-date&endDate=2025-01-31T23:59:59.999Z`,
+            )
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(invalidDate.status).toBe(400);
+        expect(Array.isArray(invalidDate.body.message)).toBe(true);
+        expect(invalidDate.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "startDate"}),
+            ]),
+        );
+
+        const invalidRange = await request(server)
+            .get(
+                `/account/${create.body.id}/evolution?startDate=2025-02-01T00:00:00.000Z&endDate=2025-01-01T00:00:00.000Z`,
+            )
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(invalidRange.status).toBe(400);
+        expect(invalidRange.body.message).toBe(
+            "startDate must be before endDate",
+        );
     });
 
     test("deletes own account and removes it from subsequent listing", async () => {

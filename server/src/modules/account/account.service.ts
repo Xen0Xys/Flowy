@@ -1,5 +1,6 @@
 import {PrismaService} from "../helper/prisma.service";
 import {
+    BadRequestException,
     ForbiddenException,
     Injectable,
     Logger,
@@ -10,6 +11,7 @@ import {AccountTypes} from "../../../prisma/generated/enums";
 import {UserEntity} from "../user/models/entities/user.entity";
 import {AccountEntity} from "./models/entities/account.entity";
 import {Accounts} from "../../../prisma/generated/client";
+import {UpdateAccountDto} from "./models/dto/update-account.dto";
 
 @Injectable()
 export class AccountService implements OnModuleInit {
@@ -173,5 +175,131 @@ export class AccountService implements OnModuleInit {
                 id: accountId,
             },
         });
+    }
+
+    async updateAccount(
+        user: UserEntity,
+        accountId: string,
+        body: UpdateAccountDto,
+    ): Promise<AccountEntity> {
+        const account = await this.prismaService.accounts.findUnique({
+            where: {
+                id: accountId,
+            },
+        });
+
+        if (!account) throw new NotFoundException("Account not found");
+        if (account.user_id !== user.id)
+            throw new ForbiddenException(
+                "You do not have permission to update this account",
+            );
+
+        const data: Partial<Pick<Accounts, "name" | "type" | "balance">> = {};
+        if (body.name !== undefined) data.name = body.name;
+        if (body.type !== undefined) data.type = body.type;
+
+        const hasBalanceUpdate = body.balance !== undefined;
+        const targetBalance = hasBalanceUpdate
+            ? this.toDecimal(body.balance as number)
+            : account.balance;
+        const rebalanceAmount = this.toDecimal(targetBalance - account.balance);
+
+        if (hasBalanceUpdate) data.balance = targetBalance;
+
+        const updatedAccount = await this.prismaService.$transaction(
+            async (tx) => {
+                const updated = await tx.accounts.update({
+                    where: {
+                        id: accountId,
+                    },
+                    data,
+                });
+
+                if (hasBalanceUpdate && rebalanceAmount !== 0) {
+                    await tx.transactions.create({
+                        data: {
+                            account_id: accountId,
+                            amount: rebalanceAmount,
+                            description: "Account rebalance adjustment",
+                            date: new Date(),
+                            is_rebalance: true,
+                        },
+                    });
+                }
+
+                return updated;
+            },
+        );
+
+        return this.toAccountEntity(updatedAccount);
+    }
+
+    async getAccountBalanceEvolution(
+        user: UserEntity,
+        accountId: string,
+        startDate: string,
+        endDate: string,
+    ): Promise<Array<{date: Date; balance: number}>> {
+        const account = await this.prismaService.accounts.findUnique({
+            where: {
+                id: accountId,
+            },
+        });
+
+        if (!account) throw new NotFoundException("Account not found");
+        if (account.user_id !== user.id)
+            throw new ForbiddenException(
+                "You do not have permission to access this account",
+            );
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (start > end) {
+            throw new BadRequestException("startDate must be before endDate");
+        }
+
+        const transactions = await this.prismaService.transactions.findMany({
+            where: {
+                account_id: accountId,
+                date: {
+                    gte: start,
+                    lte: end,
+                },
+            },
+            orderBy: {
+                date: "asc",
+            },
+        });
+
+        const balanceBeforeStartRaw =
+            await this.prismaService.transactions.aggregate({
+                where: {
+                    account_id: accountId,
+                    date: {
+                        lt: start,
+                    },
+                },
+                _sum: {
+                    amount: true,
+                },
+            });
+
+        let runningBalance = this.toDecimal(
+            balanceBeforeStartRaw._sum.amount ?? 0,
+        );
+        const evolution: Array<{date: Date; balance: number}> = [];
+
+        for (const transaction of transactions) {
+            runningBalance = this.toDecimal(
+                runningBalance + transaction.amount,
+            );
+            evolution.push({
+                date: transaction.date,
+                balance: runningBalance,
+            });
+        }
+
+        return evolution;
     }
 }
