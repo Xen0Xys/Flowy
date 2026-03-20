@@ -7,8 +7,70 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ConfigKey {
+  SELF_HOSTED
+  REGISTRATION_ENABLED
+  INSTANCE_OWNER
+
+  @@map("config_keys")
+}
+
+model Config {
+  key   ConfigKey @id
+  value String
+
+  @@map("config")
+}
+
+model UserSettings {
+  user_id String @id @unique @db.Uuid
+  user    Users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+enum UserRoles {
+  ADMIN
+  USER
+
+  @@map("user_roles")
+}
+
 model Users {
-  id String @id @default(uuid(7))
+  id            String        @id @default(uuid(7)) @db.Uuid
+  username      String        @db.VarChar(30)
+  email         String        @unique
+  password      String
+  jwt_id        String        @unique
+  user_settings UserSettings?
+  family_role   UserRoles?
+  family_id     String?       @db.Uuid
+  family        Family?       @relation(fields: [family_id], references: [id], onDelete: SetNull)
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
 
   @@map("users")
+}
+
+model Family {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  name       String          @db.VarChar(50)
+  currency   String          @default("USD") @db.VarChar(3)
+  members    Users[]
+  invites    FamilyInvites[]
+  created_at DateTime        @default(now())
+  updated_at DateTime        @updatedAt
+
+  @@map("families")
+}
+
+model FamilyInvites {
+  code       String   @id
+  email      String   @db.VarChar(255)
+  family_id  String   @db.Uuid
+  family     Family   @relation(fields: [family_id], references: [id])
+  created_at DateTime @default(now())
+  expires_at DateTime
+
+  @@map("family_invites")
 }

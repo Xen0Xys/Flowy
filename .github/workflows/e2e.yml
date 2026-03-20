@@ -1,0 +1,63 @@
+name: Server E2E Tests
+
+on:
+    pull_request:
+        paths:
+            - "server/**"
+            - ".github/workflows/e2e.yml"
+    push:
+        branches:
+            - main
+        paths:
+            - "server/**"
+            - ".github/workflows/e2e.yml"
+
+jobs:
+    test-server-e2e:
+        runs-on: ubuntu-latest
+
+        services:
+            postgres:
+                image: postgres:18.1-alpine
+                ports:
+                    - 5432:5432
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: flowy_test
+                options: >-
+                    --health-cmd "pg_isready -U postgres"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flowy_test
+            APP_SECRET: supersecret
+            APP_NAME: Flowy Server
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: 1.3.11
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Generate Prisma client
+              working-directory: server
+              run: bunx prisma generate
+
+            - name: Prepare database
+              working-directory: server
+              env:
+                  NODE_ENV: test
+              run: |
+                  bunx prisma migrate deploy
+                  bunx prisma db seed
+
+            - name: Run e2e tests
+              working-directory: server
+              run: bun test
