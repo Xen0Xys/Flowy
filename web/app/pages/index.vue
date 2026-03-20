@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from "vue";
-import {useStorage, useMediaQuery} from "@vueuse/core";
+import {useMediaQuery, useStorage} from "@vueuse/core";
 import {useRouter} from "vue-router";
 import {useFamilyStore} from "~/stores/family.store";
 import type {Account} from "~/stores/account.store";
@@ -16,14 +16,8 @@ import {
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
-import {Separator} from "~/components/ui/separator";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "~/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -34,24 +28,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "~/components/ui/collapsible";
-import {
-    ChartContainer,
-    ChartCrosshair,
-    ChartTooltip,
-    ChartTooltipContent,
-} from "~/components/ui/chart";
-import {
-    VisArea,
-    VisAxis,
-    VisLine,
-    VisScatter,
-    VisXYContainer,
-} from "@unovis/vue";
+import {Collapsible, CollapsibleContent, CollapsibleTrigger,} from "~/components/ui/collapsible";
+import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent,} from "~/components/ui/chart";
+import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer,} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
 
 const chartConfig = {
@@ -170,7 +149,7 @@ const onFormSaved = () => {
 };
 
 const goToDetails = (id: string) => {
-    router.push(`/accounts/${id}`);
+    router.push(`/account/${id}`);
 };
 
 const formatCurrency = (value: number) => {
@@ -280,12 +259,12 @@ const formatCompactCurrency = (value: number) => {
                                                 y1="0"
                                                 y2="1">
                                                 <stop
-                                                    offset="5%"
                                                     :stop-color="chartColor"
+                                                    offset="5%"
                                                     stop-opacity="0.3" />
                                                 <stop
-                                                    offset="95%"
                                                     :stop-color="chartColor"
+                                                    offset="95%"
                                                     stop-opacity="0" />
                                             </linearGradient>
                                         </defs>
@@ -301,11 +280,11 @@ const formatCompactCurrency = (value: number) => {
 
                                     <!-- Ligne principale courbée -->
                                     <VisLine
+                                        :color="chartColor"
                                         :curveType="CurveType.MonotoneX"
                                         :lineWidth="3"
                                         :x="x"
-                                        :y="y"
-                                        :color="chartColor" />
+                                        :y="y" />
 
                                     <!-- Points sur la courbe (désactivés sauf au survol géré par le crosshair, 
                                          mais on laisse un scatter léger si on veut forcer un point sur les single data) -->
@@ -313,10 +292,10 @@ const formatCompactCurrency = (value: number) => {
                                         v-if="
                                             globalEvolutionSeries.length === 1
                                         "
+                                        :color="chartColor"
                                         :size="6"
                                         :x="x"
-                                        :y="y"
-                                        :color="chartColor" />
+                                        :y="y" />
 
                                     <VisAxis
                                         :gridLine="false"
@@ -341,6 +320,7 @@ const formatCompactCurrency = (value: number) => {
                                         "
                                         type="y" />
                                     <ChartCrosshair
+                                        :color="chartColor"
                                         :template="
                                             (d: any) => `
                                             <div class='flex flex-col gap-1 rounded-lg border bg-background p-2 shadow-sm'>
@@ -352,8 +332,7 @@ const formatCompactCurrency = (value: number) => {
                                                 </span>
                                             </div>
                                         `
-                                        "
-                                        :color="chartColor" />
+                                        " />
                                     <ChartTooltip
                                         :customComponent="
                                             ChartTooltipContent
@@ -378,10 +357,10 @@ const formatCompactCurrency = (value: number) => {
                     v-for="category in categoryStats"
                     :key="category.type"
                     :open="!collapsedCategories[category.type]"
+                    class="bg-card text-card-foreground overflow-hidden rounded-xl border shadow-sm"
                     @update:open="
                         (val) => (collapsedCategories[category.type] = !val)
-                    "
-                    class="bg-card text-card-foreground overflow-hidden rounded-xl border shadow-sm">
+                    ">
                     <CollapsibleTrigger
                         class="hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors">
                         <div class="flex items-center gap-3">
