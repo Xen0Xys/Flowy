@@ -4,8 +4,7 @@ import {
     UnauthorizedException,
 } from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
-import {ConfigKey} from "../../../prisma/generated/enums";
-import {UserRoles} from "../../../prisma/generated/enums";
+import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
 import argon2 from "argon2";
 
@@ -86,7 +85,12 @@ export class AdminService {
     async adminUpdateUserPassword(id: string, password: string): Promise<void> {
         const user = await this.prisma.users.findUnique({where: {id}});
         if (!user) throw new NotFoundException("User not found");
-        const hashed: string = await argon2.hash(password);
+        const hashed: string = await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 2 ** 16, // 64 MiB
+            timeCost: 4,
+            parallelism: 2,
+        });
         await this.prisma.users.update({where: {id}, data: {password: hashed}});
     }
 }

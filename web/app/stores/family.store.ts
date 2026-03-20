@@ -74,8 +74,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const invites = await apiFetch<any[]>("/family/invites");
-                return invites;
+                return await apiFetch<any[]>("/family/invites");
             } catch (err: any) {
                 const message = err?.message ?? "Failed fetching invites";
                 toast.error(message);

@@ -1,10 +1,11 @@
+import crypto from "node:crypto";
 import {PrismaService} from "../helper/prisma.service";
 import {
     ConflictException,
     Injectable,
+    Logger,
     NotFoundException,
     UnauthorizedException,
-    Logger,
 } from "@nestjs/common";
 import {UserService} from "../user/user.service";
 import {UserEntity} from "../user/models/entities/user.entity";
@@ -15,12 +16,12 @@ import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
 
 @Injectable()
 export class FamilyService {
+    private readonly logger = new Logger(FamilyService.name);
+
     constructor(
         private readonly prismaService: PrismaService,
         private readonly userService: UserService,
     ) {}
-
-    private readonly logger = new Logger(FamilyService.name);
 
     async createFamily(name: string, currency: string, owner: UserEntity) {
         // Check if owner is already in a family
@@ -68,7 +69,7 @@ export class FamilyService {
 
         // Do not check if email exists
         // Create invite code
-        const inviteCode = Math.random().toString(36).substring(2, 15);
+        const inviteCode = crypto.randomBytes(8).toString("hex").toUpperCase();
 
         // Store invite code in database
         await this.prismaService.familyInvites.create({

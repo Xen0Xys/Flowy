@@ -231,10 +231,9 @@ export const useUserStore = defineStore("user", {
             if (!this.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const settings = await apiFetch<any>(
+                return await apiFetch<any>(
                     "/admin/instance/settings",
                 );
-                return settings;
             } catch (err: any) {
                 const message =
                     err?.message ?? "Failed fetching instance settings";
