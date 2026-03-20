@@ -7,6 +7,7 @@ import {
     HttpStatus,
     Param,
     Patch,
+    Post,
     UseGuards,
 } from "@nestjs/common";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
@@ -22,6 +23,7 @@ import {SetPasswordDto} from "./models/dto/set-password.dto";
 import {FamilyEntity} from "../family/models/entities/family.entity";
 import {FamilyService} from "../family/family.service";
 import {UserService} from "../user/user.service";
+import {AccountService} from "../account/account.service";
 
 @Controller("admin")
 export class AdminController {
@@ -29,6 +31,7 @@ export class AdminController {
         private readonly adminService: AdminService,
         private readonly familyService: FamilyService,
         private readonly usersService: UserService,
+        private readonly accountService: AccountService,
     ) {}
 
     @Get("instance/settings")
@@ -93,5 +96,13 @@ export class AdminController {
         @Body() body: SetPasswordDto,
     ) {
         return this.adminService.adminUpdateUserPassword(id, body.password);
+    }
+
+    @Post("integrity/account")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
+    async runAccountIntegrityCheck(): Promise<void> {
+        await this.accountService.checkIntegrity();
     }
 }

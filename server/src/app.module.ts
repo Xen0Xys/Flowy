@@ -9,6 +9,7 @@ import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
 import {APP_INTERCEPTOR} from "@nestjs/core";
 import {JwtModule} from "@nestjs/jwt";
+import {AccountModule} from "./modules/account/account.module";
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import {JwtModule} from "@nestjs/jwt";
         UserModule,
         AdminModule,
         FamilyModule,
+        AccountModule,
     ],
     controllers: [AppController],
     providers: [

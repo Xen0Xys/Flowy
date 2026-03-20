@@ -19,7 +19,7 @@ import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import crypto from "node:crypto";
 import request from "supertest";
-import {buildRegisterPayload, ensureInstanceConfig} from "./test-utils";
+import {ensureInstanceConfig, registerUser} from "./test-utils";
 
 const envPath = path.resolve(__dirname, "../.env");
 if (fs.existsSync(envPath)) {
@@ -85,7 +85,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("creates a family and promotes creator to admin", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const familyResponse = await request(server)
             .post("/family/create")
             .set("Authorization", `Bearer ${admin.token}`)
@@ -104,7 +104,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects family creation when user already belongs to one", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
         const duplicate = await request(server)
@@ -120,7 +120,7 @@ describe("FamilyController (e2e)", () => {
      * INVITES
      */
     test("allows admins to invite members and list pending invites", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
         const inviteEmail = `member-${crypto.randomUUID()}@e2e.test`;
 
@@ -146,9 +146,9 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("admin can invite and member can accept invite", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
         const inviteResponse = await request(server)
             .post("/family/invite")
@@ -169,9 +169,9 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("non-admin member cannot invite others", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
         // admin invites and member joins
         const inviteResponse = await request(server)
@@ -198,7 +198,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("allows admins to revoke invites", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
         const inviteResponse = await request(server)
             .post("/family/invite")
@@ -217,9 +217,9 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects invite listing when user is not admin", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
         const inviteResponse = await request(server)
             .post("/family/invite")
@@ -248,9 +248,9 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("allows invited users to join and removes the invite", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
         const inviteResponse = await request(server)
             .post("/family/invite")
@@ -277,7 +277,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects joining when invite email does not match user", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
         const inviteEmail = `expected-${crypto.randomUUID()}@e2e.test`;
 
@@ -286,7 +286,7 @@ describe("FamilyController (e2e)", () => {
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: inviteEmail});
 
-        const outsider = await registerUser();
+        const outsider = await registerUser(server);
         const joinResponse = await request(server)
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${outsider.token}`);
@@ -298,7 +298,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects joining when invite code does not exist", async () => {
-        const user = await registerUser();
+        const user = await registerUser(server);
 
         const response = await request(server)
             .post("/family/join/unknown-code")
@@ -312,7 +312,7 @@ describe("FamilyController (e2e)", () => {
      * QUIT
      */
     test("allows members to quit and disallows quitting when not in a family", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
         const quitResponse = await request(server)
@@ -326,7 +326,7 @@ describe("FamilyController (e2e)", () => {
         expect(refreshedAdmin?.family_id).toBeNull();
         expect(refreshedAdmin?.family_role).toBeNull();
 
-        const stranger = await registerUser();
+        const stranger = await registerUser(server);
         const invalidQuit = await request(server)
             .delete("/family/quit")
             .set("Authorization", `Bearer ${stranger.token}`);
@@ -336,11 +336,11 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("allows admin to delete a family and only admin can do it", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
 
         // Create another member
-        const member = await registerUser();
+        const member = await registerUser(server);
         const inviteResponse = await request(server)
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
@@ -385,7 +385,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects when user is not in a family", async () => {
-        const stranger = await registerUser();
+        const stranger = await registerUser(server);
 
         const response = await request(server)
             .get("/family/family")
@@ -396,7 +396,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("returns family info for admin and members", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
 
         // Admin can fetch family info
@@ -410,7 +410,7 @@ describe("FamilyController (e2e)", () => {
         expect(adminRes.body.owner.email).toBe(admin.user.email);
 
         // Member (after joining) can also fetch family info and sees same owner
-        const member = await registerUser();
+        const member = await registerUser(server);
         const inviteResponse = await request(server)
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
@@ -435,11 +435,11 @@ describe("FamilyController (e2e)", () => {
      * REMOVE MEMBER
      */
     test("allows admin to remove a non-admin member", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
         // invite and join member
-        const member = await registerUser();
+        const member = await registerUser(server);
         const inviteResponse = await request(server)
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
@@ -465,7 +465,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects removing the family admin/owner", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
         const resp = await request(server)
@@ -477,10 +477,10 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects removing a member not in your family", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const outsider = await registerUser();
+        const outsider = await registerUser(server);
 
         const resp = await request(server)
             .delete(`/family/members/${outsider.user.id}`)
@@ -491,7 +491,7 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("returns 404 when member does not exist", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
         const fakeId = crypto.randomUUID();
@@ -503,30 +503,6 @@ describe("FamilyController (e2e)", () => {
         expect(resp.body.message).toBe("Member not found");
     });
 });
-
-interface RegisteredUser {
-    token: string;
-    user: {
-        id: string;
-        email: string;
-        username: string;
-    };
-}
-
-async function registerUser(
-    overrides: Partial<{
-        username: string;
-        email: string;
-        password: string;
-    }> = {},
-): Promise<RegisteredUser> {
-    const payload = buildRegisterPayload(overrides);
-    const response = await request(server).post("/user/register").send(payload);
-
-    expect(response.status).toBe(201);
-    expect(response.body.token).toEqual(expect.any(String));
-    return response.body;
-}
 
 async function createFamily(
     token: string,

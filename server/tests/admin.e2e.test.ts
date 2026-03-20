@@ -12,6 +12,7 @@ import {
 } from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
+import {AccountTypes} from "../prisma/generated/enums";
 import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
@@ -190,6 +191,108 @@ describe("AdminController (e2e)", () => {
         expect(cannot.body.message).toBe("Cannot delete yourself");
     });
 
+    test("instance owner can get family details from admin route", async () => {
+        const ownerReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(ownerReg.status).toBe(201);
+        const owner = ownerReg.body;
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const familyAdminReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(familyAdminReg.status).toBe(201);
+        const familyAdmin = familyAdminReg.body;
+
+        const memberReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(memberReg.status).toBe(201);
+        const member = memberReg.body;
+
+        const createFamily = await request(server)
+            .post("/family/create")
+            .set("Authorization", `Bearer ${familyAdmin.token}`)
+            .send({name: "AdminFamilyInfo", currency: "EUR"});
+        expect(createFamily.status).toBe(201);
+
+        const invite = await request(server)
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${familyAdmin.token}`)
+            .send({email: member.user.email});
+        expect(invite.status).toBe(201);
+
+        const join = await request(server)
+            .post(`/family/join/${invite.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(join.status).toBe(204);
+
+        const family = await prisma.family.findFirstOrThrow({
+            where: {name: "AdminFamilyInfo"},
+        });
+
+        const response = await request(server)
+            .get(`/admin/family/${family.id}`)
+            .set("Authorization", `Bearer ${owner.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body.name).toBe("AdminFamilyInfo");
+        expect(response.body.currency).toBe("EUR");
+        expect(response.body.owner.id).toBe(familyAdmin.user.id);
+        expect(response.body.members).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({id: member.user.id}),
+            ]),
+        );
+    });
+
+    test("non-owner cannot access admin family details route", async () => {
+        const ownerReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(ownerReg.status).toBe(201);
+        const owner = ownerReg.body;
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const familyAdminReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(familyAdminReg.status).toBe(201);
+        const familyAdmin = familyAdminReg.body;
+
+        const createFamily = await request(server)
+            .post("/family/create")
+            .set("Authorization", `Bearer ${familyAdmin.token}`)
+            .send({name: "BlockedAdminFamilyInfo", currency: "USD"});
+        expect(createFamily.status).toBe(201);
+
+        const family = await prisma.family.findFirstOrThrow({
+            where: {name: "BlockedAdminFamilyInfo"},
+        });
+
+        const otherReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(otherReg.status).toBe(201);
+        const other = otherReg.body;
+
+        const response = await request(server)
+            .get(`/admin/family/${family.id}`)
+            .set("Authorization", `Bearer ${other.token}`);
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Only instance owner can access");
+    });
+
     test("updates instance owner", async () => {
         const ownerPayload = buildRegisterPayload();
         const ownerReg = await request(server)
@@ -266,6 +369,75 @@ describe("AdminController (e2e)", () => {
             .post("/user/login")
             .send({email: other.user.email, password: newPass});
         expect(newLogin.status).toBe(201);
+    });
+
+    test("instance owner can run account integrity check and fix mismatched balances", async () => {
+        const ownerReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(ownerReg.status).toBe(201);
+        const owner = ownerReg.body;
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const account = await prisma.accounts.create({
+            data: {
+                user_id: owner.user.id,
+                type: AccountTypes.CHECKING,
+                name: "Integrity test account",
+                balance: 999,
+            },
+        });
+
+        await prisma.transactions.create({
+            data: {
+                account_id: account.id,
+                amount: 42,
+                description: "Integrity seed",
+                date: new Date(),
+            },
+        });
+
+        const runCheck = await request(server)
+            .post("/admin/integrity/account")
+            .set("Authorization", `Bearer ${owner.token}`);
+        expect(runCheck.status).toBe(204);
+
+        const updatedAccount = await prisma.accounts.findUniqueOrThrow({
+            where: {id: account.id},
+        });
+        expect(updatedAccount.balance).toBe(42);
+    });
+
+    test("non-owner cannot run account integrity check", async () => {
+        const ownerReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(ownerReg.status).toBe(201);
+        const owner = ownerReg.body;
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const otherReg = await request(server)
+            .post("/user/register")
+            .send(buildRegisterPayload());
+        expect(otherReg.status).toBe(201);
+        const other = otherReg.body;
+
+        const response = await request(server)
+            .post("/admin/integrity/account")
+            .set("Authorization", `Bearer ${other.token}`);
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Only instance owner can access");
     });
 
     test("deleting a solo family admin also deletes their family", async () => {
