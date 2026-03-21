@@ -10,7 +10,7 @@ import {
     type SortingState,
     useVueTable,
 } from "@tanstack/vue-table";
-import {ArrowUpDown, Copy, Eye, KeyRound, MoreHorizontal, Trash2} from "lucide-vue-next";
+import {Copy, Eye, KeyRound, MoreHorizontal, Trash2} from "lucide-vue-next";
 import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -277,27 +277,48 @@ async function copyUserId(id: string) {
 
                 <div v-if="loading" class="text-muted-foreground text-sm">Loading...</div>
 
-                <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border">
-                    <Table wrapperClass="overflow-visible">
-                        <TableHeader class="bg-card sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
-                            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+                <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border" scrollbar-class="pt-[41px]">
+                    <Table wrapperClass="overflow-visible pr-3">
+                        <TableHeader class="bg-muted/50 sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
+                            <TableRow
+                                v-for="headerGroup in table.getHeaderGroups()"
+                                :key="headerGroup.id"
+                                class="border-b">
                                 <TableHead
-                                    v-for="header in headerGroup.headers"
+                                    v-for="(header, index) in headerGroup.headers"
                                     :key="header.id"
-                                    :class="header.column.id === 'actions' ? 'w-[56px] text-right' : ''">
+                                    :class="[
+                                        header.column.id === 'actions' ? 'w-[56px] text-right' : '',
+                                        index === headerGroup.headers.length - 1 ? 'relative w-[calc(100%+12px)]' : '',
+                                    ]">
                                     <div v-if="header.isPlaceholder" />
                                     <Button
                                         v-else-if="header.column.getCanSort()"
-                                        class="-ml-2 h-8 px-2"
+                                        class="-ml-4 h-8 px-2"
                                         size="sm"
                                         variant="ghost"
                                         @click="header.column.toggleSorting(header.column.getIsSorted() === 'asc')">
                                         <FlexRender
                                             :props="header.getContext()"
                                             :render="header.column.columnDef.header" />
-                                        <ArrowUpDown class="ml-2 h-4 w-4" />
+                                        <Icon
+                                            v-if="header.column.getIsSorted() === 'asc'"
+                                            class="ml-2 h-4 w-4"
+                                            name="iconoir:nav-arrow-up" />
+                                        <Icon
+                                            v-else-if="header.column.getIsSorted() === 'desc'"
+                                            class="ml-2 h-4 w-4"
+                                            name="iconoir:nav-arrow-down" />
+                                        <Icon
+                                            v-else
+                                            class="text-muted-foreground/50 ml-2 h-4 w-4"
+                                            name="iconoir:arrow-separate-vertical" />
                                     </Button>
                                     <div v-else class="text-right">Actions</div>
+                                    <!-- Background extension for the last column to cover the gap -->
+                                    <div
+                                        v-if="index === headerGroup.headers.length - 1"
+                                        class="bg-muted/50 absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
                                 </TableHead>
                             </TableRow>
                         </TableHeader>

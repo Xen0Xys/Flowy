@@ -330,6 +330,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                 </div>
                 <component
                     :is="!isMobile ? ScrollArea : 'div'"
+                    :scrollbar-class="!isMobile ? 'pt-[41px]' : ''"
                     :class="
                         !isMobile
                             ? 'overflow-hidden rounded-md border md:min-h-0 md:flex-1'

@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import {computed, ref} from "vue";
+<script lang="ts" setup>
+import {ref} from "vue";
 import {
     type ColumnDef,
     FlexRender,
@@ -93,27 +93,45 @@ const table = useVueTable({
 
 <template>
     <div class="w-full">
-        <Table wrapperClass="overflow-visible">
-            <TableHeader class="bg-card sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
-                <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+        <Table wrapperClass="overflow-visible pr-3">
+            <TableHeader class="bg-muted/50 sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
+                <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-b">
                     <TableHead
-                        v-for="header in headerGroup.headers"
+                        v-for="(header, index) in headerGroup.headers"
                         :key="header.id"
-                        :class="header.id === 'amount' ? 'text-right' : ''">
+                        :class="[
+                            header.id === 'amount' ? 'text-right' : '',
+                            index === headerGroup.headers.length - 1 ? 'relative w-[calc(100%+12px)]' : '',
+                        ]">
                         <div v-if="header.isPlaceholder"></div>
                         <Button
                             v-else-if="header.column.getCanSort()"
+                            :class="header.id === 'amount' ? '-mr-2 ml-auto flex items-center justify-end' : ''"
                             class="-ml-2 h-8 px-2"
                             size="sm"
                             variant="ghost"
-                            :class="header.id === 'amount' ? '-mr-2 ml-auto flex items-center justify-end' : ''"
                             @click="header.column.toggleSorting(header.column.getIsSorted() === 'asc')">
                             {{ header.column.columnDef.header }}
-                            <Icon name="iconoir:arrow-up-down" class="ml-2 h-4 w-4" />
+                            <Icon
+                                v-if="header.column.getIsSorted() === 'asc'"
+                                class="ml-2 h-4 w-4"
+                                name="iconoir:nav-arrow-up" />
+                            <Icon
+                                v-else-if="header.column.getIsSorted() === 'desc'"
+                                class="ml-2 h-4 w-4"
+                                name="iconoir:nav-arrow-down" />
+                            <Icon
+                                v-else
+                                class="text-muted-foreground/50 ml-2 h-4 w-4"
+                                name="iconoir:arrow-separate-vertical" />
                         </Button>
                         <div v-else :class="header.id === 'amount' ? 'text-right' : ''">
                             {{ header.column.columnDef.header }}
                         </div>
+                        <!-- Background extension for the last column to cover the gap -->
+                        <div
+                            v-if="index === headerGroup.headers.length - 1"
+                            class="bg-muted/50 absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
                     </TableHead>
                 </TableRow>
             </TableHeader>
@@ -144,13 +162,13 @@ const table = useVueTable({
                         <template v-else-if="cell.column.id === 'category'">
                             <Badge
                                 v-if="row.original.category"
-                                variant="outline"
                                 :style="{
                                     borderColor: row.original.category.hexColor,
                                     color: row.original.category.hexColor,
                                     backgroundColor: `${row.original.category.hexColor}15`,
                                 }"
-                                class="flex w-fit items-center gap-1.5 px-2 py-0.5 whitespace-nowrap">
+                                class="flex w-fit items-center gap-1.5 px-2 py-0.5 whitespace-nowrap"
+                                variant="outline">
                                 <Icon :name="row.original.category.icon" class="h-3 w-3" />
                                 {{ row.original.category.name }}
                             </Badge>
@@ -158,7 +176,7 @@ const table = useVueTable({
                         </template>
 
                         <template v-else-if="cell.column.id === 'amount'">
-                            <span class="font-medium" :class="amountClass(cell.getValue())">
+                            <span :class="amountClass(cell.getValue())" class="font-medium">
                                 {{ formatCurrency(cell.getValue()) }}
                             </span>
                         </template>
