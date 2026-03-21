@@ -1,4 +1,4 @@
-import {AccountTypes} from "../../../../../prisma/generated/enums";
+import {AccountTypes} from "../../../../../../prisma/generated/enums";
 
 export class AccountEntity {
     id: string;

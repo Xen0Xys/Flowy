@@ -1,29 +1,18 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Patch,
-    Post,
-    UseGuards,
-} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards,} from "@nestjs/common";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {InstanceOwnerGuard} from "../../common/guards/instance-owner.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {User} from "../../common/decorators/user.decorator";
-import {UserEntity} from "../user/models/entities/user.entity";
+import {UserEntity} from "../users/user/models/entities/user.entity";
 import {RegistrationEnabledDto} from "./models/dto/registration-enabled.dto";
 import {UpdateOwnerDto} from "./models/dto/update-owner.dto";
 import {InstanceSettingsDto} from "./models/dto/instance-settings.dto";
 import {AdminService} from "./admin.service";
 import {SetPasswordDto} from "./models/dto/set-password.dto";
-import {FamilyEntity} from "../family/models/entities/family.entity";
-import {FamilyService} from "../family/family.service";
-import {UserService} from "../user/user.service";
-import {AccountService} from "../account/account.service";
+import {FamilyEntity} from "../users/family/models/entities/family.entity";
+import {FamilyService} from "../users/family/family.service";
+import {UserService} from "../users/user/user.service";
+import {AccountService} from "../accounting/account/account.service";
 
 @Controller("admin")
 export class AdminController {

@@ -1,15 +1,9 @@
 import crypto from "node:crypto";
-import {PrismaService} from "../helper/prisma.service";
-import {
-    ConflictException,
-    Injectable,
-    Logger,
-    NotFoundException,
-    UnauthorizedException,
-} from "@nestjs/common";
+import {PrismaService} from "../../helper/prisma.service";
+import {ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException,} from "@nestjs/common";
 import {UserService} from "../user/user.service";
 import {UserEntity} from "../user/models/entities/user.entity";
-import {UserRoles} from "../../../prisma/generated/enums";
+import {UserRoles} from "../../../../prisma/generated/enums";
 import {FamilyEntity} from "./models/entities/family.entity";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";

@@ -1,14 +1,9 @@
-import {
-    CanActivate,
-    ExecutionContext,
-    Injectable,
-    UnauthorizedException,
-} from "@nestjs/common";
-import {UserEntity} from "../../modules/user/models/entities/user.entity";
+import {CanActivate, ExecutionContext, Injectable, UnauthorizedException,} from "@nestjs/common";
+import {UserEntity} from "../../modules/users/user/models/entities/user.entity";
 import {PrismaService} from "../../modules/helper/prisma.service";
 import {FastifyRequest} from "fastify";
 import {JwtService} from "@nestjs/jwt";
-import {UserService} from "../../modules/user/user.service";
+import {UserService} from "../../modules/users/user/user.service";
 
 export interface AuthenticatedRequest extends FastifyRequest {
     user?: UserEntity;

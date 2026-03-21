@@ -1,5 +1,5 @@
 import {IsEnum, IsNumber, IsOptional, IsString, Length} from "class-validator";
-import {AccountTypes} from "../../../../../prisma/generated/enums";
+import {AccountTypes} from "../../../../../../prisma/generated/enums";
 
 export class UpdateAccountDto {
     @IsOptional()

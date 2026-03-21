@@ -1,5 +1,5 @@
 import {Exclude} from "class-transformer";
-import {UserRoles} from "../../../../../prisma/generated/enums";
+import {UserRoles} from "../../../../../../prisma/generated/enums";
 
 export class UserEntity {
     id: string;

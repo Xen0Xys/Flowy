@@ -1,26 +1,15 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Patch,
-    Post,
-    UseGuards,
-} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards,} from "@nestjs/common";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
-import {FamilyAdminGuard} from "../../common/guards/family-admin.guard";
-import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
+import {FamilyAdminGuard} from "../../../common/guards/family-admin.guard";
+import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {CreateFamilyDto} from "./models/dto/create-family.dto";
 import {InviteMemberDto} from "./models/dto/invite-member.dto";
 import {UpdateFamilyDto} from "./models/dto/update-family.dto";
 import {UserEntity} from "../user/models/entities/user.entity";
 import {FamilyEntity} from "./models/entities/family.entity";
-import {User} from "../../common/decorators/user.decorator";
+import {User} from "../../../common/decorators/user.decorator";
 import {FamilyService} from "./family.service";
 
 @Controller("family")

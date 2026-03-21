@@ -1,15 +1,16 @@
 import {ClassSerializerInterceptor, Module} from "@nestjs/common";
-import {FamilyModule} from "./modules/family/family.module";
+import {FamilyModule} from "./modules/users/family/family.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import HelperModule from "./modules/helper/helper.module";
 import {AdminModule} from "./modules/admin/admin.module";
-import {UserModule} from "./modules/user/user.module";
+import {UserModule} from "./modules/users/user/user.module";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
 import {APP_INTERCEPTOR} from "@nestjs/core";
 import {JwtModule} from "@nestjs/jwt";
-import {AccountModule} from "./modules/account/account.module";
+import {AccountModule} from "./modules/accounting/account/account.module";
+import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
 
 @Module({
     imports: [
@@ -42,6 +43,7 @@ import {AccountModule} from "./modules/account/account.module";
         AdminModule,
         FamilyModule,
         AccountModule,
+        TransactionModule,
     ],
     controllers: [AppController],
     providers: [

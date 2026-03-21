@@ -1,20 +1,11 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    Patch,
-    Post,
-    UseGuards,
-} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, Patch, Post, UseGuards,} from "@nestjs/common";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UpdatePasswordDto} from "./models/dto/update-password.dto";
 import {UpdateUsernameDto} from "./models/dto/update-username.dto";
 import {DeleteAccountDto} from "./models/dto/delete-account.dto";
-import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
+import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {UpdateEmailDto} from "./models/dto/update-email.dto";
-import {User} from "../../common/decorators/user.decorator";
+import {User} from "../../../common/decorators/user.decorator";
 import {UserEntity} from "./models/entities/user.entity";
 import {RegisterDto} from "./models/dto/register.dto";
 import {LoginDto} from "./models/dto/login.dto";

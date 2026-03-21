@@ -7,11 +7,11 @@ import {
     NotFoundException,
     UnauthorizedException,
 } from "@nestjs/common";
-import {InstanceConfigService} from "../helper/instance-config.service";
+import {InstanceConfigService} from "../../helper/instance-config.service";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UserEntity} from "./models/entities/user.entity";
-import {PrismaService} from "../helper/prisma.service";
-import {Users} from "../../../prisma/generated/client";
+import {PrismaService} from "../../helper/prisma.service";
+import {Users} from "../../../../prisma/generated/client";
 import {JwtService} from "@nestjs/jwt";
 import crypto from "crypto";
 import argon2 from "argon2";

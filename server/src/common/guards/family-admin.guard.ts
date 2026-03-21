@@ -1,10 +1,5 @@
-import {
-    CanActivate,
-    ExecutionContext,
-    ForbiddenException,
-    Injectable,
-} from "@nestjs/common";
-import {UserEntity} from "../../modules/user/models/entities/user.entity";
+import {CanActivate, ExecutionContext, ForbiddenException, Injectable,} from "@nestjs/common";
+import {UserEntity} from "../../modules/users/user/models/entities/user.entity";
 import {UserRoles} from "../../../prisma/generated/enums";
 import {AuthenticatedRequest} from "./jwt-auth.guard";
 

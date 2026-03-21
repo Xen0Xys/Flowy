@@ -1,4 +1,4 @@
-import {PrismaService} from "../helper/prisma.service";
+import {PrismaService} from "../../helper/prisma.service";
 import {
     BadRequestException,
     ForbiddenException,
@@ -7,10 +7,10 @@ import {
     NotFoundException,
     OnModuleInit,
 } from "@nestjs/common";
-import {AccountTypes} from "../../../prisma/generated/enums";
-import {UserEntity} from "../user/models/entities/user.entity";
+import {AccountTypes} from "../../../../prisma/generated/enums";
+import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {AccountEntity} from "./models/entities/account.entity";
-import {Accounts} from "../../../prisma/generated/client";
+import {Accounts} from "../../../../prisma/generated/client";
 import {UpdateAccountDto} from "./models/dto/update-account.dto";
 
 @Injectable()
