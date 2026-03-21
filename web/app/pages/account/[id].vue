@@ -163,52 +163,57 @@ const transactionKey = (transaction: Transaction) => transaction.id;
 </script>
 
 <template>
-    <div class="space-y-6">
+    <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
         <!-- Header -->
-        <div class="flex items-center gap-4">
-            <Button variant="outline" size="icon" @click="goBack">
-                <Icon name="iconoir:arrow-left" class="h-4 w-4" />
-            </Button>
+        <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div class="flex items-start gap-4 md:items-center">
+                <Button variant="outline" size="icon" @click="goBack" class="mt-1 shrink-0 md:mt-0">
+                    <Icon name="iconoir:arrow-left" class="h-4 w-4" />
+                </Button>
 
-            <div class="flex-1">
-                <div v-if="isLoading" class="flex flex-col gap-2">
-                    <Skeleton class="h-8 w-48" />
-                    <Skeleton class="h-4 w-24" />
-                </div>
-                <div v-else-if="account">
-                    <h1 class="text-3xl font-bold tracking-tight">
-                        {{ account.name }}
-                    </h1>
-                    <div class="mt-1 flex items-center gap-2">
-                        <Badge variant="secondary">{{ account.type }}</Badge>
-                        <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
-                            Updated on {{ formatDate(account.updatedAt) }}
-                        </span>
+                <div class="flex-1">
+                    <div v-if="isLoading" class="flex flex-col gap-2">
+                        <Skeleton class="h-8 w-48" />
+                        <Skeleton class="h-4 w-24" />
+                    </div>
+                    <div v-else-if="account">
+                        <h1 class="text-2xl font-bold tracking-tight md:text-3xl">
+                            {{ account.name }}
+                        </h1>
+                        <div class="mt-1 flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary">{{ account.type }}</Badge>
+                            <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
+                                Updated on {{ formatDate(account.updatedAt) }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2" v-if="!isLoading && account">
-                <Button variant="outline" @click="openEditModal">
+            <div class="flex w-full items-center gap-2 md:w-auto" v-if="!isLoading && account">
+                <Button variant="outline" @click="openEditModal" class="flex-1 md:flex-none">
                     <Icon name="iconoir:edit-pencil" class="mr-2 h-4 w-4" />
                     Edit
                 </Button>
-                <Button variant="destructive" @click="confirmDelete">
+                <Button variant="destructive" @click="confirmDelete" class="flex-1 md:flex-none">
                     <Icon name="iconoir:trash" class="mr-2 h-4 w-4" />
                     Delete
                 </Button>
             </div>
         </div>
 
-        <div v-if="isLoading" class="space-y-6">
-            <Skeleton class="h-32 w-full" />
-            <Skeleton class="h-64 w-full" />
-            <Skeleton class="h-64 w-full" />
+        <div v-if="isLoading" class="flex flex-col gap-6 md:min-h-0 md:flex-1">
+            <Skeleton class="h-[400px] w-full shrink-0" />
+            <div class="space-y-4 md:flex-1 md:overflow-hidden">
+                <Skeleton class="h-20 w-full" />
+                <Skeleton class="h-20 w-full" />
+                <Skeleton class="h-20 w-full" />
+            </div>
         </div>
 
         <template v-else-if="account">
             <!-- Graph with KPI -->
-            <div class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
+            <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
                         <h3 class="text-muted-foreground text-sm font-medium">Current Balance</h3>
@@ -313,15 +318,16 @@ const transactionKey = (transaction: Transaction) => transaction.id;
             </div>
 
             <!-- Transactions -->
-            <div class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
-                <div class="mb-4 flex items-center justify-between">
+            <div
+                class="bg-card text-card-foreground flex flex-col rounded-xl border p-6 shadow-sm md:mb-6 md:min-h-0 md:flex-1">
+                <div class="mb-4 flex shrink-0 items-center justify-between">
                     <h3 class="text-lg leading-none font-semibold tracking-tight">Transactions</h3>
                     <Button @click="handleNewTransactionClick" size="sm">
                         <Icon name="iconoir:plus" class="h-4 w-4" />
                         New Transaction
                     </Button>
                 </div>
-                <div>
+                <div class="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-2">
                     <TransactionTable :transactions="transactions" @row-click="handleTransactionClick" />
                 </div>
             </div>
