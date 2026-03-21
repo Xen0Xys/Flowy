@@ -328,7 +328,13 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                         New Transaction
                     </Button>
                 </div>
-                <component :is="!isMobile ? ScrollArea : 'div'" :class="!isMobile ? 'md:min-h-0 md:flex-1 md:pr-4' : ''">
+                <component
+                    :is="!isMobile ? ScrollArea : 'div'"
+                    :class="
+                        !isMobile
+                            ? 'overflow-hidden rounded-md border md:min-h-0 md:flex-1'
+                            : 'overflow-hidden rounded-md border'
+                    ">
                     <TransactionTable :transactions="transactions" @row-click="handleTransactionClick" />
                 </component>
             </div>

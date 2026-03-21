@@ -92,9 +92,9 @@ const table = useVueTable({
 </script>
 
 <template>
-    <div class="rounded-md border">
-        <Table>
-            <TableHeader>
+    <div class="w-full">
+        <Table wrapperClass="overflow-visible">
+            <TableHeader class="bg-card sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                 <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
                     <TableHead
                         v-for="header in headerGroup.headers"

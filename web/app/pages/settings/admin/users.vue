@@ -14,6 +14,7 @@ import {ArrowUpDown, Copy, Eye, KeyRound, MoreHorizontal, Trash2} from "lucide-v
 import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {ScrollArea} from "@/components/ui/scroll-area";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {
     DropdownMenu,
@@ -260,14 +261,14 @@ async function copyUserId(id: string) {
 
 <template>
     <div class="w-full">
-        <div class="mx-auto w-full max-w-6xl py-6">
-            <div class="mb-6">
+        <div class="mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
+            <div class="mb-6 shrink-0">
                 <h1 class="text-2xl font-semibold">Users</h1>
                 <p class="text-muted-foreground text-sm">Manage users on this instance</p>
             </div>
 
-            <div class="space-y-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex min-h-0 flex-1 flex-col space-y-4">
+                <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <Input
                         v-model="globalFilter"
                         class="w-full sm:max-w-sm"
@@ -276,9 +277,9 @@ async function copyUserId(id: string) {
 
                 <div v-if="loading" class="text-muted-foreground text-sm">Loading...</div>
 
-                <div v-else class="rounded-md border">
-                    <Table>
-                        <TableHeader>
+                <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border">
+                    <Table wrapperClass="overflow-visible">
+                        <TableHeader class="bg-card sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                             <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
                                 <TableHead
                                     v-for="header in headerGroup.headers"
@@ -357,7 +358,7 @@ async function copyUserId(id: string) {
                             </TableRow>
                         </TableBody>
                     </Table>
-                </div>
+                </ScrollArea>
             </div>
         </div>
     </div>
