@@ -13,16 +13,12 @@ import {
     groupAccountsByType,
     mergeAccountEvolutionSeries,
 } from "~/utils/accounts";
+import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "~/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -33,24 +29,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "~/components/ui/collapsible";
-import {
-    ChartContainer,
-    ChartCrosshair,
-    ChartTooltip,
-    ChartTooltipContent,
-} from "~/components/ui/chart";
-import {
-    VisArea,
-    VisAxis,
-    VisLine,
-    VisScatter,
-    VisXYContainer,
-} from "@unovis/vue";
+import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "~/components/ui/collapsible";
+import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
+import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
 
 const chartConfig = {
@@ -77,10 +58,7 @@ const isDeleteDialogOpen = ref(false);
 const timeRange = ref<TimeRange>("1M");
 const globalEvolutionSeries = ref<{date: string; balance: number}[]>([]);
 
-const collapsedCategories = useStorage<Record<string, boolean>>(
-    "flowy_collapsed_categories",
-    {},
-);
+const collapsedCategories = useStorage<Record<string, boolean>>("flowy_collapsed_categories", {});
 
 const chartColor = computed(() => {
     const series = globalEvolutionSeries.value;
@@ -94,20 +72,13 @@ const chartColor = computed(() => {
 });
 
 const totalBalance = computed(() => computeTotalBalance(accountStore.accounts));
-const groupedAccounts = computed(() =>
-    groupAccountsByType(accountStore.accounts),
-);
-const categoryStats = computed(() =>
-    computeCategoryStats(groupedAccounts.value),
-);
+const groupedAccounts = computed(() => groupAccountsByType(accountStore.accounts));
+const categoryStats = computed(() => computeCategoryStats(groupedAccounts.value));
 
 const loadData = async () => {
     isLoading.value = true;
     try {
-        await Promise.all([
-            accountStore.fetchAccounts(),
-            familyStore.fetchFamily(),
-        ]);
+        await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily()]);
         await loadChartData();
     } catch (err) {
         console.error(err);
@@ -118,17 +89,15 @@ const loadData = async () => {
 
 const loadChartData = async () => {
     const {startDate, endDate} = buildDateRange(timeRange.value);
-    const seriesByAccount: Record<string, {date: string; balance: number}[]> =
-        {};
+    const seriesByAccount: Record<string, {date: string; balance: number}[]> = {};
 
     await Promise.all(
         accountStore.accounts.map(async (account) => {
-            seriesByAccount[account.id] =
-                await accountStore.fetchAccountBalanceEvolution(
-                    account.id,
-                    startDate,
-                    endDate,
-                );
+            seriesByAccount[account.id] = await accountStore.fetchAccountBalanceEvolution(
+                account.id,
+                startDate,
+                endDate,
+            );
         }),
     );
 
@@ -174,20 +143,12 @@ const goToDetails = (id: string) => {
 
 const formatCurrency = (value: number) => {
     const currency = familyStore.family?.currency || "USD";
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-    }).format(value);
+    return toCurrency(value, currency);
 };
 
 const formatCompactCurrency = (value: number) => {
     const currency = familyStore.family?.currency || "USD";
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-        notation: "compact",
-        maximumFractionDigits: 1,
-    }).format(value);
+    return toCurrency(value, currency);
 };
 </script>
 
@@ -197,9 +158,7 @@ const formatCompactCurrency = (value: number) => {
         <div class="flex shrink-0 items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold tracking-tight">My accounts</h1>
-                <p class="text-muted-foreground">
-                    Manage your accounts and track their evolution.
-                </p>
+                <p class="text-muted-foreground">Manage your accounts and track their evolution.</p>
             </div>
             <Button @click="openCreateModal">
                 <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
@@ -219,9 +178,7 @@ const formatCompactCurrency = (value: number) => {
         <div
             v-else-if="accountStore.accounts.length === 0"
             class="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-            <Icon
-                class="text-muted-foreground mb-4 h-12 w-12"
-                name="iconoir:wallet" />
+            <Icon class="text-muted-foreground mb-4 h-12 w-12" name="iconoir:wallet" />
             <h3 class="text-lg font-medium">No accounts yet</h3>
             <p class="text-muted-foreground mt-1 mb-4">
                 Create your first bank account to start tracking your finances.
@@ -231,14 +188,10 @@ const formatCompactCurrency = (value: number) => {
 
         <template v-else>
             <!-- Graph with KPI -->
-            <div
-                class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
-                <div
-                    class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
-                        <h3 class="text-muted-foreground text-sm font-medium">
-                            Total Balance
-                        </h3>
+                        <h3 class="text-muted-foreground text-sm font-medium">Total Balance</h3>
                         <div class="mt-1 text-3xl font-bold">
                             {{ formatCurrency(totalBalance) }}
                         </div>
@@ -272,20 +225,9 @@ const formatCompactCurrency = (value: number) => {
                                     <!-- Gradient pour la zone sous la courbe -->
                                     <svg height="0" width="0">
                                         <defs>
-                                            <linearGradient
-                                                id="colorBalance"
-                                                x1="0"
-                                                x2="0"
-                                                y1="0"
-                                                y2="1">
-                                                <stop
-                                                    :stop-color="chartColor"
-                                                    offset="5%"
-                                                    stop-opacity="0.3" />
-                                                <stop
-                                                    :stop-color="chartColor"
-                                                    offset="95%"
-                                                    stop-opacity="0" />
+                                            <linearGradient id="colorBalance" x1="0" x2="0" y1="0" y2="1">
+                                                <stop :stop-color="chartColor" offset="5%" stop-opacity="0.3" />
+                                                <stop :stop-color="chartColor" offset="95%" stop-opacity="0" />
                                             </linearGradient>
                                         </defs>
                                     </svg>
@@ -309,9 +251,7 @@ const formatCompactCurrency = (value: number) => {
                                     <!-- Points sur la courbe (désactivés sauf au survol géré par le crosshair, 
                                          mais on laisse un scatter léger si on veut forcer un point sur les single data) -->
                                     <VisScatter
-                                        v-if="
-                                            globalEvolutionSeries.length === 1
-                                        "
+                                        v-if="globalEvolutionSeries.length === 1"
                                         :color="chartColor"
                                         :size="6"
                                         :x="x"
@@ -322,22 +262,16 @@ const formatCompactCurrency = (value: number) => {
                                         :numTicks="isMobile ? 3 : undefined"
                                         :tickFormat="
                                             (d: number) =>
-                                                new Date(d).toLocaleDateString(
-                                                    'en-US',
-                                                    {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    },
-                                                )
+                                                new Date(d).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                })
                                         "
                                         type="x" />
                                     <VisAxis
                                         v-if="!isMobile"
                                         :gridLine="false"
-                                        :tickFormat="
-                                            (d: number) =>
-                                                formatCompactCurrency(d)
-                                        "
+                                        :tickFormat="(d: number) => formatCompactCurrency(d)"
                                         type="y" />
                                     <ChartCrosshair
                                         :color="chartColor"
@@ -353,15 +287,11 @@ const formatCompactCurrency = (value: number) => {
                                             </div>
                                         `
                                         " />
-                                    <ChartTooltip
-                                        :customComponent="
-                                            ChartTooltipContent
-                                        " />
+                                    <ChartTooltip :customComponent="ChartTooltipContent" />
                                 </VisXYContainer>
                             </ChartContainer>
                             <template #fallback>
-                                <div
-                                    class="flex h-full items-center justify-center">
+                                <div class="flex h-full items-center justify-center">
                                     <Skeleton class="h-full w-full" />
                                 </div>
                             </template>
@@ -371,16 +301,13 @@ const formatCompactCurrency = (value: number) => {
             </div>
 
             <!-- Accounts List Grouped by Category -->
-            <div
-                class="space-y-4 pb-4 md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-2">
+            <div class="space-y-4 pb-4 md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-2">
                 <Collapsible
                     v-for="category in categoryStats"
                     :key="category.type"
                     :open="!collapsedCategories[category.type]"
                     class="bg-card text-card-foreground overflow-hidden rounded-xl border shadow-sm"
-                    @update:open="
-                        (val) => (collapsedCategories[category.type] = !val)
-                    ">
+                    @update:open="(val) => (collapsedCategories[category.type] = !val)">
                     <CollapsibleTrigger
                         class="hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors">
                         <div class="flex items-center gap-3">
@@ -391,22 +318,16 @@ const formatCompactCurrency = (value: number) => {
                                         : 'iconoir:nav-arrow-right'
                                 "
                                 class="text-muted-foreground h-5 w-5 transition-transform" />
-                            <h3
-                                class="flex items-center gap-2 text-lg font-semibold">
-                                <Icon
-                                    class="text-muted-foreground h-5 w-5"
-                                    name="iconoir:folder" />
+                            <h3 class="flex items-center gap-2 text-lg font-semibold">
+                                <Icon class="text-muted-foreground h-5 w-5" name="iconoir:folder" />
                                 {{ category.type }}
                             </h3>
                         </div>
                         <div class="flex items-center gap-4 text-sm">
                             <span class="text-muted-foreground hidden sm:inline"
-                                >{{ category.percentage.toFixed(1) }}% of
-                                total</span
+                                >{{ category.percentage.toFixed(1) }}% of total</span
                             >
-                            <span class="text-base font-bold">{{
-                                formatCurrency(category.value)
-                            }}</span>
+                            <span class="text-base font-bold">{{ formatCurrency(category.value) }}</span>
                         </div>
                     </CollapsibleTrigger>
 
@@ -418,56 +339,30 @@ const formatCompactCurrency = (value: number) => {
                                 class="hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
                                 @click="goToDetails(account.id)">
                                 <div class="flex flex-col">
-                                    <span class="font-medium">{{
-                                        account.name
-                                    }}</span>
-                                    <span
-                                        class="text-muted-foreground mt-1 text-xs">
-                                        {{
-                                            account.percentageOfCategory.toFixed(
-                                                1,
-                                            )
-                                        }}% of category
+                                    <span class="font-medium">{{ account.name }}</span>
+                                    <span class="text-muted-foreground mt-1 text-xs">
+                                        {{ account.percentageOfCategory.toFixed(1) }}% of category
                                     </span>
                                 </div>
 
                                 <div class="flex items-center gap-4">
-                                    <span class="font-bold">{{
-                                        formatCurrency(account.balance)
-                                    }}</span>
+                                    <span class="font-bold">{{ formatCurrency(account.balance) }}</span>
 
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button
-                                                class="-mr-2 h-8 w-8"
-                                                size="icon"
-                                                variant="ghost"
-                                                @click.stop>
-                                                <Icon
-                                                    class="h-4 w-4"
-                                                    name="iconoir:more-horiz" />
+                                            <Button class="-mr-2 h-8 w-8" size="icon" variant="ghost" @click.stop>
+                                                <Icon class="h-4 w-4" name="iconoir:more-horiz" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            align="end"
-                                            @click.stop>
-                                            <DropdownMenuItem
-                                                @click.stop="
-                                                    openEditModal(account)
-                                                ">
-                                                <Icon
-                                                    class="mr-2 h-4 w-4"
-                                                    name="iconoir:edit-pencil" />
+                                        <DropdownMenuContent align="end" @click.stop>
+                                            <DropdownMenuItem @click.stop="openEditModal(account)">
+                                                <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
                                                 Edit
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 class="text-destructive focus:text-destructive"
-                                                @click.stop="
-                                                    confirmDelete(account)
-                                                ">
-                                                <Icon
-                                                    class="mr-2 h-4 w-4"
-                                                    name="iconoir:trash" />
+                                                @click.stop="confirmDelete(account)">
+                                                <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
                                                 Delete
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
@@ -481,21 +376,15 @@ const formatCompactCurrency = (value: number) => {
         </template>
 
         <!-- Modals -->
-        <AccountFormModal
-            v-model:open="isFormModalOpen"
-            :account="accountToEdit"
-            @saved="onFormSaved" />
+        <AccountFormModal v-model:open="isFormModalOpen" :account="accountToEdit" @saved="onFormSaved" />
 
-        <AlertDialog
-            :open="isDeleteDialogOpen"
-            @update:open="isDeleteDialogOpen = $event">
+        <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. The account "{{
-                            accountToDelete?.name
-                        }}" and all its associated data will be deleted.
+                        This action cannot be undone. The account "{{ accountToDelete?.name }}" and all its associated
+                        data will be deleted.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -4,10 +4,15 @@ import {useRoute, useRouter} from "vue-router";
 import {useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
+import {useTransactionStore} from "~/stores/transaction.store";
 import {buildDateRange} from "~/utils/accounts";
 import type {TimeRange} from "~/utils/accounts";
+import {toCurrency} from "~/lib/currency";
 import type {Account} from "~/stores/account.store";
+import type {Transaction} from "~/stores/transaction.store";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import TransactionTable from "~/components/transactions/TransactionTable.vue";
+import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
@@ -23,25 +28,15 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import {
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-    ChartCrosshair,
-} from "~/components/ui/chart";
-import {
-    VisXYContainer,
-    VisLine,
-    VisAxis,
-    VisScatter,
-    VisArea,
-} from "@unovis/vue";
+import {ChartContainer, ChartTooltip, ChartTooltipContent, ChartCrosshair} from "~/components/ui/chart";
+import {VisXYContainer, VisLine, VisAxis, VisScatter, VisArea} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
 
 const route = useRoute();
 const router = useRouter();
 const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
+const transactionStore = useTransactionStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
 
 const accountId = route.params.id as string;
@@ -51,8 +46,12 @@ const isFormModalOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const timeRange = ref<TimeRange>("1M");
 
+const isTransactionModalOpen = ref(false);
+const selectedTransaction = ref<Transaction | null>(null);
+
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
+const transactions = computed(() => transactionStore.currentAccountTransactions);
 
 const chartColor = computed(() => {
     const series = evolutionSeries.value;
@@ -78,6 +77,7 @@ const loadData = async () => {
         await Promise.all([
             accountStore.fetchAccountById(accountId),
             familyStore.fetchFamily(),
+            transactionStore.fetchTransactionsByAccountId(accountId),
         ]);
         await loadChartData();
     } catch (err) {
@@ -90,11 +90,7 @@ const loadData = async () => {
 
 const loadChartData = async () => {
     const {startDate, endDate} = buildDateRange(timeRange.value);
-    await accountStore.fetchAccountBalanceEvolution(
-        accountId,
-        startDate,
-        endDate,
-    );
+    await accountStore.fetchAccountBalanceEvolution(accountId, startDate, endDate);
 };
 
 onMounted(loadData);
@@ -125,22 +121,28 @@ const onFormSaved = () => {
     loadData();
 };
 
+const handleNewTransactionClick = () => {
+    selectedTransaction.value = null;
+    isTransactionModalOpen.value = true;
+};
+
+const handleTransactionClick = (transaction: Transaction) => {
+    selectedTransaction.value = transaction;
+    isTransactionModalOpen.value = true;
+};
+
+const onTransactionSaved = () => {
+    loadData();
+};
+
 const formatCurrency = (value: number) => {
     const currency = familyStore.family?.currency || "USD";
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-    }).format(value);
+    return toCurrency(value, currency);
 };
 
 const formatCompactCurrency = (value: number) => {
     const currency = familyStore.family?.currency || "USD";
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-        notation: "compact",
-        maximumFractionDigits: 1,
-    }).format(value);
+    return toCurrency(value, currency);
 };
 
 const formatDate = (dateString: string) => {
@@ -150,6 +152,14 @@ const formatDate = (dateString: string) => {
         day: "numeric",
     });
 };
+
+const amountClass = (value: number) => {
+    if (value < 0) return "text-red-500";
+    if (value > 0) return "text-emerald-600";
+    return "text-foreground";
+};
+
+const transactionKey = (transaction: Transaction) => transaction.id;
 </script>
 
 <template>
@@ -171,9 +181,7 @@ const formatDate = (dateString: string) => {
                     </h1>
                     <div class="mt-1 flex items-center gap-2">
                         <Badge variant="secondary">{{ account.type }}</Badge>
-                        <span
-                            v-if="account.updatedAt"
-                            class="text-muted-foreground text-xs">
+                        <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
                             Updated on {{ formatDate(account.updatedAt) }}
                         </span>
                     </div>
@@ -200,14 +208,10 @@ const formatDate = (dateString: string) => {
 
         <template v-else-if="account">
             <!-- Graph with KPI -->
-            <div
-                class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
-                <div
-                    class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
-                        <h3 class="text-muted-foreground text-sm font-medium">
-                            Current Balance
-                        </h3>
+                        <h3 class="text-muted-foreground text-sm font-medium">Current Balance</h3>
                         <div class="mt-1 text-3xl font-bold">
                             {{ formatCurrency(account.balance) }}
                         </div>
@@ -237,20 +241,9 @@ const formatDate = (dateString: string) => {
                                     }">
                                     <svg width="0" height="0">
                                         <defs>
-                                            <linearGradient
-                                                id="colorBalanceDetails"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1">
-                                                <stop
-                                                    offset="5%"
-                                                    :stop-color="chartColor"
-                                                    stop-opacity="0.3" />
-                                                <stop
-                                                    offset="95%"
-                                                    :stop-color="chartColor"
-                                                    stop-opacity="0" />
+                                            <linearGradient id="colorBalanceDetails" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" :stop-color="chartColor" stop-opacity="0.3" />
+                                                <stop offset="95%" :stop-color="chartColor" stop-opacity="0" />
                                             </linearGradient>
                                         </defs>
                                     </svg>
@@ -282,22 +275,16 @@ const formatDate = (dateString: string) => {
                                         :numTicks="isMobile ? 3 : undefined"
                                         :tickFormat="
                                             (d: number) =>
-                                                new Date(d).toLocaleDateString(
-                                                    'en-US',
-                                                    {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    },
-                                                )
+                                                new Date(d).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                })
                                         " />
                                     <VisAxis
                                         v-if="!isMobile"
                                         type="y"
                                         :gridLine="false"
-                                        :tickFormat="
-                                            (d: number) =>
-                                                formatCompactCurrency(d)
-                                        " />
+                                        :tickFormat="(d: number) => formatCompactCurrency(d)" />
                                     <ChartCrosshair
                                         :color="chartColor"
                                         :template="
@@ -312,15 +299,11 @@ const formatDate = (dateString: string) => {
                                             </div>
                                         `
                                         " />
-                                    <ChartTooltip
-                                        :customComponent="
-                                            ChartTooltipContent
-                                        " />
+                                    <ChartTooltip :customComponent="ChartTooltipContent" />
                                 </VisXYContainer>
                             </ChartContainer>
                             <template #fallback>
-                                <div
-                                    class="flex h-full items-center justify-center">
+                                <div class="flex h-full items-center justify-center">
                                     <Skeleton class="h-full w-full" />
                                 </div>
                             </template>
@@ -330,54 +313,36 @@ const formatDate = (dateString: string) => {
             </div>
 
             <!-- Transactions -->
-            <div
-                class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
-                <div class="mb-4">
-                    <h3
-                        class="text-lg leading-none font-semibold tracking-tight">
-                        Transactions
-                    </h3>
+            <div class="bg-card text-card-foreground rounded-xl border p-6 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-lg leading-none font-semibold tracking-tight">Transactions</h3>
+                    <Button @click="handleNewTransactionClick" size="sm">
+                        <Icon name="iconoir:plus" class="h-4 w-4" />
+                        New Transaction
+                    </Button>
                 </div>
                 <div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead class="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell
-                                    colspan="4"
-                                    class="text-muted-foreground h-24 text-center">
-                                    No transactions yet.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
+                    <TransactionTable :transactions="transactions" @row-click="handleTransactionClick" />
                 </div>
             </div>
         </template>
 
         <!-- Modals -->
-        <AccountFormModal
-            v-model:open="isFormModalOpen"
-            :account="account"
-            @saved="onFormSaved" />
+        <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />
 
-        <AlertDialog
-            :open="isDeleteDialogOpen"
-            @update:open="isDeleteDialogOpen = $event">
+        <TransactionFormModal
+            v-model:open="isTransactionModalOpen"
+            :transaction="selectedTransaction"
+            :account-id="accountId"
+            @saved="onTransactionSaved" />
+
+        <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. The account "{{
-                            account?.name
-                        }}" and all its associated data will be deleted.
+                        This action cannot be undone. The account "{{ account?.name }}" and all its associated data will
+                        be deleted.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
