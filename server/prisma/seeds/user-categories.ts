@@ -48,11 +48,7 @@ function uniqueValues(values: readonly string[], count: number, faker: Faker) {
     return faker.helpers.shuffle([...values]).slice(0, count);
 }
 
-export async function seedUserCategories(
-    prisma: any,
-    userId: string,
-    faker: Faker,
-) {
+export async function seedUserCategories(prisma: any, userId: string, faker: Faker) {
     const categoryCount = faker.number.int({
         min: MIN_CATEGORIES_PER_USER,
         max: MAX_CATEGORIES_PER_USER,

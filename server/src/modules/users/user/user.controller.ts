@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, HttpCode, Patch, Post, UseGuards,} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, Patch, Post, UseGuards} from "@nestjs/common";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UpdatePasswordDto} from "./models/dto/update-password.dto";
 import {UpdateUsernameDto} from "./models/dto/update-username.dto";
@@ -38,45 +38,29 @@ export class UserController {
     @Patch("me/username")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async updateMe(
-        @User() user: UserEntity,
-        @Body() body: UpdateUsernameDto,
-    ): Promise<UserEntity> {
+    async updateMe(@User() user: UserEntity, @Body() body: UpdateUsernameDto): Promise<UserEntity> {
         return this.userService.updateUsername(user, body.username);
     }
 
     @Patch("me/email")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async updateEmail(
-        @User() user: UserEntity,
-        @Body() body: UpdateEmailDto,
-    ): Promise<UserEntity> {
+    async updateEmail(@User() user: UserEntity, @Body() body: UpdateEmailDto): Promise<UserEntity> {
         return this.userService.updateEmail(user, body.email);
     }
 
     @Patch("me/password")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async updatePassword(
-        @User() user: UserEntity,
-        @Body() body: UpdatePasswordDto,
-    ): Promise<UserEntity> {
-        return this.userService.changePassword(
-            user,
-            body.currentPassword,
-            body.newPassword,
-        );
+    async updatePassword(@User() user: UserEntity, @Body() body: UpdatePasswordDto): Promise<UserEntity> {
+        return this.userService.changePassword(user, body.currentPassword, body.newPassword);
     }
 
     @Delete("me")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @HttpCode(204)
-    async deleteAccount(
-        @User() user: UserEntity,
-        @Body() body: DeleteAccountDto,
-    ): Promise<void> {
+    async deleteAccount(@User() user: UserEntity, @Body() body: DeleteAccountDto): Promise<void> {
         await this.userService.deleteOwnAccount(user, body.currentPassword);
     }
 }

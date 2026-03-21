@@ -122,9 +122,7 @@ export const useAccountStore = defineStore("account", {
                     body: payload,
                 });
 
-                this.accounts = this.accounts.map((account) =>
-                    account.id === id ? updated : account,
-                );
+                this.accounts = this.accounts.map((account) => (account.id === id ? updated : account));
 
                 if (this.currentAccount?.id === id) {
                     this.currentAccount = updated;
@@ -139,27 +137,20 @@ export const useAccountStore = defineStore("account", {
             }
         },
 
-        async fetchAccountBalanceEvolution(
-            id: string,
-            startDate: string,
-            endDate: string,
-        ) {
+        async fetchAccountBalanceEvolution(id: string, startDate: string, endDate: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
-                const evolution = await apiFetch<
-                    AccountBalanceEvolutionPoint[]
-                >(
+                const evolution = await apiFetch<AccountBalanceEvolutionPoint[]>(
                     `/account/${id}/evolution?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
                 );
 
                 this.currentAccountEvolution = evolution;
                 return evolution;
             } catch (err: any) {
-                const message =
-                    err?.message ?? "Failed fetching account balance evolution";
+                const message = err?.message ?? "Failed fetching account balance evolution";
                 toast.error(message);
                 throw new Error(message);
             }

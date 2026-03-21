@@ -25,9 +25,7 @@ defineSlots<{
 
 const {config} = toRefs(props);
 const uniqueId = useId();
-const chartId = computed(
-    () => `chart-${props.id || uniqueId.replace(/:/g, "")}`,
-);
+const chartId = computed(() => `chart-${props.id || uniqueId.replace(/:/g, "")}`);
 
 provideChartContext({
     id: uniqueId,

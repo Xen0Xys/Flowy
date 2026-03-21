@@ -51,23 +51,16 @@ export class AccountService implements OnModuleInit {
 
         const expectedBalanceByAccount = new Map<string, number>();
         for (const transaction of transactions) {
-            const currentSum =
-                expectedBalanceByAccount.get(transaction.account_id) ?? 0;
-            expectedBalanceByAccount.set(
-                transaction.account_id,
-                currentSum + transaction.amount,
-            );
+            const currentSum = expectedBalanceByAccount.get(transaction.account_id) ?? 0;
+            expectedBalanceByAccount.set(transaction.account_id, currentSum + transaction.amount);
         }
 
         const EPSILON = 0.000001;
         const results: Array<{status: "valid" | "fixed" | "error"}> = [];
         for (const account of accounts) {
             try {
-                const expectedBalance = this.toDecimal(
-                    expectedBalanceByAccount.get(account.id) ?? 0,
-                );
-                const hasMismatch =
-                    Math.abs(account.balance - expectedBalance) > EPSILON;
+                const expectedBalance = this.toDecimal(expectedBalanceByAccount.get(account.id) ?? 0);
+                const hasMismatch = Math.abs(account.balance - expectedBalance) > EPSILON;
 
                 if (!hasMismatch) {
                     results.push({status: "valid"});
@@ -92,28 +85,17 @@ export class AccountService implements OnModuleInit {
                 );
                 results.push({status: "fixed"});
             } catch (error: unknown) {
-                const message =
-                    error instanceof Error ? error.message : String(error);
-                this.logger.error(
-                    `Integrity check failed for account ${account.id}: ${message}`,
-                );
+                const message = error instanceof Error ? error.message : String(error);
+                this.logger.error(`Integrity check failed for account ${account.id}: ${message}`);
                 results.push({status: "error"});
             }
         }
 
-        const fixedCount = results.filter(
-            (result) => result.status === "fixed",
-        ).length;
-        const validCount = results.filter(
-            (result) => result.status === "valid",
-        ).length;
-        const errorCount = results.filter(
-            (result) => result.status === "error",
-        ).length;
+        const fixedCount = results.filter((result) => result.status === "fixed").length;
+        const validCount = results.filter((result) => result.status === "valid").length;
+        const errorCount = results.filter((result) => result.status === "error").length;
 
-        this.logger.log(
-            `Integrity check completed: valid=${validCount}, fixed=${fixedCount}, errors=${errorCount}`,
-        );
+        this.logger.log(`Integrity check completed: valid=${validCount}, fixed=${fixedCount}, errors=${errorCount}`);
     }
 
     async createAccount(
@@ -152,33 +134,27 @@ export class AccountService implements OnModuleInit {
     }
 
     async getAccount(user: UserEntity, id: string): Promise<AccountEntity> {
-        const account: Accounts | null =
-            await this.prismaService.accounts.findUnique({
-                where: {
-                    id,
-                },
-            });
+        const account: Accounts | null = await this.prismaService.accounts.findUnique({
+            where: {
+                id,
+            },
+        });
         if (!account) throw new NotFoundException("Account not found");
         if (account.user_id !== user.id)
-            throw new ForbiddenException(
-                "You do not have permission to delete this account",
-            );
+            throw new ForbiddenException("You do not have permission to delete this account");
         return this.toAccountEntity(account);
     }
 
     async deleteAccount(user: UserEntity, accountId: string): Promise<void> {
         // Check if user is owner && if account exists
-        const account: Accounts | null =
-            await this.prismaService.accounts.findUnique({
-                where: {
-                    id: accountId,
-                },
-            });
+        const account: Accounts | null = await this.prismaService.accounts.findUnique({
+            where: {
+                id: accountId,
+            },
+        });
         if (!account) throw new NotFoundException("Account not found");
         if (account.user_id !== user.id)
-            throw new ForbiddenException(
-                "You do not have permission to delete this account",
-            );
+            throw new ForbiddenException("You do not have permission to delete this account");
         await this.prismaService.accounts.delete({
             where: {
                 id: accountId,
@@ -186,11 +162,7 @@ export class AccountService implements OnModuleInit {
         });
     }
 
-    async updateAccount(
-        user: UserEntity,
-        accountId: string,
-        body: UpdateAccountDto,
-    ): Promise<AccountEntity> {
+    async updateAccount(user: UserEntity, accountId: string, body: UpdateAccountDto): Promise<AccountEntity> {
         const account = await this.prismaService.accounts.findUnique({
             where: {
                 id: accountId,
@@ -199,45 +171,39 @@ export class AccountService implements OnModuleInit {
 
         if (!account) throw new NotFoundException("Account not found");
         if (account.user_id !== user.id)
-            throw new ForbiddenException(
-                "You do not have permission to update this account",
-            );
+            throw new ForbiddenException("You do not have permission to update this account");
 
         const data: Partial<Pick<Accounts, "name" | "type" | "balance">> = {};
         if (body.name !== undefined) data.name = body.name;
         if (body.type !== undefined) data.type = body.type;
 
         const hasBalanceUpdate = body.balance !== undefined;
-        const targetBalance = hasBalanceUpdate
-            ? this.toDecimal(body.balance as number)
-            : account.balance;
+        const targetBalance = hasBalanceUpdate ? this.toDecimal(body.balance as number) : account.balance;
         const rebalanceAmount = this.toDecimal(targetBalance - account.balance);
 
         if (hasBalanceUpdate) data.balance = targetBalance;
 
-        const updatedAccount = await this.prismaService.$transaction(
-            async (tx) => {
-                const updated = await tx.accounts.update({
-                    where: {
-                        id: accountId,
+        const updatedAccount = await this.prismaService.$transaction(async (tx) => {
+            const updated = await tx.accounts.update({
+                where: {
+                    id: accountId,
+                },
+                data,
+            });
+
+            if (hasBalanceUpdate && rebalanceAmount !== 0) {
+                await tx.transactions.create({
+                    data: {
+                        account_id: accountId,
+                        amount: rebalanceAmount,
+                        description: "Account rebalance adjustment",
+                        is_rebalance: true,
                     },
-                    data,
                 });
+            }
 
-                if (hasBalanceUpdate && rebalanceAmount !== 0) {
-                    await tx.transactions.create({
-                        data: {
-                            account_id: accountId,
-                            amount: rebalanceAmount,
-                            description: "Account rebalance adjustment",
-                            is_rebalance: true,
-                        },
-                    });
-                }
-
-                return updated;
-            },
-        );
+            return updated;
+        });
 
         return this.toAccountEntity(updatedAccount);
     }
@@ -256,9 +222,7 @@ export class AccountService implements OnModuleInit {
 
         if (!account) throw new NotFoundException("Account not found");
         if (account.user_id !== user.id)
-            throw new ForbiddenException(
-                "You do not have permission to access this account",
-            );
+            throw new ForbiddenException("You do not have permission to access this account");
 
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -280,22 +244,19 @@ export class AccountService implements OnModuleInit {
             },
         });
 
-        const balanceBeforeStartRaw =
-            await this.prismaService.transactions.aggregate({
-                where: {
-                    account_id: accountId,
-                    date: {
-                        lt: start,
-                    },
+        const balanceBeforeStartRaw = await this.prismaService.transactions.aggregate({
+            where: {
+                account_id: accountId,
+                date: {
+                    lt: start,
                 },
-                _sum: {
-                    amount: true,
-                },
-            });
+            },
+            _sum: {
+                amount: true,
+            },
+        });
 
-        let runningBalance = this.toDecimal(
-            balanceBeforeStartRaw._sum.amount ?? 0,
-        );
+        let runningBalance = this.toDecimal(balanceBeforeStartRaw._sum.amount ?? 0);
 
         const transactionsByDate = new Map<string, number>();
         for (const t of transactions) {
@@ -312,10 +273,7 @@ export class AccountService implements OnModuleInit {
                 where: {account_id: accountId},
                 orderBy: {date: "asc"},
             });
-            const earliestDate =
-                firstTx && firstTx.date < account.created_at
-                    ? firstTx.date
-                    : account.created_at;
+            const earliestDate = firstTx && firstTx.date < account.created_at ? firstTx.date : account.created_at;
 
             if (actualStart < earliestDate) {
                 actualStart = new Date(earliestDate);
@@ -342,9 +300,7 @@ export class AccountService implements OnModuleInit {
         while (currentDate <= endDay) {
             const dateStr = currentDate.toISOString().split("T")[0];
             if (transactionsByDate.has(dateStr)) {
-                runningBalance = this.toDecimal(
-                    runningBalance + transactionsByDate.get(dateStr)!,
-                );
+                runningBalance = this.toDecimal(runningBalance + transactionsByDate.get(dateStr)!);
             }
             evolution.push({
                 date: new Date(currentDate),

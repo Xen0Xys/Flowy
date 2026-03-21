@@ -25,20 +25,12 @@ function uniqueValues(values: readonly string[], count: number, faker: Faker) {
     return faker.helpers.shuffle([...values]).slice(0, count);
 }
 
-export async function seedUserMerchants(
-    prisma: any,
-    userId: string,
-    faker: Faker,
-) {
+export async function seedUserMerchants(prisma: any, userId: string, faker: Faker) {
     const merchantCount = faker.number.int({
         min: MIN_MERCHANTS_PER_USER,
         max: MAX_MERCHANTS_PER_USER,
     });
-    const merchantNames = uniqueValues(
-        MERCHANT_NAME_POOL,
-        merchantCount,
-        faker,
-    );
+    const merchantNames = uniqueValues(MERCHANT_NAME_POOL, merchantCount, faker);
 
     const merchants: Array<{id: string}> = [];
 

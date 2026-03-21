@@ -30,25 +30,20 @@ const payload = computed(() => {
         .map(([key, value]) => {
             // const key = `${props.nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = props.config[key];
-            const indicatorColor =
-                props.config[key]?.color ?? props.payload.fill;
+            const indicatorColor = props.config[key]?.color ?? props.payload.fill;
 
             return {key, value, itemConfig, indicatorColor};
         })
         .filter((i) => i.itemConfig);
 });
 
-const nestLabel = computed(
-    () => Object.keys(props.payload).length === 1 && props.indicator !== "dot",
-);
+const nestLabel = computed(() => Object.keys(props.payload).length === 1 && props.indicator !== "dot");
 const tooltipLabel = computed(() => {
     if (props.hideLabel) return null;
     if (props.labelFormatter && props.x !== undefined) {
         return props.labelFormatter(props.x);
     }
-    return props.labelKey
-        ? props.config[props.labelKey]?.label || props.payload[props.labelKey]
-        : props.x;
+    return props.labelKey ? props.config[props.labelKey]?.label || props.payload[props.labelKey] : props.x;
 });
 </script>
 
@@ -78,17 +73,12 @@ const tooltipLabel = computed(() => {
                     <template v-else-if="!hideIndicator">
                         <div
                             :class="
-                                cn(
-                                    'shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)',
-                                    {
-                                        'h-2.5 w-2.5': indicator === 'dot',
-                                        'w-1': indicator === 'line',
-                                        'w-0 border-[1.5px] border-dashed bg-transparent':
-                                            indicator === 'dashed',
-                                        'my-0.5':
-                                            nestLabel && indicator === 'dashed',
-                                    },
-                                )
+                                cn('shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)', {
+                                    'h-2.5 w-2.5': indicator === 'dot',
+                                    'w-1': indicator === 'line',
+                                    'w-0 border-[1.5px] border-dashed bg-transparent': indicator === 'dashed',
+                                    'my-0.5': nestLabel && indicator === 'dashed',
+                                })
                             "
                             :style="{
                                 '--color-bg': indicatorColor,
@@ -98,10 +88,7 @@ const tooltipLabel = computed(() => {
 
                     <div
                         :class="
-                            cn(
-                                'flex flex-1 justify-between leading-none',
-                                nestLabel ? 'items-end' : 'items-center',
-                            )
+                            cn('flex flex-1 justify-between leading-none', nestLabel ? 'items-end' : 'items-center')
                         ">
                         <div class="grid gap-1.5">
                             <div v-if="nestLabel" class="font-medium">
@@ -111,9 +98,7 @@ const tooltipLabel = computed(() => {
                                 {{ itemConfig?.label || value }}
                             </span>
                         </div>
-                        <span
-                            v-if="value"
-                            class="text-foreground font-mono font-medium tabular-nums">
+                        <span v-if="value" class="text-foreground font-mono font-medium tabular-nums">
                             {{ value.toLocaleString() }}
                         </span>
                     </div>

@@ -24,9 +24,7 @@ const pageTitle = computed(() => {
 });
 
 useHead({
-    title: computed(() =>
-        pageTitle.value ? `Flowy - ${pageTitle.value}` : "Flowy",
-    ),
+    title: computed(() => (pageTitle.value ? `Flowy - ${pageTitle.value}` : "Flowy")),
 });
 </script>
 

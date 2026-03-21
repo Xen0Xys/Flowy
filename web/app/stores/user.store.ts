@@ -91,9 +91,7 @@ export const useUserStore = defineStore("user", {
                     body: credentials,
                 });
                 if (!data || !data.token) {
-                    toast.error(
-                        "Registration failed: missing token from server",
-                    );
+                    toast.error("Registration failed: missing token from server");
                     throw new Error("Register response missing token");
                 }
                 this.setToken(data.token);
@@ -102,18 +100,13 @@ export const useUserStore = defineStore("user", {
                 return data;
             } catch (err: any) {
                 // bubble server validation errors where possible
-                const message =
-                    err?.data?.message ?? err?.message ?? "Login failed";
+                const message = err?.data?.message ?? err?.message ?? "Login failed";
                 toast.error(message);
                 throw new Error(message);
             }
         },
 
-        async register(payload: {
-            username: string;
-            email: string;
-            password: string;
-        }) {
+        async register(payload: {username: string; email: string; password: string}) {
             const {apiFetch} = useApi();
             try {
                 const data = await apiFetch<any>("/user/register", {
@@ -121,9 +114,7 @@ export const useUserStore = defineStore("user", {
                     body: payload,
                 });
                 if (!data || !data.token) {
-                    toast.error(
-                        "Registration failed: missing token from server",
-                    );
+                    toast.error("Registration failed: missing token from server");
                     throw new Error("Register response missing token");
                 }
                 this.setToken(data.token);
@@ -131,8 +122,7 @@ export const useUserStore = defineStore("user", {
                 toast.success("Account created");
                 return data;
             } catch (err: any) {
-                const message =
-                    err?.data?.message ?? err?.message ?? "Registration failed";
+                const message = err?.data?.message ?? err?.message ?? "Registration failed";
                 toast.error(message);
                 throw new Error(message);
             }
@@ -231,12 +221,9 @@ export const useUserStore = defineStore("user", {
             if (!this.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                return await apiFetch<any>(
-                    "/admin/instance/settings",
-                );
+                return await apiFetch<any>("/admin/instance/settings");
             } catch (err: any) {
-                const message =
-                    err?.message ?? "Failed fetching instance settings";
+                const message = err?.message ?? "Failed fetching instance settings";
                 toast.error(message);
                 throw new Error(message);
             }
@@ -252,8 +239,7 @@ export const useUserStore = defineStore("user", {
                 });
                 toast.success("Registration setting updated");
             } catch (err: any) {
-                const message =
-                    err?.message ?? "Failed updating registration setting";
+                const message = err?.message ?? "Failed updating registration setting";
                 toast.error(message);
                 throw new Error(message);
             }
@@ -269,8 +255,7 @@ export const useUserStore = defineStore("user", {
                 });
                 toast.success("Instance owner updated");
             } catch (err: any) {
-                const message =
-                    err?.message ?? "Failed updating instance owner";
+                const message = err?.message ?? "Failed updating instance owner";
                 toast.error(message);
                 throw new Error(message);
             }

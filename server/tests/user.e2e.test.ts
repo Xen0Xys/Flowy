@@ -2,14 +2,7 @@ import "reflect-metadata";
 import fs from "node:fs";
 import path from "node:path";
 import {config as loadEnv} from "dotenv";
-import {
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    test,
-} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
 import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
@@ -18,11 +11,7 @@ import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
-import {
-    buildRegisterPayload,
-    ensureInstanceConfig,
-    PASSWORD_BASE,
-} from "./test-utils";
+import {buildRegisterPayload, ensureInstanceConfig, PASSWORD_BASE} from "./test-utils";
 
 const envPath = path.resolve(__dirname, "../.env");
 if (fs.existsSync(envPath)) {
@@ -47,9 +36,7 @@ describe("UserController (e2e)", () => {
             imports: [AppModule],
         }).compile();
 
-        app = moduleRef.createNestApplication<NestFastifyApplication>(
-            new FastifyAdapter({exposeHeadRoutes: true}),
-        );
+        app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
         app.useGlobalPipes(new CustomValidationPipe());
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
@@ -77,9 +64,7 @@ describe("UserController (e2e)", () => {
     test("registers a user when registration is enabled", async () => {
         const payload = buildRegisterPayload();
 
-        const response = await request(server)
-            .post("/user/register")
-            .send(payload);
+        const response = await request(server).post("/user/register").send(payload);
 
         expect(response.status).toBe(201);
         expect(response.body.user.email).toBe(payload.email);
@@ -89,9 +74,7 @@ describe("UserController (e2e)", () => {
     test("rejects duplicate email during registration", async () => {
         const payload = buildRegisterPayload();
 
-        const firstAttempt = await request(server)
-            .post("/user/register")
-            .send(payload);
+        const firstAttempt = await request(server).post("/user/register").send(payload);
         expect(firstAttempt.status).toBe(201);
 
         const duplicateAttempt = await request(server)
@@ -99,9 +82,7 @@ describe("UserController (e2e)", () => {
             .send({...payload, username: `${payload.username}-2`});
 
         expect(duplicateAttempt.status).toBe(409);
-        expect(duplicateAttempt.body.message).toContain(
-            "Username or email already exists",
-        );
+        expect(duplicateAttempt.body.message).toContain("Username or email already exists");
     });
 
     test("rejects registration when registration is disabled", async () => {
@@ -111,14 +92,10 @@ describe("UserController (e2e)", () => {
         });
 
         const payload = buildRegisterPayload();
-        const response = await request(server)
-            .post("/user/register")
-            .send(payload);
+        const response = await request(server).post("/user/register").send(payload);
 
         expect(response.status).toBe(401);
-        expect(response.body.message).toBe(
-            "Registration is disabled on this instance",
-        );
+        expect(response.body.message).toBe("Registration is disabled on this instance");
     });
 
     test("rejects invalid registration payload", async () => {
@@ -164,16 +141,12 @@ describe("UserController (e2e)", () => {
 
     test("returns current user when token is valid", async () => {
         const payload = buildRegisterPayload();
-        const login = await request(server)
-            .post("/user/register")
-            .send(payload);
+        const login = await request(server).post("/user/register").send(payload);
 
         expect(login.status).toBe(201);
         const token = login.body.token;
 
-        const response = await request(server)
-            .get("/user/me")
-            .set("Authorization", `Bearer ${token}`);
+        const response = await request(server).get("/user/me").set("Authorization", `Bearer ${token}`);
 
         expect(response.status).toBe(200);
         expect(response.body.email).toBe(payload.email);
@@ -188,9 +161,7 @@ describe("UserController (e2e)", () => {
     });
 
     test("rejects access to /user/me with invalid token", async () => {
-        const response = await request(server)
-            .get("/user/me")
-            .set("Authorization", "Bearer invalid-token");
+        const response = await request(server).get("/user/me").set("Authorization", "Bearer invalid-token");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Invalid or expired token");
@@ -203,14 +174,10 @@ describe("UserController (e2e)", () => {
 
         try {
             const payload = buildRegisterPayload();
-            const response = await request(server)
-                .post("/user/register")
-                .send(payload);
+            const response = await request(server).post("/user/register").send(payload);
 
             expect(response.status).toBe(500);
-            expect(response.body.message).toBe(
-                "Registration configuration not found",
-            );
+            expect(response.body.message).toBe("Registration configuration not found");
         } finally {
             await prisma.config.upsert({
                 where: {key: ConfigKey.REGISTRATION_ENABLED},
@@ -227,9 +194,7 @@ describe("UserController (e2e)", () => {
             password: `NotPlain${PASSWORD_BASE}`,
         });
 
-        const register = await request(server)
-            .post("/user/register")
-            .send(payload);
+        const register = await request(server).post("/user/register").send(payload);
         expect(register.status).toBe(201);
 
         const dbUser = await prisma.users.findFirst({
@@ -268,9 +233,7 @@ describe("UserController (e2e)", () => {
             .set("Authorization", `Bearer ${tokenA}`)
             .send({username: regB.body.user.username});
         expect(conflict.status).toBe(409);
-        expect(conflict.body.message).toContain(
-            "Username or email already exists",
-        );
+        expect(conflict.body.message).toContain("Username or email already exists");
     });
 
     test("updates email when authenticated and validates conflicts", async () => {
@@ -297,9 +260,7 @@ describe("UserController (e2e)", () => {
             .set("Authorization", `Bearer ${tokenA}`)
             .send({email: regB.body.user.email});
         expect(conflict.status).toBe(409);
-        expect(conflict.body.message).toContain(
-            "Username or email already exists",
-        );
+        expect(conflict.body.message).toContain("Username or email already exists");
     });
 
     test("changes password and keeps existing tokens valid", async () => {
@@ -319,9 +280,7 @@ describe("UserController (e2e)", () => {
         expect(change.status).toBe(200);
 
         // old token should still be valid (we no longer rotate jwt_id on password change)
-        const now = await request(server)
-            .get("/user/me")
-            .set("Authorization", `Bearer ${oldToken}`);
+        const now = await request(server).get("/user/me").set("Authorization", `Bearer ${oldToken}`);
         expect(now.status).toBe(200);
         expect(now.body.email).toBe(payload.email);
 
@@ -332,9 +291,7 @@ describe("UserController (e2e)", () => {
         expect(login.status).toBe(201);
         expect(typeof login.body.token).toBe("string");
 
-        const me = await request(server)
-            .get("/user/me")
-            .set("Authorization", `Bearer ${login.body.token}`);
+        const me = await request(server).get("/user/me").set("Authorization", `Bearer ${login.body.token}`);
         expect(me.status).toBe(200);
         expect(me.body.email).toBe(payload.email);
     });
@@ -365,11 +322,7 @@ describe("UserController (e2e)", () => {
             .send({currentPassword: payload.password, newPassword: "weak"});
         expect(weak.status).toBe(400);
         expect(Array.isArray(weak.body.message)).toBe(true);
-        expect(weak.body.message).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({property: "newPassword"}),
-            ]),
-        );
+        expect(weak.body.message).toEqual(expect.arrayContaining([expect.objectContaining({property: "newPassword"})]));
     });
 
     // Additional admin-related tests (edge cases)
@@ -378,9 +331,7 @@ describe("UserController (e2e)", () => {
         const reg = await request(server).post("/user/register").send(payload);
         expect(reg.status).toBe(201);
 
-        const resp = await request(server)
-            .get("/admin/users")
-            .set("Authorization", `Bearer ${reg.body.token}`);
+        const resp = await request(server).get("/admin/users").set("Authorization", `Bearer ${reg.body.token}`);
         expect(resp.status).toBe(401);
     });
 
@@ -403,9 +354,7 @@ describe("UserController (e2e)", () => {
         expect(dbUser).toBeNull();
 
         // token should no longer authenticate (user removed)
-        const me = await request(server)
-            .get("/user/me")
-            .set("Authorization", `Bearer ${token}`);
+        const me = await request(server).get("/user/me").set("Authorization", `Bearer ${token}`);
         expect(me.status).toBe(401);
     });
 

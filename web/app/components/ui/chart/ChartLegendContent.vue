@@ -37,21 +37,11 @@ onMounted(() => {
 <template>
     <div
         v-if="containerSelector"
-        :class="
-            cn(
-                'flex items-center justify-center gap-4',
-                verticalAlign === 'top' ? 'pb-3' : 'pt-3',
-                props.class,
-            )
-        ">
+        :class="cn('flex items-center justify-center gap-4', verticalAlign === 'top' ? 'pb-3' : 'pt-3', props.class)">
         <div
             v-for="{key, itemConfig} in payload"
             :key="key"
-            :class="
-                cn(
-                    '[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3',
-                )
-            ">
+            :class="cn('[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3')">
             <component :is="itemConfig.icon" v-if="itemConfig?.icon" />
             <div
                 v-else

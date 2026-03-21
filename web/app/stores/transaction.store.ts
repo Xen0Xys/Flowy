@@ -81,42 +81,30 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const transactions = await apiFetch<Transaction[]>(
-                    `/transaction/${accountId}`,
-                );
+                const transactions = await apiFetch<Transaction[]>(`/transaction/${accountId}`);
                 this.currentAccountTransactions = transactions;
                 return transactions;
             } catch (err: any) {
-                const message =
-                    err?.message ?? "Failed fetching account transactions";
+                const message = err?.message ?? "Failed fetching account transactions";
                 toast.error(message);
                 throw new Error(message);
             }
         },
 
-        async createTransaction(
-            accountId: string,
-            payload: CreateTransactionPayload,
-        ) {
+        async createTransaction(accountId: string, payload: CreateTransactionPayload) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
-                const newTransaction = await apiFetch<Transaction>(
-                    `/transaction/${accountId}`,
-                    {
-                        method: "POST",
-                        body: payload,
-                    },
-                );
+                const newTransaction = await apiFetch<Transaction>(`/transaction/${accountId}`, {
+                    method: "POST",
+                    body: payload,
+                });
 
                 this.transactions = [newTransaction, ...this.transactions];
                 if (newTransaction.accountId === accountId) {
-                    this.currentAccountTransactions = [
-                        newTransaction,
-                        ...this.currentAccountTransactions,
-                    ];
+                    this.currentAccountTransactions = [newTransaction, ...this.currentAccountTransactions];
                 }
 
                 toast.success("Transaction created");
@@ -128,32 +116,23 @@ export const useTransactionStore = defineStore("transaction", {
             }
         },
 
-        async updateTransaction(
-            transactionId: string,
-            payload: UpdateTransactionPayload,
-        ) {
+        async updateTransaction(transactionId: string, payload: UpdateTransactionPayload) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
-                const updatedTransaction = await apiFetch<Transaction>(
-                    `/transaction/${transactionId}`,
-                    {
-                        method: "PATCH",
-                        body: payload,
-                    },
-                );
+                const updatedTransaction = await apiFetch<Transaction>(`/transaction/${transactionId}`, {
+                    method: "PATCH",
+                    body: payload,
+                });
 
                 this.transactions = this.transactions.map((transaction) =>
                     transaction.id === transactionId ? updatedTransaction : transaction,
                 );
-                this.currentAccountTransactions =
-                    this.currentAccountTransactions.map((transaction) =>
-                        transaction.id === transactionId
-                            ? updatedTransaction
-                            : transaction,
-                    );
+                this.currentAccountTransactions = this.currentAccountTransactions.map((transaction) =>
+                    transaction.id === transactionId ? updatedTransaction : transaction,
+                );
 
                 toast.success("Transaction updated");
                 return updatedTransaction;
@@ -174,13 +153,10 @@ export const useTransactionStore = defineStore("transaction", {
                     method: "DELETE",
                 });
 
-                this.transactions = this.transactions.filter(
+                this.transactions = this.transactions.filter((transaction) => transaction.id !== transactionId);
+                this.currentAccountTransactions = this.currentAccountTransactions.filter(
                     (transaction) => transaction.id !== transactionId,
                 );
-                this.currentAccountTransactions =
-                    this.currentAccountTransactions.filter(
-                        (transaction) => transaction.id !== transactionId,
-                    );
 
                 toast.success("Transaction deleted");
             } catch (err: any) {

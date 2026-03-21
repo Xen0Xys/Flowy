@@ -55,9 +55,7 @@ export async function registerUser(
     const response = await request(server).post("/user/register").send(payload);
 
     if (response.status !== 201 || typeof response.body?.token !== "string") {
-        throw new Error(
-            `Failed to register test user: status=${response.status}`,
-        );
+        throw new Error(`Failed to register test user: status=${response.status}`);
     }
 
     return response.body;

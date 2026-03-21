@@ -80,8 +80,7 @@ async function deleteAccountNow() {
         userStore.logout();
         await useRouter().push("/auth/login");
     } catch (err: any) {
-        const message =
-            err?.data?.message ?? err?.message ?? "Failed deleting account";
+        const message = err?.data?.message ?? err?.message ?? "Failed deleting account";
         toast.error(message);
         throw new Error(message);
     }
@@ -102,9 +101,7 @@ async function saveUsernameOnly() {
     if (!userStore.token) return;
     const nextUsername = username.value.trim();
     if (!isValidUsername(nextUsername)) {
-        toast.error(
-            `Username must be between ${USERNAME_MIN_LENGTH} and ${USERNAME_MAX_LENGTH} characters.`,
-        );
+        toast.error(`Username must be between ${USERNAME_MIN_LENGTH} and ${USERNAME_MAX_LENGTH} characters.`);
         return;
     }
 
@@ -145,9 +142,7 @@ async function changePasswordNow() {
     }
 
     if (!isValidPassword(next)) {
-        toast.error(
-            `New password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-        );
+        toast.error(`New password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
         return;
     }
 
@@ -169,22 +164,16 @@ async function changePasswordNow() {
         <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-semibold">Profile</h1>
-                <p class="text-muted-foreground text-sm">
-                    Manage your personal information and credentials
-                </p>
+                <p class="text-muted-foreground text-sm">Manage your personal information and credentials</p>
             </div>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <aside class="md:col-span-1">
                     <Card class="h-full" innerClass="p-6">
-                        <div
-                            class="flex flex-col items-center gap-4 text-center">
+                        <div class="flex flex-col items-center gap-4 text-center">
                             <Avatar class="h-20 w-20 rounded-full">
-                                <AvatarImage
-                                    :alt="userStore.user?.username ?? username"
-                                    :src="avatarUrl" />
-                                <AvatarFallback
-                                    class="rounded-full text-2xl font-semibold">
+                                <AvatarImage :alt="userStore.user?.username ?? username" :src="avatarUrl" />
+                                <AvatarFallback class="rounded-full text-2xl font-semibold">
                                     {{ initials }}
                                 </AvatarFallback>
                             </Avatar>
@@ -206,19 +195,11 @@ async function changePasswordNow() {
                 <main class="md:col-span-2">
                     <Card class="h-full" innerClass="p-6">
                         <div class="mb-6">
-                            <label class="mb-2 block text-sm font-medium"
-                                >Username</label
-                            >
+                            <label class="mb-2 block text-sm font-medium">Username</label>
                             <div class="flex gap-3">
-                                <Input
-                                    v-model="username"
-                                    aria-label="Username"
-                                    class="flex-1"
-                                    placeholder="Username" />
+                                <Input v-model="username" aria-label="Username" class="flex-1" placeholder="Username" />
                                 <Button
-                                    :disabled="
-                                        savingUsername || !userStore.token
-                                    "
+                                    :disabled="savingUsername || !userStore.token"
                                     aria-label="Save username"
                                     size="sm"
                                     variant="default"
@@ -252,12 +233,9 @@ async function changePasswordNow() {
                         <hr class="border-border my-4" />
 
                         <div>
-                            <label class="mb-2 block text-sm font-medium"
-                                >Change password</label
-                            >
+                            <label class="mb-2 block text-sm font-medium">Change password</label>
                             <p class="text-muted-foreground mb-3 text-sm">
-                                Enter your current password and choose a new
-                                password.
+                                Enter your current password and choose a new password.
                             </p>
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <Input
@@ -273,54 +251,33 @@ async function changePasswordNow() {
                             </div>
                             <div class="mt-4 flex justify-end">
                                 <Button
-                                    :disabled="
-                                        changingPassword ||
-                                        !userStore.token ||
-                                        !currentPassword ||
-                                        !newPassword
-                                    "
+                                    :disabled="changingPassword || !userStore.token || !currentPassword || !newPassword"
                                     aria-label="Change password"
                                     size="sm"
                                     @click="changePasswordNow">
-                                    <span v-if="!changingPassword"
-                                        >Change password</span
-                                    >
+                                    <span v-if="!changingPassword">Change password</span>
                                     <span v-else>Updating...</span>
                                 </Button>
                             </div>
                             <hr class="border-border my-4" />
                             <div class="mt-6">
                                 <AlertDialog>
-                                    <div
-                                        class="flex items-center justify-between">
+                                    <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm font-medium">
-                                                Danger zone
-                                            </p>
-                                            <p
-                                                class="text-muted-foreground text-xs">
-                                                Permanently delete your account
-                                            </p>
+                                            <p class="text-sm font-medium">Danger zone</p>
+                                            <p class="text-muted-foreground text-xs">Permanently delete your account</p>
                                         </div>
                                         <AlertDialogTrigger>
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                >Delete account</Button
-                                            >
+                                            <Button size="sm" variant="destructive">Delete account</Button>
                                         </AlertDialogTrigger>
                                     </div>
 
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle
-                                                >Delete
-                                                account</AlertDialogTitle
-                                            >
+                                            <AlertDialogTitle>Delete account</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This action is irreversible.
-                                                Please enter your current
-                                                password to confirm.
+                                                This action is irreversible. Please enter your current password to
+                                                confirm.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <div class="mt-4">
@@ -331,15 +288,9 @@ async function changePasswordNow() {
                                                 type="password" />
                                         </div>
                                         <AlertDialogFooter>
-                                            <AlertDialogCancel
-                                                >Cancel</AlertDialogCancel
-                                            >
-                                            <AlertDialogAction
-                                                :disabled="deleting"
-                                                @click="deleteAccountNow">
-                                                <span v-if="!deleting"
-                                                    >Delete</span
-                                                >
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction :disabled="deleting" @click="deleteAccountNow">
+                                                <span v-if="!deleting">Delete</span>
                                                 <span v-else>Deleting...</span>
                                             </AlertDialogAction>
                                         </AlertDialogFooter>

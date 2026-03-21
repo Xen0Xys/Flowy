@@ -1,8 +1,4 @@
-import {
-    Injectable,
-    NotFoundException,
-    UnauthorizedException,
-} from "@nestjs/common";
+import {Injectable, NotFoundException, UnauthorizedException} from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
 import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
@@ -32,8 +28,7 @@ export class AdminService {
     }
 
     async deleteUser(id: string, currentUserId: string) {
-        if (id === currentUserId)
-            throw new UnauthorizedException("Cannot delete yourself");
+        if (id === currentUserId) throw new UnauthorizedException("Cannot delete yourself");
 
         const user = await this.prisma.users.findUnique({where: {id}});
         if (!user) throw new NotFoundException("User not found");

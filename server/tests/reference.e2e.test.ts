@@ -2,14 +2,7 @@ import "reflect-metadata";
 import fs from "node:fs";
 import path from "node:path";
 import {config as loadEnv} from "dotenv";
-import {
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    test,
-} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
 import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
@@ -43,9 +36,7 @@ describe("ReferenceController (e2e)", () => {
             imports: [AppModule],
         }).compile();
 
-        app = moduleRef.createNestApplication<NestFastifyApplication>(
-            new FastifyAdapter({exposeHeadRoutes: true}),
-        );
+        app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
         app.useGlobalPipes(new CustomValidationPipe());
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
@@ -93,9 +84,7 @@ describe("ReferenceController (e2e)", () => {
         expect(categories.status).toBe(401);
         expect(categories.body.message).toBe("Invalid or expired token");
 
-        const merchants = await request(server)
-            .get("/reference/merchants")
-            .set("Authorization", "Bearer invalid-token");
+        const merchants = await request(server).get("/reference/merchants").set("Authorization", "Bearer invalid-token");
 
         expect(merchants.status).toBe(401);
         expect(merchants.body.message).toBe("Invalid or expired token");

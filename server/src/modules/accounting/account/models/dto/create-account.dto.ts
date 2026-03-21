@@ -1,4 +1,4 @@
-import {IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Length,} from "class-validator";
+import {IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Length} from "class-validator";
 import {AccountTypes} from "../../../../../../prisma/generated/enums";
 
 export class CreateAccountDto {

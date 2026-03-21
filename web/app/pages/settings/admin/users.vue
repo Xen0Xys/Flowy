@@ -10,25 +10,11 @@ import {
     type SortingState,
     useVueTable,
 } from "@tanstack/vue-table";
-import {
-    ArrowUpDown,
-    Copy,
-    Eye,
-    KeyRound,
-    MoreHorizontal,
-    Trash2,
-} from "lucide-vue-next";
+import {ArrowUpDown, Copy, Eye, KeyRound, MoreHorizontal, Trash2} from "lucide-vue-next";
 import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -36,14 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -89,9 +68,7 @@ const deleteDialogUser = ref<AdminUser | null>(null);
 const isDeleteDialogOpen = ref(false);
 const resetPasswordValue = ref("");
 const isResettingCurrentUser = computed(() =>
-    Boolean(
-        resetDialogUser.value && resettingId.value === resetDialogUser.value.id,
-    ),
+    Boolean(resetDialogUser.value && resettingId.value === resetDialogUser.value.id),
 );
 
 const columns: ColumnDef<AdminUser>[] = [
@@ -194,9 +171,7 @@ function formatFamilyRole(role: string | null | undefined) {
 }
 
 function getDetailsFamilyRoleLabel(details: DetailsState) {
-    const role = details.family
-        ? findFamilyMemberRole(details.family, details.user.id)
-        : details.user.familyRole;
+    const role = details.family ? findFamilyMemberRole(details.family, details.user.id) : details.user.familyRole;
 
     return formatFamilyRole(role);
 }
@@ -212,15 +187,13 @@ async function openDetailsDialog(user: AdminUser) {
     loadingDetails.value = true;
     try {
         const family = await familyStore.adminGetFamily(user.familyId);
-        if (!detailsState.value || detailsState.value.user.id !== user.id)
-            return;
+        if (!detailsState.value || detailsState.value.user.id !== user.id) return;
         detailsState.value = {
             user,
             family,
         };
     } catch {
-        if (!detailsState.value || detailsState.value.user.id !== user.id)
-            return;
+        if (!detailsState.value || detailsState.value.user.id !== user.id) return;
         detailsState.value = {
             user,
             family: null,
@@ -256,9 +229,7 @@ async function handleResetPassword() {
     }
 
     if (!isValidPassword(password)) {
-        toast.error(
-            `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-        );
+        toast.error(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
         return;
     }
 
@@ -292,55 +263,37 @@ async function copyUserId(id: string) {
         <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-semibold">Users</h1>
-                <p class="text-muted-foreground text-sm">
-                    Manage users on this instance
-                </p>
+                <p class="text-muted-foreground text-sm">Manage users on this instance</p>
             </div>
 
             <div class="space-y-4">
-                <div
-                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <Input
                         v-model="globalFilter"
                         class="w-full sm:max-w-sm"
                         placeholder="Search by username, email or UUID..." />
                 </div>
 
-                <div v-if="loading" class="text-muted-foreground text-sm">
-                    Loading...
-                </div>
+                <div v-if="loading" class="text-muted-foreground text-sm">Loading...</div>
 
                 <div v-else class="rounded-md border">
                     <Table>
                         <TableHeader>
-                            <TableRow
-                                v-for="headerGroup in table.getHeaderGroups()"
-                                :key="headerGroup.id">
+                            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
                                 <TableHead
                                     v-for="header in headerGroup.headers"
                                     :key="header.id"
-                                    :class="
-                                        header.column.id === 'actions'
-                                            ? 'w-[56px] text-right'
-                                            : ''
-                                    ">
+                                    :class="header.column.id === 'actions' ? 'w-[56px] text-right' : ''">
                                     <div v-if="header.isPlaceholder" />
                                     <Button
                                         v-else-if="header.column.getCanSort()"
                                         class="-ml-2 h-8 px-2"
                                         size="sm"
                                         variant="ghost"
-                                        @click="
-                                            header.column.toggleSorting(
-                                                header.column.getIsSorted() ===
-                                                    'asc',
-                                            )
-                                        ">
+                                        @click="header.column.toggleSorting(header.column.getIsSorted() === 'asc')">
                                         <FlexRender
                                             :props="header.getContext()"
-                                            :render="
-                                                header.column.columnDef.header
-                                            " />
+                                            :render="header.column.columnDef.header" />
                                         <ArrowUpDown class="ml-2 h-4 w-4" />
                                     </Button>
                                     <div v-else class="text-right">Actions</div>
@@ -349,12 +302,8 @@ async function copyUserId(id: string) {
                         </TableHeader>
 
                         <TableBody>
-                            <TableRow
-                                v-for="row in table.getRowModel().rows"
-                                :key="row.id">
-                                <TableCell
-                                    v-for="cell in row.getVisibleCells()"
-                                    :key="cell.id">
+                            <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
+                                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
                                     <span
                                         v-if="cell.column.id === 'id'"
                                         :title="String(row.getValue('id'))"
@@ -362,63 +311,34 @@ async function copyUserId(id: string) {
                                         {{ row.getValue("id") }}
                                     </span>
 
-                                    <div
-                                        v-else-if="cell.column.id === 'actions'"
-                                        class="flex justify-end">
+                                    <div v-else-if="cell.column.id === 'actions'" class="flex justify-end">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
-                                                <Button
-                                                    class="h-8 w-8 p-0"
-                                                    size="icon"
-                                                    variant="ghost">
-                                                    <MoreHorizontal
-                                                        class="h-4 w-4" />
+                                                <Button class="h-8 w-8 p-0" size="icon" variant="ghost">
+                                                    <MoreHorizontal class="h-4 w-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent
-                                                align="end"
-                                                class="w-48">
-                                                <DropdownMenuItem
-                                                    @click="
-                                                        openDetailsDialog(
-                                                            row.original,
-                                                        )
-                                                    ">
+                                            <DropdownMenuContent align="end" class="w-48">
+                                                <DropdownMenuItem @click="openDetailsDialog(row.original)">
                                                     <Eye class="h-4 w-4" />
                                                     View details
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    @click="
-                                                        copyUserId(
-                                                            row.original.id,
-                                                        )
-                                                    ">
+                                                <DropdownMenuItem @click="copyUserId(row.original.id)">
                                                     <Copy class="h-4 w-4" />
                                                     Copy UUID
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    @click="
-                                                        openResetDialog(
-                                                            row.original,
-                                                        )
-                                                    ">
+                                                <DropdownMenuItem @click="openResetDialog(row.original)">
                                                     <KeyRound class="h-4 w-4" />
                                                     Reset password
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     :disabled="
-                                                        row.original.id ===
-                                                            instanceOwnerId ||
-                                                        deletingId ===
-                                                            row.original.id
+                                                        row.original.id === instanceOwnerId ||
+                                                        deletingId === row.original.id
                                                     "
                                                     variant="destructive"
-                                                    @click="
-                                                        openDeleteDialog(
-                                                            row.original,
-                                                        )
-                                                    ">
+                                                    @click="openDeleteDialog(row.original)">
                                                     <Trash2 class="h-4 w-4" />
                                                     Delete user
                                                 </DropdownMenuItem>
@@ -426,18 +346,12 @@ async function copyUserId(id: string) {
                                         </DropdownMenu>
                                     </div>
 
-                                    <FlexRender
-                                        v-else
-                                        :props="cell.getContext()"
-                                        :render="cell.column.columnDef.cell" />
+                                    <FlexRender v-else :props="cell.getContext()" :render="cell.column.columnDef.cell" />
                                 </TableCell>
                             </TableRow>
 
-                            <TableRow
-                                v-if="table.getRowModel().rows.length === 0">
-                                <TableCell
-                                    :colspan="4"
-                                    class="text-muted-foreground h-24 text-center">
+                            <TableRow v-if="table.getRowModel().rows.length === 0">
+                                <TableCell :colspan="4" class="text-muted-foreground h-24 text-center">
                                     No users found.
                                 </TableCell>
                             </TableRow>
@@ -448,15 +362,11 @@ async function copyUserId(id: string) {
         </div>
     </div>
 
-    <Dialog
-        :open="Boolean(detailsState)"
-        @update:open="(open) => !open && (detailsState = null)">
+    <Dialog :open="Boolean(detailsState)" @update:open="(open) => !open && (detailsState = null)">
         <DialogContent class="max-w-lg">
             <DialogHeader>
                 <DialogTitle>User details</DialogTitle>
-                <DialogDescription>
-                    Detailed information for this account.
-                </DialogDescription>
+                <DialogDescription> Detailed information for this account. </DialogDescription>
             </DialogHeader>
             <div v-if="detailsState" class="grid gap-3 text-sm">
                 <div>
@@ -494,9 +404,7 @@ async function copyUserId(id: string) {
                 </div>
                 <div>
                     <p class="text-muted-foreground">Family ID</p>
-                    <div
-                        v-if="detailsState.user.familyId"
-                        class="flex items-center gap-2">
+                    <div v-if="detailsState.user.familyId" class="flex items-center gap-2">
                         <p
                             :title="detailsState.user.familyId"
                             class="text-muted-foreground max-w-65 truncate font-mono text-xs">
@@ -516,31 +424,19 @@ async function copyUserId(id: string) {
                 <div>
                     <p class="text-muted-foreground">Family name</p>
                     <p class="font-medium">
-                        {{
-                            loadingDetails
-                                ? "Loading..."
-                                : (detailsState.family?.name ?? "-")
-                        }}
+                        {{ loadingDetails ? "Loading..." : (detailsState.family?.name ?? "-") }}
                     </p>
                 </div>
                 <div>
                     <p class="text-muted-foreground">Family currency</p>
                     <p class="font-medium">
-                        {{
-                            loadingDetails
-                                ? "Loading..."
-                                : (detailsState.family?.currency ?? "-")
-                        }}
+                        {{ loadingDetails ? "Loading..." : (detailsState.family?.currency ?? "-") }}
                     </p>
                 </div>
                 <div>
                     <p class="text-muted-foreground">Family owner</p>
                     <p class="font-medium">
-                        {{
-                            loadingDetails
-                                ? "Loading..."
-                                : (detailsState.family?.owner?.username ?? "-")
-                        }}
+                        {{ loadingDetails ? "Loading..." : (detailsState.family?.owner?.username ?? "-") }}
                     </p>
                 </div>
                 <div>
@@ -550,24 +446,19 @@ async function copyUserId(id: string) {
                             loadingDetails
                                 ? "Loading..."
                                 : detailsState.family
-                                  ? (detailsState.family.members
-                                        ?.length as number) + 1
+                                  ? (detailsState.family.members?.length as number) + 1
                                   : "-"
                         }}
                     </p>
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" @click="detailsState = null"
-                    >Close</Button
-                >
+                <Button variant="outline" @click="detailsState = null">Close</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
 
-    <Dialog
-        :open="Boolean(resetDialogUser)"
-        @update:open="(open) => !open && (resetDialogUser = null)">
+    <Dialog :open="Boolean(resetDialogUser)" @update:open="(open) => !open && (resetDialogUser = null)">
         <DialogContent class="max-w-md">
             <DialogHeader>
                 <DialogTitle>Reset Password</DialogTitle>
@@ -576,18 +467,11 @@ async function copyUserId(id: string) {
                 </DialogDescription>
             </DialogHeader>
             <div class="grid gap-2">
-                <Input
-                    v-model="resetPasswordValue"
-                    placeholder="New password"
-                    type="password" />
+                <Input v-model="resetPasswordValue" placeholder="New password" type="password" />
             </div>
             <DialogFooter>
-                <Button variant="outline" @click="resetDialogUser = null"
-                    >Cancel</Button
-                >
-                <Button
-                    :disabled="isResettingCurrentUser"
-                    @click="handleResetPassword">
+                <Button variant="outline" @click="resetDialogUser = null">Cancel</Button>
+                <Button :disabled="isResettingCurrentUser" @click="handleResetPassword">
                     <span v-if="!isResettingCurrentUser">Reset Password</span>
                     <span v-else>Resetting...</span>
                 </Button>
@@ -595,17 +479,13 @@ async function copyUserId(id: string) {
         </DialogContent>
     </Dialog>
 
-    <AlertDialog
-        :open="Boolean(deleteDialogUser)"
-        @update:open="(open) => !open && (deleteDialogUser = null)">
+    <AlertDialog :open="Boolean(deleteDialogUser)" @update:open="(open) => !open && (deleteDialogUser = null)">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Delete user</AlertDialogTitle>
                 <AlertDialogDescription v-if="deleteDialogUser">
                     Are you sure you want to delete
-                    <span class="font-semibold">{{
-                        deleteDialogUser.username
-                    }}</span
+                    <span class="font-semibold">{{ deleteDialogUser.username }}</span
                     >?
                 </AlertDialogDescription>
             </AlertDialogHeader>
@@ -615,8 +495,7 @@ async function copyUserId(id: string) {
                     :disabled="
                         Boolean(
                             deleteDialogUser &&
-                            (deleteDialogUser.id === instanceOwnerId ||
-                                deletingId === deleteDialogUser.id),
+                            (deleteDialogUser.id === instanceOwnerId || deletingId === deleteDialogUser.id),
                         )
                     "
                     variant="destructive"

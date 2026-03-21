@@ -27,15 +27,10 @@ async function main() {
     // Default config
     let start = Date.now();
     await generateDefaultConfig();
-    console.log(
-        `\n✅  Default config seeded successfully! (${Date.now() - start}ms)`,
-    );
+    console.log(`\n✅  Default config seeded successfully! (${Date.now() - start}ms)`);
 
     // Development-only data population using Faker
-    if (
-        process.env.NODE_ENV === "development" ||
-        process.env.NODE_ENV === "dev"
-    ) {
+    if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev") {
         console.log("\n🔧 NODE_ENV=development detected — seeding dev data...");
 
         // dynamic imports so modules are only loaded in development
@@ -55,8 +50,7 @@ async function main() {
         // @ts-ignore
         const {seedAccounts} = await import("./seeds/accounts.js");
         // @ts-ignore
-        const {seedTransactionsForAccount} =
-            await import("./seeds/transactions.js");
+        const {seedTransactionsForAccount} = await import("./seeds/transactions.js");
         // @ts-ignore
         const {seedUserMerchants} = await import("./seeds/user-merchants.js");
         // @ts-ignore
@@ -65,23 +59,17 @@ async function main() {
         // Families
         start = Date.now();
         const families = await (seedFamilies as any)(prisma, faker);
-        console.log(
-            `✅  Families seeded (${families.length}) (${Date.now() - start}ms)`,
-        );
+        console.log(`✅  Families seeded (${families.length}) (${Date.now() - start}ms)`);
 
         // Users
         start = Date.now();
         const userIds = await (seedUsers as any)(prisma, families, faker);
-        console.log(
-            `✅  Users seeded (${userIds.length}) (${Date.now() - start}ms)`,
-        );
+        console.log(`✅  Users seeded (${userIds.length}) (${Date.now() - start}ms)`);
 
         // Invites
         start = Date.now();
         const invites = await (seedInvites as any)(prisma, families, faker);
-        console.log(
-            `✅  Invites seeded (${invites.length}) (${Date.now() - start}ms)`,
-        );
+        console.log(`✅  Invites seeded (${invites.length}) (${Date.now() - start}ms)`);
 
         // Accounts / Transactions / Merchants / Categories
         start = Date.now();
@@ -106,25 +94,13 @@ async function main() {
 
         for (let i = 0; i < users.length; i++) {
             const user = users[i];
-            const merchants = await (seedUserMerchants as any)(
-                prisma,
-                user.id,
-                faker,
-            );
+            const merchants = await (seedUserMerchants as any)(prisma, user.id, faker);
             merchantsCount += merchants.length;
 
-            const categories = await (seedUserCategories as any)(
-                prisma,
-                user.id,
-                faker,
-            );
+            const categories = await (seedUserCategories as any)(prisma, user.id, faker);
             categoriesCount += categories.length;
 
-            const accounts = await (seedAccounts as any)(
-                prisma,
-                user.id,
-                faker,
-            );
+            const accounts = await (seedAccounts as any)(prisma, user.id, faker);
             accountsCount += accounts.length;
 
             for (const account of accounts) {
@@ -157,11 +133,7 @@ async function main() {
 }
 
 // oxlint-disable-next-line no-unused-vars
-async function idSeed(
-    table: any,
-    data: any[],
-    update: boolean = true,
-): Promise<void> {
+async function idSeed(table: any, data: any[], update: boolean = true): Promise<void> {
     for (let i = 0; i < data.length; i++) {
         await table.upsert({
             where: {id: data[i].id},
@@ -177,12 +149,7 @@ async function idSeed(
     }
 }
 
-async function seed(
-    table: any,
-    data: any[],
-    id_field: any,
-    update: boolean = true,
-): Promise<void> {
+async function seed(table: any, data: any[], id_field: any, update: boolean = true): Promise<void> {
     for (let i = 0; i < data.length; i++) {
         const whereClause: any = {};
         whereClause[id_field] = data[i][id_field];

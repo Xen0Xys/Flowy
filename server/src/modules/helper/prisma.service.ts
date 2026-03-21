@@ -19,22 +19,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         super({adapter});
         return this.$extends({
             query: {
-                async $allOperations({
-                    operation,
-                    model,
-                    args,
-                    query,
-                }): Promise<any> {
+                async $allOperations({operation, model, args, query}): Promise<any> {
                     const startTime: number = Date.now();
                     const result: any = await query(args);
                     const duration: number = Date.now() - startTime;
                     const requestCount: number = args.length || 1;
-                    const resultCount: number = !result
-                        ? 0
-                        : result.length || 1;
-                    PrismaService.logger.log(
-                        `${model} ${operation} ${duration}ms ${requestCount} ${resultCount}`,
-                    );
+                    const resultCount: number = !result ? 0 : result.length || 1;
+                    PrismaService.logger.log(`${model} ${operation} ${duration}ms ${requestCount} ${resultCount}`);
                     return result;
                 },
             },

@@ -1,7 +1,4 @@
-import type {
-    Account,
-    AccountBalanceEvolutionPoint,
-} from "~/stores/account.store";
+import type {Account, AccountBalanceEvolutionPoint} from "~/stores/account.store";
 
 export type TimeRange = "7D" | "1M" | "3M" | "6M" | "1Y" | "ALL";
 
@@ -43,9 +40,7 @@ export function computeTotalBalance(accounts: Account[]): number {
     return accounts.reduce((sum, account) => sum + account.balance, 0);
 }
 
-export function groupAccountsByType(
-    accounts: Account[],
-): Record<string, Account[]> {
+export function groupAccountsByType(accounts: Account[]): Record<string, Account[]> {
     return accounts.reduce(
         (acc, account) => {
             if (!acc[account.type]) {
@@ -75,23 +70,14 @@ export function computeCategoryStats(groups: Record<string, Account[]>) {
     return Object.entries(groups)
         .map(([type, accounts]) => {
             const value = accounts.reduce((sum, a) => sum + a.balance, 0);
-            const absCategoryValue = accounts.reduce(
-                (sum, a) => sum + Math.abs(a.balance),
-                0,
-            );
+            const absCategoryValue = accounts.reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
-            const percentage =
-                absoluteTotal > 0
-                    ? (absCategoryValue / absoluteTotal) * 100
-                    : 0;
+            const percentage = absoluteTotal > 0 ? (absCategoryValue / absoluteTotal) * 100 : 0;
 
             const accountsWithStats = accounts
                 .map((a) => ({
                     ...a,
-                    percentageOfCategory:
-                        absCategoryValue > 0
-                            ? (Math.abs(a.balance) / absCategoryValue) * 100
-                            : 0,
+                    percentageOfCategory: absCategoryValue > 0 ? (Math.abs(a.balance) / absCategoryValue) * 100 : 0,
                 }))
                 .sort((a, b) => b.balance - a.balance);
 
@@ -125,7 +111,5 @@ export function mergeAccountEvolutionSeries(
         balance,
     }));
 
-    return merged.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    return merged.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }

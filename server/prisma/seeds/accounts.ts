@@ -3,14 +3,7 @@ import {Faker} from "@faker-js/faker";
 const MIN_ACCOUNTS_PER_USER = 1;
 const MAX_ACCOUNTS_PER_USER = 4;
 
-const ACCOUNT_TYPES = [
-    "CHECKING",
-    "SAVINGS",
-    "CREDIT",
-    "CASH",
-    "INVESTMENT",
-    "OTHER",
-] as const;
+const ACCOUNT_TYPES = ["CHECKING", "SAVINGS", "CREDIT", "CASH", "INVESTMENT", "OTHER"] as const;
 
 export async function seedAccounts(prisma: any, userId: string, faker: Faker) {
     const userAccountsCount = faker.number.int({
@@ -20,15 +13,10 @@ export async function seedAccounts(prisma: any, userId: string, faker: Faker) {
 
     const accounts: Array<{id: string}> = [];
 
-    for (
-        let accountIndex = 0;
-        accountIndex < userAccountsCount;
-        accountIndex++
-    ) {
+    for (let accountIndex = 0; accountIndex < userAccountsCount; accountIndex++) {
         const accountId = Bun.randomUUIDv7();
         const accountType = faker.helpers.arrayElement(ACCOUNT_TYPES);
-        const accountName =
-            `${faker.finance.accountName()} ${accountIndex + 1}`.slice(0, 50);
+        const accountName = `${faker.finance.accountName()} ${accountIndex + 1}`.slice(0, 50);
 
         const account = await prisma.accounts.create({
             data: {

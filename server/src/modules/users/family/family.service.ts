@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import {PrismaService} from "../../helper/prisma.service";
-import {ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException,} from "@nestjs/common";
+import {ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException} from "@nestjs/common";
 import {UserService} from "../user/user.service";
 import {UserEntity} from "../user/models/entities/user.entity";
 import {UserRoles} from "../../../../prisma/generated/enums";
@@ -19,8 +19,7 @@ export class FamilyService {
 
     async createFamily(name: string, currency: string, owner: UserEntity) {
         // Check if owner is already in a family
-        if (owner.familyId)
-            throw new ConflictException("User is already in a family");
+        if (owner.familyId) throw new ConflictException("User is already in a family");
 
         // Create family
         const family = await this.prismaService.family.create({
@@ -49,12 +48,8 @@ export class FamilyService {
         });
     }
 
-    async inviteMember(
-        user: UserEntity,
-        email: string,
-    ): Promise<FamilyInviteCodeEntity> {
-        if (!user.familyId)
-            throw new NotFoundException("User is not in a family");
+    async inviteMember(user: UserEntity, email: string): Promise<FamilyInviteCodeEntity> {
+        if (!user.familyId) throw new NotFoundException("User is not in a family");
         // Check if family exists
         const family = await this.prismaService.family.findUnique({
             where: {id: user.familyId},
@@ -71,9 +66,7 @@ export class FamilyService {
                 code: inviteCode,
                 family_id: user.familyId,
                 email,
-                expires_at: new Date(
-                    new Date().setDate(new Date().getDate() + 7),
-                ), // Expires in 7 days
+                expires_at: new Date(new Date().setDate(new Date().getDate() + 7)), // Expires in 7 days
             },
         });
         return new FamilyInviteCodeEntity({
@@ -110,10 +103,7 @@ export class FamilyService {
         if (!invite) throw new NotFoundException("Invite does not exist");
 
         // Check if user is admin of the family
-        if (
-            user.familyId !== invite.family_id ||
-            user.familyRole !== UserRoles.ADMIN
-        )
+        if (user.familyId !== invite.family_id || user.familyRole !== UserRoles.ADMIN)
             throw new UnauthorizedException("User is not admin of the family");
 
         // Delete invite
@@ -124,8 +114,7 @@ export class FamilyService {
 
     async joinFamily(user: UserEntity, code: string) {
         // Check if user is already in a family
-        if (user.familyId)
-            throw new ConflictException("User is already in a family");
+        if (user.familyId) throw new ConflictException("User is already in a family");
 
         // Check if code exists
         const invite = await this.prismaService.familyInvites.findUnique({
@@ -134,8 +123,7 @@ export class FamilyService {
         if (!invite) throw new NotFoundException("Invite code does not exist");
 
         // Check if code is for the user's email
-        if (invite.email !== user.email)
-            throw new UnauthorizedException("Invite code is not for this user");
+        if (invite.email !== user.email) throw new UnauthorizedException("Invite code is not for this user");
 
         // Update user to be in the family
         await this.prismaService.users.update({
@@ -154,8 +142,7 @@ export class FamilyService {
 
     async quitFamily(user: UserEntity) {
         // Check if user is in a family
-        if (!user.familyId)
-            throw new NotFoundException("User is not in a family");
+        if (!user.familyId) throw new NotFoundException("User is not in a family");
 
         // Update user to remove family
         await this.prismaService.users.update({
@@ -168,11 +155,9 @@ export class FamilyService {
     }
 
     async deleteFamily(user: UserEntity) {
-        if (!user.familyId)
-            throw new NotFoundException("User is not in a family");
+        if (!user.familyId) throw new NotFoundException("User is not in a family");
 
-        if (user.familyRole !== UserRoles.ADMIN)
-            throw new UnauthorizedException("User must be a family admin");
+        if (user.familyRole !== UserRoles.ADMIN) throw new UnauthorizedException("User must be a family admin");
 
         const familyId = user.familyId;
 
@@ -192,8 +177,7 @@ export class FamilyService {
     }
 
     async removeMember(user: UserEntity, memberId: string) {
-        if (!user.familyId)
-            throw new NotFoundException("User is not in a family");
+        if (!user.familyId) throw new NotFoundException("User is not in a family");
 
         const member = await this.prismaService.users.findUnique({
             where: {id: memberId},
@@ -201,9 +185,7 @@ export class FamilyService {
         if (!member) throw new NotFoundException("Member not found");
 
         if (member.family_id !== user.familyId) {
-            throw new UnauthorizedException(
-                "Member is not part of your family",
-            );
+            throw new UnauthorizedException("Member is not part of your family");
         }
 
         // Prevent removing the family owner/admin
@@ -217,20 +199,15 @@ export class FamilyService {
         });
     }
 
-    async updateFamilySettings(
-        user: UserEntity,
-        body: {name?: string; currency?: string},
-    ) {
-        if (!user.familyId)
-            throw new NotFoundException("User is not in a family");
+    async updateFamilySettings(user: UserEntity, body: {name?: string; currency?: string}) {
+        if (!user.familyId) throw new NotFoundException("User is not in a family");
         const family = await this.prismaService.family.findUnique({
             where: {id: user.familyId},
         });
         if (!family) throw new NotFoundException("Family does not exist");
 
         // Only family admin can update
-        if (user.familyRole !== UserRoles.ADMIN)
-            throw new UnauthorizedException("User must be a family admin");
+        if (user.familyRole !== UserRoles.ADMIN) throw new UnauthorizedException("User must be a family admin");
 
         const data: any = {};
         if (body.name) data.name = body.name;
@@ -259,15 +236,11 @@ export class FamilyService {
             where: {family_id: familyId},
         });
 
-        const owner = members.find(
-            (member) => member.family_role === UserRoles.ADMIN,
-        );
+        const owner = members.find((member) => member.family_role === UserRoles.ADMIN);
         if (!owner) throw new NotFoundException("Family owner does not exist");
         members = members.filter((member) => member.id !== owner?.id);
 
-        const memberEntities = members.map((member) =>
-            UserService.toUserEntity(member),
-        );
+        const memberEntities = members.map((member) => UserService.toUserEntity(member));
 
         return new FamilyEntity({
             name: family.name,

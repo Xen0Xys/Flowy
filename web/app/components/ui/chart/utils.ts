@@ -20,11 +20,7 @@ interface Constructor<P = any> {
     };
 }
 
-export function componentToString<P>(
-    config: ChartConfig,
-    component: Constructor<P>,
-    props?: P,
-) {
+export function componentToString<P>(config: ChartConfig, component: Constructor<P>, props?: P) {
     if (!isClient) return;
 
     // This function will be called once during mount lifecycle

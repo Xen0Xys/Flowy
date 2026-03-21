@@ -1,8 +1,4 @@
-import {
-    ForbiddenException,
-    Injectable,
-    NotFoundException,
-} from "@nestjs/common";
+import {ForbiddenException, Injectable, NotFoundException} from "@nestjs/common";
 import {PrismaService} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {TransactionEntity} from "./models/entities/transaction.entity";
@@ -74,9 +70,7 @@ export class TransactionService {
         }
 
         if (account.user_id !== user.id) {
-            throw new ForbiddenException(
-                "You do not have permission to access this account",
-            );
+            throw new ForbiddenException("You do not have permission to access this account");
         }
 
         return account;
@@ -124,15 +118,10 @@ export class TransactionService {
             },
         });
 
-        return transactions.map((transaction) =>
-            this.toTransactionEntity(transaction),
-        );
+        return transactions.map((transaction) => this.toTransactionEntity(transaction));
     }
 
-    async getTransactionsByAccountId(
-        user: UserEntity,
-        accountId: string,
-    ): Promise<TransactionEntity[]> {
+    async getTransactionsByAccountId(user: UserEntity, accountId: string): Promise<TransactionEntity[]> {
         await this.getOwnedAccountOrThrow(user, accountId);
 
         const transactions = await this.prismaService.transactions.findMany({
@@ -148,9 +137,7 @@ export class TransactionService {
             },
         });
 
-        return transactions.map((transaction) =>
-            this.toTransactionEntity(transaction),
-        );
+        return transactions.map((transaction) => this.toTransactionEntity(transaction));
     }
 
     async addTransactions(
@@ -159,19 +146,13 @@ export class TransactionService {
         createTransactionDto: CreateTransactionDto,
     ): Promise<TransactionEntity> {
         const account = await this.getOwnedAccountOrThrow(user, accountId);
-        await this.validateReferencesOwnership(
-            user,
-            createTransactionDto.merchantId,
-            createTransactionDto.categoryId,
-        );
+        await this.validateReferencesOwnership(user, createTransactionDto.merchantId, createTransactionDto.categoryId);
 
         const transaction = await this.prismaService.$transaction(async (tx) => {
             await tx.accounts.update({
                 where: {id: accountId},
                 data: {
-                    balance: this.toDecimal(
-                        account.balance + createTransactionDto.amount,
-                    ),
+                    balance: this.toDecimal(account.balance + createTransactionDto.amount),
                 },
             });
 
@@ -188,14 +169,13 @@ export class TransactionService {
             });
         });
 
-        const createdTransaction =
-            await this.prismaService.transactions.findUniqueOrThrow({
-                where: {id: transaction.id},
-                include: {
-                    merchant: true,
-                    category: true,
-                },
-            });
+        const createdTransaction = await this.prismaService.transactions.findUniqueOrThrow({
+            where: {id: transaction.id},
+            include: {
+                merchant: true,
+                category: true,
+            },
+        });
 
         return this.toTransactionEntity(createdTransaction);
     }
@@ -219,66 +199,50 @@ export class TransactionService {
         }
 
         if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException(
-                "You do not have permission to update this transaction",
-            );
+            throw new ForbiddenException("You do not have permission to update this transaction");
         }
 
-        await this.validateReferencesOwnership(
-            user,
-            updateTransactionDto.merchantId,
-            updateTransactionDto.categoryId,
-        );
+        await this.validateReferencesOwnership(user, updateTransactionDto.merchantId, updateTransactionDto.categoryId);
 
-        const nextAmount =
-            updateTransactionDto.amount !== undefined
-                ? updateTransactionDto.amount
-                : transaction.amount;
+        const nextAmount = updateTransactionDto.amount !== undefined ? updateTransactionDto.amount : transaction.amount;
         const delta = this.toDecimal(nextAmount - transaction.amount);
 
-        const updatedTransaction = await this.prismaService.$transaction(
-            async (tx) => {
-                await tx.accounts.update({
-                    where: {id: transaction.account_id},
-                    data: {
-                        balance: this.toDecimal(transaction.account.balance + delta),
-                    },
-                });
-
-                return tx.transactions.update({
-                    where: {id: transactionId},
-                    data: {
-                        ...(updateTransactionDto.amount !== undefined
-                            ? {amount: updateTransactionDto.amount}
-                            : {}),
-                        ...(updateTransactionDto.description !== undefined
-                            ? {description: updateTransactionDto.description}
-                            : {}),
-                        ...(updateTransactionDto.date !== undefined
-                            ? {date: updateTransactionDto.date}
-                            : {}),
-                        ...(updateTransactionDto.merchantId !== undefined
-                            ? {merchant_id: updateTransactionDto.merchantId}
-                            : {}),
-                        ...(updateTransactionDto.categoryId !== undefined
-                            ? {category_id: updateTransactionDto.categoryId}
-                            : {}),
-                        ...(updateTransactionDto.isRebalance !== undefined
-                            ? {is_rebalance: updateTransactionDto.isRebalance}
-                            : {}),
-                    },
-                });
-            },
-        );
-
-        const hydratedTransaction =
-            await this.prismaService.transactions.findUniqueOrThrow({
-                where: {id: updatedTransaction.id},
-                include: {
-                    merchant: true,
-                    category: true,
+        const updatedTransaction = await this.prismaService.$transaction(async (tx) => {
+            await tx.accounts.update({
+                where: {id: transaction.account_id},
+                data: {
+                    balance: this.toDecimal(transaction.account.balance + delta),
                 },
             });
+
+            return tx.transactions.update({
+                where: {id: transactionId},
+                data: {
+                    ...(updateTransactionDto.amount !== undefined ? {amount: updateTransactionDto.amount} : {}),
+                    ...(updateTransactionDto.description !== undefined
+                        ? {description: updateTransactionDto.description}
+                        : {}),
+                    ...(updateTransactionDto.date !== undefined ? {date: updateTransactionDto.date} : {}),
+                    ...(updateTransactionDto.merchantId !== undefined
+                        ? {merchant_id: updateTransactionDto.merchantId}
+                        : {}),
+                    ...(updateTransactionDto.categoryId !== undefined
+                        ? {category_id: updateTransactionDto.categoryId}
+                        : {}),
+                    ...(updateTransactionDto.isRebalance !== undefined
+                        ? {is_rebalance: updateTransactionDto.isRebalance}
+                        : {}),
+                },
+            });
+        });
+
+        const hydratedTransaction = await this.prismaService.transactions.findUniqueOrThrow({
+            where: {id: updatedTransaction.id},
+            include: {
+                merchant: true,
+                category: true,
+            },
+        });
 
         return this.toTransactionEntity(hydratedTransaction);
     }
@@ -296,9 +260,7 @@ export class TransactionService {
         }
 
         if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException(
-                "You do not have permission to delete this transaction",
-            );
+            throw new ForbiddenException("You do not have permission to delete this transaction");
         }
 
         await this.prismaService.$transaction(async (tx) => {
@@ -311,9 +273,7 @@ export class TransactionService {
                     id: transaction.account_id,
                 },
                 data: {
-                    balance: this.toDecimal(
-                        transaction.account.balance - transaction.amount,
-                    ),
+                    balance: this.toDecimal(transaction.account.balance - transaction.amount),
                 },
             });
         });

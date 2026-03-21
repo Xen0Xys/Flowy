@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards,} from "@nestjs/common";
+import {Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards} from "@nestjs/common";
 import {AccountService} from "./account.service";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
@@ -23,26 +23,15 @@ export class AccountController {
     @Get(":id")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getAccountById(
-        @User() user: UserEntity,
-        @Param("id") id: string,
-    ): Promise<AccountEntity> {
+    async getAccountById(@User() user: UserEntity, @Param("id") id: string): Promise<AccountEntity> {
         return this.accountService.getAccount(user, id);
     }
 
     @Post()
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async createAccount(
-        @User() user: UserEntity,
-        @Body() body: CreateAccountDto,
-    ): Promise<AccountEntity> {
-        return this.accountService.createAccount(
-            user,
-            body.name,
-            body.type,
-            body.balance,
-        );
+    async createAccount(@User() user: UserEntity, @Body() body: CreateAccountDto): Promise<AccountEntity> {
+        return this.accountService.createAccount(user, body.name, body.type, body.balance);
     }
 
     @Patch(":id")
@@ -64,21 +53,13 @@ export class AccountController {
         @Param("id") id: string,
         @Query() query: GetAccountBalanceEvolutionDto,
     ): Promise<Array<{date: Date; balance: number}>> {
-        return this.accountService.getAccountBalanceEvolution(
-            user,
-            id,
-            query.startDate,
-            query.endDate,
-        );
+        return this.accountService.getAccountBalanceEvolution(user, id, query.startDate, query.endDate);
     }
 
     @Delete(":id")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async deleteAccount(
-        @User() user: UserEntity,
-        @Param("id") id: string,
-    ): Promise<void> {
+    async deleteAccount(@User() user: UserEntity, @Param("id") id: string): Promise<void> {
         return this.accountService.deleteAccount(user, id);
     }
 }

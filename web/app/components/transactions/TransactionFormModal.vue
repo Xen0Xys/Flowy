@@ -1,28 +1,19 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
-import { useTransactionStore, type Transaction, type UpdateTransactionPayload, type CreateTransactionPayload } from "~/stores/transaction.store";
-import { useApi } from "~/composables/useApi";
-import { Button } from "~/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import {ref, watch, computed} from "vue";
 import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "~/components/ui/select";
-import { Badge } from "~/components/ui/badge";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "~/components/ui/dialog";
+    useTransactionStore,
+    type Transaction,
+    type UpdateTransactionPayload,
+    type CreateTransactionPayload,
+} from "~/stores/transaction.store";
+import {useApi} from "~/composables/useApi";
+import {Button} from "~/components/ui/button";
+import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
+import {Input} from "~/components/ui/input";
+import {Label} from "~/components/ui/label";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
+import {Badge} from "~/components/ui/badge";
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter} from "~/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -33,7 +24,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { Icon } from "#components";
+import {Icon} from "#components";
 
 const props = defineProps<{
     open: boolean;
@@ -47,7 +38,7 @@ const emit = defineEmits<{
 }>();
 
 const transactionStore = useTransactionStore();
-const { apiFetch } = useApi();
+const {apiFetch} = useApi();
 
 const isSubmitting = ref(false);
 const isDeleteDialogOpen = ref(false);
@@ -58,10 +49,7 @@ const availableMerchants = ref<any[]>([]);
 
 const loadReferences = async () => {
     try {
-        const [cats, merchs] = await Promise.all([
-            apiFetch("/reference/categories"),
-            apiFetch("/reference/merchants"),
-        ]);
+        const [cats, merchs] = await Promise.all([apiFetch("/reference/categories"), apiFetch("/reference/merchants")]);
         availableCategories.value = cats;
         availableMerchants.value = merchs;
     } catch (e) {
@@ -76,7 +64,7 @@ watch(
             loadReferences();
         }
     },
-    { immediate: true }
+    {immediate: true},
 );
 
 const formData = ref({
@@ -112,7 +100,7 @@ watch(
             };
         }
     },
-    { immediate: true }
+    {immediate: true},
 );
 
 const onOpenChange = (open: boolean) => {
@@ -122,9 +110,10 @@ const onOpenChange = (open: boolean) => {
 const save = async () => {
     isSubmitting.value = true;
     try {
-        const finalAmount = transactionType.value === "expense" 
-            ? -Math.abs(Number(formData.value.amount)) 
-            : Math.abs(Number(formData.value.amount));
+        const finalAmount =
+            transactionType.value === "expense"
+                ? -Math.abs(Number(formData.value.amount))
+                : Math.abs(Number(formData.value.amount));
 
         if (props.transaction) {
             const payload: UpdateTransactionPayload = {
@@ -145,7 +134,7 @@ const save = async () => {
             };
             await transactionStore.createTransaction(props.accountId, payload);
         }
-        
+
         emit("saved");
         emit("update:open", false);
     } catch (err) {
@@ -161,7 +150,7 @@ const confirmDelete = () => {
 
 const executeDelete = async () => {
     if (!props.transaction) return;
-    
+
     isDeleting.value = true;
     try {
         await transactionStore.deleteTransaction(props.transaction.id);
@@ -180,13 +169,17 @@ const executeDelete = async () => {
     <Dialog :open="open" @update:open="onOpenChange">
         <DialogContent class="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>{{ props.transaction ? 'Edit Transaction' : 'New Transaction' }}</DialogTitle>
+                <DialogTitle>{{ props.transaction ? "Edit Transaction" : "New Transaction" }}</DialogTitle>
                 <DialogDescription>
-                    {{ props.transaction ? 'Update the details of this transaction. Click save when you\'re done.' : 'Add a new transaction. Click save when you\'re done.' }}
+                    {{
+                        props.transaction
+                            ? "Update the details of this transaction. Click save when you're done."
+                            : "Add a new transaction. Click save when you're done."
+                    }}
                 </DialogDescription>
             </DialogHeader>
 
-            <Tabs v-model="transactionType" class="w-full mt-4">
+            <Tabs v-model="transactionType" class="mt-4 w-full">
                 <TabsList class="grid w-full grid-cols-2">
                     <TabsTrigger value="expense">Expense</TabsTrigger>
                     <TabsTrigger value="income">Income</TabsTrigger>
@@ -195,50 +188,24 @@ const executeDelete = async () => {
 
             <form @submit.prevent="save" class="grid gap-4 py-4">
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="amount" class="text-right">
-                        Amount
-                    </Label>
+                    <Label for="amount" class="text-right"> Amount </Label>
                     <div class="col-span-3">
-                        <Input
-                            id="amount"
-                            v-model.number="formData.amount"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            required
-                        />
+                        <Input id="amount" v-model.number="formData.amount" type="number" step="0.01" min="0" required />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="description" class="text-right">
-                        Description
-                    </Label>
-                    <Input
-                        id="description"
-                        v-model="formData.description"
-                        class="col-span-3"
-                        required
-                    />
+                    <Label for="description" class="text-right"> Description </Label>
+                    <Input id="description" v-model="formData.description" class="col-span-3" required />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="date" class="text-right">
-                        Date
-                    </Label>
-                    <Input
-                        id="date"
-                        v-model="formData.date"
-                        type="date"
-                        class="col-span-3"
-                        required
-                    />
+                    <Label for="date" class="text-right"> Date </Label>
+                    <Input id="date" v-model="formData.date" type="date" class="col-span-3" required />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="category" class="text-right">
-                        Category
-                    </Label>
+                    <Label for="category" class="text-right"> Category </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.categoryId">
                             <SelectTrigger>
@@ -249,7 +216,7 @@ const executeDelete = async () => {
                                     <SelectItem value="none">None</SelectItem>
                                     <SelectItem v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
                                         <div class="flex items-center gap-2">
-                                            <Icon :name="cat.icon" class="h-4 w-4" :style="{ color: cat.hexColor }" />
+                                            <Icon :name="cat.icon" class="h-4 w-4" :style="{color: cat.hexColor}" />
                                             <span>{{ cat.name }}</span>
                                         </div>
                                     </SelectItem>
@@ -260,9 +227,7 @@ const executeDelete = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="merchant" class="text-right">
-                        Merchant
-                    </Label>
+                    <Label for="merchant" class="text-right"> Merchant </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.merchantId">
                             <SelectTrigger>
@@ -271,7 +236,10 @@ const executeDelete = async () => {
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectItem value="none">None</SelectItem>
-                                    <SelectItem v-for="merchant in availableMerchants" :key="merchant.id" :value="merchant.id">
+                                    <SelectItem
+                                        v-for="merchant in availableMerchants"
+                                        :key="merchant.id"
+                                        :value="merchant.id">
                                         {{ merchant.name }}
                                     </SelectItem>
                                 </SelectGroup>
@@ -281,33 +249,30 @@ const executeDelete = async () => {
                 </div>
             </form>
 
-            <DialogFooter class="flex sm:justify-between items-center w-full">
-                <Button 
+            <DialogFooter class="flex w-full items-center sm:justify-between">
+                <Button
                     v-if="props.transaction"
-                    type="button" 
-                    variant="destructive" 
+                    type="button"
+                    variant="destructive"
                     @click="confirmDelete"
                     :disabled="isSubmitting || isDeleting">
                     <Icon name="iconoir:trash" class="mr-2 h-4 w-4" />
                     Delete
                 </Button>
-                <div v-else></div> <!-- spacer for justify-between -->
-                
+                <div v-else></div>
+                <!-- spacer for justify-between -->
+
                 <div class="flex items-center gap-2">
-                    <Button type="button" variant="outline" @click="emit('update:open', false)">
-                        Cancel
-                    </Button>
+                    <Button type="button" variant="outline" @click="emit('update:open', false)"> Cancel </Button>
                     <Button type="submit" @click="save" :disabled="isSubmitting || isDeleting">
-                        {{ isSubmitting ? 'Saving...' : 'Save changes' }}
+                        {{ isSubmitting ? "Saving..." : "Save changes" }}
                     </Button>
                 </div>
             </DialogFooter>
         </DialogContent>
     </Dialog>
 
-    <AlertDialog
-        :open="isDeleteDialogOpen"
-        @update:open="isDeleteDialogOpen = $event">
+    <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Delete transaction</AlertDialogTitle>
@@ -321,7 +286,7 @@ const executeDelete = async () => {
                     class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     :disabled="isDeleting"
                     @click="executeDelete">
-                    {{ isDeleting ? 'Deleting...' : 'Delete' }}
+                    {{ isDeleting ? "Deleting..." : "Delete" }}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

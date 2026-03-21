@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards,} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards} from "@nestjs/common";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
 import {FamilyAdminGuard} from "../../../common/guards/family-admin.guard";
@@ -19,10 +19,7 @@ export class FamilyController {
     @Post("create")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async createFamily(
-        @User() user: UserEntity,
-        @Body() body: CreateFamilyDto,
-    ): Promise<FamilyEntity> {
+    async createFamily(@User() user: UserEntity, @Body() body: CreateFamilyDto): Promise<FamilyEntity> {
         const {name, currency} = body;
         return await this.familyService.createFamily(name, currency, user);
     }
@@ -30,10 +27,7 @@ export class FamilyController {
     @Post("invite")
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     @ApiBearerAuth()
-    async inviteMember(
-        @User() user: UserEntity,
-        @Body() body: InviteMemberDto,
-    ): Promise<FamilyInviteCodeEntity> {
+    async inviteMember(@User() user: UserEntity, @Body() body: InviteMemberDto): Promise<FamilyInviteCodeEntity> {
         const {email} = body;
         return await this.familyService.inviteMember(user, email);
     }
@@ -49,10 +43,7 @@ export class FamilyController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     @ApiBearerAuth()
-    async revokeInvite(
-        @User() user: UserEntity,
-        @Param("code") code: string,
-    ): Promise<void> {
+    async revokeInvite(@User() user: UserEntity, @Param("code") code: string): Promise<void> {
         return await this.familyService.deleteInvite(user, code);
     }
 
@@ -60,10 +51,7 @@ export class FamilyController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async joinFamily(
-        @User() user: UserEntity,
-        @Param("code") code: string,
-    ): Promise<void> {
+    async joinFamily(@User() user: UserEntity, @Param("code") code: string): Promise<void> {
         return await this.familyService.joinFamily(user, code);
     }
 
@@ -78,10 +66,7 @@ export class FamilyController {
     @Patch("settings")
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     @ApiBearerAuth()
-    async updateFamilySettings(
-        @User() user: UserEntity,
-        @Body() body: UpdateFamilyDto,
-    ): Promise<FamilyEntity> {
+    async updateFamilySettings(@User() user: UserEntity, @Body() body: UpdateFamilyDto): Promise<FamilyEntity> {
         return await this.familyService.updateFamilySettings(user, body);
     }
 
@@ -96,10 +81,7 @@ export class FamilyController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     @ApiBearerAuth()
-    async removeMember(
-        @User() user: UserEntity,
-        @Param("id") id: string,
-    ): Promise<void> {
+    async removeMember(@User() user: UserEntity, @Param("id") id: string): Promise<void> {
         return await this.familyService.removeMember(user, id);
     }
 

@@ -2,14 +2,7 @@ import "reflect-metadata";
 import fs from "node:fs";
 import path from "node:path";
 import {config as loadEnv} from "dotenv";
-import {
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    test,
-} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
 import {AccountTypes} from "../prisma/generated/enums";
@@ -19,11 +12,7 @@ import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
-import {
-    buildRegisterPayload,
-    ensureInstanceConfig,
-    PASSWORD_BASE,
-} from "./test-utils";
+import {buildRegisterPayload, ensureInstanceConfig, PASSWORD_BASE} from "./test-utils";
 
 const envPath = path.resolve(__dirname, "../.env");
 if (fs.existsSync(envPath)) {
@@ -48,9 +37,7 @@ describe("AdminController (e2e)", () => {
             imports: [AppModule],
         }).compile();
 
-        app = moduleRef.createNestApplication<NestFastifyApplication>(
-            new FastifyAdapter({exposeHeadRoutes: true}),
-        );
+        app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
         app.useGlobalPipes(new CustomValidationPipe());
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
@@ -120,9 +107,7 @@ describe("AdminController (e2e)", () => {
 
     test("updates registration enabled flag", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(ownerPayload);
+        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const t = ownerReg.body.token;
         await prisma.config.upsert({
@@ -148,9 +133,7 @@ describe("AdminController (e2e)", () => {
 
     test("lists users and allows deleting others but not self", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(ownerPayload);
+        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
         await prisma.config.upsert({
@@ -160,15 +143,11 @@ describe("AdminController (e2e)", () => {
         });
 
         const userPayload = buildRegisterPayload();
-        const userReg = await request(server)
-            .post("/user/register")
-            .send(userPayload);
+        const userReg = await request(server).post("/user/register").send(userPayload);
         expect(userReg.status).toBe(201);
         const user = userReg.body;
 
-        const list = await request(server)
-            .get("/admin/users")
-            .set("Authorization", `Bearer ${owner.token}`);
+        const list = await request(server).get("/admin/users").set("Authorization", `Bearer ${owner.token}`);
         expect(list.status).toBe(200);
         expect(Array.isArray(list.body)).toBe(true);
 
@@ -192,9 +171,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("instance owner can get family details from admin route", async () => {
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -204,15 +181,11 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const familyAdminReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const familyAdminReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(familyAdminReg.status).toBe(201);
         const familyAdmin = familyAdminReg.body;
 
-        const memberReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const memberReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(memberReg.status).toBe(201);
         const member = memberReg.body;
 
@@ -244,17 +217,11 @@ describe("AdminController (e2e)", () => {
         expect(response.body.name).toBe("AdminFamilyInfo");
         expect(response.body.currency).toBe("EUR");
         expect(response.body.owner.id).toBe(familyAdmin.user.id);
-        expect(response.body.members).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({id: member.user.id}),
-            ]),
-        );
+        expect(response.body.members).toEqual(expect.arrayContaining([expect.objectContaining({id: member.user.id})]));
     });
 
     test("non-owner cannot access admin family details route", async () => {
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -264,9 +231,7 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const familyAdminReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const familyAdminReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(familyAdminReg.status).toBe(201);
         const familyAdmin = familyAdminReg.body;
 
@@ -280,9 +245,7 @@ describe("AdminController (e2e)", () => {
             where: {name: "BlockedAdminFamilyInfo"},
         });
 
-        const otherReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const otherReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
@@ -295,9 +258,7 @@ describe("AdminController (e2e)", () => {
 
     test("updates instance owner", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(ownerPayload);
+        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
         await prisma.config.upsert({
@@ -307,9 +268,7 @@ describe("AdminController (e2e)", () => {
         });
 
         const otherPayload = buildRegisterPayload();
-        const otherReg = await request(server)
-            .post("/user/register")
-            .send(otherPayload);
+        const otherReg = await request(server).post("/user/register").send(otherPayload);
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
@@ -324,17 +283,13 @@ describe("AdminController (e2e)", () => {
         });
         expect(cfg?.value).toBe(other.user.id);
 
-        const forbidden = await request(server)
-            .get("/admin/users")
-            .set("Authorization", `Bearer ${owner.token}`);
+        const forbidden = await request(server).get("/admin/users").set("Authorization", `Bearer ${owner.token}`);
         expect(forbidden.status).toBe(401);
     });
 
     test("admin (instance owner) can reset a user's password", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(ownerPayload);
+        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
         await prisma.config.upsert({
@@ -344,9 +299,7 @@ describe("AdminController (e2e)", () => {
         });
 
         const otherPayload = buildRegisterPayload();
-        const otherReg = await request(server)
-            .post("/user/register")
-            .send(otherPayload);
+        const otherReg = await request(server).post("/user/register").send(otherPayload);
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
@@ -365,16 +318,12 @@ describe("AdminController (e2e)", () => {
         expect(oldLogin.status).toBe(401);
 
         // login with new password works
-        const newLogin = await request(server)
-            .post("/user/login")
-            .send({email: other.user.email, password: newPass});
+        const newLogin = await request(server).post("/user/login").send({email: other.user.email, password: newPass});
         expect(newLogin.status).toBe(201);
     });
 
     test("instance owner can run account integrity check and fix mismatched balances", async () => {
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -414,9 +363,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("non-owner cannot run account integrity check", async () => {
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -426,9 +373,7 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const otherReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const otherReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
@@ -441,9 +386,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("deleting a solo family admin also deletes their family", async () => {
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -453,9 +396,7 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const targetReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const targetReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(targetReg.status).toBe(201);
         const target = targetReg.body;
 
@@ -486,9 +427,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("deleting a family admin transfers admin role to another member", async () => {
-        const ownerReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -498,15 +437,11 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const adminReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const adminReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(adminReg.status).toBe(201);
         const familyAdmin = adminReg.body;
 
-        const memberReg = await request(server)
-            .post("/user/register")
-            .send(buildRegisterPayload());
+        const memberReg = await request(server).post("/user/register").send(buildRegisterPayload());
         expect(memberReg.status).toBe(201);
         const member = memberReg.body;
 

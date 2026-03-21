@@ -37,18 +37,13 @@ export class UserService {
     }
 
     // allow a user to delete their own account by confirming current password
-    async deleteOwnAccount(
-        user: UserEntity,
-        currentPassword: string,
-    ): Promise<void> {
+    async deleteOwnAccount(user: UserEntity, currentPassword: string): Promise<void> {
         const db = await this.prismaService.users.findUnique({
             where: {id: user.id},
         });
         if (!db) throw new NotFoundException("User not found");
 
-        const valid = await argon2
-            .verify(db.password, currentPassword)
-            .catch(() => false);
+        const valid = await argon2.verify(db.password, currentPassword).catch(() => false);
         if (!valid) throw new ForbiddenException("Invalid current password");
 
         const logger = new Logger(UserService.name);
@@ -80,23 +75,15 @@ export class UserService {
         });
     }
 
-    async register(
-        username: string,
-        email: string,
-        password: string,
-    ): Promise<LoginUserEntity> {
+    async register(username: string, email: string, password: string): Promise<LoginUserEntity> {
         if (!(await this.instanceConfigService.registrationAllowed()))
-            throw new UnauthorizedException(
-                "Registration is disabled on this instance",
-            );
-        const existingUser: Users | null =
-            await this.prismaService.users.findFirst({
-                where: {
-                    email,
-                },
-            });
-        if (existingUser)
-            throw new ConflictException("Username or email already exists");
+            throw new UnauthorizedException("Registration is disabled on this instance");
+        const existingUser: Users | null = await this.prismaService.users.findFirst({
+            where: {
+                email,
+            },
+        });
+        if (existingUser) throw new ConflictException("Username or email already exists");
         const hashed = await argon2.hash(password, {
             type: argon2.argon2id,
             memoryCost: 2 ** 16, // 64 MiB
@@ -138,8 +125,7 @@ export class UserService {
 
         // verify password using argon2
         const valid = await argon2.verify(user.password, password);
-        if (!valid)
-            throw new UnauthorizedException("Invalid email or password");
+        if (!valid) throw new UnauthorizedException("Invalid email or password");
 
         const userEntity: UserEntity = UserService.toUserEntity(user);
         return new LoginUserEntity({
@@ -156,16 +142,12 @@ export class UserService {
         return UserService.toUserEntity(user);
     }
 
-    async updateUsername(
-        user: UserEntity,
-        newUsername: string,
-    ): Promise<UserEntity> {
+    async updateUsername(user: UserEntity, newUsername: string): Promise<UserEntity> {
         // ensure username not used by another user
         const existing = await this.prismaService.users.findFirst({
             where: {username: newUsername},
         });
-        if (existing && existing.id !== user.id)
-            throw new ConflictException("Username or email already exists");
+        if (existing && existing.id !== user.id) throw new ConflictException("Username or email already exists");
         const updated = await this.prismaService.users.update({
             where: {id: user.id},
             data: {username: newUsername},
@@ -177,8 +159,7 @@ export class UserService {
         const existing = await this.prismaService.users.findFirst({
             where: {email: newEmail},
         });
-        if (existing)
-            throw new ConflictException("Username or email already exists");
+        if (existing) throw new ConflictException("Username or email already exists");
         const updated = await this.prismaService.users.update({
             where: {id: user.id},
             data: {email: newEmail},
@@ -187,27 +168,18 @@ export class UserService {
     }
 
     // public API: change password with current password verification
-    async changePassword(
-        user: UserEntity,
-        oldPassword: string,
-        newPassword: string,
-    ): Promise<UserEntity> {
+    async changePassword(user: UserEntity, oldPassword: string, newPassword: string): Promise<UserEntity> {
         const db = await this.prismaService.users.findUnique({
             where: {id: user.id},
         });
         if (!db) throw new NotFoundException("User not found");
-        const valid = await argon2
-            .verify(db.password, oldPassword)
-            .catch(() => false);
+        const valid = await argon2.verify(db.password, oldPassword).catch(() => false);
         if (!valid) throw new ForbiddenException("Invalid current password");
         return this.persistPassword(user.id, newPassword);
     }
 
     // public API: set password without old password (used by admin/owner flows)
-    async updatePassword(
-        user: UserEntity,
-        dto: {password: string},
-    ): Promise<UserEntity> {
+    async updatePassword(user: UserEntity, dto: {password: string}): Promise<UserEntity> {
         return this.persistPassword(user.id, dto.password);
     }
 
@@ -217,10 +189,7 @@ export class UserService {
     }
 
     // internal helper: hash + persist new password (do NOT rotate jwt_id)
-    private async persistPassword(
-        userId: string,
-        password: string,
-    ): Promise<UserEntity> {
+    private async persistPassword(userId: string, password: string): Promise<UserEntity> {
         const hashed = await argon2.hash(password, {
             type: argon2.argon2id,
             memoryCost: 2 ** 16,

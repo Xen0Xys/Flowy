@@ -2,14 +2,7 @@ import "reflect-metadata";
 import fs from "node:fs";
 import path from "node:path";
 import {config as loadEnv} from "dotenv";
-import {
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    test,
-} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
 import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
@@ -43,9 +36,7 @@ describe("TransactionController (e2e)", () => {
             imports: [AppModule],
         }).compile();
 
-        app = moduleRef.createNestApplication<NestFastifyApplication>(
-            new FastifyAdapter({exposeHeadRoutes: true}),
-        );
+        app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
         app.useGlobalPipes(new CustomValidationPipe());
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
@@ -92,15 +83,11 @@ describe("TransactionController (e2e)", () => {
         expect(create.status).toBe(401);
         expect(create.body.message).toBe("Authorization token is missing");
 
-        const update = await request(server)
-            .patch("/transaction/transaction-id")
-            .send({description: "Updated"});
+        const update = await request(server).patch("/transaction/transaction-id").send({description: "Updated"});
         expect(update.status).toBe(401);
         expect(update.body.message).toBe("Authorization token is missing");
 
-        const remove = await request(server).delete(
-            "/transaction/transaction-id",
-        );
+        const remove = await request(server).delete("/transaction/transaction-id");
         expect(remove.status).toBe(401);
         expect(remove.body.message).toBe("Authorization token is missing");
     });
@@ -168,9 +155,7 @@ describe("TransactionController (e2e)", () => {
                 date: "2026-01-02T08:00:00.000Z",
             });
 
-        const listA = await request(server)
-            .get("/transaction")
-            .set("Authorization", `Bearer ${userA.token}`);
+        const listA = await request(server).get("/transaction").set("Authorization", `Bearer ${userA.token}`);
 
         expect(listA.status).toBe(200);
         expect(listA.body).toHaveLength(1);
@@ -193,9 +178,7 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${outsider.token}`);
 
         expect(list.status).toBe(403);
-        expect(list.body.message).toBe(
-            "You do not have permission to access this account",
-        );
+        expect(list.body.message).toBe("You do not have permission to access this account");
     });
 
     test("updates a transaction and reconciles account balance", async () => {
@@ -375,17 +358,13 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${outsider.token}`)
             .send({description: "Hacked"});
         expect(update.status).toBe(403);
-        expect(update.body.message).toBe(
-            "You do not have permission to update this transaction",
-        );
+        expect(update.body.message).toBe("You do not have permission to update this transaction");
 
         const remove = await request(server)
             .delete(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(remove.status).toBe(403);
-        expect(remove.body.message).toBe(
-            "You do not have permission to delete this transaction",
-        );
+        expect(remove.body.message).toBe("You do not have permission to delete this transaction");
     });
 
     test("rejects merchant/category from another user", async () => {
@@ -424,9 +403,7 @@ describe("TransactionController (e2e)", () => {
             });
 
         expect(create.status).toBe(404);
-        expect(["Merchant not found", "Category not found"]).toContain(
-            create.body.message,
-        );
+        expect(["Merchant not found", "Category not found"]).toContain(create.body.message);
     });
 
     test("allows assigning then clearing merchant/category references", async () => {

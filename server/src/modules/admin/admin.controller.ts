@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards,} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards} from "@nestjs/common";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {InstanceOwnerGuard} from "../../common/guards/instance-owner.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
@@ -33,13 +33,8 @@ export class AdminController {
     @Patch("instance/registration_enabled")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @ApiBearerAuth()
-    async updateRegistrationEnabled(
-        @User() user: UserEntity,
-        @Body() body: RegistrationEnabledDto,
-    ) {
-        return this.adminService.updateRegistrationEnabled(
-            body.registrationEnabled,
-        );
+    async updateRegistrationEnabled(@User() user: UserEntity, @Body() body: RegistrationEnabledDto) {
+        return this.adminService.updateRegistrationEnabled(body.registrationEnabled);
     }
 
     @Get("users")
@@ -52,9 +47,7 @@ export class AdminController {
     @Get("family/:family_id")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @ApiBearerAuth()
-    async getFamily(
-        @Param("family_id") familyId: string,
-    ): Promise<FamilyEntity> {
+    async getFamily(@Param("family_id") familyId: string): Promise<FamilyEntity> {
         return this.familyService.getFamilyInfo(familyId);
     }
 
@@ -62,10 +55,7 @@ export class AdminController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @ApiBearerAuth()
-    async deleteUser(
-        @Param("id") id: string,
-        @User() user: UserEntity,
-    ): Promise<void> {
+    async deleteUser(@Param("id") id: string, @User() user: UserEntity): Promise<void> {
         return this.adminService.deleteUser(id, user.id);
     }
 
@@ -80,10 +70,7 @@ export class AdminController {
     @Patch("users/:id/password")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @ApiBearerAuth()
-    async adminUpdateUserPassword(
-        @Param("id") id: string,
-        @Body() body: SetPasswordDto,
-    ) {
+    async adminUpdateUserPassword(@Param("id") id: string, @Body() body: SetPasswordDto) {
         return this.adminService.adminUpdateUserPassword(id, body.password);
     }
 
