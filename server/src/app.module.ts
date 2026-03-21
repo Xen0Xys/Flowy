@@ -11,6 +11,7 @@ import {APP_INTERCEPTOR} from "@nestjs/core";
 import {JwtModule} from "@nestjs/jwt";
 import {AccountModule} from "./modules/accounting/account/account.module";
 import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
+import {ReferenceModule} from "./modules/accounting/reference/reference.module";
 
 @Module({
     imports: [
@@ -44,6 +45,7 @@ import {TransactionModule} from "./modules/accounting/transaction/transaction.mo
         FamilyModule,
         AccountModule,
         TransactionModule,
+        ReferenceModule,
     ],
     controllers: [AppController],
     providers: [

@@ -9,7 +9,7 @@
     "bracketSameLine": true,
     "arrowParens": "always",
     "objectWrap": "preserve",
-    "printWidth": 80,
+    "printWidth": 121,
     "sortPackageJson": false,
     "ignorePatterns": ["node_modules", "web/.nuxt", "server/prisma/generated"],
     "endOfLine": "lf"

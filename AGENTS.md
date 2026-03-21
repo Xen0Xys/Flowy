@@ -67,7 +67,7 @@
 56. STYLING — Tailwind is primary; utility combos should go through `cn()` from `web/app/lib/utils.ts` to deduplicate classes; prefer padding, flex, and grid for spacing and avoid margins unless a layout truly needs them.
 
 57. VARIANTS — Build component variants using `class-variance-authority` like `buttonVariants`; keep tokens consistent with Tailwind palette.
-58. ICONS — Use `@nuxt/icon` or `lucide-vue-next`; ensure icons are tree-shakeable.
+58. ICONS — Use `@nuxt/icon` with `iconoir` icons; ensure icons are tree-shakeable.
 59. STATE — Prefer Nuxt composables (`useState`, `useFetch`) or VueUse utilities; avoid global mutable singletons.
 60. SSR SAFETY — When accessing `window`, guard with `if (process.client)`; plugin example `plugins/ssr-width.ts` shows server-safe setup.
 61. ROUTING — Pages live under `web/app/pages/`; route naming follows file path conventions. Keep default layout lean.
