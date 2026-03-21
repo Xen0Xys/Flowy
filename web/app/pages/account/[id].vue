@@ -17,6 +17,7 @@ import TransactionFormModal from "~/components/transactions/TransactionFormModal
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Badge} from "~/components/ui/badge";
+import {ScrollArea} from "~/components/ui/scroll-area";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {
     AlertDialog,
@@ -327,9 +328,9 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                         New Transaction
                     </Button>
                 </div>
-                <div class="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-2">
+                <component :is="!isMobile ? ScrollArea : 'div'" :class="!isMobile ? 'md:min-h-0 md:flex-1 md:pr-4' : ''">
                     <TransactionTable :transactions="transactions" @row-click="handleTransactionClick" />
-                </div>
+                </component>
             </div>
         </template>
 

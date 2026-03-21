@@ -30,6 +30,7 @@ import {
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "~/components/ui/collapsible";
+import {ScrollArea} from "~/components/ui/scroll-area";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
@@ -301,78 +302,80 @@ const formatCompactCurrency = (value: number) => {
             </div>
 
             <!-- Accounts List Grouped by Category -->
-            <div class="space-y-4 pb-4 md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-2">
-                <Collapsible
-                    v-for="category in categoryStats"
-                    :key="category.type"
-                    :open="!collapsedCategories[category.type]"
-                    class="bg-card text-card-foreground overflow-hidden rounded-xl border shadow-sm"
-                    @update:open="(val) => (collapsedCategories[category.type] = !val)">
-                    <CollapsibleTrigger
-                        class="hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <Icon
-                                :name="
-                                    !collapsedCategories[category.type]
-                                        ? 'iconoir:nav-arrow-down'
-                                        : 'iconoir:nav-arrow-right'
-                                "
-                                class="text-muted-foreground h-5 w-5 transition-transform" />
-                            <h3 class="flex items-center gap-2 text-lg font-semibold">
-                                <Icon class="text-muted-foreground h-5 w-5" name="iconoir:folder" />
-                                {{ category.type }}
-                            </h3>
-                        </div>
-                        <div class="flex items-center gap-4 text-sm">
-                            <span class="text-muted-foreground hidden sm:inline"
-                                >{{ category.percentage.toFixed(1) }}% of total</span
-                            >
-                            <span class="text-base font-bold">{{ formatCurrency(category.value) }}</span>
-                        </div>
-                    </CollapsibleTrigger>
+            <component :is="!isMobile ? ScrollArea : 'div'" :class="!isMobile ? 'md:min-h-0 md:flex-1 md:pr-4' : ''">
+                <div class="space-y-4 pb-4">
+                    <Collapsible
+                        v-for="category in categoryStats"
+                        :key="category.type"
+                        :open="!collapsedCategories[category.type]"
+                        class="bg-card text-card-foreground overflow-hidden rounded-xl border shadow-sm"
+                        @update:open="(val) => (collapsedCategories[category.type] = !val)">
+                        <CollapsibleTrigger
+                            class="hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <Icon
+                                    :name="
+                                        !collapsedCategories[category.type]
+                                            ? 'iconoir:nav-arrow-down'
+                                            : 'iconoir:nav-arrow-right'
+                                    "
+                                    class="text-muted-foreground h-5 w-5 transition-transform" />
+                                <h3 class="flex items-center gap-2 text-lg font-semibold">
+                                    <Icon class="text-muted-foreground h-5 w-5" name="iconoir:folder" />
+                                    {{ category.type }}
+                                </h3>
+                            </div>
+                            <div class="flex items-center gap-4 text-sm">
+                                <span class="text-muted-foreground hidden sm:inline"
+                                    >{{ category.percentage.toFixed(1) }}% of total</span
+                                >
+                                <span class="text-base font-bold">{{ formatCurrency(category.value) }}</span>
+                            </div>
+                        </CollapsibleTrigger>
 
-                    <CollapsibleContent>
-                        <div class="flex flex-col border-t">
-                            <div
-                                v-for="account in category.accounts"
-                                :key="account.id"
-                                class="hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
-                                @click="goToDetails(account.id)">
-                                <div class="flex flex-col">
-                                    <span class="font-medium">{{ account.name }}</span>
-                                    <span class="text-muted-foreground mt-1 text-xs">
-                                        {{ account.percentageOfCategory.toFixed(1) }}% of category
-                                    </span>
-                                </div>
+                        <CollapsibleContent>
+                            <div class="flex flex-col border-t">
+                                <div
+                                    v-for="account in category.accounts"
+                                    :key="account.id"
+                                    class="hover:bg-muted/50 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
+                                    @click="goToDetails(account.id)">
+                                    <div class="flex flex-col">
+                                        <span class="font-medium">{{ account.name }}</span>
+                                        <span class="text-muted-foreground mt-1 text-xs">
+                                            {{ account.percentageOfCategory.toFixed(1) }}% of category
+                                        </span>
+                                    </div>
 
-                                <div class="flex items-center gap-4">
-                                    <span class="font-bold">{{ formatCurrency(account.balance) }}</span>
+                                    <div class="flex items-center gap-4">
+                                        <span class="font-bold">{{ formatCurrency(account.balance) }}</span>
 
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button class="-mr-2 h-8 w-8" size="icon" variant="ghost" @click.stop>
-                                                <Icon class="h-4 w-4" name="iconoir:more-horiz" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" @click.stop>
-                                            <DropdownMenuItem @click.stop="openEditModal(account)">
-                                                <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                class="text-destructive focus:text-destructive"
-                                                @click.stop="confirmDelete(account)">
-                                                <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button class="-mr-2 h-8 w-8" size="icon" variant="ghost" @click.stop>
+                                                    <Icon class="h-4 w-4" name="iconoir:more-horiz" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" @click.stop>
+                                                <DropdownMenuItem @click.stop="openEditModal(account)">
+                                                    <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    class="text-destructive focus:text-destructive"
+                                                    @click.stop="confirmDelete(account)">
+                                                    <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible>
-            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
+                </div>
+            </component>
         </template>
 
         <!-- Modals -->
