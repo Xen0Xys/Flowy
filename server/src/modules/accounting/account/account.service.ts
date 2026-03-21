@@ -60,46 +60,46 @@ export class AccountService implements OnModuleInit {
         }
 
         const EPSILON = 0.000001;
-        const results = await Promise.all(
-            accounts.map(async (account) => {
-                try {
-                    const expectedBalance = this.toDecimal(
-                        expectedBalanceByAccount.get(account.id) ?? 0,
-                    );
-                    const hasMismatch =
-                        Math.abs(account.balance - expectedBalance) > EPSILON;
+        const results: Array<{status: "valid" | "fixed" | "error"}> = [];
+        for (const account of accounts) {
+            try {
+                const expectedBalance = this.toDecimal(
+                    expectedBalanceByAccount.get(account.id) ?? 0,
+                );
+                const hasMismatch =
+                    Math.abs(account.balance - expectedBalance) > EPSILON;
 
-                    if (!hasMismatch) {
-                        return {status: "valid" as const};
-                    }
-
-                    this.logger.warn(
-                        `Integrity mismatch on account ${account.id} (${account.name}): current=${account.balance}, expected=${expectedBalance}. Applying fix.`,
-                    );
-
-                    await this.prismaService.accounts.update({
-                        where: {
-                            id: account.id,
-                        },
-                        data: {
-                            balance: expectedBalance,
-                        },
-                    });
-
-                    this.logger.log(
-                        `Integrity fix applied on account ${account.id}: ${account.balance} -> ${expectedBalance}`,
-                    );
-                    return {status: "fixed" as const};
-                } catch (error: unknown) {
-                    const message =
-                        error instanceof Error ? error.message : String(error);
-                    this.logger.error(
-                        `Integrity check failed for account ${account.id}: ${message}`,
-                    );
-                    return {status: "error" as const};
+                if (!hasMismatch) {
+                    results.push({status: "valid"});
+                    continue;
                 }
-            }),
-        );
+
+                this.logger.warn(
+                    `Integrity mismatch on account ${account.id} (${account.name}): current=${account.balance}, expected=${expectedBalance}. Applying fix.`,
+                );
+
+                await this.prismaService.accounts.update({
+                    where: {
+                        id: account.id,
+                    },
+                    data: {
+                        balance: expectedBalance,
+                    },
+                });
+
+                this.logger.log(
+                    `Integrity fix applied on account ${account.id}: ${account.balance} -> ${expectedBalance}`,
+                );
+                results.push({status: "fixed"});
+            } catch (error: unknown) {
+                const message =
+                    error instanceof Error ? error.message : String(error);
+                this.logger.error(
+                    `Integrity check failed for account ${account.id}: ${message}`,
+                );
+                results.push({status: "error"});
+            }
+        }
 
         const fixedCount = results.filter(
             (result) => result.status === "fixed",
