@@ -1,6 +1,6 @@
 services:
-    db:
-        image: postgres:18-alpine
+    postgres:
+        image: tensorchord/vchord-postgres:pg18-v1.1.1
         restart: unless-stopped
         environment:
             POSTGRES_DB: ${POSTGRES_DB:-flowy}
@@ -14,11 +14,11 @@ services:
             timeout: 5s
             retries: 5
         volumes:
-            - flowy-db-data:/var/lib/postgresql/data
+            - flowy-db-data:/var/lib/postgresql
         ports:
             - "${POSTGRES_PORT:-5432}:5432"
 
-    backend:
+    server:
         build:
             context: ./server
             dockerfile: Dockerfile
@@ -26,27 +26,35 @@ services:
                 DATABASE_URL: ${DATABASE_URL:-postgresql://flowy:flowy@db:5432/flowy}
         environment:
             DATABASE_URL: ${DATABASE_URL:-postgresql://flowy:flowy@db:5432/flowy}
-            APP_NAME: ${APP_NAME:-Flowy}
+            APP_NAME: Flowy
             APP_SECRET: ${APP_SECRET:-change-me}
-            PREFIX: ${APP_PREFIX:-}
-            PORT: ${BACKEND_PORT:-4000}
+            PREFIX: ${APP_PREFIX}
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://server:4000/health"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
         depends_on:
-            db:
+            postgres:
                 condition: service_healthy
         ports:
             - "${BACKEND_PORT:-4000}:4000"
         restart: unless-stopped
 
-    frontend:
+    web:
         build:
             context: ./web
             dockerfile: Dockerfile
         environment:
             HOST: 0.0.0.0
-            PORT: ${FRONTEND_PORT:-3000}
             NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://backend:4000}
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://web:3000/"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
         depends_on:
-            backend:
+            server:
                 condition: service_started
         ports:
             - "${FRONTEND_PORT:-3000}:3000"
