@@ -1,20 +1,21 @@
-<script setup lang="ts">
-import {ref, watch, computed} from "vue";
+<script lang="ts" setup>
+import {computed, ref, watch} from "vue";
 import {
-    useTransactionStore,
+    type CreateTransactionPayload,
     type Transaction,
     type UpdateTransactionPayload,
-    type CreateTransactionPayload,
+    useTransactionStore,
 } from "~/stores/transaction.store";
 import {useReferenceStore} from "~/stores/reference.store";
+import {useAccountStore} from "~/stores/account.store";
 import {useApi} from "~/composables/useApi";
 import {Button} from "~/components/ui/button";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
-import {Badge} from "~/components/ui/badge";
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter} from "~/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
+import {Alert, AlertDescription, AlertTitle} from "~/components/ui/alert";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -40,28 +41,33 @@ const emit = defineEmits<{
 
 const transactionStore = useTransactionStore();
 const referenceStore = useReferenceStore();
+const accountStore = useAccountStore();
 const {apiFetch} = useApi();
 
 const isSubmitting = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isDeleting = ref(false);
 
-const loadReferences = async () => {
+const loadData = async () => {
     try {
-        await referenceStore.fetchReferences();
+        await Promise.all([
+            referenceStore.fetchReferences(),
+            !props.accountId ? accountStore.fetchAccounts() : Promise.resolve(),
+        ]);
     } catch (e) {
-        console.error("Failed to load reference data", e);
+        console.error("Failed to load required data", e);
     }
 };
 
 const availableCategories = computed(() => referenceStore.categories);
 const availableMerchants = computed(() => referenceStore.merchants);
+const availableAccounts = computed(() => accountStore.accounts);
 
 watch(
     () => props.open,
     (isOpen) => {
-        if (isOpen && availableCategories.value.length === 0) {
-            loadReferences();
+        if (isOpen) {
+            loadData();
         }
     },
     {immediate: true},
@@ -73,6 +79,7 @@ const formData = ref({
     date: "",
     categoryId: "none",
     merchantId: "none",
+    selectedAccountId: "",
 });
 
 const transactionType = ref<"expense" | "income">("expense");
@@ -88,6 +95,7 @@ watch(
                 date: newTransaction.date ? new Date(newTransaction.date).toISOString().split("T")[0] : "",
                 categoryId: newTransaction.category?.id || "none",
                 merchantId: newTransaction.merchant?.id || "none",
+                selectedAccountId: newTransaction.accountId || props.accountId || "",
             };
         } else {
             transactionType.value = "expense";
@@ -97,6 +105,7 @@ watch(
                 date: new Date().toISOString().split("T")[0],
                 categoryId: "none",
                 merchantId: "none",
+                selectedAccountId: props.accountId || "",
             };
         }
     },
@@ -132,10 +141,11 @@ const save = async () => {
                 categoryId: formData.value.categoryId === "none" ? undefined : formData.value.categoryId,
                 merchantId: formData.value.merchantId === "none" ? undefined : formData.value.merchantId,
             };
-            if (!props.accountId) {
-                throw new Error("accountId is required to create a transaction");
+            const targetAccountId = props.accountId || formData.value.selectedAccountId;
+            if (!targetAccountId) {
+                throw new Error("Account is required to create a transaction");
             }
-            await transactionStore.createTransaction(props.accountId, payload);
+            await transactionStore.createTransaction(targetAccountId, payload);
         }
 
         emit("saved");
@@ -189,26 +199,55 @@ const executeDelete = async () => {
                 </TabsList>
             </Tabs>
 
-            <form @submit.prevent="save" class="grid gap-4 py-4">
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="amount" class="text-right"> Amount </Label>
+            <Alert v-if="props.transaction?.isRebalance" class="bg-muted/50 mt-4" variant="default">
+                <AlertTitle>System Transaction</AlertTitle>
+                <AlertDescription>
+                    This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of
+                    sync.
+                </AlertDescription>
+            </Alert>
+
+            <form class="grid gap-4 py-4" @submit.prevent="save">
+                <div v-if="!props.accountId && !props.transaction" class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="account"> Account </Label>
                     <div class="col-span-3">
-                        <Input id="amount" v-model.number="formData.amount" type="number" step="0.01" min="0" required />
+                        <Select v-model="formData.selectedAccountId" required>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select an account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem
+                                        v-for="account in availableAccounts"
+                                        :key="account.id"
+                                        :value="account.id">
+                                        {{ account.name }}
+                                    </SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="description" class="text-right"> Description </Label>
+                    <Label class="text-right" for="amount"> Amount </Label>
+                    <div class="col-span-3">
+                        <Input id="amount" v-model.number="formData.amount" min="0" required step="0.01" type="number" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="description"> Description </Label>
                     <Input id="description" v-model="formData.description" class="col-span-3" required />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="date" class="text-right"> Date </Label>
-                    <Input id="date" v-model="formData.date" type="date" class="col-span-3" required />
+                    <Label class="text-right" for="date"> Date </Label>
+                    <Input id="date" v-model="formData.date" class="col-span-3" required type="date" />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="category" class="text-right"> Category </Label>
+                    <Label class="text-right" for="category"> Category </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.categoryId">
                             <SelectTrigger>
@@ -219,7 +258,7 @@ const executeDelete = async () => {
                                     <SelectItem value="none">None</SelectItem>
                                     <SelectItem v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
                                         <div class="flex items-center gap-2">
-                                            <Icon :name="cat.icon" class="h-4 w-4" :style="{color: cat.hexColor}" />
+                                            <Icon :name="cat.icon" :style="{color: cat.hexColor}" class="h-4 w-4" />
                                             <span>{{ cat.name }}</span>
                                         </div>
                                     </SelectItem>
@@ -230,7 +269,7 @@ const executeDelete = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="merchant" class="text-right"> Merchant </Label>
+                    <Label class="text-right" for="merchant"> Merchant </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.merchantId">
                             <SelectTrigger>
@@ -255,11 +294,11 @@ const executeDelete = async () => {
             <DialogFooter class="flex w-full items-center sm:justify-between">
                 <Button
                     v-if="props.transaction"
+                    :disabled="isSubmitting || isDeleting"
                     type="button"
                     variant="destructive"
-                    @click="confirmDelete"
-                    :disabled="isSubmitting || isDeleting">
-                    <Icon name="iconoir:trash" class="mr-2 h-4 w-4" />
+                    @click="confirmDelete">
+                    <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
                     Delete
                 </Button>
                 <div v-else></div>
@@ -267,7 +306,7 @@ const executeDelete = async () => {
 
                 <div class="flex items-center gap-2">
                     <Button type="button" variant="outline" @click="emit('update:open', false)"> Cancel </Button>
-                    <Button type="submit" @click="save" :disabled="isSubmitting || isDeleting">
+                    <Button :disabled="isSubmitting || isDeleting" type="submit" @click="save">
                         {{ isSubmitting ? "Saving..." : "Save changes" }}
                     </Button>
                 </div>
@@ -286,8 +325,8 @@ const executeDelete = async () => {
             <AlertDialogFooter>
                 <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     :disabled="isDeleting"
+                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     @click="executeDelete">
                     {{ isDeleting ? "Deleting..." : "Delete" }}
                 </AlertDialogAction>

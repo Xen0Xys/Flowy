@@ -1,15 +1,14 @@
-<script setup lang="ts">
-import {ref, computed, onMounted, watch} from "vue";
+<script lang="ts" setup>
+import {computed, onMounted, ref, watch} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
-import {useTransactionStore} from "~/stores/transaction.store";
-import {buildDateRange} from "~/utils/accounts";
-import type {TimeRange} from "~/utils/accounts";
-import {toCurrency} from "~/lib/currency";
-import type {Account} from "~/stores/account.store";
 import type {Transaction} from "~/stores/transaction.store";
+import {useTransactionStore} from "~/stores/transaction.store";
+import type {TimeRange} from "~/utils/accounts";
+import {buildDateRange} from "~/utils/accounts";
+import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 
@@ -17,6 +16,9 @@ import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Badge} from "~/components/ui/badge";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
+import {Input} from "~/components/ui/input";
+import {Label} from "~/components/ui/label";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -27,8 +29,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import {ChartContainer, ChartTooltip, ChartTooltipContent, ChartCrosshair} from "~/components/ui/chart";
-import {VisXYContainer, VisLine, VisAxis, VisScatter, VisArea} from "@unovis/vue";
+import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
+import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
 
 const route = useRoute();
@@ -43,6 +45,9 @@ const isLoading = ref(true);
 
 const isFormModalOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
+const isSetBalanceDialogOpen = ref(false);
+const isSettingBalance = ref(false);
+const targetBalance = ref(0);
 const timeRange = ref<TimeRange>("1M");
 
 const account = computed(() => accountStore.currentAccount);
@@ -103,6 +108,12 @@ const openEditModal = () => {
     isFormModalOpen.value = true;
 };
 
+const openSetBalanceDialog = () => {
+    if (!account.value) return;
+    targetBalance.value = account.value.balance;
+    isSetBalanceDialogOpen.value = true;
+};
+
 const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
 };
@@ -119,6 +130,23 @@ const onFormSaved = () => {
 
 const onTransactionSaved = () => {
     loadData();
+};
+
+const submitSetBalance = async () => {
+    if (!account.value || Number.isNaN(targetBalance.value)) return;
+
+    isSettingBalance.value = true;
+    try {
+        await accountStore.updateAccount(account.value.id, {
+            balance: targetBalance.value,
+        });
+        isSetBalanceDialogOpen.value = false;
+        await loadData();
+    } catch (err) {
+        console.error(err);
+    } finally {
+        isSettingBalance.value = false;
+    }
 };
 
 const formatCurrency = (value: number) => {
@@ -153,8 +181,8 @@ const transactionKey = (transaction: Transaction) => transaction.id;
         <!-- Header -->
         <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div class="flex items-start gap-4 md:items-center">
-                <Button variant="outline" size="icon" @click="goBack" class="mt-1 shrink-0 md:mt-0">
-                    <Icon name="iconoir:arrow-left" class="h-4 w-4" />
+                <Button class="mt-1 shrink-0 md:mt-0" size="icon" variant="outline" @click="goBack">
+                    <Icon class="h-4 w-4" name="iconoir:arrow-left" />
                 </Button>
 
                 <div class="flex-1">
@@ -176,13 +204,17 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                 </div>
             </div>
 
-            <div class="flex w-full items-center gap-2 md:w-auto" v-if="!isLoading && account">
-                <Button variant="outline" @click="openEditModal" class="flex-1 md:flex-none">
-                    <Icon name="iconoir:edit-pencil" class="mr-2 h-4 w-4" />
+            <div v-if="!isLoading && account" class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+                <Button class="flex-1 md:flex-none" variant="secondary" @click="openSetBalanceDialog">
+                    <Icon class="h-4 w-4" name="iconoir:coins-swap" />
+                    Set Balance
+                </Button>
+                <Button class="flex-1 md:flex-none" variant="outline" @click="openEditModal">
+                    <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
                     Edit
                 </Button>
-                <Button variant="destructive" @click="confirmDelete" class="flex-1 md:flex-none">
-                    <Icon name="iconoir:trash" class="mr-2 h-4 w-4" />
+                <Button class="flex-1 md:flex-none" variant="destructive" @click="confirmDelete">
+                    <Icon class="h-4 w-4" name="iconoir:trash" />
                     Delete
                 </Button>
             </div>
@@ -230,38 +262,37 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                         left: 0,
                                         right: 0,
                                     }">
-                                    <svg width="0" height="0">
+                                    <svg height="0" width="0">
                                         <defs>
-                                            <linearGradient id="colorBalanceDetails" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" :stop-color="chartColor" stop-opacity="0.3" />
-                                                <stop offset="95%" :stop-color="chartColor" stop-opacity="0" />
+                                            <linearGradient id="colorBalanceDetails" x1="0" x2="0" y1="0" y2="1">
+                                                <stop :stop-color="chartColor" offset="5%" stop-opacity="0.3" />
+                                                <stop :stop-color="chartColor" offset="95%" stop-opacity="0" />
                                             </linearGradient>
                                         </defs>
                                     </svg>
 
                                     <VisArea
+                                        :curveType="CurveType.MonotoneX"
+                                        :opacity="1"
                                         :x="x"
                                         :y="y"
-                                        :curveType="CurveType.MonotoneX"
-                                        color="url(#colorBalanceDetails)"
-                                        :opacity="1" />
+                                        color="url(#colorBalanceDetails)" />
 
                                     <VisLine
-                                        :x="x"
-                                        :y="y"
-                                        :curveType="CurveType.MonotoneX"
                                         :color="chartColor"
-                                        :lineWidth="3" />
+                                        :curveType="CurveType.MonotoneX"
+                                        :lineWidth="3"
+                                        :x="x"
+                                        :y="y" />
 
                                     <VisScatter
                                         v-if="evolutionSeries.length === 1"
-                                        :x="x"
-                                        :y="y"
                                         :color="chartColor"
-                                        :size="6" />
+                                        :size="6"
+                                        :x="x"
+                                        :y="y" />
 
                                     <VisAxis
-                                        type="x"
                                         :gridLine="false"
                                         :numTicks="isMobile ? 3 : undefined"
                                         :tickFormat="
@@ -270,12 +301,13 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                                     month: 'short',
                                                     day: 'numeric',
                                                 })
-                                        " />
+                                        "
+                                        type="x" />
                                     <VisAxis
                                         v-if="!isMobile"
-                                        type="y"
                                         :gridLine="false"
-                                        :tickFormat="(d: number) => formatCompactCurrency(d)" />
+                                        :tickFormat="(d: number) => formatCompactCurrency(d)"
+                                        type="y" />
                                     <ChartCrosshair
                                         :color="chartColor"
                                         :template="
@@ -305,15 +337,41 @@ const transactionKey = (transaction: Transaction) => transaction.id;
 
             <!-- Transactions -->
             <TransactionListWidget
-                :transactions="transactions"
                 :account-id="accountId"
                 :show-view-all="true"
+                :transactions="transactions"
                 view-all-link="/transactions"
                 @saved="onTransactionSaved" />
         </template>
 
         <!-- Modals -->
         <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />
+
+        <Dialog :open="isSetBalanceDialogOpen" @update:open="isSetBalanceDialogOpen = $event">
+            <DialogContent class="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Set account balance</DialogTitle>
+                    <DialogDescription>
+                        Set the new current balance for this account. A rebalance transaction is created automatically
+                        when the value changes.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form class="space-y-4 py-4" @submit.prevent="submitSetBalance">
+                    <div class="space-y-2">
+                        <Label for="target-balance">Target balance</Label>
+                        <Input id="target-balance" v-model.number="targetBalance" required step="0.01" type="number" />
+                    </div>
+
+                    <DialogFooter>
+                        <Button type="button" variant="outline" @click="isSetBalanceDialogOpen = false"> Cancel </Button>
+                        <Button :disabled="isSettingBalance" type="submit">
+                            {{ isSettingBalance ? "Saving..." : "Save balance" }}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
 
         <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
             <AlertDialogContent>

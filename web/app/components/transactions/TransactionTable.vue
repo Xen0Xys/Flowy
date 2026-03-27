@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import {
     type ColumnDef,
     FlexRender,
@@ -20,6 +20,9 @@ import {valueUpdater} from "~/components/ui/table/utils";
 
 const props = defineProps<{
     transactions: Transaction[];
+    isFiltered?: boolean;
+    showAccountColumn?: boolean;
+    accountNameById?: Record<string, string>;
 }>();
 
 const emit = defineEmits<{
@@ -49,36 +52,51 @@ const amountClass = (value: number) => {
     return "text-foreground";
 };
 
-const columns: ColumnDef<Transaction>[] = [
-    {
-        accessorKey: "date",
-        header: "Date",
+const columns = computed<ColumnDef<Transaction>[]>(() => {
+    const baseColumns: ColumnDef<Transaction>[] = [
+        {
+            accessorKey: "date",
+            header: "Date",
+            enableSorting: true,
+        },
+        {
+            accessorKey: "description",
+            header: "Description",
+            enableSorting: true,
+        },
+        {
+            id: "category",
+            accessorFn: (row) => row.category?.name || "-",
+            header: "Category",
+            enableSorting: true,
+        },
+        {
+            accessorKey: "amount",
+            header: "Amount",
+            enableSorting: true,
+        },
+    ];
+
+    if (!props.showAccountColumn) {
+        return baseColumns;
+    }
+
+    const accountColumn: ColumnDef<Transaction> = {
+        id: "account",
+        accessorFn: (row) => props.accountNameById?.[row.accountId] || "-",
+        header: "Account",
         enableSorting: true,
-    },
-    {
-        accessorKey: "description",
-        header: "Description",
-        enableSorting: true,
-    },
-    {
-        id: "category",
-        accessorFn: (row) => row.category?.name || "-",
-        header: "Category",
-        enableSorting: true,
-    },
-    {
-        accessorKey: "amount",
-        header: "Amount",
-        enableSorting: true,
-    },
-];
+    };
+
+    return [baseColumns[0], accountColumn, ...baseColumns.slice(1)];
+});
 
 const table = useVueTable({
     get data() {
         return props.transactions;
     },
     get columns() {
-        return columns;
+        return columns.value;
     },
     state: {
         get sorting() {
@@ -148,6 +166,7 @@ const table = useVueTable({
                         :class="[
                             cell.column.id === 'amount' ? 'text-right' : '',
                             cell.column.id === 'date' ? 'w-[150px]' : '',
+                            cell.column.id === 'account' ? 'w-[180px]' : '',
                             cell.column.id === 'category' ? 'w-[200px]' : '',
                             cell.column.id === 'amount' ? 'w-[150px]' : '',
                         ]">
@@ -156,12 +175,24 @@ const table = useVueTable({
                         </template>
 
                         <template v-else-if="cell.column.id === 'description'">
-                            <span class="font-medium">{{ cell.getValue() }}</span>
+                            <span
+                                v-if="row.original.isRebalance"
+                                class="text-muted-foreground flex items-center gap-1.5 font-medium italic">
+                                <Icon name="iconoir:system-restart" class="h-4 w-4" />
+                                {{ cell.getValue() }}
+                            </span>
+                            <span v-else class="font-medium">{{ cell.getValue() }}</span>
                         </template>
 
                         <template v-else-if="cell.column.id === 'category'">
                             <Badge
-                                v-if="row.original.category"
+                                v-if="row.original.isRebalance"
+                                class="text-muted-foreground flex w-fit items-center gap-1.5 border-dashed bg-transparent px-2 py-0.5 whitespace-nowrap hover:bg-transparent"
+                                variant="outline">
+                                System
+                            </Badge>
+                            <Badge
+                                v-else-if="row.original.category"
                                 :style="{
                                     borderColor: row.original.category.hexColor,
                                     color: row.original.category.hexColor,
@@ -173,6 +204,10 @@ const table = useVueTable({
                                 {{ row.original.category.name }}
                             </Badge>
                             <span v-else class="text-muted-foreground">-</span>
+                        </template>
+
+                        <template v-else-if="cell.column.id === 'account'">
+                            <span class="text-muted-foreground font-medium">{{ cell.getValue() }}</span>
                         </template>
 
                         <template v-else-if="cell.column.id === 'amount'">
@@ -187,7 +222,7 @@ const table = useVueTable({
 
                 <TableRow v-if="table.getRowModel().rows.length === 0">
                     <TableCell :colspan="columns.length" class="text-muted-foreground h-24 text-center">
-                        No transactions found.
+                        {{ isFiltered ? "No transactions match your filters." : "No transactions found." }}
                     </TableCell>
                 </TableRow>
             </TableBody>

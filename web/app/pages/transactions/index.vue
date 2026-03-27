@@ -1,18 +1,30 @@
 <script setup lang="ts">
 import {ref, computed, onMounted} from "vue";
 import {useTransactionStore} from "~/stores/transaction.store";
+import {useAccountStore} from "~/stores/account.store";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
+import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import {Skeleton} from "~/components/ui/skeleton";
+import {Button} from "~/components/ui/button";
 
 const transactionStore = useTransactionStore();
+const accountStore = useAccountStore();
 const isLoading = ref(true);
 
+const isTransactionModalOpen = ref(false);
+
 const allTransactions = computed(() => transactionStore.transactions);
+const availableAccounts = computed(() =>
+    accountStore.accounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+    })),
+);
 
 const loadData = async () => {
     isLoading.value = true;
     try {
-        await transactionStore.fetchTransactions();
+        await Promise.all([transactionStore.fetchTransactions(), accountStore.fetchAccounts()]);
     } catch (err) {
         console.error(err);
     } finally {
@@ -39,6 +51,10 @@ const onTransactionSaved = () => {
                     </div>
                 </div>
             </div>
+            <Button @click="isTransactionModalOpen = true" class="w-full md:w-auto">
+                <Icon name="iconoir:plus" class="mr-2 h-4 w-4" />
+                New Transaction
+            </Button>
         </div>
 
         <div v-if="isLoading" class="flex flex-col gap-6 md:min-h-0 md:flex-1">
@@ -50,7 +66,14 @@ const onTransactionSaved = () => {
         </div>
 
         <template v-else>
-            <TransactionListWidget :transactions="allTransactions" @saved="onTransactionSaved" />
+            <TransactionListWidget
+                :transactions="allTransactions"
+                :available-accounts="availableAccounts"
+                :show-account-column="true"
+                :show-account-filter="true"
+                @saved="onTransactionSaved" />
         </template>
+
+        <TransactionFormModal v-model:open="isTransactionModalOpen" :transaction="null" @saved="onTransactionSaved" />
     </div>
 </template>
