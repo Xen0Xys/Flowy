@@ -8,6 +8,7 @@ import {
     type SortingState,
     useVueTable,
 } from "@tanstack/vue-table";
+import {useMediaQuery} from "@vueuse/core";
 
 import type {Transaction} from "~/stores/transaction.store";
 import {useFamilyStore} from "~/stores/family.store";
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 }>();
 
 const familyStore = useFamilyStore();
+const isMobile = useMediaQuery("(max-width: 768px)");
 
 const sorting = ref<SortingState>([{id: "date", desc: true}]);
 
@@ -53,6 +55,21 @@ const amountClass = (value: number) => {
 };
 
 const columns = computed<ColumnDef<Transaction>[]>(() => {
+    if (isMobile.value) {
+        return [
+            {
+                accessorKey: "date",
+                header: "Date",
+                enableSorting: true,
+            },
+            {
+                accessorKey: "description",
+                header: "Description",
+                enableSorting: true,
+            },
+        ];
+    }
+
     const baseColumns: ColumnDef<Transaction>[] = [
         {
             accessorKey: "date",
@@ -165,7 +182,7 @@ const table = useVueTable({
                         :key="cell.id"
                         :class="[
                             cell.column.id === 'amount' ? 'text-right' : '',
-                            cell.column.id === 'date' ? 'w-[150px]' : '',
+                            cell.column.id === 'date' ? (isMobile ? 'w-[115px]' : 'w-[150px]') : '',
                             cell.column.id === 'account' ? 'w-[180px]' : '',
                             cell.column.id === 'category' ? 'w-[200px]' : '',
                             cell.column.id === 'amount' ? 'w-[150px]' : '',
