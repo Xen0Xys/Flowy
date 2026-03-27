@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, HttpCode, Patch, Post, UseGuards} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, UseGuards} from "@nestjs/common";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UpdatePasswordDto} from "./models/dto/update-password.dto";
 import {UpdateUsernameDto} from "./models/dto/update-username.dto";
@@ -62,5 +62,13 @@ export class UserController {
     @HttpCode(204)
     async deleteAccount(@User() user: UserEntity, @Body() body: DeleteAccountDto): Promise<void> {
         await this.userService.deleteOwnAccount(user, body.currentPassword);
+    }
+
+    @Delete("logout/all")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async invalidateTokens(@User() user: UserEntity): Promise<void> {
+        await this.userService.invalidateTokens(user);
     }
 }

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {useUserStore} from "~/stores/user.store";
 import {computed, onMounted, ref, watchEffect} from "vue";
 import {Card} from "@/components/ui/card";
@@ -29,6 +30,7 @@ import {
 } from "@/lib/validation";
 
 const userStore = useUserStore();
+const colorMode = useColorMode();
 
 const initials = computed(() => {
     const name = userStore.user?.username ?? username.value ?? "";
@@ -228,6 +230,24 @@ async function changePasswordNow() {
                                     <span v-else>Saving...</span>
                                 </Button>
                             </div>
+                        </div>
+
+                        <hr class="border-border my-4" />
+
+                        <div class="mb-6">
+                            <label class="mb-2 block text-sm font-medium">Appearance</label>
+                            <Select v-model="colorMode.preference">
+                                <SelectTrigger class="w-[180px]">
+                                    <SelectValue placeholder="Select a theme" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value="system">System</SelectItem>
+                                        <SelectItem value="light">Light</SelectItem>
+                                        <SelectItem value="dark">Dark</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <hr class="border-border my-4" />

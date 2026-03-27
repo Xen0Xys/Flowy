@@ -582,7 +582,7 @@ describe("FamilyController (e2e)", () => {
         const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const fakeId = crypto.randomUUID();
+        const fakeId: string = "019d2f14-e490-732f-8732-cdcbac41f0ab";
         const resp = await request(server)
             .delete(`/family/members/${fakeId}`)
             .set("Authorization", `Bearer ${admin.token}`);

@@ -172,4 +172,250 @@ describe("ReferenceController (e2e)", () => {
         expect(merchantsResponse.status).toBe(200);
         expect(merchantsResponse.body).toEqual([]);
     });
+
+    test("creates, updates and deletes a category", async () => {
+        const user = await registerUser(server);
+
+        const create = await request(server)
+            .post("/reference/category")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Food",
+                hexColor: "#22C55E",
+                icon: "utensils",
+            });
+
+        expect(create.status).toBe(201);
+        expect(create.body.name).toBe("Food");
+        expect(create.body.hexColor).toBe("#22C55E");
+        expect(create.body.icon).toBe("utensils");
+        expect(create.body.userId).toBe(user.user.id);
+
+        const update = await request(server)
+            .patch(`/reference/category/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Dining",
+                hexColor: "#16A34A",
+                icon: "restaurant",
+            });
+
+        expect(update.status).toBe(200);
+        expect(update.body.name).toBe("Dining");
+        expect(update.body.hexColor).toBe("#16A34A");
+        expect(update.body.icon).toBe("restaurant");
+
+        const remove = await request(server)
+            .delete(`/reference/category/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(remove.status).toBe(200);
+
+        const deleted = await prisma.userCategories.findUnique({
+            where: {id: create.body.id},
+        });
+        expect(deleted).toBeNull();
+    });
+
+    test("creates, updates and deletes a merchant", async () => {
+        const user = await registerUser(server);
+
+        const create = await request(server)
+            .post("/reference/merchant")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Amazon",
+            });
+
+        expect(create.status).toBe(201);
+        expect(create.body.name).toBe("Amazon");
+        expect(create.body.userId).toBe(user.user.id);
+
+        const update = await request(server)
+            .patch(`/reference/merchant/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Amazon Prime",
+            });
+
+        expect(update.status).toBe(200);
+        expect(update.body.name).toBe("Amazon Prime");
+
+        const remove = await request(server)
+            .delete(`/reference/merchant/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(remove.status).toBe(200);
+
+        const deleted = await prisma.userMerchants.findUnique({
+            where: {id: create.body.id},
+        });
+        expect(deleted).toBeNull();
+    });
+
+    test("rejects duplicate category and merchant names for the same user", async () => {
+        const user = await registerUser(server);
+
+        const firstCategory = await request(server)
+            .post("/reference/category")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Health",
+                hexColor: "#EF4444",
+                icon: "heart",
+            });
+        expect(firstCategory.status).toBe(201);
+
+        const duplicateCategory = await request(server)
+            .post("/reference/category")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Health",
+                hexColor: "#F97316",
+                icon: "medical-cross",
+            });
+
+        expect(duplicateCategory.status).toBe(409);
+        expect(duplicateCategory.body.message).toBe("Category already exists");
+
+        const firstMerchant = await request(server)
+            .post("/reference/merchant")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Ikea",
+            });
+        expect(firstMerchant.status).toBe(201);
+
+        const duplicateMerchant = await request(server)
+            .post("/reference/merchant")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "Ikea",
+            });
+
+        expect(duplicateMerchant.status).toBe(409);
+        expect(duplicateMerchant.body.message).toBe("Merchant already exists");
+    });
+
+    test("rejects update/delete on references owned by another user", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const category = await prisma.userCategories.create({
+            data: {
+                user_id: owner.user.id,
+                name: "Owner category",
+                hex_color: "#8B5CF6",
+                icon: "briefcase",
+            },
+        });
+
+        const merchant = await prisma.userMerchants.create({
+            data: {
+                user_id: owner.user.id,
+                name: "Owner merchant",
+            },
+        });
+
+        const updateCategory = await request(server)
+            .patch(`/reference/category/${category.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({name: "Hacked"});
+        expect(updateCategory.status).toBe(403);
+        expect(updateCategory.body.message).toBe("You do not have permission to access this category");
+
+        const deleteCategory = await request(server)
+            .delete(`/reference/category/${category.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`);
+        expect(deleteCategory.status).toBe(403);
+        expect(deleteCategory.body.message).toBe("You do not have permission to access this category");
+
+        const updateMerchant = await request(server)
+            .patch(`/reference/merchant/${merchant.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({name: "Hacked"});
+        expect(updateMerchant.status).toBe(403);
+        expect(updateMerchant.body.message).toBe("You do not have permission to access this merchant");
+
+        const deleteMerchant = await request(server)
+            .delete(`/reference/merchant/${merchant.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`);
+        expect(deleteMerchant.status).toBe(403);
+        expect(deleteMerchant.body.message).toBe("You do not have permission to access this merchant");
+    });
+
+    test("rejects invalid payloads and invalid UUID params", async () => {
+        const user = await registerUser(server);
+
+        const badCreateCategory = await request(server)
+            .post("/reference/category")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                name: "",
+                hexColor: "green",
+                icon: "",
+            });
+
+        expect(badCreateCategory.status).toBe(400);
+        expect(badCreateCategory.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "name"}),
+                expect.objectContaining({property: "hexColor"}),
+                expect.objectContaining({property: "icon"}),
+            ]),
+        );
+
+        const badCreateMerchant = await request(server)
+            .post("/reference/merchant")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: ""});
+
+        expect(badCreateMerchant.status).toBe(400);
+        expect(badCreateMerchant.body.message).toEqual(
+            expect.arrayContaining([expect.objectContaining({property: "name"})]),
+        );
+
+        const badCategoryId = await request(server)
+            .patch("/reference/category/not-a-uuid")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Updated"});
+        expect(badCategoryId.status).toBe(400);
+
+        const badMerchantId = await request(server)
+            .delete("/reference/merchant/not-a-uuid")
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(badMerchantId.status).toBe(400);
+    });
+
+    test("returns 404 for missing references", async () => {
+        const user = await registerUser(server);
+        const missingCategoryId = "0195c8dd-c263-7569-99f6-9fc20aca3050";
+        const missingMerchantId = "0195c8dd-c263-7569-99f6-9fc20aca3051";
+
+        const updateCategory = await request(server)
+            .patch(`/reference/category/${missingCategoryId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Missing"});
+        expect(updateCategory.status).toBe(404);
+        expect(updateCategory.body.message).toBe("Category not found");
+
+        const deleteCategory = await request(server)
+            .delete(`/reference/category/${missingCategoryId}`)
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(deleteCategory.status).toBe(404);
+        expect(deleteCategory.body.message).toBe("Category not found");
+
+        const updateMerchant = await request(server)
+            .patch(`/reference/merchant/${missingMerchantId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Missing"});
+        expect(updateMerchant.status).toBe(404);
+        expect(updateMerchant.body.message).toBe("Merchant not found");
+
+        const deleteMerchant = await request(server)
+            .delete(`/reference/merchant/${missingMerchantId}`)
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(deleteMerchant.status).toBe(404);
+        expect(deleteMerchant.body.message).toBe("Merchant not found");
+    });
 });

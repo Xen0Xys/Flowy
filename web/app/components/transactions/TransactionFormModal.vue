@@ -6,6 +6,7 @@ import {
     type UpdateTransactionPayload,
     type CreateTransactionPayload,
 } from "~/stores/transaction.store";
+import {useReferenceStore} from "~/stores/reference.store";
 import {useApi} from "~/composables/useApi";
 import {Button} from "~/components/ui/button";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
@@ -38,24 +39,23 @@ const emit = defineEmits<{
 }>();
 
 const transactionStore = useTransactionStore();
+const referenceStore = useReferenceStore();
 const {apiFetch} = useApi();
 
 const isSubmitting = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isDeleting = ref(false);
 
-const availableCategories = ref<any[]>([]);
-const availableMerchants = ref<any[]>([]);
-
 const loadReferences = async () => {
     try {
-        const [cats, merchs] = await Promise.all([apiFetch("/reference/categories"), apiFetch("/reference/merchants")]);
-        availableCategories.value = cats;
-        availableMerchants.value = merchs;
+        await referenceStore.fetchReferences();
     } catch (e) {
         console.error("Failed to load reference data", e);
     }
 };
+
+const availableCategories = computed(() => referenceStore.categories);
+const availableMerchants = computed(() => referenceStore.merchants);
 
 watch(
     () => props.open,

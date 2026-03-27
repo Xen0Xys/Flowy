@@ -179,8 +179,12 @@ export class UserService {
     }
 
     // public API: set password without old password (used by admin/owner flows)
-    async updatePassword(user: UserEntity, dto: {password: string}): Promise<UserEntity> {
-        return this.persistPassword(user.id, dto.password);
+    async updatePassword(userId: string, newPassword: string): Promise<UserEntity> {
+        const user = await this.prismaService.users.findUnique({
+            where: {id: userId},
+        });
+        if (!user) throw new NotFoundException("User not found");
+        return this.persistPassword(userId, newPassword);
     }
 
     async listUsers(): Promise<UserEntity[]> {
@@ -188,13 +192,22 @@ export class UserService {
         return users.map((u) => UserService.toUserEntity(u));
     }
 
+    async invalidateTokens(user: UserEntity): Promise<void> {
+        await this.prismaService.users.update({
+            where: {id: user.id},
+            data: {
+                jwt_id: crypto.randomBytes(16).toString("hex"),
+            },
+        });
+    }
+
     // internal helper: hash + persist new password (do NOT rotate jwt_id)
     private async persistPassword(userId: string, password: string): Promise<UserEntity> {
         const hashed = await argon2.hash(password, {
             type: argon2.argon2id,
-            memoryCost: 2 ** 16,
-            timeCost: 4,
-            parallelism: 2,
+            memoryCost: 2 ** 18, // 128 MiB
+            timeCost: 10,
+            parallelism: 4,
         });
         const updated = await this.prismaService.users.update({
             where: {id: userId},

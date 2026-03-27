@@ -211,7 +211,7 @@ describe("AccountController (e2e)", () => {
 
     test("returns 404 when account is not found", async () => {
         const user = await registerUser(server);
-        const fakeId = "e7f531e0-c8d0-4fef-a5e5-8b5f9cd9240f";
+        const fakeId: string = "019d2f14-e490-732f-8732-cdcbac41f0ab";
 
         const byId = await request(server).get(`/account/${fakeId}`).set("Authorization", `Bearer ${user.token}`);
         expect(byId.status).toBe(404);

@@ -1,4 +1,16 @@
-import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards} from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    ParseUUIDPipe,
+    Patch,
+    Post,
+    UseGuards,
+} from "@nestjs/common";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
 import {FamilyAdminGuard} from "../../../common/guards/family-admin.guard";
@@ -81,7 +93,10 @@ export class FamilyController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     @ApiBearerAuth()
-    async removeMember(@User() user: UserEntity, @Param("id") id: string): Promise<void> {
+    async removeMember(
+        @User() user: UserEntity,
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+    ): Promise<void> {
         return await this.familyService.removeMember(user, id);
     }
 

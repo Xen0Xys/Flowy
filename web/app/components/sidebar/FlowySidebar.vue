@@ -155,6 +155,14 @@ async function handleLogout() {
                                 >
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton :is-active="isActiveFunction('/settings/user/references')" as-child>
+                                <NuxtLink to="/settings/user/references">
+                                    <Icon name="iconoir:book"></Icon>
+                                    References</NuxtLink
+                                >
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
                 <SidebarGroupLabel v-if="showAdminLinks">Instance Management</SidebarGroupLabel>

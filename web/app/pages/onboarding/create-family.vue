@@ -5,6 +5,7 @@ import {useRouter} from "#app";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {
     Stepper,
     StepperDescription,
@@ -22,6 +23,7 @@ import {
     isValidFamilyName,
     normalizeCurrencyCode,
 } from "@/lib/validation";
+import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
 
 const router = useRouter();
 const familyStore = useFamilyStore();
@@ -142,15 +144,18 @@ async function submit() {
                     <FormField name="currency">
                         <FormLabel for="currency">Currency</FormLabel>
                         <FormControl>
-                            <select
-                                id="currency"
-                                v-model="form.currency"
-                                :class="cn('w-full rounded-md border bg-transparent px-3 py-2')">
-                                <option value="EUR">EUR</option>
-                                <option value="USD">USD</option>
-                                <option value="GBP">GBP</option>
-                                <option value="CHF">CHF</option>
-                            </select>
+                            <Select v-model="form.currency">
+                                <SelectTrigger id="currency">
+                                    <SelectValue placeholder="Select a currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <template v-for="code in Object.keys(CURRENCY_LOCALES_MAP)" :key="code">
+                                            <SelectItem :value="code">{{ code }}</SelectItem>
+                                        </template>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                         </FormControl>
                         <FormMessage />
                     </FormField>
