@@ -25,6 +25,7 @@ const pageTitle = computed(() => {
 
 useHead({
     title: computed(() => (pageTitle.value ? `Flowy - ${pageTitle.value}` : "Flowy")),
+    link: [{rel: "icon", type: "image/webp", href: "/flowy-logo.webp"}],
 });
 </script>
 
