@@ -14,6 +14,7 @@ import {
 } from "~/components/ui/sidebar";
 import {computed, onMounted, ref, watch} from "vue";
 import {useUserStore} from "~/stores/user.store";
+import {useAccountStore} from "~/stores/account.store";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -37,8 +38,10 @@ const version = computed(() => {
 
 // show/hide instance/admin settings links depending on permissions
 const userStore = useUserStore();
+const accountStore = useAccountStore();
 const showAdminLinks = ref(false);
 const {isMobile} = useSidebar();
+const userAccounts = computed(() => accountStore.accounts);
 
 const userName = computed(() => userStore.user?.username || "User");
 const userEmail = computed(() => userStore.user?.email || "");
@@ -63,17 +66,31 @@ async function computeAdminVisibility() {
     }
 }
 
+async function loadAccountsForSidebar() {
+    if (!userStore.token || userAccounts.value.length > 0) return;
+
+    try {
+        await accountStore.fetchAccounts();
+    } catch {
+        // ignore sidebar-only account loading errors
+    }
+}
+
 onMounted(async () => {
     // compute once on client mount
     await computeAdminVisibility();
+    await loadAccountsForSidebar();
 });
 
 // recompute when token changes (login/logout)
 watch(
     () => userStore.token,
     async (token) => {
-        if (token) await computeAdminVisibility();
-        else showAdminLinks.value = false;
+        if (token) {
+            await Promise.all([computeAdminVisibility(), loadAccountsForSidebar()]);
+        } else {
+            showAdminLinks.value = false;
+        }
     },
 );
 
@@ -125,8 +142,20 @@ async function handleLogout() {
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
+                <SidebarGroupLabel v-if="userAccounts.length">Accounts</SidebarGroupLabel>
+                <SidebarGroupContent v-if="userAccounts.length">
+                    <SidebarMenu>
+                        <SidebarMenuItem v-for="account in userAccounts" :key="account.id">
+                            <SidebarMenuButton :is-active="isActiveFunction(`/account/${account.id}`)" as-child>
+                                <NuxtLink :to="`/account/${account.id}`">
+                                    <Icon name="iconoir:wallet"></Icon>
+                                    <span>{{ account.name }}</span>
+                                </NuxtLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
             </SidebarGroup>
-
             <SidebarGroup :aria-hidden="!inSettings" :class="{hidden: !inSettings}">
                 <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
                 <SidebarGroupContent>
