@@ -86,9 +86,9 @@ export class UserService {
         if (existingUser) throw new ConflictException("Username or email already exists");
         const hashed = await argon2.hash(password, {
             type: argon2.argon2id,
-            memoryCost: 2 ** 16, // 64 MiB
-            timeCost: 4,
-            parallelism: 2,
+            memoryCost: 2 ** 18, // 128 MiB
+            timeCost: 10,
+            parallelism: 4,
         });
 
         const user = await this.prismaService.users.create({
