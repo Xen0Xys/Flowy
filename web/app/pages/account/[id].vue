@@ -11,13 +11,11 @@ import {toCurrency} from "~/lib/currency";
 import type {Account} from "~/stores/account.store";
 import type {Transaction} from "~/stores/transaction.store";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
-import TransactionTable from "~/components/transactions/TransactionTable.vue";
-import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
+import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Badge} from "~/components/ui/badge";
-import {ScrollArea} from "~/components/ui/scroll-area";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {
     AlertDialog,
@@ -46,9 +44,6 @@ const isLoading = ref(true);
 const isFormModalOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const timeRange = ref<TimeRange>("1M");
-
-const isTransactionModalOpen = ref(false);
-const selectedTransaction = ref<Transaction | null>(null);
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
@@ -120,16 +115,6 @@ const executeDelete = async () => {
 
 const onFormSaved = () => {
     loadData();
-};
-
-const handleNewTransactionClick = () => {
-    selectedTransaction.value = null;
-    isTransactionModalOpen.value = true;
-};
-
-const handleTransactionClick = (transaction: Transaction) => {
-    selectedTransaction.value = transaction;
-    isTransactionModalOpen.value = true;
 };
 
 const onTransactionSaved = () => {
@@ -319,36 +304,16 @@ const transactionKey = (transaction: Transaction) => transaction.id;
             </div>
 
             <!-- Transactions -->
-            <div
-                class="bg-card text-card-foreground flex flex-col rounded-xl border p-6 shadow-sm md:mb-6 md:min-h-0 md:flex-1">
-                <div class="mb-4 flex shrink-0 items-center justify-between">
-                    <h3 class="text-lg leading-none font-semibold tracking-tight">Transactions</h3>
-                    <Button @click="handleNewTransactionClick" size="sm">
-                        <Icon name="iconoir:plus" class="h-4 w-4" />
-                        New Transaction
-                    </Button>
-                </div>
-                <component
-                    :is="!isMobile ? ScrollArea : 'div'"
-                    :scrollbar-class="!isMobile ? 'pt-[41px]' : ''"
-                    :class="
-                        !isMobile
-                            ? 'overflow-hidden rounded-md border md:min-h-0 md:flex-1'
-                            : 'overflow-hidden rounded-md border'
-                    ">
-                    <TransactionTable :transactions="transactions" @row-click="handleTransactionClick" />
-                </component>
-            </div>
+            <TransactionListWidget
+                :transactions="transactions"
+                :account-id="accountId"
+                :show-view-all="true"
+                view-all-link="/transactions"
+                @saved="onTransactionSaved" />
         </template>
 
         <!-- Modals -->
         <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />
-
-        <TransactionFormModal
-            v-model:open="isTransactionModalOpen"
-            :transaction="selectedTransaction"
-            :account-id="accountId"
-            @saved="onTransactionSaved" />
 
         <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
             <AlertDialogContent>

@@ -30,7 +30,7 @@ import {Icon} from "#components";
 const props = defineProps<{
     open: boolean;
     transaction: Transaction | null;
-    accountId: string;
+    accountId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -132,6 +132,9 @@ const save = async () => {
                 categoryId: formData.value.categoryId === "none" ? undefined : formData.value.categoryId,
                 merchantId: formData.value.merchantId === "none" ? undefined : formData.value.merchantId,
             };
+            if (!props.accountId) {
+                throw new Error("accountId is required to create a transaction");
+            }
             await transactionStore.createTransaction(props.accountId, payload);
         }
 

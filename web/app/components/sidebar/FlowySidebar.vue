@@ -91,7 +91,7 @@ async function handleLogout() {
                     <SidebarMenuButton as-child size="lg">
                         <div>
                             <div class="flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <img src="/flowy-logo.webp" alt="Flowy Logo" class="size-8" />
+                                <img alt="Flowy Logo" class="size-8" src="/flowy-logo.webp" />
                             </div>
                             <div class="flex flex-col gap-0.5 leading-none">
                                 <span class="font-semibold">Flowy</span>
@@ -112,6 +112,14 @@ async function handleLogout() {
                                 <NuxtLink to="/">
                                     <Icon name="iconoir:home"></Icon>
                                     <span>Dashboard</span>
+                                </NuxtLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton :is-active="isActiveFunction('/transactions')" as-child>
+                                <NuxtLink to="/transactions">
+                                    <Icon name="iconoir:credit-card"></Icon>
+                                    <span>Transactions</span>
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

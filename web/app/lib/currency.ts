@@ -161,6 +161,8 @@ const CURRENCY_LOCALES_MAP: Record<string, {default: string; valid: string[]}> =
 
 export function toCurrency(value: number, currencyCode: string): string {
     const code = currencyCode.toUpperCase();
+    // Return the number with 2 decimals
+    value = Math.round(value * 100) / 100;
     const fallback = `${code} ${value}`;
 
     if (!Number.isFinite(value)) return fallback;
