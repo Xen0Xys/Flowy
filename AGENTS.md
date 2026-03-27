@@ -187,7 +187,7 @@
 
 ## QUALITY & COMMITS
 
-151. FEATURE TESTING — Validate every change you ship with the most relevant checks (focused unit tests, `bun test`, targeted `bun run build`, manual UX walkthrough, `docker compose` smoke test, etc.) and mention those results in your summary.
+151. FEATURE TESTING — Validate every change you ship with the most relevant checks (focused unit tests, `bun test`, manual UX walkthrough, `docker compose` smoke test, etc.) and mention those results in your summary.
 152. TEST REPORTING — If a required check cannot run, explain the reason, list the pending command(s), and note any manual validation performed.
 153. GITMOJI COMMITS — Prefix every commit message with a gitmoji (e.g., `:sparkles:`) followed by a concise intent description.
 154. COMMIT FORMAT — Use `<gitmoji> short description` and keep each commit focused on a single concern.
