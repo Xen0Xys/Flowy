@@ -94,7 +94,7 @@ const table = useVueTable({
 <template>
     <div class="w-full">
         <Table wrapperClass="overflow-visible pr-3">
-            <TableHeader class="bg-muted/50 sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
+            <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                 <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-b">
                     <TableHead
                         v-for="(header, index) in headerGroup.headers"
@@ -131,7 +131,7 @@ const table = useVueTable({
                         <!-- Background extension for the last column to cover the gap -->
                         <div
                             v-if="index === headerGroup.headers.length - 1"
-                            class="bg-muted/50 absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
+                            class="bg-muted absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
                     </TableHead>
                 </TableRow>
             </TableHeader>

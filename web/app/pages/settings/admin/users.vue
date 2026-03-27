@@ -279,7 +279,7 @@ async function copyUserId(id: string) {
 
                 <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border" scrollbar-class="pt-[41px]">
                     <Table wrapperClass="overflow-visible pr-3">
-                        <TableHeader class="bg-muted/50 sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
+                        <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                             <TableRow
                                 v-for="headerGroup in table.getHeaderGroups()"
                                 :key="headerGroup.id"
@@ -288,13 +288,13 @@ async function copyUserId(id: string) {
                                     v-for="(header, index) in headerGroup.headers"
                                     :key="header.id"
                                     :class="[
-                                        header.column.id === 'actions' ? 'w-[56px] text-right' : '',
+                                        header.column.id === 'actions' ? 'w-14 text-right' : '',
                                         index === headerGroup.headers.length - 1 ? 'relative w-[calc(100%+12px)]' : '',
                                     ]">
                                     <div v-if="header.isPlaceholder" />
                                     <Button
                                         v-else-if="header.column.getCanSort()"
-                                        class="-ml-4 h-8 px-2"
+                                        class="-ml-2 h-8 px-2"
                                         size="sm"
                                         variant="ghost"
                                         @click="header.column.toggleSorting(header.column.getIsSorted() === 'asc')">
@@ -318,7 +318,7 @@ async function copyUserId(id: string) {
                                     <!-- Background extension for the last column to cover the gap -->
                                     <div
                                         v-if="index === headerGroup.headers.length - 1"
-                                        class="bg-muted/50 absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
+                                        class="bg-muted absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
