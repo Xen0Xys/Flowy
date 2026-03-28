@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 import {computed, onMounted, ref, watchEffect} from "vue";
 import {Card} from "@/components/ui/card";
@@ -30,6 +31,7 @@ import {
 } from "@/lib/validation";
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const colorMode = useColorMode();
 
 const initials = computed(() => {
@@ -79,7 +81,7 @@ async function deleteAccountNow() {
         toast.success("Account deleted");
         deleting.value = false;
         // always clear local session
-        userStore.logout();
+        authStore.logout();
         await useRouter().push("/auth/login");
     } catch (err: any) {
         const message = err?.data?.message ?? err?.message ?? "Failed deleting account";

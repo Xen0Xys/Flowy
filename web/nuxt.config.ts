@@ -15,6 +15,20 @@ export default defineNuxtConfig({
             // @ts-ignore
             tailwindcss(),
         ],
+        optimizeDeps: {
+            include: [
+                "@vueuse/core",
+                "vue-sonner",
+                "lucide-vue-next",
+                "clsx",
+                "tailwind-merge",
+                "vee-validate",
+                "class-variance-authority",
+                "reka-ui",
+                "@unovis/vue",
+                "@unovis/ts",
+            ],
+        },
     },
     modules: ["@nuxt/icon", "@nuxtjs/color-mode", "shadcn-nuxt", "@pinia/nuxt"],
     // Make dark theme the default

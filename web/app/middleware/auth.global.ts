@@ -1,3 +1,4 @@
+import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 
 export default defineNuxtRouteMiddleware(async (to) => {
@@ -6,27 +7,28 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // allow public routes and internal Nuxt paths
     if (publicPaths.includes(to.path) || to.path.startsWith("/_")) return;
 
-    const store = useUserStore();
+    const authStore = useAuthStore();
+    const userStore = useUserStore();
 
     try {
-        store.loadFromStorage();
+        authStore.loadFromStorage();
     } catch {
         // ignore
     }
 
-    if (!store.isAuthenticated) {
+    if (!authStore.isAuthenticated) {
         return navigateTo("/auth/login");
     }
 
     try {
-        if (!store.getUser) {
-            await store.fetchProfile();
+        if (!userStore.getUser) {
+            await userStore.fetchProfile();
         }
     } catch {
         return navigateTo("/auth/login");
     }
 
-    if (!store.hasFamily) {
+    if (!userStore.hasFamily) {
         if (!to.path.startsWith("/onboarding")) {
             return navigateTo("/onboarding/select");
         }

@@ -2,7 +2,7 @@
 import {ref} from "vue";
 import {toast} from "vue-sonner";
 import {useRouter} from "#app";
-import {useUserStore} from "@/stores/user.store";
+import {useAuthStore} from "@/stores/auth.store";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 
 const router = useRouter();
-const store = useUserStore();
+const store = useAuthStore();
 
 const form = ref({username: "", email: "", password: ""});
 const loading = ref(false);

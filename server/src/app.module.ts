@@ -4,6 +4,7 @@ import {ConfigModule, ConfigService} from "@nestjs/config";
 import HelperModule from "./modules/helper/helper.module";
 import {AdminModule} from "./modules/admin/admin.module";
 import {UserModule} from "./modules/users/user/user.module";
+import {AuthModule} from "./modules/auth/auth.module";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
@@ -41,6 +42,7 @@ import {ReferenceModule} from "./modules/accounting/reference/reference.module";
         ]),
         HelperModule,
         UserModule,
+        AuthModule,
         AdminModule,
         FamilyModule,
         AccountModule,

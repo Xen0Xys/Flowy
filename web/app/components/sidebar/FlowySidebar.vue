@@ -14,6 +14,7 @@ import {
 } from "~/components/ui/sidebar";
 import {computed, onMounted, ref, watch} from "vue";
 import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {useAccountStore} from "~/stores/account.store";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
@@ -38,6 +39,7 @@ const version = computed(() => {
 
 // show/hide instance/admin settings links depending on permissions
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const accountStore = useAccountStore();
 const showAdminLinks = ref(false);
 const {isMobile} = useSidebar();
@@ -95,7 +97,7 @@ watch(
 );
 
 async function handleLogout() {
-    userStore.logout();
+    authStore.logout();
     await useRouter().push("/auth/login");
 }
 </script>

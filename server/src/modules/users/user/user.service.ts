@@ -5,26 +5,15 @@ import {
     InternalServerErrorException,
     Logger,
     NotFoundException,
-    UnauthorizedException,
 } from "@nestjs/common";
-import {InstanceConfigService} from "../../helper/instance-config.service";
-import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {UserEntity} from "./models/entities/user.entity";
 import {PrismaService} from "../../helper/prisma.service";
 import {Users} from "../../../../prisma/generated/client";
-import {JwtService} from "@nestjs/jwt";
-import crypto from "crypto";
 import argon2 from "argon2";
 
 @Injectable()
 export class UserService {
-    private readonly logger: Logger = new Logger("UserService");
-
-    constructor(
-        private readonly prismaService: PrismaService,
-        private readonly instanceConfigService: InstanceConfigService,
-        private readonly jwtService: JwtService,
-    ) {}
+    constructor(private readonly prismaService: PrismaService) {}
 
     static toUserEntity(user: Users): UserEntity {
         return new UserEntity({
@@ -68,93 +57,6 @@ export class UserService {
             logger.error("Failed to delete user account", e as any);
             throw new InternalServerErrorException("Unable to delete account");
         }
-    }
-
-    async generateToken(user: UserEntity): Promise<string> {
-        const payload = {sub: user.id};
-        return this.jwtService.signAsync(payload, {
-            jwtid: user.jwtId,
-        });
-    }
-
-    async register(username: string, email: string, password: string): Promise<LoginUserEntity> {
-        if (!(await this.instanceConfigService.registrationAllowed()))
-            throw new UnauthorizedException("Registration is disabled on this instance");
-        const existingUser: Users | null = await this.prismaService.users.findFirst({
-            where: {
-                email,
-            },
-        });
-        if (existingUser) throw new ConflictException("Username or email already exists");
-
-        // Improve performances for development environment, but keep strong hashing for production
-        let hashed: string;
-        if (process.env.NODE_ENV !== "production") {
-            hashed = await argon2.hash(password, {
-                type: argon2.argon2id,
-                memoryCost: 2 ** 16, // 64 MiB
-                timeCost: 2,
-                parallelism: 4,
-            });
-            this.logger.warn("Using weaker password hashing parameters in non-production environment");
-        } else {
-            hashed = await argon2.hash(password, {
-                type: argon2.argon2id,
-                memoryCost: 2 ** 18, // 128 MiB
-                timeCost: 10,
-                parallelism: 4,
-            });
-        }
-
-        const user = await this.prismaService.users.create({
-            data: {
-                username,
-                email,
-                password: hashed,
-                jwt_id: crypto.randomBytes(16).toString("hex"),
-            },
-        });
-
-        // If no instance owner is set, set this user as the instance owner
-        const existingOwner = await this.prismaService.config.findUnique({
-            where: {key: "INSTANCE_OWNER" as any},
-        });
-        if (!existingOwner) {
-            await this.prismaService.config.create({
-                data: {key: "INSTANCE_OWNER" as any, value: user.id},
-            });
-        }
-
-        const userEntity: UserEntity = UserService.toUserEntity(user);
-        return new LoginUserEntity({
-            user: userEntity,
-            token: await this.generateToken(userEntity),
-        });
-    }
-
-    async login(email: string, password: string): Promise<LoginUserEntity> {
-        const user = await this.prismaService.users.findFirst({
-            where: {email},
-        });
-        if (!user) throw new UnauthorizedException("Invalid email or password");
-
-        // verify password using argon2
-        const valid = await argon2.verify(user.password, password);
-        if (!valid) throw new UnauthorizedException("Invalid email or password");
-
-        const userEntity: UserEntity = UserService.toUserEntity(user);
-        return new LoginUserEntity({
-            user: userEntity,
-            token: await this.generateToken(userEntity),
-        });
-    }
-
-    async getUserById(userId: string): Promise<UserEntity> {
-        const user = await this.prismaService.users.findUnique({
-            where: {id: userId},
-        });
-        if (!user) throw new NotFoundException("User not found");
-        return UserService.toUserEntity(user);
     }
 
     async updateUsername(user: UserEntity, newUsername: string): Promise<UserEntity> {
@@ -205,15 +107,6 @@ export class UserService {
     async listUsers(): Promise<UserEntity[]> {
         const users = await this.prismaService.users.findMany();
         return users.map((u) => UserService.toUserEntity(u));
-    }
-
-    async invalidateTokens(user: UserEntity): Promise<void> {
-        await this.prismaService.users.update({
-            where: {id: user.id},
-            data: {
-                jwt_id: crypto.randomBytes(16).toString("hex"),
-            },
-        });
     }
 
     // internal helper: hash + persist new password (do NOT rotate jwt_id)
