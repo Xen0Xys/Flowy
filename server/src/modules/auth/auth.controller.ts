@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, HttpCode, HttpStatus, Post, UseGuards} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Res, UseGuards} from "@nestjs/common";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {User} from "../../common/decorators/user.decorator";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
@@ -7,10 +7,19 @@ import {RegisterDto} from "../users/user/models/dto/register.dto";
 import {LoginUserEntity} from "../users/user/models/entities/login-user.entity";
 import {UserEntity} from "../users/user/models/entities/user.entity";
 import {AuthService} from "./auth.service";
+import type {FastifyReply} from "fastify";
 
-@Controller("user")
+@Controller("auth")
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
+
+    @Get("csrf")
+    async getCsrfToken(@Res({passthrough: true}) reply: FastifyReply): Promise<{csrfToken: string}> {
+        const token = (reply as FastifyReply & {generateCsrf: () => Promise<string>}).generateCsrf();
+        return {
+            csrfToken: token,
+        };
+    }
 
     @Post("register")
     async register(@Body() body: RegisterDto): Promise<LoginUserEntity> {

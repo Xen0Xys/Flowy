@@ -8,11 +8,12 @@ import {AuthModule} from "./modules/auth/auth.module";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
-import {APP_INTERCEPTOR} from "@nestjs/core";
+import {APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {JwtModule} from "@nestjs/jwt";
 import {AccountModule} from "./modules/accounting/account/account.module";
 import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
 import {ReferenceModule} from "./modules/accounting/reference/reference.module";
+import {CsrfGuard} from "./common/guards/csrf.guard";
 
 @Module({
     imports: [
@@ -51,6 +52,10 @@ import {ReferenceModule} from "./modules/accounting/reference/reference.module";
     ],
     controllers: [AppController],
     providers: [
+        {
+            provide: APP_GUARD,
+            useClass: CsrfGuard,
+        },
         {
             provide: APP_INTERCEPTOR,
             useClass: ClassSerializerInterceptor,

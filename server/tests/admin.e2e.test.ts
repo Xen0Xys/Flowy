@@ -1,28 +1,21 @@
 import "reflect-metadata";
-import fs from "node:fs";
-import path from "node:path";
-import {config as loadEnv} from "dotenv";
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
 import {AccountTypes} from "../prisma/generated/enums";
-import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
+import {loadServer} from "../src/app";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
-import {buildRegisterPayload, ensureInstanceConfig, PASSWORD_BASE} from "./test-utils";
-
-const envPath = path.resolve(__dirname, "../.env");
-if (fs.existsSync(envPath)) {
-    loadEnv({path: envPath});
-}
+import {buildRegisterPayload, createCsrfAgent, ensureInstanceConfig, PASSWORD_BASE} from "./test-utils";
 
 describe("AdminController (e2e)", () => {
     let app: NestFastifyApplication;
     let server: Server;
     let prisma: PrismaClient;
+    let agent: ReturnType<typeof request.agent>;
 
     beforeAll(async () => {
         prisma = new PrismaClient({
@@ -38,7 +31,7 @@ describe("AdminController (e2e)", () => {
         }).compile();
 
         app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
-        app.useGlobalPipes(new CustomValidationPipe());
+        await loadServer(app);
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
         await instance.ready();
@@ -54,6 +47,7 @@ describe("AdminController (e2e)", () => {
             where: {key: ConfigKey.REGISTRATION_ENABLED},
             data: {value: "true"},
         });
+        agent = await createCsrfAgent(server);
     });
 
     afterAll(async () => {
@@ -64,7 +58,7 @@ describe("AdminController (e2e)", () => {
     test("owner can access instance settings", async () => {
         const payload = buildRegisterPayload();
 
-        const reg = await request(server).post("/user/register").send(payload);
+        const reg = await agent.post("/auth/register").send(payload);
         expect(reg.status).toBe(201);
         const owner = reg.body;
 
@@ -74,9 +68,7 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const settings = await request(server)
-            .get("/admin/instance/settings")
-            .set("Authorization", `Bearer ${owner.token}`);
+        const settings = await agent.get("/admin/instance/settings").set("Authorization", `Bearer ${owner.token}`);
         expect(settings.status).toBe(200);
         expect(settings.body).toHaveProperty("registrationEnabled");
     });
@@ -85,7 +77,7 @@ describe("AdminController (e2e)", () => {
         const a = buildRegisterPayload();
         const b = buildRegisterPayload();
 
-        const regA = await request(server).post("/user/register").send(a);
+        const regA = await agent.post("/auth/register").send(a);
         expect(regA.status).toBe(201);
         const owner = regA.body;
         await prisma.config.upsert({
@@ -94,20 +86,18 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const regB = await request(server).post("/user/register").send(b);
+        const regB = await agent.post("/auth/register").send(b);
         expect(regB.status).toBe(201);
         const other = regB.body;
 
-        const forbidden = await request(server)
-            .get("/admin/instance/settings")
-            .set("Authorization", `Bearer ${other.token}`);
+        const forbidden = await agent.get("/admin/instance/settings").set("Authorization", `Bearer ${other.token}`);
         expect(forbidden.status).toBe(401);
         expect(forbidden.body.message).toBe("Only instance owner can access");
     });
 
     test("updates registration enabled flag", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
+        const ownerReg = await agent.post("/auth/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const t = ownerReg.body.token;
         await prisma.config.upsert({
@@ -119,7 +109,7 @@ describe("AdminController (e2e)", () => {
             },
         });
 
-        const resp = await request(server)
+        const resp = await agent
             .patch("/admin/instance/registration_enabled")
             .set("Authorization", `Bearer ${t}`)
             .send({registrationEnabled: false});
@@ -133,7 +123,7 @@ describe("AdminController (e2e)", () => {
 
     test("lists users and allows deleting others but not self", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
+        const ownerReg = await agent.post("/auth/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
         await prisma.config.upsert({
@@ -143,18 +133,16 @@ describe("AdminController (e2e)", () => {
         });
 
         const userPayload = buildRegisterPayload();
-        const userReg = await request(server).post("/user/register").send(userPayload);
+        const userReg = await agent.post("/auth/register").send(userPayload);
         expect(userReg.status).toBe(201);
         const user = userReg.body;
 
-        const list = await request(server).get("/admin/users").set("Authorization", `Bearer ${owner.token}`);
+        const list = await agent.get("/admin/users").set("Authorization", `Bearer ${owner.token}`);
         expect(list.status).toBe(200);
         expect(Array.isArray(list.body)).toBe(true);
 
         // delete other user
-        const del = await request(server)
-            .delete(`/admin/users/${user.user.id}`)
-            .set("Authorization", `Bearer ${owner.token}`);
+        const del = await agent.delete(`/admin/users/${user.user.id}`).set("Authorization", `Bearer ${owner.token}`);
         expect(del.status).toBe(204);
 
         const found = await prisma.users.findUnique({
@@ -163,15 +151,13 @@ describe("AdminController (e2e)", () => {
         expect(found).toBeNull();
 
         // cannot delete self
-        const cannot = await request(server)
-            .delete(`/admin/users/${owner.user.id}`)
-            .set("Authorization", `Bearer ${owner.token}`);
+        const cannot = await agent.delete(`/admin/users/${owner.user.id}`).set("Authorization", `Bearer ${owner.token}`);
         expect(cannot.status).toBe(401);
         expect(cannot.body.message).toBe("Cannot delete yourself");
     });
 
     test("instance owner can get family details from admin route", async () => {
-        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -181,38 +167,34 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const familyAdminReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const familyAdminReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(familyAdminReg.status).toBe(201);
         const familyAdmin = familyAdminReg.body;
 
-        const memberReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const memberReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(memberReg.status).toBe(201);
         const member = memberReg.body;
 
-        const createFamily = await request(server)
+        const createFamily = await agent
             .post("/family/create")
             .set("Authorization", `Bearer ${familyAdmin.token}`)
             .send({name: "AdminFamilyInfo", currency: "EUR"});
         expect(createFamily.status).toBe(201);
 
-        const invite = await request(server)
+        const invite = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${familyAdmin.token}`)
             .send({email: member.user.email});
         expect(invite.status).toBe(201);
 
-        const join = await request(server)
-            .post(`/family/join/${invite.body.code}`)
-            .set("Authorization", `Bearer ${member.token}`);
+        const join = await agent.post(`/family/join/${invite.body.code}`).set("Authorization", `Bearer ${member.token}`);
         expect(join.status).toBe(204);
 
         const family = await prisma.family.findFirstOrThrow({
             where: {name: "AdminFamilyInfo"},
         });
 
-        const response = await request(server)
-            .get(`/admin/family/${family.id}`)
-            .set("Authorization", `Bearer ${owner.token}`);
+        const response = await agent.get(`/admin/family/${family.id}`).set("Authorization", `Bearer ${owner.token}`);
         expect(response.status).toBe(200);
         expect(response.body.name).toBe("AdminFamilyInfo");
         expect(response.body.currency).toBe("EUR");
@@ -221,7 +203,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("non-owner cannot access admin family details route", async () => {
-        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -231,11 +213,11 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const familyAdminReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const familyAdminReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(familyAdminReg.status).toBe(201);
         const familyAdmin = familyAdminReg.body;
 
-        const createFamily = await request(server)
+        const createFamily = await agent
             .post("/family/create")
             .set("Authorization", `Bearer ${familyAdmin.token}`)
             .send({name: "BlockedAdminFamilyInfo", currency: "USD"});
@@ -245,20 +227,18 @@ describe("AdminController (e2e)", () => {
             where: {name: "BlockedAdminFamilyInfo"},
         });
 
-        const otherReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const otherReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
-        const response = await request(server)
-            .get(`/admin/family/${family.id}`)
-            .set("Authorization", `Bearer ${other.token}`);
+        const response = await agent.get(`/admin/family/${family.id}`).set("Authorization", `Bearer ${other.token}`);
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Only instance owner can access");
     });
 
     test("updates instance owner", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
+        const ownerReg = await agent.post("/auth/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
         await prisma.config.upsert({
@@ -268,11 +248,11 @@ describe("AdminController (e2e)", () => {
         });
 
         const otherPayload = buildRegisterPayload();
-        const otherReg = await request(server).post("/user/register").send(otherPayload);
+        const otherReg = await agent.post("/auth/register").send(otherPayload);
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
-        const changeOwner = await request(server)
+        const changeOwner = await agent
             .patch("/admin/instance/owner")
             .set("Authorization", `Bearer ${owner.token}`)
             .send({ownerId: other.user.id});
@@ -283,13 +263,13 @@ describe("AdminController (e2e)", () => {
         });
         expect(cfg?.value).toBe(other.user.id);
 
-        const forbidden = await request(server).get("/admin/users").set("Authorization", `Bearer ${owner.token}`);
+        const forbidden = await agent.get("/admin/users").set("Authorization", `Bearer ${owner.token}`);
         expect(forbidden.status).toBe(401);
     });
 
     test("admin (instance owner) can reset a user's password", async () => {
         const ownerPayload = buildRegisterPayload();
-        const ownerReg = await request(server).post("/user/register").send(ownerPayload);
+        const ownerReg = await agent.post("/auth/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
         await prisma.config.upsert({
@@ -299,31 +279,31 @@ describe("AdminController (e2e)", () => {
         });
 
         const otherPayload = buildRegisterPayload();
-        const otherReg = await request(server).post("/user/register").send(otherPayload);
+        const otherReg = await agent.post("/auth/register").send(otherPayload);
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
         // owner resets other user's password
         const newPass = `AdminSet${PASSWORD_BASE}`;
-        const reset = await request(server)
+        const reset = await agent
             .patch(`/admin/users/${other.user.id}/password`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({password: newPass});
         expect(reset.status).toBe(200);
 
         // login with old password fails
-        const oldLogin = await request(server)
-            .post("/user/login")
+        const oldLogin = await agent
+            .post("/auth/login")
             .send({email: other.user.email, password: otherPayload.password});
         expect(oldLogin.status).toBe(401);
 
         // login with new password works
-        const newLogin = await request(server).post("/user/login").send({email: other.user.email, password: newPass});
+        const newLogin = await agent.post("/auth/login").send({email: other.user.email, password: newPass});
         expect(newLogin.status).toBe(201);
     });
 
     test("instance owner can run account integrity check and fix mismatched balances", async () => {
-        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -351,9 +331,7 @@ describe("AdminController (e2e)", () => {
             },
         });
 
-        const runCheck = await request(server)
-            .post("/admin/integrity/account")
-            .set("Authorization", `Bearer ${owner.token}`);
+        const runCheck = await agent.post("/admin/integrity/account").set("Authorization", `Bearer ${owner.token}`);
         expect(runCheck.status).toBe(204);
 
         const updatedAccount = await prisma.accounts.findUniqueOrThrow({
@@ -363,7 +341,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("non-owner cannot run account integrity check", async () => {
-        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -373,20 +351,18 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const otherReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const otherReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(otherReg.status).toBe(201);
         const other = otherReg.body;
 
-        const response = await request(server)
-            .post("/admin/integrity/account")
-            .set("Authorization", `Bearer ${other.token}`);
+        const response = await agent.post("/admin/integrity/account").set("Authorization", `Bearer ${other.token}`);
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Only instance owner can access");
     });
 
     test("deleting a solo family admin also deletes their family", async () => {
-        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -396,11 +372,11 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const targetReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const targetReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(targetReg.status).toBe(201);
         const target = targetReg.body;
 
-        const createFamily = await request(server)
+        const createFamily = await agent
             .post("/family/create")
             .set("Authorization", `Bearer ${target.token}`)
             .send({name: "SoloFamily", currency: "EUR"});
@@ -410,9 +386,7 @@ describe("AdminController (e2e)", () => {
             where: {name: "SoloFamily"},
         });
 
-        const del = await request(server)
-            .delete(`/admin/users/${target.user.id}`)
-            .set("Authorization", `Bearer ${owner.token}`);
+        const del = await agent.delete(`/admin/users/${target.user.id}`).set("Authorization", `Bearer ${owner.token}`);
         expect(del.status).toBe(204);
 
         const deletedUser = await prisma.users.findUnique({
@@ -427,7 +401,7 @@ describe("AdminController (e2e)", () => {
     });
 
     test("deleting a family admin transfers admin role to another member", async () => {
-        const ownerReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -437,15 +411,15 @@ describe("AdminController (e2e)", () => {
             create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
         });
 
-        const adminReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const adminReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(adminReg.status).toBe(201);
         const familyAdmin = adminReg.body;
 
-        const memberReg = await request(server).post("/user/register").send(buildRegisterPayload());
+        const memberReg = await agent.post("/auth/register").send(buildRegisterPayload());
         expect(memberReg.status).toBe(201);
         const member = memberReg.body;
 
-        const createFamily = await request(server)
+        const createFamily = await agent
             .post("/family/create")
             .set("Authorization", `Bearer ${familyAdmin.token}`)
             .send({name: "SharedFamily", currency: "EUR"});
@@ -455,18 +429,16 @@ describe("AdminController (e2e)", () => {
             where: {name: "SharedFamily"},
         });
 
-        const invite = await request(server)
+        const invite = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${familyAdmin.token}`)
             .send({email: member.user.email});
         expect(invite.status).toBe(201);
 
-        const join = await request(server)
-            .post(`/family/join/${invite.body.code}`)
-            .set("Authorization", `Bearer ${member.token}`);
+        const join = await agent.post(`/family/join/${invite.body.code}`).set("Authorization", `Bearer ${member.token}`);
         expect(join.status).toBe(204);
 
-        const del = await request(server)
+        const del = await agent
             .delete(`/admin/users/${familyAdmin.user.id}`)
             .set("Authorization", `Bearer ${owner.token}`);
         expect(del.status).toBe(204);

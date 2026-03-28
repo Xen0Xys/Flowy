@@ -27,6 +27,8 @@ export default defineNuxtConfig({
                 "reka-ui",
                 "@unovis/vue",
                 "@unovis/ts",
+                "@tanstack/vue-table",
+                "@internationalized/date",
             ],
         },
     },

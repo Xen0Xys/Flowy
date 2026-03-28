@@ -3,6 +3,8 @@ import {CustomValidationPipe} from "./common/pipes/validation.pipe";
 import {LoggerMiddleware} from "./common/middlewares/logger.middleware";
 import {SwaggerTheme, SwaggerThemeNameEnum} from "swagger-themes";
 import {DocumentBuilder, SwaggerModule} from "@nestjs/swagger";
+import fastifyCsrfProtection from "@fastify/csrf-protection";
+import fastifyCookie from "@fastify/cookie";
 import {FastifyListenOptions} from "fastify/types/instance";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyHelmet from "@fastify/helmet";
@@ -39,16 +41,39 @@ async function bootstrap() {
     logger.log(`API Documentation available at http://localhost:${port}/api`);
 }
 
-async function loadServer(server: NestFastifyApplication) {
+export async function loadServer(server: NestFastifyApplication) {
     // Config
     server.setGlobalPrefix(process.env.PREFIX || "");
+
+    const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
     server.enableCors({
-        origin: "*",
+        origin: corsOrigins,
+        credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
     });
 
     // Middlewares
     server.use(new LoggerMiddleware().use);
+    await server.register(fastifyCookie as any);
+    await server.register(fastifyCsrfProtection as any, {
+        getToken: (request: {headers: Record<string, string | string[] | undefined>}): string | undefined => {
+            const header = request.headers["x-csrf-token"];
+            if (!header) return undefined;
+            return Array.isArray(header) ? header[0] : header;
+        },
+        cookieOpts: {
+            path: "/",
+            sameSite: "lax",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+        },
+    });
+
     await server.register(fastifyMultipart as any, {
         limits: {
             fileSize: 500 * 1024 * 1024, // 500MB
@@ -90,4 +115,6 @@ async function loadServer(server: NestFastifyApplication) {
     server.useGlobalPipes(new CustomValidationPipe());
 }
 
-bootstrap();
+if (require.main === module) {
+    bootstrap();
+}

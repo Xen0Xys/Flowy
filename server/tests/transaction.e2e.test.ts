@@ -1,26 +1,19 @@
 import "reflect-metadata";
-import fs from "node:fs";
-import path from "node:path";
-import {config as loadEnv} from "dotenv";
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
-import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
+import {loadServer} from "../src/app";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
-import {ensureInstanceConfig, registerUser} from "./test-utils";
-
-const envPath = path.resolve(__dirname, "../.env");
-if (fs.existsSync(envPath)) {
-    loadEnv({path: envPath});
-}
+import {createCsrfAgent, ensureInstanceConfig, registerUser} from "./test-utils";
 
 let app: NestFastifyApplication;
 let server: Server;
 let prisma: PrismaClient;
+let agent: ReturnType<typeof request.agent>;
 
 describe("TransactionController (e2e)", () => {
     beforeAll(async () => {
@@ -37,7 +30,7 @@ describe("TransactionController (e2e)", () => {
         }).compile();
 
         app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
-        app.useGlobalPipes(new CustomValidationPipe());
+        await loadServer(app);
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
         await instance.ready();
@@ -57,6 +50,7 @@ describe("TransactionController (e2e)", () => {
             where: {key: ConfigKey.REGISTRATION_ENABLED},
             data: {value: "true"},
         });
+        agent = await createCsrfAgent(server);
     });
 
     afterAll(async () => {
@@ -67,15 +61,15 @@ describe("TransactionController (e2e)", () => {
     });
 
     test("requires authentication for transaction routes", async () => {
-        const list = await request(server).get("/transaction");
+        const list = await agent.get("/transaction");
         expect(list.status).toBe(401);
         expect(list.body.message).toBe("Authorization token is missing");
 
-        const byAccount = await request(server).get("/transaction/account-id");
+        const byAccount = await agent.get("/transaction/account-id");
         expect(byAccount.status).toBe(401);
         expect(byAccount.body.message).toBe("Authorization token is missing");
 
-        const create = await request(server).post("/transaction/account-id").send({
+        const create = await agent.post("/transaction/account-id").send({
             amount: 12.34,
             description: "Lunch",
             date: "2026-01-15T12:00:00.000Z",
@@ -83,25 +77,25 @@ describe("TransactionController (e2e)", () => {
         expect(create.status).toBe(401);
         expect(create.body.message).toBe("Authorization token is missing");
 
-        const update = await request(server).patch("/transaction/transaction-id").send({description: "Updated"});
+        const update = await agent.patch("/transaction/transaction-id").send({description: "Updated"});
         expect(update.status).toBe(401);
         expect(update.body.message).toBe("Authorization token is missing");
 
-        const remove = await request(server).delete("/transaction/transaction-id");
+        const remove = await agent.delete("/transaction/transaction-id");
         expect(remove.status).toBe(401);
         expect(remove.body.message).toBe("Authorization token is missing");
     });
 
     test("creates a transaction and updates account balance", async () => {
         const user = await registerUser(server);
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Everyday", type: "CHECKING"});
 
         expect(account.status).toBe(201);
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -125,11 +119,11 @@ describe("TransactionController (e2e)", () => {
         const userA = await registerUser(server);
         const userB = await registerUser(server);
 
-        const accountA = await request(server)
+        const accountA = await agent
             .post("/account")
             .set("Authorization", `Bearer ${userA.token}`)
             .send({name: "Account A", type: "CHECKING"});
-        const accountB = await request(server)
+        const accountB = await agent
             .post("/account")
             .set("Authorization", `Bearer ${userB.token}`)
             .send({name: "Account B", type: "CHECKING"});
@@ -137,25 +131,19 @@ describe("TransactionController (e2e)", () => {
         expect(accountA.status).toBe(201);
         expect(accountB.status).toBe(201);
 
-        await request(server)
-            .post(`/transaction/${accountA.body.id}`)
-            .set("Authorization", `Bearer ${userA.token}`)
-            .send({
-                amount: 100,
-                description: "Salary",
-                date: "2026-01-01T08:00:00.000Z",
-            });
+        await agent.post(`/transaction/${accountA.body.id}`).set("Authorization", `Bearer ${userA.token}`).send({
+            amount: 100,
+            description: "Salary",
+            date: "2026-01-01T08:00:00.000Z",
+        });
 
-        await request(server)
-            .post(`/transaction/${accountB.body.id}`)
-            .set("Authorization", `Bearer ${userB.token}`)
-            .send({
-                amount: 50,
-                description: "Gift",
-                date: "2026-01-02T08:00:00.000Z",
-            });
+        await agent.post(`/transaction/${accountB.body.id}`).set("Authorization", `Bearer ${userB.token}`).send({
+            amount: 50,
+            description: "Gift",
+            date: "2026-01-02T08:00:00.000Z",
+        });
 
-        const listA = await request(server).get("/transaction").set("Authorization", `Bearer ${userA.token}`);
+        const listA = await agent.get("/transaction").set("Authorization", `Bearer ${userA.token}`);
 
         expect(listA.status).toBe(200);
         expect(listA.body).toHaveLength(1);
@@ -166,16 +154,14 @@ describe("TransactionController (e2e)", () => {
         const owner = await registerUser(server);
         const outsider = await registerUser(server);
 
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${owner.token}`)
             .send({name: "Owner", type: "CHECKING"});
 
         expect(account.status).toBe(201);
 
-        const list = await request(server)
-            .get(`/transaction/${account.body.id}`)
-            .set("Authorization", `Bearer ${outsider.token}`);
+        const list = await agent.get(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
 
         expect(list.status).toBe(403);
         expect(list.body.message).toBe("You do not have permission to access this account");
@@ -183,12 +169,12 @@ describe("TransactionController (e2e)", () => {
 
     test("updates a transaction and reconciles account balance", async () => {
         const user = await registerUser(server);
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Main", type: "CHECKING"});
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -199,7 +185,7 @@ describe("TransactionController (e2e)", () => {
 
         expect(create.status).toBe(201);
 
-        const update = await request(server)
+        const update = await agent
             .patch(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({amount: 45.2, description: "Updated"});
@@ -216,7 +202,7 @@ describe("TransactionController (e2e)", () => {
 
     test("deletes a transaction and reverts account balance", async () => {
         const user = await registerUser(server);
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Main", type: "CHECKING", balance: 100});
@@ -230,9 +216,7 @@ describe("TransactionController (e2e)", () => {
 
         expect(tx).not.toBeNull();
 
-        const remove = await request(server)
-            .delete(`/transaction/${tx!.id}`)
-            .set("Authorization", `Bearer ${user.token}`);
+        const remove = await agent.delete(`/transaction/${tx!.id}`).set("Authorization", `Bearer ${user.token}`);
 
         expect(remove.status).toBe(204);
 
@@ -244,12 +228,12 @@ describe("TransactionController (e2e)", () => {
 
     test("rejects invalid create payload", async () => {
         const user = await registerUser(server);
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Main", type: "CHECKING"});
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -273,13 +257,13 @@ describe("TransactionController (e2e)", () => {
         const missingAccountId = "0195c8dd-c263-7569-99f6-9fc20aca3050";
         const missingTransactionId = "0195c8dd-c263-7569-99f6-9fc20aca3051";
 
-        const byAccount = await request(server)
+        const byAccount = await agent
             .get(`/transaction/${missingAccountId}`)
             .set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(404);
         expect(byAccount.body.message).toBe("Account not found");
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${missingAccountId}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -290,14 +274,14 @@ describe("TransactionController (e2e)", () => {
         expect(create.status).toBe(404);
         expect(create.body.message).toBe("Account not found");
 
-        const update = await request(server)
+        const update = await agent
             .patch(`/transaction/${missingTransactionId}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({description: "Nope"});
         expect(update.status).toBe(404);
         expect(update.body.message).toBe("Transaction not found");
 
-        const remove = await request(server)
+        const remove = await agent
             .delete(`/transaction/${missingTransactionId}`)
             .set("Authorization", `Bearer ${user.token}`);
         expect(remove.status).toBe(404);
@@ -307,30 +291,23 @@ describe("TransactionController (e2e)", () => {
     test("rejects invalid UUID v7 params on protected routes", async () => {
         const user = await registerUser(server);
 
-        const byAccount = await request(server)
-            .get("/transaction/not-a-uuid")
-            .set("Authorization", `Bearer ${user.token}`);
+        const byAccount = await agent.get("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(400);
 
-        const create = await request(server)
-            .post("/transaction/not-a-uuid")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                amount: 10,
-                description: "Bad id",
-                date: "2026-01-15T12:00:00.000Z",
-            });
+        const create = await agent.post("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`).send({
+            amount: 10,
+            description: "Bad id",
+            date: "2026-01-15T12:00:00.000Z",
+        });
         expect(create.status).toBe(400);
 
-        const update = await request(server)
+        const update = await agent
             .patch("/transaction/not-a-uuid")
             .set("Authorization", `Bearer ${user.token}`)
             .send({description: "Bad id"});
         expect(update.status).toBe(400);
 
-        const remove = await request(server)
-            .delete("/transaction/not-a-uuid")
-            .set("Authorization", `Bearer ${user.token}`);
+        const remove = await agent.delete("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
         expect(remove.status).toBe(400);
     });
 
@@ -338,12 +315,12 @@ describe("TransactionController (e2e)", () => {
         const owner = await registerUser(server);
         const outsider = await registerUser(server);
 
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${owner.token}`)
             .send({name: "Owner Main", type: "CHECKING"});
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${account.body.id}`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({
@@ -353,14 +330,14 @@ describe("TransactionController (e2e)", () => {
             });
         expect(create.status).toBe(201);
 
-        const update = await request(server)
+        const update = await agent
             .patch(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${outsider.token}`)
             .send({description: "Hacked"});
         expect(update.status).toBe(403);
         expect(update.body.message).toBe("You do not have permission to update this transaction");
 
-        const remove = await request(server)
+        const remove = await agent
             .delete(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(remove.status).toBe(403);
@@ -371,7 +348,7 @@ describe("TransactionController (e2e)", () => {
         const owner = await registerUser(server);
         const outsider = await registerUser(server);
 
-        const ownerAccount = await request(server)
+        const ownerAccount = await agent
             .post("/account")
             .set("Authorization", `Bearer ${owner.token}`)
             .send({name: "Owner Wallet", type: "CHECKING"});
@@ -391,7 +368,7 @@ describe("TransactionController (e2e)", () => {
             },
         });
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${ownerAccount.body.id}`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({
@@ -408,7 +385,7 @@ describe("TransactionController (e2e)", () => {
 
     test("allows assigning then clearing merchant/category references", async () => {
         const user = await registerUser(server);
-        const account = await request(server)
+        const account = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Main Wallet", type: "CHECKING"});
@@ -428,7 +405,7 @@ describe("TransactionController (e2e)", () => {
             },
         });
 
-        const create = await request(server)
+        const create = await agent
             .post(`/transaction/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -442,7 +419,7 @@ describe("TransactionController (e2e)", () => {
         expect(create.body.merchant?.id).toBe(merchant.id);
         expect(create.body.category?.id).toBe(category.id);
 
-        const clear = await request(server)
+        const clear = await agent
             .patch(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({merchantId: null, categoryId: null});

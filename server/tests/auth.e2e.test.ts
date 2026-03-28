@@ -1,27 +1,20 @@
 import "reflect-metadata";
-import fs from "node:fs";
-import path from "node:path";
-import {config as loadEnv} from "dotenv";
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
-import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
+import {loadServer} from "../src/app";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
-import {buildRegisterPayload, ensureInstanceConfig, PASSWORD_BASE} from "./test-utils";
-
-const envPath = path.resolve(__dirname, "../.env");
-if (fs.existsSync(envPath)) {
-    loadEnv({path: envPath});
-}
+import {buildRegisterPayload, createCsrfAgent, ensureInstanceConfig, PASSWORD_BASE} from "./test-utils";
 
 describe("AuthController (e2e)", () => {
     let app: NestFastifyApplication;
     let server: Server;
     let prisma: PrismaClient;
+    let agent: ReturnType<typeof request.agent>;
 
     beforeAll(async () => {
         prisma = new PrismaClient({
@@ -37,7 +30,7 @@ describe("AuthController (e2e)", () => {
         }).compile();
 
         app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
-        app.useGlobalPipes(new CustomValidationPipe());
+        await loadServer(app);
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
         await instance.ready();
@@ -53,6 +46,7 @@ describe("AuthController (e2e)", () => {
             where: {key: ConfigKey.REGISTRATION_ENABLED},
             data: {value: "true"},
         });
+        agent = await createCsrfAgent(server);
     });
 
     afterAll(async () => {
@@ -65,7 +59,7 @@ describe("AuthController (e2e)", () => {
     test("registers a user when registration is enabled", async () => {
         const payload = buildRegisterPayload();
 
-        const response = await request(server).post("/user/register").send(payload);
+        const response = await agent.post("/auth/register").send(payload);
 
         expect(response.status).toBe(201);
         expect(response.body.user.email).toBe(payload.email);
@@ -75,11 +69,11 @@ describe("AuthController (e2e)", () => {
     test("rejects duplicate email during registration", async () => {
         const payload = buildRegisterPayload();
 
-        const firstAttempt = await request(server).post("/user/register").send(payload);
+        const firstAttempt = await agent.post("/auth/register").send(payload);
         expect(firstAttempt.status).toBe(201);
 
-        const duplicateAttempt = await request(server)
-            .post("/user/register")
+        const duplicateAttempt = await agent
+            .post("/auth/register")
             .send({...payload, username: `${payload.username}-2`});
 
         expect(duplicateAttempt.status).toBe(409);
@@ -93,14 +87,14 @@ describe("AuthController (e2e)", () => {
         });
 
         const payload = buildRegisterPayload();
-        const response = await request(server).post("/user/register").send(payload);
+        const response = await agent.post("/auth/register").send(payload);
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Registration is disabled on this instance");
     });
 
     test("rejects invalid registration payload", async () => {
-        const response = await request(server).post("/user/register").send({
+        const response = await agent.post("/auth/register").send({
             username: "ab",
             email: "not-an-email",
             password: "weak",
@@ -119,11 +113,9 @@ describe("AuthController (e2e)", () => {
 
     test("logs in an existing user", async () => {
         const payload = buildRegisterPayload();
-        await request(server).post("/user/register").send(payload);
+        await agent.post("/auth/register").send(payload);
 
-        const response = await request(server)
-            .post("/user/login")
-            .send({email: payload.email, password: payload.password});
+        const response = await agent.post("/auth/login").send({email: payload.email, password: payload.password});
 
         expect(response.status).toBe(201);
         expect(response.body.user.email).toBe(payload.email);
@@ -131,7 +123,7 @@ describe("AuthController (e2e)", () => {
     });
 
     test("rejects invalid login credentials", async () => {
-        const response = await request(server).post("/user/login").send({
+        const response = await agent.post("/auth/login").send({
             email: "unknown@test.com",
             password: "WrongP@ss1",
         });
@@ -142,12 +134,12 @@ describe("AuthController (e2e)", () => {
 
     test("returns current user when token is valid", async () => {
         const payload = buildRegisterPayload();
-        const login = await request(server).post("/user/register").send(payload);
+        const login = await agent.post("/auth/register").send(payload);
 
         expect(login.status).toBe(201);
         const token = login.body.token;
 
-        const response = await request(server).get("/user/me").set("Authorization", `Bearer ${token}`);
+        const response = await agent.get("/user/me").set("Authorization", `Bearer ${token}`);
 
         expect(response.status).toBe(200);
         expect(response.body.email).toBe(payload.email);
@@ -155,14 +147,14 @@ describe("AuthController (e2e)", () => {
     });
 
     test("rejects access to /user/me without token", async () => {
-        const response = await request(server).get("/user/me");
+        const response = await agent.get("/user/me");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Authorization token is missing");
     });
 
     test("rejects access to /user/me with invalid token", async () => {
-        const response = await request(server).get("/user/me").set("Authorization", "Bearer invalid-token");
+        const response = await agent.get("/user/me").set("Authorization", "Bearer invalid-token");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Invalid or expired token");
@@ -175,7 +167,7 @@ describe("AuthController (e2e)", () => {
 
         try {
             const payload = buildRegisterPayload();
-            const response = await request(server).post("/user/register").send(payload);
+            const response = await agent.post("/auth/register").send(payload);
 
             expect(response.status).toBe(500);
             expect(response.body.message).toBe("Registration configuration not found");
@@ -196,7 +188,7 @@ describe("AuthController (e2e)", () => {
             password: `NotPlain${PASSWORD_BASE}`,
         });
 
-        const register = await request(server).post("/user/register").send(payload);
+        const register = await agent.post("/auth/register").send(payload);
         expect(register.status).toBe(201);
 
         const dbUser = await prisma.users.findFirst({
@@ -209,19 +201,19 @@ describe("AuthController (e2e)", () => {
 
     test("invalidates current token on logout/all", async () => {
         const payload = buildRegisterPayload();
-        const register = await request(server).post("/user/register").send(payload);
+        const register = await agent.post("/auth/register").send(payload);
         expect(register.status).toBe(201);
 
         const token = register.body.token as string;
 
-        const logout = await request(server).delete("/user/logout/all").set("Authorization", `Bearer ${token}`);
+        const logout = await agent.delete("/auth/logout/all").set("Authorization", `Bearer ${token}`);
         expect(logout.status).toBe(204);
 
-        const meWithOldToken = await request(server).get("/user/me").set("Authorization", `Bearer ${token}`);
+        const meWithOldToken = await agent.get("/user/me").set("Authorization", `Bearer ${token}`);
         expect(meWithOldToken.status).toBe(401);
         expect(meWithOldToken.body.message).toBe("Invalid or expired token");
 
-        const relogin = await request(server).post("/user/login").send({
+        const relogin = await agent.post("/auth/login").send({
             email: payload.email,
             password: payload.password,
         });
@@ -230,16 +222,39 @@ describe("AuthController (e2e)", () => {
     });
 
     test("rejects logout/all without token", async () => {
-        const response = await request(server).delete("/user/logout/all");
+        const response = await agent.delete("/auth/logout/all");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Authorization token is missing");
     });
 
     test("rejects logout/all with invalid token", async () => {
-        const response = await request(server).delete("/user/logout/all").set("Authorization", "Bearer invalid-token");
+        const response = await agent.delete("/auth/logout/all").set("Authorization", "Bearer invalid-token");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Invalid or expired token");
+    });
+
+    test("blocks register and login when csrf token is missing", async () => {
+        const payload = buildRegisterPayload();
+
+        const registerResponse = await request(server).post("/auth/register").send(payload);
+        expect(registerResponse.status).toBe(403);
+
+        const loginResponse = await request(server)
+            .post("/auth/login")
+            .send({email: payload.email, password: payload.password});
+        expect(loginResponse.status).toBe(403);
+    });
+
+    test("blocks authenticated mutating request when csrf token is missing", async () => {
+        const payload = buildRegisterPayload();
+        const registerResponse = await agent.post("/auth/register").send(payload);
+        expect(registerResponse.status).toBe(201);
+
+        const logoutResponse = await request(server)
+            .delete("/auth/logout/all")
+            .set("Authorization", `Bearer ${registerResponse.body.token}`);
+        expect(logoutResponse.status).toBe(403);
     });
 });

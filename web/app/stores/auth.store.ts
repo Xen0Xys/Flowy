@@ -60,7 +60,7 @@ export const useAuthStore = defineStore("auth", {
         async login(credentials: LoginCredentials) {
             const {apiFetch} = useApi();
             try {
-                const data = await apiFetch<any>("/user/login", {
+                const data = await apiFetch<any>("/auth/login", {
                     method: "POST",
                     body: credentials,
                 });
@@ -84,7 +84,7 @@ export const useAuthStore = defineStore("auth", {
         async register(payload: {username: string; email: string; password: string}) {
             const {apiFetch} = useApi();
             try {
-                const data = await apiFetch<any>("/user/register", {
+                const data = await apiFetch<any>("/auth/register", {
                     method: "POST",
                     body: payload,
                 });

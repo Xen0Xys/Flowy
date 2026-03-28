@@ -1,26 +1,19 @@
 import "reflect-metadata";
-import fs from "node:fs";
-import path from "node:path";
-import {config as loadEnv} from "dotenv";
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
-import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
+import {loadServer} from "../src/app";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
-import {ensureInstanceConfig, registerUser} from "./test-utils";
-
-const envPath = path.resolve(__dirname, "../.env");
-if (fs.existsSync(envPath)) {
-    loadEnv({path: envPath});
-}
+import {createCsrfAgent, ensureInstanceConfig, registerUser} from "./test-utils";
 
 let app: NestFastifyApplication;
 let server: Server;
 let prisma: PrismaClient;
+let agent: ReturnType<typeof request.agent>;
 
 describe("ReferenceController (e2e)", () => {
     beforeAll(async () => {
@@ -37,7 +30,7 @@ describe("ReferenceController (e2e)", () => {
         }).compile();
 
         app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
-        app.useGlobalPipes(new CustomValidationPipe());
+        await loadServer(app);
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
         await instance.ready();
@@ -57,6 +50,7 @@ describe("ReferenceController (e2e)", () => {
             where: {key: ConfigKey.REGISTRATION_ENABLED},
             data: {value: "true"},
         });
+        agent = await createCsrfAgent(server);
     });
 
     afterAll(async () => {
@@ -67,24 +61,22 @@ describe("ReferenceController (e2e)", () => {
     });
 
     test("requires authentication for reference routes", async () => {
-        const categories = await request(server).get("/reference/categories");
+        const categories = await agent.get("/reference/categories");
         expect(categories.status).toBe(401);
         expect(categories.body.message).toBe("Authorization token is missing");
 
-        const merchants = await request(server).get("/reference/merchants");
+        const merchants = await agent.get("/reference/merchants");
         expect(merchants.status).toBe(401);
         expect(merchants.body.message).toBe("Authorization token is missing");
     });
 
     test("rejects invalid token for reference routes", async () => {
-        const categories = await request(server)
-            .get("/reference/categories")
-            .set("Authorization", "Bearer invalid-token");
+        const categories = await agent.get("/reference/categories").set("Authorization", "Bearer invalid-token");
 
         expect(categories.status).toBe(401);
         expect(categories.body.message).toBe("Invalid or expired token");
 
-        const merchants = await request(server).get("/reference/merchants").set("Authorization", "Bearer invalid-token");
+        const merchants = await agent.get("/reference/merchants").set("Authorization", "Bearer invalid-token");
 
         expect(merchants.status).toBe(401);
         expect(merchants.body.message).toBe("Invalid or expired token");
@@ -134,7 +126,7 @@ describe("ReferenceController (e2e)", () => {
             ],
         });
 
-        const categoriesResponse = await request(server)
+        const categoriesResponse = await agent
             .get("/reference/categories")
             .set("Authorization", `Bearer ${userA.token}`);
 
@@ -146,9 +138,7 @@ describe("ReferenceController (e2e)", () => {
         expect(categoriesResponse.body[0].hexColor).toBe("#22C55E");
         expect(categoriesResponse.body[0].icon).toBe("utensils");
 
-        const merchantsResponse = await request(server)
-            .get("/reference/merchants")
-            .set("Authorization", `Bearer ${userA.token}`);
+        const merchantsResponse = await agent.get("/reference/merchants").set("Authorization", `Bearer ${userA.token}`);
 
         expect(merchantsResponse.status).toBe(200);
         expect(merchantsResponse.body).toHaveLength(2);
@@ -160,15 +150,11 @@ describe("ReferenceController (e2e)", () => {
     test("returns empty lists when user has no references", async () => {
         const user = await registerUser(server);
 
-        const categoriesResponse = await request(server)
-            .get("/reference/categories")
-            .set("Authorization", `Bearer ${user.token}`);
+        const categoriesResponse = await agent.get("/reference/categories").set("Authorization", `Bearer ${user.token}`);
         expect(categoriesResponse.status).toBe(200);
         expect(categoriesResponse.body).toEqual([]);
 
-        const merchantsResponse = await request(server)
-            .get("/reference/merchants")
-            .set("Authorization", `Bearer ${user.token}`);
+        const merchantsResponse = await agent.get("/reference/merchants").set("Authorization", `Bearer ${user.token}`);
         expect(merchantsResponse.status).toBe(200);
         expect(merchantsResponse.body).toEqual([]);
     });
@@ -176,14 +162,11 @@ describe("ReferenceController (e2e)", () => {
     test("creates, updates and deletes a category", async () => {
         const user = await registerUser(server);
 
-        const create = await request(server)
-            .post("/reference/category")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                name: "Food",
-                hexColor: "#22C55E",
-                icon: "utensils",
-            });
+        const create = await agent.post("/reference/category").set("Authorization", `Bearer ${user.token}`).send({
+            name: "Food",
+            hexColor: "#22C55E",
+            icon: "utensils",
+        });
 
         expect(create.status).toBe(201);
         expect(create.body.name).toBe("Food");
@@ -191,7 +174,7 @@ describe("ReferenceController (e2e)", () => {
         expect(create.body.icon).toBe("utensils");
         expect(create.body.userId).toBe(user.user.id);
 
-        const update = await request(server)
+        const update = await agent
             .patch(`/reference/category/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -205,7 +188,7 @@ describe("ReferenceController (e2e)", () => {
         expect(update.body.hexColor).toBe("#16A34A");
         expect(update.body.icon).toBe("restaurant");
 
-        const remove = await request(server)
+        const remove = await agent
             .delete(`/reference/category/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`);
 
@@ -220,18 +203,15 @@ describe("ReferenceController (e2e)", () => {
     test("creates, updates and deletes a merchant", async () => {
         const user = await registerUser(server);
 
-        const create = await request(server)
-            .post("/reference/merchant")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                name: "Amazon",
-            });
+        const create = await agent.post("/reference/merchant").set("Authorization", `Bearer ${user.token}`).send({
+            name: "Amazon",
+        });
 
         expect(create.status).toBe(201);
         expect(create.body.name).toBe("Amazon");
         expect(create.body.userId).toBe(user.user.id);
 
-        const update = await request(server)
+        const update = await agent
             .patch(`/reference/merchant/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -241,7 +221,7 @@ describe("ReferenceController (e2e)", () => {
         expect(update.status).toBe(200);
         expect(update.body.name).toBe("Amazon Prime");
 
-        const remove = await request(server)
+        const remove = await agent
             .delete(`/reference/merchant/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`);
 
@@ -256,17 +236,14 @@ describe("ReferenceController (e2e)", () => {
     test("rejects duplicate category and merchant names for the same user", async () => {
         const user = await registerUser(server);
 
-        const firstCategory = await request(server)
-            .post("/reference/category")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                name: "Health",
-                hexColor: "#EF4444",
-                icon: "heart",
-            });
+        const firstCategory = await agent.post("/reference/category").set("Authorization", `Bearer ${user.token}`).send({
+            name: "Health",
+            hexColor: "#EF4444",
+            icon: "heart",
+        });
         expect(firstCategory.status).toBe(201);
 
-        const duplicateCategory = await request(server)
+        const duplicateCategory = await agent
             .post("/reference/category")
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -278,15 +255,12 @@ describe("ReferenceController (e2e)", () => {
         expect(duplicateCategory.status).toBe(409);
         expect(duplicateCategory.body.message).toBe("Category already exists");
 
-        const firstMerchant = await request(server)
-            .post("/reference/merchant")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                name: "Ikea",
-            });
+        const firstMerchant = await agent.post("/reference/merchant").set("Authorization", `Bearer ${user.token}`).send({
+            name: "Ikea",
+        });
         expect(firstMerchant.status).toBe(201);
 
-        const duplicateMerchant = await request(server)
+        const duplicateMerchant = await agent
             .post("/reference/merchant")
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -317,27 +291,27 @@ describe("ReferenceController (e2e)", () => {
             },
         });
 
-        const updateCategory = await request(server)
+        const updateCategory = await agent
             .patch(`/reference/category/${category.id}`)
             .set("Authorization", `Bearer ${outsider.token}`)
             .send({name: "Hacked"});
         expect(updateCategory.status).toBe(403);
         expect(updateCategory.body.message).toBe("You do not have permission to access this category");
 
-        const deleteCategory = await request(server)
+        const deleteCategory = await agent
             .delete(`/reference/category/${category.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(deleteCategory.status).toBe(403);
         expect(deleteCategory.body.message).toBe("You do not have permission to access this category");
 
-        const updateMerchant = await request(server)
+        const updateMerchant = await agent
             .patch(`/reference/merchant/${merchant.id}`)
             .set("Authorization", `Bearer ${outsider.token}`)
             .send({name: "Hacked"});
         expect(updateMerchant.status).toBe(403);
         expect(updateMerchant.body.message).toBe("You do not have permission to access this merchant");
 
-        const deleteMerchant = await request(server)
+        const deleteMerchant = await agent
             .delete(`/reference/merchant/${merchant.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(deleteMerchant.status).toBe(403);
@@ -347,7 +321,7 @@ describe("ReferenceController (e2e)", () => {
     test("rejects invalid payloads and invalid UUID params", async () => {
         const user = await registerUser(server);
 
-        const badCreateCategory = await request(server)
+        const badCreateCategory = await agent
             .post("/reference/category")
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -365,7 +339,7 @@ describe("ReferenceController (e2e)", () => {
             ]),
         );
 
-        const badCreateMerchant = await request(server)
+        const badCreateMerchant = await agent
             .post("/reference/merchant")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: ""});
@@ -375,13 +349,13 @@ describe("ReferenceController (e2e)", () => {
             expect.arrayContaining([expect.objectContaining({property: "name"})]),
         );
 
-        const badCategoryId = await request(server)
+        const badCategoryId = await agent
             .patch("/reference/category/not-a-uuid")
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Updated"});
         expect(badCategoryId.status).toBe(400);
 
-        const badMerchantId = await request(server)
+        const badMerchantId = await agent
             .delete("/reference/merchant/not-a-uuid")
             .set("Authorization", `Bearer ${user.token}`);
         expect(badMerchantId.status).toBe(400);
@@ -392,27 +366,27 @@ describe("ReferenceController (e2e)", () => {
         const missingCategoryId = "0195c8dd-c263-7569-99f6-9fc20aca3050";
         const missingMerchantId = "0195c8dd-c263-7569-99f6-9fc20aca3051";
 
-        const updateCategory = await request(server)
+        const updateCategory = await agent
             .patch(`/reference/category/${missingCategoryId}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Missing"});
         expect(updateCategory.status).toBe(404);
         expect(updateCategory.body.message).toBe("Category not found");
 
-        const deleteCategory = await request(server)
+        const deleteCategory = await agent
             .delete(`/reference/category/${missingCategoryId}`)
             .set("Authorization", `Bearer ${user.token}`);
         expect(deleteCategory.status).toBe(404);
         expect(deleteCategory.body.message).toBe("Category not found");
 
-        const updateMerchant = await request(server)
+        const updateMerchant = await agent
             .patch(`/reference/merchant/${missingMerchantId}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Missing"});
         expect(updateMerchant.status).toBe(404);
         expect(updateMerchant.body.message).toBe("Merchant not found");
 
-        const deleteMerchant = await request(server)
+        const deleteMerchant = await agent
             .delete(`/reference/merchant/${missingMerchantId}`)
             .set("Authorization", `Bearer ${user.token}`);
         expect(deleteMerchant.status).toBe(404);
