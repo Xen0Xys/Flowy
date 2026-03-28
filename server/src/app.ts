@@ -59,18 +59,16 @@ export async function loadServer(server: NestFastifyApplication) {
 
     // Middlewares
     server.use(new LoggerMiddleware().use);
-    await server.register(fastifyCookie as any);
+    await server.register(fastifyCookie as any, {
+        secret: process.env.APP_SECRET,
+    });
     await server.register(fastifyCsrfProtection as any, {
-        getToken: (request: {headers: Record<string, string | string[] | undefined>}): string | undefined => {
-            const header = request.headers["x-csrf-token"];
-            if (!header) return undefined;
-            return Array.isArray(header) ? header[0] : header;
-        },
         cookieOpts: {
             path: "/",
             sameSite: "lax",
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
+            signed: true,
         },
     });
 

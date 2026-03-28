@@ -12,6 +12,7 @@ export interface AuthenticatedRequest extends FastifyRequest {
 interface JwtPayload {
     sub?: string;
     jti?: string;
+    aud?: string;
     [key: string]: unknown;
 }
 
@@ -31,6 +32,8 @@ export class JwtAuthGuard implements CanActivate {
         try {
             const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
             if (!payload?.sub) throw new UnauthorizedException("Invalid authentication token");
+
+            if (!payload.aud || payload.aud !== "AUTH") throw new UnauthorizedException("Invalid authentication token");
 
             const user = await this.prismaService.users.findUnique({
                 where: {id: payload.sub},

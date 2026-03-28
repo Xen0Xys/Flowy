@@ -18,22 +18,11 @@ export class AuthService {
         private readonly jwtService: JwtService,
     ) {}
 
-    private toUserEntity(user: Users): UserEntity {
-        return new UserEntity({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            jwtId: user.jwt_id,
-            familyId: user.family_id,
-            familyRole: user.family_role,
-            password: user.password,
-        });
-    }
-
     async generateToken(user: UserEntity): Promise<string> {
         const payload = {sub: user.id};
         return this.jwtService.signAsync(payload, {
             jwtid: user.jwtId,
+            audience: "AUTH",
         });
     }
 
@@ -114,6 +103,18 @@ export class AuthService {
             data: {
                 jwt_id: crypto.randomBytes(16).toString("hex"),
             },
+        });
+    }
+
+    private toUserEntity(user: Users): UserEntity {
+        return new UserEntity({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            jwtId: user.jwt_id,
+            familyId: user.family_id,
+            familyRole: user.family_role,
+            password: user.password,
         });
     }
 }
