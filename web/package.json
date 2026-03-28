@@ -25,6 +25,7 @@
         "d3-shape": "^3.2.0",
         "lucide-vue-next": "^1.0.0",
         "nuxt": "^4.4.2",
+        "nuxt-security": "2.5.1",
         "pinia": "^3.0.4",
         "reka-ui": "^2.9.2",
         "shadcn-nuxt": "2.4.3",

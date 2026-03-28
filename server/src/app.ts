@@ -73,15 +73,32 @@ export async function loadServer(server: NestFastifyApplication) {
             fileSize: 500 * 1024 * 1024, // 500MB
         },
     });
-    await server.register(
-        fastifyHelmet as any,
-        {
-            contentSecurityPolicy: false,
-            crossOriginEmbedderPolicy: false,
-            crossOriginOpenerPolicy: false,
-            crossOriginResourcePolicy: false,
-        } as any,
-    );
+    await server.register(fastifyHelmet as any, {
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", `'unsafe-inline'`],
+                imgSrc: ["'self'", "data:"],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'none'"],
+                frameSrc: ["'none'"],
+                upgradeInsecureRequests: [],
+            },
+        },
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+        },
+        referrerPolicy: {policy: "strict-origin-when-cross-origin"},
+        permittedCrossDomainPolicies: false,
+        crossOriginEmbedderPolicy: true,
+        crossOriginOpenerPolicy: {policy: "same-origin"},
+        crossOriginResourcePolicy: {policy: "same-origin"},
+    });
 
     // Swagger
     const config = new DocumentBuilder()

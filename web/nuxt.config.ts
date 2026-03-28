@@ -32,7 +32,7 @@ export default defineNuxtConfig({
             ],
         },
     },
-    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "shadcn-nuxt", "@pinia/nuxt"],
+    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "shadcn-nuxt", "@pinia/nuxt", "nuxt-security"],
     // Make dark theme the default
     colorMode: {
         preference: "dark",
@@ -41,5 +41,36 @@ export default defineNuxtConfig({
     shadcn: {
         prefix: "",
         componentDir: "@/components/ui",
+    },
+    routeRules: {
+        "/**": {
+            headers: {
+                "X-Frame-Options": "DENY",
+                "X-Content-Type-Options": "nosniff",
+                "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+            },
+        },
+    },
+    security: {
+        headers: {
+            contentSecurityPolicy: {
+                "default-src": ["'self'"],
+                "script-src": ["'self'", "'unsafe-inline'"],
+                "style-src": ["'self'", "'unsafe-inline'"],
+                "img-src": ["'self'", "data:", "https:"],
+                "connect-src": ["'self'", process.env.NUXT_PUBLIC_API_BASE || ""],
+                "font-src": ["'self'"],
+                "object-src": ["'none'"],
+                "media-src": ["'none'"],
+                "frame-src": ["'none'"],
+                "upgrade-insecure-requests": true,
+            },
+
+            crossOriginEmbedderPolicy: "require-corp",
+            crossOriginOpenerPolicy: "same-origin",
+            crossOriginResourcePolicy: "same-origin",
+
+            referrerPolicy: "strict-origin-when-cross-origin",
+        },
     },
 });
