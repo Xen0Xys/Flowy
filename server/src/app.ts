@@ -19,10 +19,6 @@ const logger: Logger = new Logger("App");
 const pkgJsonPath = path.resolve(process.cwd(), "package.json");
 const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
 
-process.env.APP_NAME = process.env.npm_package_name
-    ?.split("-")
-    .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 const port: number = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 
 async function bootstrap() {

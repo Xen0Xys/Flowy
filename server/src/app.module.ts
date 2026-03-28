@@ -14,10 +14,19 @@ import {AccountModule} from "./modules/accounting/account/account.module";
 import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
 import {ReferenceModule} from "./modules/accounting/reference/reference.module";
 import {CsrfGuard} from "./common/guards/csrf.guard";
+import Joi from "joi";
 
 @Module({
     imports: [
-        ConfigModule.forRoot({isGlobal: true}),
+        ConfigModule.forRoot({
+            isGlobal: true,
+            validationSchema: Joi.object({
+                APP_SECRET: Joi.string().required(),
+                APP_NAME: Joi.string().required(),
+                DATABASE_URL: Joi.string().uri().required(),
+                NODE_ENV: Joi.string().valid("development", "production", "test").required(),
+            }),
+        }),
         JwtModule.registerAsync({
             global: true,
             inject: [ConfigService],

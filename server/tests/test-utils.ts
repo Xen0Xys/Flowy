@@ -1,7 +1,17 @@
-import crypto from "node:crypto";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
-import {Server} from "node:http";
 import request from "supertest";
+import {Server} from "http";
+import crypto from "crypto";
+import dotenv from "dotenv";
+
+dotenv.config({
+    path: ".env",
+    quiet: true,
+});
+dotenv.config({
+    path: "server/.env",
+    quiet: true,
+});
 
 export const PASSWORD_BASE = "uP$awLKjChrA#8N5xop!";
 

@@ -6,8 +6,7 @@
     "license": "CC-BY-NC-ND",
     "scripts": {
         "lint": "oxlint . && oxfmt --check .",
-        "lint:fix": "oxlint --fix . && oxfmt --write .",
-        "test": "bun test --tsconfig server/tsconfig.json"
+        "lint:fix": "oxlint --fix . && oxfmt --write ."
     },
     "workspaces": [
         "./*"
