@@ -15,8 +15,6 @@ services:
             retries: 5
         volumes:
             - flowy-db-data:/var/lib/postgresql
-        ports:
-            - "${POSTGRES_PORT:-5432}:5432"
 
     server:
         build:
@@ -46,7 +44,6 @@ services:
             context: ./web
             dockerfile: Dockerfile
         environment:
-            HOST: 0.0.0.0
             NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://backend:4000}
         healthcheck:
             test: ["CMD", "curl", "-f", "http://web:3000/"]

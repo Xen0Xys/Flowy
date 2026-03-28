@@ -58,7 +58,7 @@ export default defineNuxtConfig({
                 "script-src": ["'self'", "'unsafe-inline'"],
                 "style-src": ["'self'", "'unsafe-inline'"],
                 "img-src": ["'self'", "data:", "https:"],
-                "connect-src": ["'self'", process.env.NUXT_PUBLIC_API_BASE || ""],
+                "connect-src": ["'self'"],
                 "font-src": ["'self'"],
                 "object-src": ["'none'"],
                 "media-src": ["'none'"],
@@ -66,9 +66,9 @@ export default defineNuxtConfig({
                 "upgrade-insecure-requests": true,
             },
 
-            crossOriginEmbedderPolicy: "require-corp",
+            crossOriginEmbedderPolicy: false,
             crossOriginOpenerPolicy: "same-origin",
-            crossOriginResourcePolicy: "same-origin",
+            crossOriginResourcePolicy: false,
 
             referrerPolicy: "strict-origin-when-cross-origin",
         },

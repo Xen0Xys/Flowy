@@ -1,0 +1,61 @@
+services:
+    flowy-postgres:
+        image: tensorchord/vchord-postgres:pg18-v1.1.1
+        restart: unless-stopped
+        environment:
+            - POSTGRES_DB=${POSTGRES_DB:-flowy}
+            - POSTGRES_USER=${SERVICE_USER_POSTGRES}
+            - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}
+        healthcheck:
+            test:
+                - CMD-SHELL
+                - pg_isready -d ${POSTGRES_DB:-flowy} -U ${POSTGRES_USER:-flowy}
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+            - flowy-db-data:/var/lib/postgresql
+
+    flowy-server:
+        build:
+            context: ./server
+            dockerfile: Dockerfile
+            args:
+                - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
+        environment:
+            - SERVICE_URL_API_4000
+            - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
+            - APP_NAME=Flowy Server
+            - APP_SECRET=${SERVICE_BASE64_128_APPSECRET}
+            - PREFIX=${APP_PREFIX}
+            - CORS_ORIGINS=${SERVICE_URL_FLOWY_WEB}
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://flowy-server:4000/health"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        depends_on:
+            flowy-postgres:
+                condition: service_healthy
+        restart: unless-stopped
+
+    flowy-web:
+        build:
+            context: ./web
+            dockerfile: Dockerfile
+        environment:
+            - SERVICE_URL_WEB_3000
+            - NUXT_PUBLIC_API_BASE=${SERVICE_URL_FLOWY_SERVER}
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://flowy-web:3000/"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        depends_on:
+            flowy-server:
+                condition: service_started
+        restart: unless-stopped
+
+volumes:
+    flowy-db-data:
+        driver: local
