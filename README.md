@@ -2,7 +2,7 @@
 
 **Turn household money chaos into a clear, shared financial system.**
 
-![Flowy product preview](./assets/readme/flowy-hero.png)
+![Flowy product preview](./assets/readme/flowy-hero.webp)
 
 Flowy is a self-hosted finance platform built for people who are tired of juggling spreadsheets, disconnected banking apps, and shared Google Sheets that nobody agrees on.
 

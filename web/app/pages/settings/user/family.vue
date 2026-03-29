@@ -284,7 +284,9 @@ async function removeMember(id: string) {
                                         <div class="text-left">
                                             <p class="text-sm font-medium">Danger zone</p>
                                             <p class="text-muted-foreground text-xs">
-                                                {{ userStore.isFamilyAdmin ? "Delete this family" : "Leave this family" }}
+                                                {{
+                                                    userStore.isFamilyAdmin ? "Delete this family" : "Leave this family"
+                                                }}
                                             </p>
                                         </div>
                                         <AlertDialogTrigger asChild>
@@ -301,12 +303,12 @@ async function removeMember(id: string) {
                                             </AlertDialogTitle>
                                             <AlertDialogDescription>
                                                 <template v-if="userStore.isFamilyAdmin">
-                                                    This action will permanently delete the family,
-                                                    remove all invites and unlink members. This cannot be undone.
+                                                    This action will permanently delete the family, remove all invites
+                                                    and unlink members. This cannot be undone.
                                                 </template>
                                                 <template v-else>
-                                                    Are you sure you want to leave the family? You will no longer
-                                                    have access to shared data.
+                                                    Are you sure you want to leave the family? You will no longer have
+                                                    access to shared data.
                                                 </template>
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
@@ -314,7 +316,9 @@ async function removeMember(id: string) {
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                                             <AlertDialogAction
                                                 :disabled="familyActionLoading"
-                                                @click="userStore.isFamilyAdmin ? handleDeleteFamily() : handleLeaveFamily()">
+                                                @click="
+                                                    userStore.isFamilyAdmin ? handleDeleteFamily() : handleLeaveFamily()
+                                                ">
                                                 <span v-if="!familyActionLoading">
                                                     {{ userStore.isFamilyAdmin ? "Delete" : "Leave" }}
                                                 </span>

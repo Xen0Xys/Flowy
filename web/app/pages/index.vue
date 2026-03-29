@@ -5,6 +5,7 @@ import {useRouter} from "vue-router";
 import {useFamilyStore} from "~/stores/family.store";
 import type {Account} from "~/stores/account.store";
 import {useAccountStore} from "~/stores/account.store";
+import {useUserStore} from "~/stores/user.store";
 import type {TimeRange} from "~/utils/accounts";
 import {
     buildDateRange,
@@ -44,6 +45,7 @@ const y = (d: {balance: number}) => d.balance;
 
 const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
+const userStore = useUserStore();
 const router = useRouter();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
@@ -159,9 +161,14 @@ const formatCompactCurrency = (value: number) => {
             <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->
                 <div class="flex shrink-0 items-center justify-between">
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight">My accounts</h1>
-                        <p class="text-muted-foreground">Manage your accounts and track their evolution.</p>
+                    <div class="flex items-center gap-3">
+                        <Icon class="icon-lg text-amber-500" name="iconoir:bank" />
+                        <div>
+                            <h1 class="text-2xl font-bold tracking-tight">
+                                Welcome, {{ userStore.user?.username ?? "User" }}
+                            </h1>
+                            <p class="text-muted-foreground text-sm">Here's your financial overview</p>
+                        </div>
                     </div>
                     <Button @click="openCreateModal">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
