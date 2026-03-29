@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {ref} from "vue";
 import {toast} from "vue-sonner";
+import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {useUserStore} from "@/stores/user.store";
 import {useApi} from "@/composables/useApi";
@@ -20,14 +21,15 @@ import {cn} from "@/lib/utils";
 const router = useRouter();
 const store = useUserStore();
 const {apiFetch} = useApi();
+const {t} = useI18n();
 const code = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
 
 const steps = [
-    {title: "Welcome", description: "Get started with Flowy"},
-    {title: "Create/Join", description: "Create or join a family"},
-    {title: "Invite", description: "Invite members"},
+    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
+    {title: t("onboarding.steps.createJoin.title"), description: t("onboarding.steps.createJoin.description")},
+    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
 ];
 
 const active = ref(1);
@@ -39,7 +41,7 @@ function goCreate() {
 async function joinFamily() {
     error.value = null;
     if (!code.value) {
-        error.value = "Invite code is required";
+        error.value = t("onboarding.select.errors.inviteRequired");
         return;
     }
 
@@ -54,12 +56,12 @@ async function joinFamily() {
         } catch {
             // ignore profile refresh failures
         }
-        toast.success("Vous avez rejoint la famille");
+        toast.success(t("onboarding.select.toast.joined"));
         // clear inline error when success is displayed via toast
         error.value = null;
         await router.push("/");
     } catch (err: any) {
-        const msg = err?.data?.message ?? err?.message ?? "Failed to join family";
+        const msg = err?.data?.message ?? err?.message ?? t("onboarding.select.errors.joinFailed");
         toast.error(msg);
         error.value = null;
     } finally {
@@ -96,34 +98,33 @@ async function joinFamily() {
         <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
             <Card :innerClass="cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')">
                 <div class="flex flex-col gap-1">
-                    <h2 class="text-lg font-medium">Create</h2>
+                    <h2 class="text-lg font-medium">{{ t("onboarding.select.create.title") }}</h2>
                     <p class="text-muted-foreground text-sm">
-                        Create a new family to manage shared expenses and invite members. The creator becomes the family
-                        admin and can send invites.
+                        {{ t("onboarding.select.create.description") }}
                     </p>
                 </div>
                 <div class="flex justify-end">
-                    <Button :as="'button'" @click="goCreate">Create a new family</Button>
+                    <Button :as="'button'" @click="goCreate">{{ t("onboarding.select.create.button") }}</Button>
                 </div>
             </Card>
 
             <Card :innerClass="cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')">
                 <div class="flex flex-col gap-2">
                     <div>
-                        <h2 class="text-lg font-medium">Join</h2>
+                        <h2 class="text-lg font-medium">{{ t("onboarding.select.join.title") }}</h2>
                         <p class="text-muted-foreground text-sm">
-                            If someone already created a family, enter the invite code they sent you to join.
+                            {{ t("onboarding.select.join.description") }}
                         </p>
                     </div>
                     <div>
-                        <Input v-model="code" placeholder="Invite code" autofocus />
+                        <Input v-model="code" :placeholder="t('onboarding.select.join.inviteCode')" autofocus />
                     </div>
                 </div>
 
                 <form class="flex flex-col" @submit.prevent="joinFamily">
                     <div class="flex items-center justify-end">
                         <Button :as="'button'" :disabled="loading" type="submit">{{
-                            loading ? "Joining..." : "Join"
+                            loading ? t("onboarding.select.join.loading") : t("onboarding.select.join.button")
                         }}</Button>
                     </div>
 

@@ -1,0 +1,564 @@
+{
+    "common": {
+        "user": "User",
+        "settings": "Settings",
+        "back": "Back",
+        "all": "All",
+        "none": "None",
+        "actions": "Actions",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "cancel": "Cancel",
+        "close": "Close",
+        "copy": "Copy",
+        "edit": "Edit",
+        "loading": "Loading...",
+        "processing": "Processing...",
+        "areYouSure": "Are you sure?"
+    },
+    "app": {
+        "head": {
+            "default": "Flowy",
+            "withPage": "Flowy - {page}"
+        },
+        "pageTitle": {
+            "dashboard": "Dashboard",
+            "login": "Login",
+            "register": "Register",
+            "onboarding": "Onboarding",
+            "instanceSettings": "Instance Settings",
+            "adminUsers": "Admin Users",
+            "profile": "Profile",
+            "family": "Family",
+            "settings": "Settings"
+        }
+    },
+    "auth": {
+        "common": {
+            "username": "Username",
+            "email": "Email",
+            "password": "Password",
+            "errors": {
+                "invalidEmail": "Please enter a valid email address.",
+                "emailRequired": "Email is required."
+            }
+        },
+        "login": {
+            "title": "Login",
+            "backgroundAlt": "Login background",
+            "welcome": "Welcome back",
+            "subtitle": "Sign in to continue to your dashboard",
+            "loading": "Logging in...",
+            "noAccount": "Don't have an account?",
+            "errors": {
+                "required": "Email and password are required."
+            }
+        },
+        "register": {
+            "title": "Register",
+            "backgroundAlt": "Register background",
+            "heading": "Create your account",
+            "subtitle": "Join and start organizing with your family",
+            "loading": "Registering...",
+            "hasAccount": "Already have an account?",
+            "errors": {
+                "required": "All fields are required.",
+                "usernameLength": "Username must be between {min} and {max} characters.",
+                "passwordLength": "Password must be at least {min} characters."
+            }
+        },
+        "store": {
+            "success": {
+                "connected": "Connected",
+                "accountCreated": "Account created"
+            },
+            "errors": {
+                "loginFailed": "Login failed",
+                "loginMissingToken": "Login failed: missing token from server",
+                "loginResponseMissingToken": "Login response missing token",
+                "registrationFailed": "Registration failed",
+                "registerMissingToken": "Registration failed: missing token from server",
+                "registerResponseMissingToken": "Register response missing token"
+            }
+        }
+    },
+    "onboarding": {
+        "steps": {
+            "welcome": {
+                "title": "Welcome",
+                "description": "Get started with Flowy"
+            },
+            "createJoin": {
+                "title": "Create/Join",
+                "description": "Create or join a family"
+            },
+            "invite": {
+                "title": "Invite",
+                "description": "Invite members"
+            }
+        },
+        "select": {
+            "create": {
+                "title": "Create",
+                "description": "Create a new family to manage shared expenses and invite members. The creator becomes the family admin and can send invites.",
+                "button": "Create a new family"
+            },
+            "join": {
+                "title": "Join",
+                "description": "If someone already created a family, enter the invite code they sent you to join.",
+                "inviteCode": "Invite code",
+                "button": "Join",
+                "loading": "Joining..."
+            },
+            "toast": {
+                "joined": "You joined the family"
+            },
+            "errors": {
+                "inviteRequired": "Invite code is required",
+                "joinFailed": "Failed to join family"
+            }
+        },
+        "create": {
+            "title": "Create family",
+            "familyName": "Family name",
+            "currency": "Currency",
+            "selectCurrency": "Select a currency",
+            "create": "Create",
+            "loading": "Creating...",
+            "errors": {
+                "familyNameRequired": "Family name is required.",
+                "familyNameLength": "Family name must be between {min} and {max} characters.",
+                "currencyInvalid": "Currency must be a valid 3-letter ISO code.",
+                "createFailed": "Failed to create family"
+            }
+        },
+        "invite": {
+            "title": "Invite members",
+            "memberEmail": "Member email",
+            "memberEmailPlaceholder": "member{'@'}example.org",
+            "send": "Send invite",
+            "sending": "Sending...",
+            "continue": "Continue",
+            "skip": "Skip",
+            "errors": {
+                "sendFailed": "Failed to send invite"
+            }
+        }
+    },
+    "breadcrumbs": {
+        "transactions": "Transactions",
+        "accounts": "Accounts",
+        "account": "Account",
+        "settings": "Settings",
+        "instance": "Instance",
+        "users": "Users",
+        "profile": "Profile",
+        "family": "Family",
+        "references": "References"
+    },
+    "sidebar": {
+        "menu": "Menu",
+        "dashboard": "Dashboard",
+        "transactions": "Transactions",
+        "accounts": "Accounts",
+        "settings": "Settings",
+        "backToDashboard": "Back to Dashboard",
+        "profile": "Profile",
+        "family": "Family",
+        "references": "References",
+        "instanceManagement": "Instance Management",
+        "instance": "Instance",
+        "users": "Users",
+        "getHelp": "Get Help",
+        "search": "Search",
+        "wip": "WIP",
+        "logOut": "Log out"
+    },
+    "dashboard": {
+        "welcome": "Welcome, {name}",
+        "subtitle": "Here's your financial overview",
+        "addAccount": "Add account",
+        "noAccountsTitle": "No accounts yet",
+        "noAccountsDescription": "Create your first bank account to start tracking your finances.",
+        "createFirstAccount": "Create my first account",
+        "totalBalance": "Total Balance",
+        "balance": "Balance",
+        "acrossAccounts": "Across {count} account(s)",
+        "percentOfTotal": "{value}% of total",
+        "percentOfCategory": "{value}% of category",
+        "deleteAccountDescription": "This action cannot be undone. The account \"{name}\" and all its associated data will be deleted."
+    },
+    "accounts": {
+        "types": {
+            "checking": "Checking",
+            "savings": "Savings",
+            "investment": "Investment",
+            "credit": "Credit",
+            "cash": "Cash",
+            "other": "Other"
+        },
+        "form": {
+            "addTitle": "Add account",
+            "editTitle": "Edit account",
+            "description": "Fill in your bank account details.",
+            "name": "Account name",
+            "namePlaceholder": "Ex: Checking Account",
+            "type": "Category / Type",
+            "selectType": "Select a type",
+            "balance": "Balance",
+            "current": "current",
+            "initial": "initial"
+        }
+    },
+    "account": {
+        "updatedOn": "Updated on {date}",
+        "setBalance": "Set Balance",
+        "currentBalance": "Current Balance",
+        "setBalanceTitle": "Set account balance",
+        "setBalanceDescription": "Set the new current balance for this account. A rebalance transaction is created automatically when the value changes.",
+        "targetBalance": "Target balance",
+        "saveBalance": "Save balance",
+        "store": {
+            "success": {
+                "accountCreated": "Account created",
+                "accountDeleted": "Account deleted",
+                "accountUpdated": "Account updated"
+            },
+            "errors": {
+                "fetchAccounts": "Failed fetching accounts",
+                "fetchAccount": "Failed fetching account",
+                "createAccount": "Failed creating account",
+                "deleteAccount": "Failed deleting account",
+                "updateAccount": "Failed updating account",
+                "fetchEvolution": "Failed fetching account balance evolution"
+            }
+        }
+    },
+    "transactions": {
+        "page": {
+            "title": "All Transactions",
+            "subtitle": "View and manage all your transactions."
+        },
+        "list": {
+            "title": "Transactions",
+            "viewAll": "View All",
+            "newTransaction": "New Transaction"
+        },
+        "filters": {
+            "title": "Filters",
+            "clear": "Clear filters",
+            "apply": "Apply Filters",
+            "search": "Search description, category, merchant...",
+            "searchWithAccount": "Search description, category, merchant, account...",
+            "searchMobile": "Search...",
+            "dateRange": "Date Range",
+            "pickDateRange": "Pick a date range",
+            "type": "Type",
+            "allTypes": "All Types",
+            "income": "Income",
+            "expense": "Expense",
+            "account": "Account",
+            "allAccounts": "All Accounts",
+            "category": "Category",
+            "allCategories": "All Categories",
+            "merchant": "Merchant",
+            "allMerchants": "All Merchants",
+            "rebalance": "Rebalance",
+            "includeRebalance": "Include Rebalance",
+            "excludeRebalance": "Exclude Rebalance",
+            "onlyRebalance": "Only Rebalance"
+        },
+        "table": {
+            "date": "Date",
+            "description": "Description",
+            "category": "Category",
+            "amount": "Amount",
+            "account": "Account",
+            "system": "System",
+            "noMatch": "No transactions match your filters.",
+            "noTransactions": "No transactions found."
+        },
+        "form": {
+            "newTitle": "New Transaction",
+            "editTitle": "Edit Transaction",
+            "newDescription": "Add a new transaction. Click save when you're done.",
+            "editDescription": "Update the details of this transaction. Click save when you're done.",
+            "selectAccount": "Select an account",
+            "selectCategory": "Select a category",
+            "selectMerchant": "Select a merchant",
+            "systemTransaction": "System Transaction",
+            "systemTransactionDescription": "This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of sync.",
+            "saveChanges": "Save changes",
+            "deleteTitle": "Delete transaction",
+            "deleteDescription": "Are you sure you want to delete this transaction? This action cannot be undone.",
+            "errors": {
+                "loadData": "Failed to load required data",
+                "accountRequired": "Account is required to create a transaction"
+            }
+        }
+    },
+    "profile": {
+        "title": "Profile",
+        "description": "Manage your personal information and credentials",
+        "username": "Username",
+        "email": "Email",
+        "save": "Save",
+        "saving": "Saving...",
+        "appearance": "Appearance",
+        "selectTheme": "Select a theme",
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark",
+        "language": "Language",
+        "selectLanguage": "Select language",
+        "browser": "Browser",
+        "english": "English",
+        "french": "French",
+        "changePassword": "Change password",
+        "changePasswordDescription": "Enter your current password and choose a new password.",
+        "currentPassword": "Current password",
+        "newPassword": "New password",
+        "changePasswordButton": "Change password",
+        "updating": "Updating...",
+        "dangerZone": "Danger zone",
+        "dangerZoneDescription": "Permanently delete your account",
+        "deleteAccount": "Delete account",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "deleteDialogTitle": "Delete account",
+        "deleteDialogDescription": "This action is irreversible. Please enter your current password to confirm.",
+        "confirmPassword": "Confirm password",
+        "deleting": "Deleting...",
+        "roles": {
+            "instanceOwner": "Instance Owner",
+            "familyAdmin": "Family Admin",
+            "familyMember": "Family Member"
+        },
+        "errors": {
+            "currentPasswordRequired": "Current password is required to delete your account.",
+            "deleteAccountFailed": "Failed deleting account",
+            "usernameLength": "Username must be between {min} and {max} characters.",
+            "passwordsRequired": "Current password and new password are required.",
+            "passwordLength": "New password must be at least {min} characters."
+        },
+        "toasts": {
+            "accountDeleted": "Account deleted"
+        }
+    },
+    "settings": {
+        "instance": {
+            "title": "Instance settings",
+            "subtitle": "Manage global instance settings",
+            "versions": "Versions",
+            "versionsDescription": "Current version of the frontend and backend",
+            "web": "Web",
+            "server": "Server",
+            "copyVersions": "Copy versions",
+            "registration": "Registration",
+            "registrationDescription": "Allow users to register",
+            "registrationEnabled": "Registration enabled",
+            "saveRegistrationTitle": "Save registration setting",
+            "saveRegistrationDescription": "Changing registration setting affects who can create accounts. Are you sure?",
+            "owner": "Instance owner",
+            "ownerDescription": "Set the owner of this instance (user id)",
+            "ownerPlaceholder": "owner id",
+            "changeOwnerTitle": "Change instance owner",
+            "changeOwnerDescription": "Changing the instance owner transfers administrative control. This is destructive. Proceed?",
+            "unknown": "unknown",
+            "toasts": {
+                "versionsCopied": "Versions copied to clipboard"
+            },
+            "errors": {
+                "ownerRequired": "Owner ID is required.",
+                "ownerInvalid": "Owner ID must be a valid UUID v7."
+            }
+        },
+        "users": {
+            "title": "Users",
+            "subtitle": "Manage users on this instance",
+            "searchPlaceholder": "Search by username, email or UUID...",
+            "uuid": "UUID",
+            "viewDetails": "View details",
+            "copyUuid": "Copy UUID",
+            "resetPassword": "Reset password",
+            "deleteUser": "Delete user",
+            "noUsers": "No users found.",
+            "detailsTitle": "User details",
+            "detailsDescription": "Detailed information for this account.",
+            "familyRole": "Family role",
+            "familyId": "Family ID",
+            "familyName": "Family name",
+            "familyCurrency": "Family currency",
+            "familyOwner": "Family owner",
+            "resetPasswordFor": "Set a new password for {username}.",
+            "newPassword": "New password",
+            "resetting": "Resetting...",
+            "deletePrompt": "Are you sure you want to delete",
+            "toasts": {
+                "uuidCopied": "UUID copied to clipboard"
+            },
+            "errors": {
+                "newPasswordRequired": "Please enter a new password.",
+                "passwordLength": "Password must be at least {min} characters.",
+                "clipboardUnsupported": "Clipboard is not supported in this browser",
+                "copyUuidFailed": "Failed to copy UUID"
+            }
+        },
+        "family": {
+            "title": "Family",
+            "subtitle": "Manage your family settings, members and invites",
+            "owner": "Owner",
+            "admin": "Admin",
+            "member": "Member",
+            "memberCountLabel": "member",
+            "deleteThis": "Delete this family",
+            "leaveThis": "Leave this family",
+            "deleteFamily": "Delete family",
+            "leaveFamily": "Leave family",
+            "leave": "Leave",
+            "deleteFamilyDescription": "This action will permanently delete the family, remove all invites and unlink members. This cannot be undone.",
+            "leaveFamilyDescription": "Are you sure you want to leave the family? You will no longer have access to shared data.",
+            "unableToLoad": "Unable to load family details.",
+            "info": "Family info",
+            "settings": "Family settings",
+            "familyName": "Family Name",
+            "currency": "Currency",
+            "selectCurrency": "Select currency",
+            "adminOnly": "Only family admins can update family settings.",
+            "members": "Members",
+            "remove": "Remove",
+            "removing": "Removing...",
+            "removeMember": "Remove member",
+            "removeMemberDescription": "Are you sure you want to remove this member from the family? They will lose access to shared data.",
+            "invites": "Invites",
+            "invite": "Invite",
+            "inviting": "Inviting...",
+            "invitePlaceholder": "member{'@'}example.com",
+            "code": "Code",
+            "revoke": "Revoke",
+            "notMember": "You are not a member of any family. Create one or ask to be invited.",
+            "toasts": {
+                "inviteCodeCopied": "Invite code copied to clipboard"
+            },
+            "errors": {
+                "copyInviteFailed": "Failed to copy invite code",
+                "nameRequired": "Family name is required.",
+                "nameLength": "Family name must be between 3 and 50 characters.",
+                "currencyInvalid": "Currency must be a valid 3-letter ISO code."
+            }
+        },
+        "references": {
+            "title": "References",
+            "subtitle": "Manage your transaction categories and merchants",
+            "addCategory": "Add Category",
+            "addMerchant": "Add Merchant",
+            "categories": "Categories",
+            "merchants": "Merchants",
+            "name": "Name",
+            "color": "Color",
+            "icon": "Icon",
+            "iconLibrary": "Icones (Iconoir)",
+            "deleteCategory": "Delete category",
+            "deleteMerchant": "Delete merchant",
+            "noCategories": "No categories found. Create one to get started.",
+            "noMerchants": "No merchants found. Create one to get started.",
+            "editCategory": "Edit Category",
+            "createCategory": "Create Category",
+            "editMerchant": "Edit Merchant",
+            "createMerchant": "Create Merchant"
+        }
+    },
+    "user": {
+        "store": {
+            "info": {
+                "sessionExpired": "Session expired. Please log in again."
+            },
+            "success": {
+                "usernameUpdated": "Username updated",
+                "emailUpdated": "Email updated",
+                "passwordUpdated": "Password updated",
+                "registrationUpdated": "Registration setting updated",
+                "instanceOwnerUpdated": "Instance owner updated",
+                "userDeleted": "User deleted"
+            },
+            "errors": {
+                "fetchProfile": "Failed fetching profile",
+                "updateUsername": "Failed updating username",
+                "updateEmail": "Failed updating email",
+                "updatePassword": "Failed updating password",
+                "listUsers": "Failed listing users",
+                "fetchInstanceSettings": "Failed fetching instance settings",
+                "updateRegistration": "Failed updating registration setting",
+                "updateInstanceOwner": "Failed updating instance owner",
+                "deleteUser": "Failed deleting user"
+            }
+        }
+    },
+    "family": {
+        "store": {
+            "success": {
+                "familyCreated": "Family created",
+                "inviteCreated": "Invite created",
+                "inviteRevoked": "Invite revoked",
+                "joinedFamily": "Joined family",
+                "leftFamily": "Left family",
+                "familyUpdated": "Family updated",
+                "memberRemoved": "Member removed",
+                "familyDeleted": "Family deleted"
+            },
+            "errors": {
+                "fetchFamily": "Failed fetching family",
+                "createFamily": "Failed creating family",
+                "createInvite": "Failed creating invite",
+                "fetchInvites": "Failed fetching invites",
+                "revokeInvite": "Failed revoking invite",
+                "joinFamily": "Failed joining family",
+                "leaveFamily": "Failed leaving family",
+                "updateFamily": "Failed updating family",
+                "removeMember": "Failed removing member",
+                "removeMemberEndpointMissing": "Remove member endpoint not found on server",
+                "deleteFamily": "Failed deleting family",
+                "deleteFamilyEndpointMissing": "Delete family endpoint not found on server"
+            }
+        }
+    },
+    "transaction": {
+        "store": {
+            "success": {
+                "transactionCreated": "Transaction created",
+                "transactionUpdated": "Transaction updated",
+                "transactionDeleted": "Transaction deleted"
+            },
+            "errors": {
+                "fetchTransactions": "Failed fetching transactions",
+                "fetchAccountTransactions": "Failed fetching account transactions",
+                "createTransaction": "Failed creating transaction",
+                "updateTransaction": "Failed updating transaction",
+                "deleteTransaction": "Failed deleting transaction"
+            }
+        }
+    },
+    "reference": {
+        "store": {
+            "success": {
+                "categoryCreated": "Category created",
+                "categoryUpdated": "Category updated",
+                "categoryDeleted": "Category deleted",
+                "merchantCreated": "Merchant created",
+                "merchantUpdated": "Merchant updated",
+                "merchantDeleted": "Merchant deleted"
+            },
+            "errors": {
+                "fetchReferences": "Failed fetching references",
+                "createCategory": "Failed creating category",
+                "updateCategory": "Failed updating category",
+                "deleteCategory": "Failed deleting category",
+                "createMerchant": "Failed creating merchant",
+                "updateMerchant": "Failed updating merchant",
+                "deleteMerchant": "Failed deleting merchant"
+            }
+        }
+    }
+}

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import {useRoute, useRouter} from "vue-router";
 import {useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
@@ -39,6 +40,7 @@ const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
 const transactionStore = useTransactionStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
+const {locale, t} = useI18n();
 
 const accountId = route.params.id as string;
 const isLoading = ref(true);
@@ -66,7 +68,7 @@ const chartColor = computed(() => {
 });
 
 const chartConfig = {
-    balance: {label: "Balance", color: "hsl(var(--primary))"},
+    balance: {label: t("dashboard.balance"), color: "hsl(var(--primary))"},
 };
 
 const x = (d: {date: string}) => new Date(d.date).getTime();
@@ -160,7 +162,7 @@ const formatCompactCurrency = (value: number) => {
 };
 
 const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(locale.value || "en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -199,7 +201,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                 <div class="mt-1 flex flex-wrap items-center gap-2">
                                     <Badge variant="secondary">{{ account.type }}</Badge>
                                     <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
-                                        Updated on {{ formatDate(account.updatedAt) }}
+                                        {{ t("account.updatedOn", {date: formatDate(account.updatedAt)}) }}
                                     </span>
                                 </div>
                             </div>
@@ -209,15 +211,15 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                     <div v-if="!isLoading && account" class="flex w-full flex-wrap items-center gap-2 md:w-auto">
                         <Button class="flex-1 md:flex-none" variant="secondary" @click="openSetBalanceDialog">
                             <Icon class="h-4 w-4" name="iconoir:coins-swap" />
-                            Set Balance
+                            {{ t("account.setBalance") }}
                         </Button>
                         <Button class="flex-1 md:flex-none" variant="outline" @click="openEditModal">
                             <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
-                            Edit
+                            {{ t("common.edit") }}
                         </Button>
                         <Button class="flex-1 md:flex-none" variant="destructive" @click="confirmDelete">
                             <Icon class="h-4 w-4" name="iconoir:trash" />
-                            Delete
+                            {{ t("common.delete") }}
                         </Button>
                     </div>
                 </div>
@@ -236,7 +238,9 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                     <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
-                                <h3 class="text-muted-foreground text-sm font-medium">Current Balance</h3>
+                                <h3 class="text-muted-foreground text-sm font-medium">
+                                    {{ t("account.currentBalance") }}
+                                </h3>
                                 <div class="mt-1 text-3xl font-bold">
                                     {{ formatCurrency(account.balance) }}
                                 </div>
@@ -248,7 +252,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                     <TabsTrigger value="3M">3M</TabsTrigger>
                                     <TabsTrigger value="6M">6M</TabsTrigger>
                                     <TabsTrigger value="1Y">1Y</TabsTrigger>
-                                    <TabsTrigger value="ALL">All</TabsTrigger>
+                                    <TabsTrigger value="ALL">{{ t("common.all") }}</TabsTrigger>
                                 </TabsList>
                             </Tabs>
                         </div>
@@ -299,7 +303,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                                 :numTicks="isMobile ? 3 : undefined"
                                                 :tickFormat="
                                                     (d: number) =>
-                                                        new Date(d).toLocaleDateString('en-US', {
+                                                        new Date(d).toLocaleDateString(locale.value || 'en-US', {
                                                             month: 'short',
                                                             day: 'numeric',
                                                         })
@@ -316,7 +320,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                                     (d: any) => `
                                             <div class='flex flex-col gap-1 rounded-lg border bg-background p-2 shadow-sm'>
                                                 <span class='text-[0.70rem] uppercase text-muted-foreground'>
-                                                    ${new Date(d.date).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}
+                                                    ${new Date(d.date).toLocaleDateString(locale.value || 'en-US', {year: 'numeric', month: 'long', day: 'numeric'})}
                                                 </span>
                                                 <span class='font-bold text-muted-foreground'>
                                                     ${formatCurrency(d.balance)}
@@ -352,16 +356,15 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                 <Dialog :open="isSetBalanceDialogOpen" @update:open="isSetBalanceDialogOpen = $event">
                     <DialogContent class="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>Set account balance</DialogTitle>
+                            <DialogTitle>{{ t("account.setBalanceTitle") }}</DialogTitle>
                             <DialogDescription>
-                                Set the new current balance for this account. A rebalance transaction is created
-                                automatically when the value changes.
+                                {{ t("account.setBalanceDescription") }}
                             </DialogDescription>
                         </DialogHeader>
 
                         <form class="space-y-4 py-4" @submit.prevent="submitSetBalance">
                             <div class="space-y-2">
-                                <Label for="target-balance">Target balance</Label>
+                                <Label for="target-balance">{{ t("account.targetBalance") }}</Label>
                                 <Input
                                     id="target-balance"
                                     v-model.number="targetBalance"
@@ -372,10 +375,10 @@ const transactionKey = (transaction: Transaction) => transaction.id;
 
                             <DialogFooter>
                                 <Button type="button" variant="outline" @click="isSetBalanceDialogOpen = false">
-                                    Cancel
+                                    {{ t("common.cancel") }}
                                 </Button>
                                 <Button :disabled="isSettingBalance" type="submit">
-                                    {{ isSettingBalance ? "Saving..." : "Save balance" }}
+                                    {{ isSettingBalance ? t("common.saving") : t("account.saveBalance") }}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -385,18 +388,17 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                 <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. The account "{{ account?.name }}" and all its associated
-                                data will be deleted.
+                                {{ t("dashboard.deleteAccountDescription", {name: account?.name ?? ""}) }}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
                             <AlertDialogAction
                                 class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 @click="executeDelete">
-                                Delete
+                                {{ t("common.delete") }}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
+import {useI18n} from "vue-i18n";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Card} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
@@ -30,6 +31,7 @@ import type {TransactionCategory, TransactionMerchant} from "~/stores/transactio
 import {Icon} from "#components";
 
 const referenceStore = useReferenceStore();
+const {t} = useI18n();
 
 const activeTab = ref("categories");
 
@@ -185,25 +187,25 @@ async function deleteMerchant(id: string) {
         <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold">References</h1>
-                    <p class="text-muted-foreground text-sm">Manage your transaction categories and merchants</p>
+                    <h1 class="text-2xl font-semibold">{{ t("settings.references.title") }}</h1>
+                    <p class="text-muted-foreground text-sm">{{ t("settings.references.subtitle") }}</p>
                 </div>
                 <div>
                     <Button v-if="activeTab === 'categories'" @click="openCategoryDialog()">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
-                        Add Category
+                        {{ t("settings.references.addCategory") }}
                     </Button>
                     <Button v-else-if="activeTab === 'merchants'" @click="openMerchantDialog()">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
-                        Add Merchant
+                        {{ t("settings.references.addMerchant") }}
                     </Button>
                 </div>
             </div>
 
             <Tabs v-model="activeTab" class="w-full">
                 <TabsList class="mb-4">
-                    <TabsTrigger value="categories">Categories</TabsTrigger>
-                    <TabsTrigger value="merchants">Merchants</TabsTrigger>
+                    <TabsTrigger value="categories">{{ t("settings.references.categories") }}</TabsTrigger>
+                    <TabsTrigger value="merchants">{{ t("settings.references.merchants") }}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="categories">
@@ -212,9 +214,9 @@ async function deleteMerchant(id: string) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead class="w-[50px]"></TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Color</TableHead>
-                                    <TableHead class="text-right">Actions</TableHead>
+                                    <TableHead>{{ t("settings.references.name") }}</TableHead>
+                                    <TableHead>{{ t("settings.references.color") }}</TableHead>
+                                    <TableHead class="text-right">{{ t("common.actions") }}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -260,7 +262,9 @@ async function deleteMerchant(id: string) {
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Delete category</AlertDialogTitle>
+                                                        <AlertDialogTitle>{{
+                                                            t("settings.references.deleteCategory")
+                                                        }}</AlertDialogTitle>
                                                         <AlertDialogDescription>
                                                             Are you sure you want to delete the category "{{
                                                                 category.name
@@ -269,10 +273,10 @@ async function deleteMerchant(id: string) {
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction @click="deleteCategory(category.id)"
-                                                            >Delete</AlertDialogAction
-                                                        >
+                                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                                        <AlertDialogAction @click="deleteCategory(category.id)">{{
+                                                            t("common.delete")
+                                                        }}</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
@@ -281,7 +285,7 @@ async function deleteMerchant(id: string) {
                                 </TableRow>
                                 <TableRow v-if="referenceStore.categories.length === 0">
                                     <TableCell colspan="4" class="h-24 text-center">
-                                        No categories found. Create one to get started.
+                                        {{ t("settings.references.noCategories") }}
                                     </TableCell>
                                 </TableRow>
                             </TableBody>
@@ -294,8 +298,8 @@ async function deleteMerchant(id: string) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead class="text-right">Actions</TableHead>
+                                    <TableHead>{{ t("settings.references.name") }}</TableHead>
+                                    <TableHead class="text-right">{{ t("common.actions") }}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -323,7 +327,9 @@ async function deleteMerchant(id: string) {
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Delete merchant</AlertDialogTitle>
+                                                        <AlertDialogTitle>{{
+                                                            t("settings.references.deleteMerchant")
+                                                        }}</AlertDialogTitle>
                                                         <AlertDialogDescription>
                                                             Are you sure you want to delete the merchant "{{
                                                                 merchant.name
@@ -332,10 +338,10 @@ async function deleteMerchant(id: string) {
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction @click="deleteMerchant(merchant.id)"
-                                                            >Delete</AlertDialogAction
-                                                        >
+                                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                                        <AlertDialogAction @click="deleteMerchant(merchant.id)">{{
+                                                            t("common.delete")
+                                                        }}</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
@@ -344,7 +350,7 @@ async function deleteMerchant(id: string) {
                                 </TableRow>
                                 <TableRow v-if="referenceStore.merchants.length === 0">
                                     <TableCell colspan="2" class="h-24 text-center">
-                                        No merchants found. Create one to get started.
+                                        {{ t("settings.references.noMerchants") }}
                                     </TableCell>
                                 </TableRow>
                             </TableBody>
@@ -358,7 +364,13 @@ async function deleteMerchant(id: string) {
         <Dialog v-model:open="categoryDialogOpen">
             <DialogContent class="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>{{ editingCategory ? "Edit Category" : "Create Category" }}</DialogTitle>
+                    <DialogTitle>
+                        {{
+                            editingCategory
+                                ? t("settings.references.editCategory")
+                                : t("settings.references.createCategory")
+                        }}
+                    </DialogTitle>
                     <DialogDescription>
                         {{
                             editingCategory
@@ -369,11 +381,15 @@ async function deleteMerchant(id: string) {
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid grid-cols-4 items-center gap-4">
-                        <label for="name" class="text-right text-sm font-medium">Name</label>
+                        <label for="name" class="text-right text-sm font-medium">{{
+                            t("settings.references.name")
+                        }}</label>
                         <Input id="name" v-model="categoryForm.name" class="col-span-3" placeholder="e.g. Groceries" />
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
-                        <label for="color" class="mt-2 text-right text-sm font-medium">Color</label>
+                        <label for="color" class="mt-2 text-right text-sm font-medium">{{
+                            t("settings.references.color")
+                        }}</label>
                         <div class="col-span-3 flex flex-col gap-3">
                             <div class="flex flex-wrap gap-2">
                                 <button
@@ -400,7 +416,9 @@ async function deleteMerchant(id: string) {
                         </div>
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
-                        <label for="icon" class="mt-2 text-right text-sm font-medium">Icon</label>
+                        <label for="icon" class="mt-2 text-right text-sm font-medium">{{
+                            t("settings.references.icon")
+                        }}</label>
                         <div class="col-span-3 flex flex-col gap-3">
                             <div class="flex flex-wrap gap-2">
                                 <button
@@ -430,17 +448,17 @@ async function deleteMerchant(id: string) {
                                     href="https://icones.js.org/collection/iconoir"
                                     target="_blank"
                                     class="hover:text-foreground underline"
-                                    >Icones (Iconoir)</a
+                                    >{{ t("settings.references.iconLibrary") }}</a
                                 >
                             </div>
                         </div>
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" @click="categoryDialogOpen = false">Cancel</Button>
+                    <Button variant="outline" @click="categoryDialogOpen = false">{{ t("common.cancel") }}</Button>
                     <Button :disabled="!categoryForm.name || categoryActionLoading" @click="saveCategory">
-                        <span v-if="categoryActionLoading">Saving...</span>
-                        <span v-else>Save</span>
+                        <span v-if="categoryActionLoading">{{ t("common.saving") }}</span>
+                        <span v-else>{{ t("common.save") }}</span>
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -450,7 +468,13 @@ async function deleteMerchant(id: string) {
         <Dialog v-model:open="merchantDialogOpen">
             <DialogContent class="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>{{ editingMerchant ? "Edit Merchant" : "Create Merchant" }}</DialogTitle>
+                    <DialogTitle>
+                        {{
+                            editingMerchant
+                                ? t("settings.references.editMerchant")
+                                : t("settings.references.createMerchant")
+                        }}
+                    </DialogTitle>
                     <DialogDescription>
                         {{
                             editingMerchant
@@ -461,7 +485,9 @@ async function deleteMerchant(id: string) {
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid grid-cols-4 items-center gap-4">
-                        <label for="merchant-name" class="text-right text-sm font-medium">Name</label>
+                        <label for="merchant-name" class="text-right text-sm font-medium">{{
+                            t("settings.references.name")
+                        }}</label>
                         <Input
                             id="merchant-name"
                             v-model="merchantForm.name"
@@ -470,10 +496,10 @@ async function deleteMerchant(id: string) {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" @click="merchantDialogOpen = false">Cancel</Button>
+                    <Button variant="outline" @click="merchantDialogOpen = false">{{ t("common.cancel") }}</Button>
                     <Button :disabled="!merchantForm.name || merchantActionLoading" @click="saveMerchant">
-                        <span v-if="merchantActionLoading">Saving...</span>
-                        <span v-else>Save</span>
+                        <span v-if="merchantActionLoading">{{ t("common.saving") }}</span>
+                        <span v-else>{{ t("common.save") }}</span>
                     </Button>
                 </DialogFooter>
             </DialogContent>

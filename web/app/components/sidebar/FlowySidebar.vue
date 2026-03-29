@@ -13,6 +13,7 @@ import {
     useSidebar,
 } from "~/components/ui/sidebar";
 import {computed, onMounted, ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import {useUserStore} from "~/stores/user.store";
 import {useAuthStore} from "~/stores/auth.store";
 import {useAccountStore} from "~/stores/account.store";
@@ -29,6 +30,7 @@ import {
 import {Badge} from "~/components/ui/badge";
 
 const route = useRoute();
+const {t} = useI18n();
 const isActiveFunction = (path: string) => route.path === path;
 const inSettings = computed(() => route.path.startsWith("/settings"));
 
@@ -45,7 +47,7 @@ const showAdminLinks = ref(false);
 const {isMobile} = useSidebar();
 const userAccounts = computed(() => accountStore.accounts);
 
-const userName = computed(() => userStore.user?.username || "User");
+const userName = computed(() => userStore.user?.username || t("common.user"));
 const userEmail = computed(() => userStore.user?.email || "");
 const userAvatar = computed(() => userStore.user?.avatar || "");
 const userInitials = computed(() => {
@@ -123,14 +125,14 @@ async function handleLogout() {
         </SidebarHeader>
         <SidebarContent>
             <SidebarGroup :aria-hidden="inSettings" :class="{hidden: inSettings}">
-                <SidebarGroupLabel>Menu</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t("sidebar.menu") }}</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton :is-active="isActiveFunction('/')" as-child>
                                 <NuxtLink to="/">
                                     <Icon name="iconoir:home"></Icon>
-                                    <span>Dashboard</span>
+                                    <span>{{ t("sidebar.dashboard") }}</span>
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -138,13 +140,13 @@ async function handleLogout() {
                             <SidebarMenuButton :is-active="isActiveFunction('/transactions')" as-child>
                                 <NuxtLink to="/transactions">
                                     <Icon name="iconoir:credit-card"></Icon>
-                                    <span>Transactions</span>
+                                    <span>{{ t("sidebar.transactions") }}</span>
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
-                <SidebarGroupLabel v-if="userAccounts.length">Accounts</SidebarGroupLabel>
+                <SidebarGroupLabel v-if="userAccounts.length">{{ t("sidebar.accounts") }}</SidebarGroupLabel>
                 <SidebarGroupContent v-if="userAccounts.length">
                     <SidebarMenu>
                         <SidebarMenuItem v-for="account in userAccounts" :key="account.id">
@@ -159,7 +161,7 @@ async function handleLogout() {
                 </SidebarGroupContent>
             </SidebarGroup>
             <SidebarGroup :aria-hidden="!inSettings" :class="{hidden: !inSettings}">
-                <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t("sidebar.dashboard") }}</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <!-- User settings category -->
@@ -167,13 +169,13 @@ async function handleLogout() {
                             <SidebarMenuButton :is-active="isActiveFunction('/')" as-child>
                                 <NuxtLink to="/">
                                     <Icon name="iconoir:arrow-left"></Icon>
-                                    Back to Dashboard
+                                    {{ t("sidebar.backToDashboard") }}
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
-                <SidebarGroupLabel>Settings</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t("sidebar.settings") }}</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <!-- User settings category -->
@@ -181,7 +183,7 @@ async function handleLogout() {
                             <SidebarMenuButton :is-active="isActiveFunction('/settings/user/profile')" as-child>
                                 <NuxtLink to="/settings/user/profile">
                                     <Icon name="iconoir:user"></Icon>
-                                    Profile
+                                    {{ t("sidebar.profile") }}
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -189,7 +191,7 @@ async function handleLogout() {
                             <SidebarMenuButton :is-active="isActiveFunction('/settings/user/family')" as-child>
                                 <NuxtLink to="/settings/user/family">
                                     <Icon name="iconoir:community"></Icon>
-                                    Family</NuxtLink
+                                    {{ t("sidebar.family") }}</NuxtLink
                                 >
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -197,19 +199,19 @@ async function handleLogout() {
                             <SidebarMenuButton :is-active="isActiveFunction('/settings/user/references')" as-child>
                                 <NuxtLink to="/settings/user/references">
                                     <Icon name="iconoir:book"></Icon>
-                                    References</NuxtLink
+                                    {{ t("sidebar.references") }}</NuxtLink
                                 >
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
-                <SidebarGroupLabel v-if="showAdminLinks">Instance Management</SidebarGroupLabel>
+                <SidebarGroupLabel v-if="showAdminLinks">{{ t("sidebar.instanceManagement") }}</SidebarGroupLabel>
                 <SidebarGroupContent v-if="showAdminLinks">
                     <SidebarMenuItem>
                         <SidebarMenuButton :is-active="isActiveFunction('/settings/admin/instance')" as-child>
                             <NuxtLink to="/settings/admin/instance">
                                 <Icon name="iconoir:server"></Icon>
-                                Instance</NuxtLink
+                                {{ t("sidebar.instance") }}</NuxtLink
                             >
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -217,7 +219,7 @@ async function handleLogout() {
                         <SidebarMenuButton :is-active="isActiveFunction('/settings/admin/users')" as-child>
                             <NuxtLink to="/settings/admin/users">
                                 <Icon name="iconoir:user-crown"></Icon>
-                                Users</NuxtLink
+                                {{ t("sidebar.users") }}</NuxtLink
                             >
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -230,8 +232,8 @@ async function handleLogout() {
                     <SidebarMenuButton :is-active="isActiveFunction('/unknown')" aria-disabled="true" as-child>
                         <NuxtLink>
                             <Icon name="iconoir:help-circle"></Icon>
-                            <span>Get Help</span>
-                            <Badge class="ml-auto" variant="secondary">WIP</Badge>
+                            <span>{{ t("sidebar.getHelp") }}</span>
+                            <Badge class="ml-auto" variant="secondary">{{ t("sidebar.wip") }}</Badge>
                         </NuxtLink>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -239,8 +241,8 @@ async function handleLogout() {
                     <SidebarMenuButton :is-active="isActiveFunction('/unknown')" aria-disabled="true" as-child>
                         <NuxtLink>
                             <Icon name="iconoir:search"></Icon>
-                            <span>Search</span>
-                            <Badge class="ml-auto" variant="secondary">WIP</Badge>
+                            <span>{{ t("sidebar.search") }}</span>
+                            <Badge class="ml-auto" variant="secondary">{{ t("sidebar.wip") }}</Badge>
                         </NuxtLink>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -297,14 +299,14 @@ async function handleLogout() {
                                 <DropdownMenuItem as-child>
                                     <NuxtLink to="/settings/user/profile">
                                         <Icon name="iconoir:settings" />
-                                        Settings
+                                        {{ t("common.settings") }}
                                     </NuxtLink>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem @click="handleLogout">
                                 <Icon name="iconoir:log-out" />
-                                Log out
+                                {{ t("sidebar.logOut") }}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

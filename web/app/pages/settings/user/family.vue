@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
+import {useI18n} from "vue-i18n";
 import {useUserStore} from "~/stores/user.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {toast} from "vue-sonner";
@@ -26,6 +27,7 @@ import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
 
 const userStore = useUserStore();
 const familyStore = useFamilyStore();
+const {t} = useI18n();
 
 type Family = {
     name: string;
@@ -52,9 +54,9 @@ const removingMemberId = ref<string | null>(null);
 const familyActionLoading = ref(false);
 const currencyOptions = Object.keys(CURRENCY_LOCALES_MAP);
 const familyRoleLabel = computed(() => {
-    if (!family.value || !userStore.user?.id) return "Member";
-    if (family.value.owner?.id === userStore.user.id) return "Owner";
-    return userStore.isFamilyAdmin ? "Admin" : "Member";
+    if (!family.value || !userStore.user?.id) return t("settings.family.member");
+    if (family.value.owner?.id === userStore.user.id) return t("settings.family.owner");
+    return userStore.isFamilyAdmin ? t("settings.family.admin") : t("settings.family.member");
 });
 
 const canSaveFamilyName = computed(() => {
@@ -99,12 +101,12 @@ async function handleInvite() {
     if (!userStore.token) return;
     const nextInviteEmail = inviteEmail.value.trim();
     if (!nextInviteEmail) {
-        toast.error("Email is required.");
+        toast.error(t("auth.common.errors.emailRequired"));
         return;
     }
 
     if (!isValidEmail(nextInviteEmail)) {
-        toast.error("Please enter a valid email address.");
+        toast.error(t("auth.common.errors.invalidEmail"));
         return;
     }
 
@@ -132,9 +134,9 @@ async function copyInviteCode(code: string) {
     try {
         const {copy} = useClipboard();
         await copy(code);
-        toast.success("Invite code copied to clipboard");
+        toast.success(t("settings.family.toasts.inviteCodeCopied"));
     } catch (err) {
-        toast.error("Failed to copy invite code");
+        toast.error(t("settings.family.errors.copyInviteFailed"));
         throw err;
     }
 }
@@ -178,12 +180,12 @@ async function saveFamilyNameOnly() {
     }
 
     if (!name) {
-        toast.error("Family name is required.");
+        toast.error(t("settings.family.errors.nameRequired"));
         return;
     }
 
     if (!isValidFamilyName(name)) {
-        toast.error("Family name must be between 3 and 50 characters.");
+        toast.error(t("settings.family.errors.nameLength"));
         return;
     }
 
@@ -209,7 +211,7 @@ async function saveFamilyCurrencyOnly() {
     }
 
     if (!isValidCurrencyCode(currency)) {
-        toast.error("Currency must be a valid 3-letter ISO code.");
+        toast.error(t("settings.family.errors.currencyInvalid"));
         return;
     }
 
@@ -248,8 +250,8 @@ async function removeMember(id: string) {
     <div class="w-full">
         <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6">
-                <h1 class="text-2xl font-semibold">Family</h1>
-                <p class="text-muted-foreground text-sm">Manage your family settings, members and invites</p>
+                <h1 class="text-2xl font-semibold">{{ t("settings.family.title") }}</h1>
+                <p class="text-muted-foreground text-sm">{{ t("settings.family.subtitle") }}</p>
             </div>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -267,9 +269,8 @@ async function removeMember(id: string) {
                                         {{ family.name }}
                                     </div>
                                     <div class="text-muted-foreground text-sm">
-                                        {{ family.members?.length ?? 0 }} member{{
-                                            (family.members?.length ?? 0) !== 1 ? "s" : ""
-                                        }}
+                                        {{ family.members?.length ?? 0 }} {{ t("settings.family.memberCountLabel")
+                                        }}{{ (family.members?.length ?? 0) !== 1 ? "s" : "" }}
                                     </div>
                                 </div>
 
@@ -282,16 +283,22 @@ async function removeMember(id: string) {
                                 <AlertDialog>
                                     <div class="flex w-full items-center justify-between">
                                         <div class="text-left">
-                                            <p class="text-sm font-medium">Danger zone</p>
+                                            <p class="text-sm font-medium">{{ t("profile.dangerZone") }}</p>
                                             <p class="text-muted-foreground text-xs">
                                                 {{
-                                                    userStore.isFamilyAdmin ? "Delete this family" : "Leave this family"
+                                                    userStore.isFamilyAdmin
+                                                        ? t("settings.family.deleteThis")
+                                                        : t("settings.family.leaveThis")
                                                 }}
                                             </p>
                                         </div>
                                         <AlertDialogTrigger asChild>
                                             <Button size="sm" variant="destructive">
-                                                {{ userStore.isFamilyAdmin ? "Delete" : "Leave" }}
+                                                {{
+                                                    userStore.isFamilyAdmin
+                                                        ? t("common.delete")
+                                                        : t("settings.family.leave")
+                                                }}
                                             </Button>
                                         </AlertDialogTrigger>
                                     </div>
@@ -299,37 +306,43 @@ async function removeMember(id: string) {
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>
-                                                {{ userStore.isFamilyAdmin ? "Delete family" : "Leave family" }}
+                                                {{
+                                                    userStore.isFamilyAdmin
+                                                        ? t("settings.family.deleteFamily")
+                                                        : t("settings.family.leaveFamily")
+                                                }}
                                             </AlertDialogTitle>
                                             <AlertDialogDescription>
                                                 <template v-if="userStore.isFamilyAdmin">
-                                                    This action will permanently delete the family, remove all invites
-                                                    and unlink members. This cannot be undone.
+                                                    {{ t("settings.family.deleteFamilyDescription") }}
                                                 </template>
                                                 <template v-else>
-                                                    Are you sure you want to leave the family? You will no longer have
-                                                    access to shared data.
+                                                    {{ t("settings.family.leaveFamilyDescription") }}
                                                 </template>
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
                                             <AlertDialogAction
                                                 :disabled="familyActionLoading"
                                                 @click="
                                                     userStore.isFamilyAdmin ? handleDeleteFamily() : handleLeaveFamily()
                                                 ">
                                                 <span v-if="!familyActionLoading">
-                                                    {{ userStore.isFamilyAdmin ? "Delete" : "Leave" }}
+                                                    {{
+                                                        userStore.isFamilyAdmin
+                                                            ? t("common.delete")
+                                                            : t("settings.family.leave")
+                                                    }}
                                                 </span>
-                                                <span v-else>Processing...</span>
+                                                <span v-else>{{ t("common.processing") }}</span>
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
                             </template>
 
-                            <p v-else class="text-muted-foreground text-sm">Unable to load family details.</p>
+                            <p v-else class="text-muted-foreground text-sm">{{ t("settings.family.unableToLoad") }}</p>
                         </div>
                     </Card>
                 </aside>
@@ -355,40 +368,46 @@ async function removeMember(id: string) {
 
                         <div v-else>
                             <section v-if="family">
-                                <h3 class="mb-2 text-lg font-medium">Family info</h3>
+                                <h3 class="mb-2 text-lg font-medium">{{ t("settings.family.info") }}</h3>
                                 <div class="text-muted-foreground mb-4 text-sm">
-                                    Owner: {{ family.owner?.username }} ({{ family.owner?.email }})
+                                    {{ t("settings.family.owner") }}: {{ family.owner?.username }} ({{
+                                        family.owner?.email
+                                    }})
                                 </div>
 
-                                <h4 class="mb-2 font-medium">Family settings</h4>
+                                <h4 class="mb-2 font-medium">{{ t("settings.family.settings") }}</h4>
                                 <div class="mb-6 space-y-4">
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium">Family Name</label>
+                                        <label class="mb-2 block text-sm font-medium">{{
+                                            t("settings.family.familyName")
+                                        }}</label>
                                         <div class="flex gap-3">
                                             <Input
                                                 v-model="editFamilyName"
                                                 :disabled="!userStore.isFamilyAdmin"
-                                                aria-label="Family name"
+                                                :aria-label="t('settings.family.familyName')"
                                                 class="flex-1"
-                                                placeholder="Family name" />
+                                                :placeholder="t('settings.family.familyName')" />
                                             <Button
                                                 :disabled="savingFamilyName || !canSaveFamilyName"
                                                 aria-label="Save family name"
                                                 size="sm"
                                                 variant="default"
                                                 @click="saveFamilyNameOnly">
-                                                <span v-if="!savingFamilyName">Save</span>
-                                                <span v-else>Saving...</span>
+                                                <span v-if="!savingFamilyName">{{ t("common.save") }}</span>
+                                                <span v-else>{{ t("common.saving") }}</span>
                                             </Button>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label class="mb-2 block text-sm font-medium">Currency</label>
+                                        <label class="mb-2 block text-sm font-medium">{{
+                                            t("settings.family.currency")
+                                        }}</label>
                                         <div class="flex gap-3">
                                             <Select v-model="editFamilyCurrency" :disabled="!userStore.isFamilyAdmin">
                                                 <SelectTrigger aria-label="Currency" class="flex-1">
-                                                    <SelectValue placeholder="Select currency" />
+                                                    <SelectValue :placeholder="t('settings.family.selectCurrency')" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
@@ -404,20 +423,20 @@ async function removeMember(id: string) {
                                                 size="sm"
                                                 variant="default"
                                                 @click="saveFamilyCurrencyOnly">
-                                                <span v-if="!savingFamilyCurrency">Save</span>
-                                                <span v-else>Saving...</span>
+                                                <span v-if="!savingFamilyCurrency">{{ t("common.save") }}</span>
+                                                <span v-else>{{ t("common.saving") }}</span>
                                             </Button>
                                         </div>
                                     </div>
                                 </div>
 
                                 <p v-if="!userStore.isFamilyAdmin" class="text-muted-foreground mb-6 text-sm">
-                                    Only family admins can update family settings.
+                                    {{ t("settings.family.adminOnly") }}
                                 </p>
 
                                 <hr class="border-border my-4" />
 
-                                <h4 class="font-medium">Members</h4>
+                                <h4 class="font-medium">{{ t("settings.family.members") }}</h4>
                                 <ul class="mb-4">
                                     <li
                                         v-for="member in family.members || []"
@@ -442,23 +461,26 @@ async function removeMember(id: string) {
                                                         aria-label="Remove member"
                                                         size="sm"
                                                         variant="destructive">
-                                                        <span v-if="removingMemberId !== member.id">Remove</span>
-                                                        <span v-else>Removing...</span>
+                                                        <span v-if="removingMemberId !== member.id">
+                                                            {{ t("settings.family.remove") }}
+                                                        </span>
+                                                        <span v-else>{{ t("settings.family.removing") }}</span>
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Remove member</AlertDialogTitle>
+                                                        <AlertDialogTitle>{{
+                                                            t("settings.family.removeMember")
+                                                        }}</AlertDialogTitle>
                                                         <AlertDialogDescription>
-                                                            Are you sure you want to remove this member from the family?
-                                                            They will lose access to shared data.
+                                                            {{ t("settings.family.removeMemberDescription") }}
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction @click="() => removeMember(member.id)"
-                                                            >Remove</AlertDialogAction
-                                                        >
+                                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                                        <AlertDialogAction @click="() => removeMember(member.id)">{{
+                                                            t("settings.family.remove")
+                                                        }}</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
@@ -468,18 +490,20 @@ async function removeMember(id: string) {
 
                                 <hr v-if="userStore.isFamilyAdmin" class="border-border my-4" />
 
-                                <h4 v-if="userStore.isFamilyAdmin" class="mb-2 font-medium">Invites</h4>
+                                <h4 v-if="userStore.isFamilyAdmin" class="mb-2 font-medium">
+                                    {{ t("settings.family.invites") }}
+                                </h4>
                                 <div v-if="userStore.isFamilyAdmin" class="mb-3 flex gap-2">
                                     <Input
                                         v-model="inviteEmail"
                                         aria-label="Invite email"
-                                        placeholder="member@example.com" />
+                                        :placeholder="t('settings.family.invitePlaceholder')" />
                                     <Button
                                         :disabled="!inviteEmail || inviting"
                                         aria-label="Invite member"
                                         @click="handleInvite">
-                                        <span v-if="!inviting">Invite</span>
-                                        <span v-else>Inviting...</span>
+                                        <span v-if="!inviting">{{ t("settings.family.invite") }}</span>
+                                        <span v-else>{{ t("settings.family.inviting") }}</span>
                                     </Button>
                                 </div>
 
@@ -492,21 +516,23 @@ async function removeMember(id: string) {
                                             <div class="text-sm">
                                                 {{ inv.email }}
                                             </div>
-                                            <div class="text-muted-foreground text-xs">Code: {{ inv.code }}</div>
+                                            <div class="text-muted-foreground text-xs">
+                                                {{ t("settings.family.code") }}: {{ inv.code }}
+                                            </div>
                                         </div>
                                         <div class="flex gap-2">
                                             <Button
                                                 aria-label="Copy invite code"
                                                 size="sm"
                                                 @click="copyInviteCode(inv.code)"
-                                                >Copy</Button
+                                                >{{ t("common.copy") }}</Button
                                             >
                                             <Button
                                                 aria-label="Revoke invite"
                                                 size="sm"
                                                 variant="destructive"
                                                 @click="handleRevoke(inv.code)"
-                                                >Revoke</Button
+                                                >{{ t("settings.family.revoke") }}</Button
                                             >
                                         </div>
                                     </li>
@@ -514,7 +540,7 @@ async function removeMember(id: string) {
                             </section>
 
                             <section v-else class="text-muted-foreground text-sm">
-                                <div>You are not a member of any family. Create one or ask to be invited.</div>
+                                <div>{{ t("settings.family.notMember") }}</div>
                             </section>
                         </div>
                     </Card>

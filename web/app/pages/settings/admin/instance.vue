@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
+import {useI18n} from "vue-i18n";
 import {useUserStore} from "~/stores/user.store";
 import {useApi} from "~/composables/useApi";
 import {Card} from "@/components/ui/card";
@@ -27,13 +28,14 @@ const config = useRuntimeConfig();
 
 const frontendVersion = computed(() => config.public.appVersion as string);
 const backendVersion = ref("...");
+const {t} = useI18n();
 
 const {copy} = useClipboard();
 
 const copyVersions = async () => {
     const text = `Web: ${frontendVersion.value}\nServer: ${backendVersion.value}`;
     await copy(text);
-    toast.success("Versions copied to clipboard");
+    toast.success(t("settings.instance.toasts.versionsCopied"));
 };
 
 const loading = ref(false);
@@ -56,7 +58,7 @@ async function load() {
             const data = await apiFetch<{version: string}>("/version");
             backendVersion.value = data.version;
         } catch {
-            backendVersion.value = "unknown";
+            backendVersion.value = t("settings.instance.unknown");
         }
     } finally {
         loading.value = false;
@@ -79,12 +81,12 @@ async function saveRegistration() {
 async function saveOwner() {
     const nextOwnerId = ownerId.value.trim();
     if (!nextOwnerId) {
-        toast.error("Owner ID is required.");
+        toast.error(t("settings.instance.errors.ownerRequired"));
         return;
     }
 
     if (!isValidUuidV7(nextOwnerId)) {
-        toast.error("Owner ID must be a valid UUID v7.");
+        toast.error(t("settings.instance.errors.ownerInvalid"));
         return;
     }
 
@@ -102,58 +104,74 @@ async function saveOwner() {
     <div class="w-full">
         <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6">
-                <h1 class="text-2xl font-semibold">Instance settings</h1>
-                <p class="text-muted-foreground text-sm">Manage global instance settings</p>
+                <h1 class="text-2xl font-semibold">{{ t("settings.instance.title") }}</h1>
+                <p class="text-muted-foreground text-sm">{{ t("settings.instance.subtitle") }}</p>
             </div>
 
             <Card>
                 <div class="flex flex-col gap-4">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-sm font-medium">Versions</div>
-                            <div class="text-muted-foreground text-xs">Current version of the frontend and backend</div>
+                            <div class="text-sm font-medium">{{ t("settings.instance.versions") }}</div>
+                            <div class="text-muted-foreground text-xs">
+                                {{ t("settings.instance.versionsDescription") }}
+                            </div>
                         </div>
                         <div class="flex items-center gap-4 text-sm">
                             <div class="flex flex-col items-end gap-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-muted-foreground text-xs">Web</span>
+                                    <span class="text-muted-foreground text-xs">{{ t("settings.instance.web") }}</span>
                                     <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
                                         frontendVersion
                                     }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-muted-foreground text-xs">Server</span>
+                                    <span class="text-muted-foreground text-xs">{{
+                                        t("settings.instance.server")
+                                    }}</span>
                                     <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
                                         backendVersion
                                     }}</span>
                                 </div>
                             </div>
-                            <Button size="icon" title="Copy versions" variant="ghost" @click="copyVersions">
+                            <Button
+                                :title="t('settings.instance.copyVersions')"
+                                size="icon"
+                                variant="ghost"
+                                @click="copyVersions">
                                 <Icon class="size-4" name="iconoir:copy" />
                             </Button>
                         </div>
                     </div>
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-sm font-medium">Registration</div>
-                            <div class="text-muted-foreground text-xs">Allow users to register</div>
+                            <div class="text-sm font-medium">{{ t("settings.instance.registration") }}</div>
+                            <div class="text-muted-foreground text-xs">
+                                {{ t("settings.instance.registrationDescription") }}
+                            </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <Switch v-model="registrationEnabled" aria-label="Registration enabled" />
+                            <Switch
+                                v-model="registrationEnabled"
+                                :aria-label="t('settings.instance.registrationEnabled')" />
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button :disabled="savingRegistration" size="sm">Save</Button>
+                                    <Button :disabled="savingRegistration" size="sm">{{ t("common.save") }}</Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Save registration setting</AlertDialogTitle>
+                                        <AlertDialogTitle>{{
+                                            t("settings.instance.saveRegistrationTitle")
+                                        }}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Changing registration setting affects who can create accounts. Are you sure?
+                                            {{ t("settings.instance.saveRegistrationDescription") }}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction @click="saveRegistration">Save</AlertDialogAction>
+                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                        <AlertDialogAction @click="saveRegistration">{{
+                                            t("common.save")
+                                        }}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -162,26 +180,29 @@ async function saveOwner() {
 
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-sm font-medium">Instance owner</div>
-                            <div class="text-muted-foreground text-xs">Set the owner of this instance (user id)</div>
+                            <div class="text-sm font-medium">{{ t("settings.instance.owner") }}</div>
+                            <div class="text-muted-foreground text-xs">
+                                {{ t("settings.instance.ownerDescription") }}
+                            </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <Input v-model="ownerId" placeholder="owner id" />
+                            <Input v-model="ownerId" :placeholder="t('settings.instance.ownerPlaceholder')" />
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button :disabled="savingOwner" size="sm">Save</Button>
+                                    <Button :disabled="savingOwner" size="sm">{{ t("common.save") }}</Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Change instance owner</AlertDialogTitle>
+                                        <AlertDialogTitle>{{
+                                            t("settings.instance.changeOwnerTitle")
+                                        }}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Changing the instance owner transfers administrative control. This is
-                                            destructive. Proceed?
+                                            {{ t("settings.instance.changeOwnerDescription") }}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction @click="saveOwner">Save</AlertDialogAction>
+                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                        <AlertDialogAction @click="saveOwner">{{ t("common.save") }}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>

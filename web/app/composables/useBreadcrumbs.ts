@@ -1,5 +1,6 @@
 import {computed} from "vue";
 import {useRoute} from "vue-router";
+import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
 
 export type BreadcrumbItem = {
@@ -11,6 +12,7 @@ export type BreadcrumbItem = {
 export function useBreadcrumbs() {
     const route = useRoute();
     const accountStore = useAccountStore();
+    const {t} = useI18n();
 
     const breadcrumbs = computed<BreadcrumbItem[]>(() => {
         const path = route.path;
@@ -23,38 +25,38 @@ export function useBreadcrumbs() {
         }
 
         if (path.startsWith("/transactions")) {
-            items.push({label: "Transactions", href: "/transactions", icon: "iconoir:credit-card"});
+            items.push({label: t("breadcrumbs.transactions"), href: "/transactions", icon: "iconoir:credit-card"});
             return items;
         }
 
         if (path.startsWith("/account/")) {
             const accountId = segments[1];
             const account = accountStore.accounts.find((a) => a.id === accountId);
-            items.push({label: "Accounts", href: "/", icon: "iconoir:wallet"});
-            items.push({label: account?.name ?? "Account"});
+            items.push({label: t("breadcrumbs.accounts"), href: "/", icon: "iconoir:wallet"});
+            items.push({label: account?.name ?? t("breadcrumbs.account")});
             return items;
         }
 
         if (path.startsWith("/settings/admin")) {
-            items.push({label: "Settings", href: "/settings/user/profile", icon: "iconoir:settings"});
+            items.push({label: t("breadcrumbs.settings"), href: "/settings/user/profile", icon: "iconoir:settings"});
             const subSegment = segments[2];
             if (subSegment === "instance") {
-                items.push({label: "Instance"});
+                items.push({label: t("breadcrumbs.instance")});
             } else if (subSegment === "users") {
-                items.push({label: "Users"});
+                items.push({label: t("breadcrumbs.users")});
             }
             return items;
         }
 
         if (path.startsWith("/settings/user")) {
-            items.push({label: "Settings", href: "/settings/user/profile", icon: "iconoir:settings"});
+            items.push({label: t("breadcrumbs.settings"), href: "/settings/user/profile", icon: "iconoir:settings"});
             const subSegment = segments[2];
             if (subSegment === "profile") {
-                items.push({label: "Profile"});
+                items.push({label: t("breadcrumbs.profile")});
             } else if (subSegment === "family") {
-                items.push({label: "Family"});
+                items.push({label: t("breadcrumbs.family")});
             } else if (subSegment === "references") {
-                items.push({label: "References"});
+                items.push({label: t("breadcrumbs.references")});
             }
             return items;
         }

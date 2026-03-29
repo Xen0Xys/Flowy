@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import {
     type CreateTransactionPayload,
     type Transaction,
@@ -43,6 +44,7 @@ const transactionStore = useTransactionStore();
 const referenceStore = useReferenceStore();
 const accountStore = useAccountStore();
 const {apiFetch} = useApi();
+const {t} = useI18n();
 
 const isSubmitting = ref(false);
 const isDeleteDialogOpen = ref(false);
@@ -55,7 +57,7 @@ const loadData = async () => {
             !props.accountId ? accountStore.fetchAccounts() : Promise.resolve(),
         ]);
     } catch (e) {
-        console.error("Failed to load required data", e);
+        console.error(t("transactions.form.errors.loadData"), e);
     }
 };
 
@@ -143,7 +145,7 @@ const save = async () => {
             };
             const targetAccountId = props.accountId || formData.value.selectedAccountId;
             if (!targetAccountId) {
-                throw new Error("Account is required to create a transaction");
+                throw new Error(t("transactions.form.errors.accountRequired"));
             }
             await transactionStore.createTransaction(targetAccountId, payload);
         }
@@ -182,38 +184,39 @@ const executeDelete = async () => {
     <Dialog :open="open" @update:open="onOpenChange">
         <DialogContent class="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>{{ props.transaction ? "Edit Transaction" : "New Transaction" }}</DialogTitle>
+                <DialogTitle>
+                    {{ props.transaction ? t("transactions.form.editTitle") : t("transactions.form.newTitle") }}
+                </DialogTitle>
                 <DialogDescription>
                     {{
                         props.transaction
-                            ? "Update the details of this transaction. Click save when you're done."
-                            : "Add a new transaction. Click save when you're done."
+                            ? t("transactions.form.editDescription")
+                            : t("transactions.form.newDescription")
                     }}
                 </DialogDescription>
             </DialogHeader>
 
             <Tabs v-model="transactionType" class="mt-4 w-full">
                 <TabsList class="grid w-full grid-cols-2">
-                    <TabsTrigger value="expense">Expense</TabsTrigger>
-                    <TabsTrigger value="income">Income</TabsTrigger>
+                    <TabsTrigger value="expense">{{ t("transactions.filters.expense") }}</TabsTrigger>
+                    <TabsTrigger value="income">{{ t("transactions.filters.income") }}</TabsTrigger>
                 </TabsList>
             </Tabs>
 
             <Alert v-if="props.transaction?.isRebalance" class="bg-muted/50 mt-4" variant="default">
-                <AlertTitle>System Transaction</AlertTitle>
+                <AlertTitle>{{ t("transactions.form.systemTransaction") }}</AlertTitle>
                 <AlertDescription>
-                    This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of
-                    sync.
+                    {{ t("transactions.form.systemTransactionDescription") }}
                 </AlertDescription>
             </Alert>
 
             <form class="grid gap-4 py-4" @submit.prevent="save">
                 <div v-if="!props.accountId && !props.transaction" class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="account"> Account </Label>
+                    <Label class="text-right" for="account"> {{ t("transactions.table.account") }} </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.selectedAccountId" required>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select an account" />
+                                <SelectValue :placeholder="t('transactions.form.selectAccount')" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -230,32 +233,32 @@ const executeDelete = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="amount"> Amount </Label>
+                    <Label class="text-right" for="amount"> {{ t("transactions.table.amount") }} </Label>
                     <div class="col-span-3">
                         <Input id="amount" v-model.number="formData.amount" min="0" required step="0.01" type="number" />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="description"> Description </Label>
+                    <Label class="text-right" for="description"> {{ t("transactions.table.description") }} </Label>
                     <Input id="description" v-model="formData.description" class="col-span-3" required />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="date"> Date </Label>
+                    <Label class="text-right" for="date"> {{ t("transactions.table.date") }} </Label>
                     <Input id="date" v-model="formData.date" class="col-span-3" required type="date" />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="category"> Category </Label>
+                    <Label class="text-right" for="category"> {{ t("transactions.table.category") }} </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.categoryId">
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
+                                <SelectValue :placeholder="t('transactions.form.selectCategory')" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="none">{{ t("common.none") }}</SelectItem>
                                     <SelectItem v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
                                         <div class="flex items-center gap-2">
                                             <Icon :name="cat.icon" :style="{color: cat.hexColor}" class="h-4 w-4" />
@@ -269,15 +272,15 @@ const executeDelete = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="merchant"> Merchant </Label>
+                    <Label class="text-right" for="merchant"> {{ t("transactions.filters.merchant") }} </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.merchantId">
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a merchant" />
+                                <SelectValue :placeholder="t('transactions.form.selectMerchant')" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="none">{{ t("common.none") }}</SelectItem>
                                     <SelectItem
                                         v-for="merchant in availableMerchants"
                                         :key="merchant.id"
@@ -299,15 +302,17 @@ const executeDelete = async () => {
                     variant="destructive"
                     @click="confirmDelete">
                     <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
-                    Delete
+                    {{ t("common.delete") }}
                 </Button>
                 <div v-else></div>
                 <!-- spacer for justify-between -->
 
                 <div class="flex items-center gap-2">
-                    <Button type="button" variant="outline" @click="emit('update:open', false)"> Cancel </Button>
+                    <Button type="button" variant="outline" @click="emit('update:open', false)">
+                        {{ t("common.cancel") }}
+                    </Button>
                     <Button :disabled="isSubmitting || isDeleting" type="submit" @click="save">
-                        {{ isSubmitting ? "Saving..." : "Save changes" }}
+                        {{ isSubmitting ? t("common.saving") : t("transactions.form.saveChanges") }}
                     </Button>
                 </div>
             </DialogFooter>
@@ -317,18 +322,18 @@ const executeDelete = async () => {
     <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Delete transaction</AlertDialogTitle>
+                <AlertDialogTitle>{{ t("transactions.form.deleteTitle") }}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Are you sure you want to delete this transaction? This action cannot be undone.
+                    {{ t("transactions.form.deleteDescription") }}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
+                <AlertDialogCancel :disabled="isDeleting">{{ t("common.cancel") }}</AlertDialogCancel>
                 <AlertDialogAction
                     :disabled="isDeleting"
                     class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     @click="executeDelete">
-                    {{ isDeleting ? "Deleting..." : "Delete" }}
+                    {{ isDeleting ? t("common.deleting") : t("common.delete") }}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

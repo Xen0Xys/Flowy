@@ -3,6 +3,11 @@ import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useAuthStore} from "~/stores/auth.store";
 
+const i18nT = (key: string, params?: Record<string, unknown>) => {
+    const i18n = useNuxtApp().$i18n;
+    return (params ? (i18n?.t(key, params) as string | undefined) : (i18n?.t(key) as string | undefined)) ?? key;
+};
+
 export type User = {
     id: string;
     username: string;
@@ -52,9 +57,9 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 if (err?.status === 401 || err?.response?.status === 401) {
                     authStore.logout();
-                    toast.info("Session expired. Please log in again.");
+                    toast.info(i18nT("user.store.info.sessionExpired"));
                 }
-                const message = err?.message ?? "Failed fetching profile";
+                const message = err?.message ?? i18nT("user.store.errors.fetchProfile");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -70,10 +75,10 @@ export const useUserStore = defineStore("user", {
                     body: {username: newUsername},
                 });
                 this.user = updatedUser;
-                toast.success("Username updated");
+                toast.success(i18nT("user.store.success.usernameUpdated"));
                 return updatedUser;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating username";
+                const message = err?.message ?? i18nT("user.store.errors.updateUsername");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -89,10 +94,10 @@ export const useUserStore = defineStore("user", {
                     body: {email: newEmail},
                 });
                 this.user = updatedUser;
-                toast.success("Email updated");
+                toast.success(i18nT("user.store.success.emailUpdated"));
                 return updatedUser;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating email";
+                const message = err?.message ?? i18nT("user.store.errors.updateEmail");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -110,9 +115,9 @@ export const useUserStore = defineStore("user", {
                         newPassword,
                     },
                 });
-                toast.success("Password updated");
+                toast.success(i18nT("user.store.success.passwordUpdated"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating password";
+                const message = err?.message ?? i18nT("user.store.errors.updatePassword");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -126,7 +131,7 @@ export const useUserStore = defineStore("user", {
                 const users = await apiFetch<any[]>("/admin/users");
                 return users;
             } catch (err: any) {
-                const message = err?.message ?? "Failed listing users";
+                const message = err?.message ?? i18nT("user.store.errors.listUsers");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -139,7 +144,7 @@ export const useUserStore = defineStore("user", {
             try {
                 return await apiFetch<any>("/admin/instance/settings");
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching instance settings";
+                const message = err?.message ?? i18nT("user.store.errors.fetchInstanceSettings");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -154,9 +159,9 @@ export const useUserStore = defineStore("user", {
                     method: "PATCH",
                     body: {registrationEnabled: value},
                 });
-                toast.success("Registration setting updated");
+                toast.success(i18nT("user.store.success.registrationUpdated"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating registration setting";
+                const message = err?.message ?? i18nT("user.store.errors.updateRegistration");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -171,9 +176,9 @@ export const useUserStore = defineStore("user", {
                     method: "PATCH",
                     body: {ownerId: newOwnerId},
                 });
-                toast.success("Instance owner updated");
+                toast.success(i18nT("user.store.success.instanceOwnerUpdated"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating instance owner";
+                const message = err?.message ?? i18nT("user.store.errors.updateInstanceOwner");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -185,9 +190,9 @@ export const useUserStore = defineStore("user", {
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/admin/users/${id}`, {method: "DELETE"});
-                toast.success("User deleted");
+                toast.success(i18nT("user.store.success.userDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed deleting user";
+                const message = err?.message ?? i18nT("user.store.errors.deleteUser");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -202,9 +207,9 @@ export const useUserStore = defineStore("user", {
                     method: "PATCH",
                     body: {password},
                 });
-                toast.success("Password updated");
+                toast.success(i18nT("user.store.success.passwordUpdated"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating password";
+                const message = err?.message ?? i18nT("user.store.errors.updatePassword");
                 toast.error(message);
                 throw new Error(message);
             }

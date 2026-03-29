@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {ref} from "vue";
 import {toast} from "vue-sonner";
+import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -27,15 +28,16 @@ import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
 
 const router = useRouter();
 const familyStore = useFamilyStore();
+const {t} = useI18n();
 
 const form = ref({name: "", currency: "EUR"});
 const loading = ref(false);
 const error = ref<string | null>(null);
 
 const steps = [
-    {title: "Welcome", description: "Get started with Flowy"},
-    {title: "Create/Join", description: "Create or join a family"},
-    {title: "Invite", description: "Invite members"},
+    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
+    {title: t("onboarding.steps.createJoin.title"), description: t("onboarding.steps.createJoin.description")},
+    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
 ];
 
 // stepper indexes the steps from 0 in the template loop, start at 0 so
@@ -53,7 +55,7 @@ function validate() {
     const currency = normalizeCurrencyCode(form.value.currency);
 
     if (!name) {
-        const msg = "Family name is required.";
+        const msg = t("onboarding.create.errors.familyNameRequired");
         toast.error(msg);
         // remove inline error when using toast
         error.value = null;
@@ -61,14 +63,17 @@ function validate() {
     }
 
     if (!isValidFamilyName(name)) {
-        const msg = `Family name must be between ${FAMILY_NAME_MIN_LENGTH} and ${FAMILY_NAME_MAX_LENGTH} characters.`;
+        const msg = t("onboarding.create.errors.familyNameLength", {
+            min: FAMILY_NAME_MIN_LENGTH,
+            max: FAMILY_NAME_MAX_LENGTH,
+        });
         toast.error(msg);
         error.value = null;
         return false;
     }
 
     if (!isValidCurrencyCode(currency)) {
-        const msg = "Currency must be a valid 3-letter ISO code.";
+        const msg = t("onboarding.create.errors.currencyInvalid");
         toast.error(msg);
         error.value = null;
         return false;
@@ -90,7 +95,7 @@ async function submit() {
         });
         await router.push("/onboarding/invite");
     } catch (err: any) {
-        const msg = err?.data?.message ?? err?.message ?? "Failed to create family";
+        const msg = err?.data?.message ?? err?.message ?? t("onboarding.create.errors.createFailed");
         toast.error(msg);
         // ensure no inline error is left visible when using toast
         error.value = null;
@@ -127,12 +132,12 @@ async function submit() {
 
         <Card :class="cn('w-full self-center', 'max-w-md')" :innerClass="cn('p-6')">
             <header class="text-center">
-                <h1 class="text-2xl font-semibold">Create family</h1>
+                <h1 class="text-2xl font-semibold">{{ t("onboarding.create.title") }}</h1>
             </header>
             <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
                 <FormItem>
                     <FormField name="name">
-                        <FormLabel for="name">Family name</FormLabel>
+                        <FormLabel for="name">{{ t("onboarding.create.familyName") }}</FormLabel>
                         <FormControl>
                             <Input id="name" v-model="form.name" autofocus required />
                         </FormControl>
@@ -142,11 +147,11 @@ async function submit() {
 
                 <FormItem>
                     <FormField name="currency">
-                        <FormLabel for="currency">Currency</FormLabel>
+                        <FormLabel for="currency">{{ t("onboarding.create.currency") }}</FormLabel>
                         <FormControl>
                             <Select v-model="form.currency">
                                 <SelectTrigger id="currency">
-                                    <SelectValue placeholder="Select a currency" />
+                                    <SelectValue :placeholder="t('onboarding.create.selectCurrency')" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -166,9 +171,11 @@ async function submit() {
                 </div>
 
                 <div class="flex justify-between">
-                    <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">Retour</Button>
+                    <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">
+                        {{ t("common.back") }}
+                    </Button>
                     <Button :as="'button'" :disabled="loading" type="submit">{{
-                        loading ? "Creating..." : "Create"
+                        loading ? t("onboarding.create.loading") : t("onboarding.create.create")
                     }}</Button>
                 </div>
             </form>

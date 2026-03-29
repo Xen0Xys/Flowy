@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
 import type {Account} from "~/stores/account.store";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter} from "~/components/ui/dialog";
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 
 const accountStore = useAccountStore();
 const isLoading = ref(false);
+const {t} = useI18n();
 
 const formData = ref({
     name: "",
@@ -72,42 +74,52 @@ const submitForm = async () => {
     <Dialog :open="open" @update:open="$emit('update:open', $event)">
         <DialogContent class="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>{{ account ? "Edit account" : "Add account" }}</DialogTitle>
-                <DialogDescription> Fill in your bank account details. </DialogDescription>
+                <DialogTitle>{{ account ? t("accounts.form.editTitle") : t("accounts.form.addTitle") }}</DialogTitle>
+                <DialogDescription>{{ t("accounts.form.description") }}</DialogDescription>
             </DialogHeader>
 
             <form @submit.prevent="submitForm" class="space-y-4 py-4">
                 <div class="space-y-2">
-                    <Label for="name">Account name</Label>
-                    <Input id="name" v-model="formData.name" placeholder="Ex: Checking Account" required />
+                    <Label for="name">{{ t("accounts.form.name") }}</Label>
+                    <Input
+                        id="name"
+                        v-model="formData.name"
+                        :placeholder="t('accounts.form.namePlaceholder')"
+                        required />
                 </div>
 
                 <div class="space-y-2">
-                    <Label for="type">Category / Type</Label>
+                    <Label for="type">{{ t("accounts.form.type") }}</Label>
                     <Select v-model="formData.type">
                         <SelectTrigger>
-                            <SelectValue placeholder="Select a type" />
+                            <SelectValue :placeholder="t('accounts.form.selectType')" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="CHECKING">Checking</SelectItem>
-                            <SelectItem value="SAVINGS">Savings</SelectItem>
-                            <SelectItem value="INVESTMENT">Investment</SelectItem>
-                            <SelectItem value="CREDIT">Credit</SelectItem>
-                            <SelectItem value="CASH">Cash</SelectItem>
-                            <SelectItem value="OTHER">Other</SelectItem>
+                            <SelectItem value="CHECKING">{{ t("accounts.types.checking") }}</SelectItem>
+                            <SelectItem value="SAVINGS">{{ t("accounts.types.savings") }}</SelectItem>
+                            <SelectItem value="INVESTMENT">{{ t("accounts.types.investment") }}</SelectItem>
+                            <SelectItem value="CREDIT">{{ t("accounts.types.credit") }}</SelectItem>
+                            <SelectItem value="CASH">{{ t("accounts.types.cash") }}</SelectItem>
+                            <SelectItem value="OTHER">{{ t("accounts.types.other") }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 <div class="space-y-2">
-                    <Label for="balance">Balance ({{ account ? "current" : "initial" }})</Label>
+                    <Label for="balance">
+                        {{ t("accounts.form.balance") }} ({{
+                            account ? t("accounts.form.current") : t("accounts.form.initial")
+                        }})
+                    </Label>
                     <Input id="balance" type="number" step="0.01" v-model.number="formData.balance" required />
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" @click="$emit('update:open', false)">Cancel</Button>
+                    <Button type="button" variant="outline" @click="$emit('update:open', false)">
+                        {{ t("common.cancel") }}
+                    </Button>
                     <Button type="submit" :disabled="isLoading">
-                        {{ isLoading ? "Saving..." : "Save" }}
+                        {{ isLoading ? t("common.saving") : t("common.save") }}
                     </Button>
                 </DialogFooter>
             </form>
