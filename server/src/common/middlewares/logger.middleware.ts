@@ -5,6 +5,32 @@ import {FastifyReply, FastifyRequest} from "fastify";
 export class LoggerMiddleware implements NestMiddleware {
     static logger: Logger = new Logger(LoggerMiddleware.name);
 
+    private static getHeaderValue(value: string | string[] | undefined): string | undefined {
+        if (!value) return undefined;
+        return Array.isArray(value) ? value[0] : value;
+    }
+
+    static getClientIp(req: FastifyRequest): string {
+        const xForwardedFor = LoggerMiddleware.getHeaderValue(req.headers["x-forwarded-for"]);
+        const forwardedIp = xForwardedFor?.split(",")[0]?.trim();
+        if (forwardedIp) {
+            return forwardedIp;
+        }
+
+        const xRealIp = LoggerMiddleware.getHeaderValue(req.headers["x-real-ip"]);
+        if (xRealIp?.trim()) {
+            return xRealIp.trim();
+        }
+
+        const cfConnectingIp = LoggerMiddleware.getHeaderValue(req.headers["cf-connecting-ip"]);
+        if (cfConnectingIp?.trim()) {
+            return cfConnectingIp.trim();
+        }
+
+        const socketIp = req.raw?.socket?.remoteAddress;
+        return req.ip || socketIp || "Unknown IP";
+    }
+
     static getProtocol(req: FastifyRequest): string {
         return req.protocol.toUpperCase();
     }
@@ -36,8 +62,7 @@ export class LoggerMiddleware implements NestMiddleware {
                 const duration = Date.now() - startTime;
                 const resSize: any = res.getHeader("Content-Length") || "0";
                 const intResSize = parseInt(resSize);
-                // @ts-ignore
-                const ip = req.ip || "Unknown IP";
+                const ip = LoggerMiddleware.getClientIp(req);
                 LoggerMiddleware.logger.log(
                     `${protocol} ${method} ${path} ${statusCode} ${duration}ms ${intResSize} - ${ip}`,
                 );
