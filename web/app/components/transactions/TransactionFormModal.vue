@@ -271,6 +271,11 @@ const executeDelete = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="description"> {{ t("transactions.table.description") }} </Label>
+                    <Input id="description" v-model="formData.description" class="col-span-3" required />
+                </div>
+
+                <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="date"> {{ t("transactions.table.date") }} </Label>
                     <Input id="date" v-model="formData.date" class="col-span-3" required type="date" />
                 </div>
@@ -339,6 +344,7 @@ const executeDelete = async () => {
                     <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
                     {{ t("common.delete") }}
                 </Button>
+            </div>
             </div>
         </DialogContent>
     </Dialog>
