@@ -165,8 +165,8 @@ function findFamilyMemberRole(family: Family, userId: string) {
 function formatFamilyRole(role: string | null | undefined) {
     if (!role) return "-";
 
-    if (role === "ADMIN") return "Administrateur";
-    if (role === "USER") return "Membre";
+    if (role === "ADMIN") return "Administrator";
+    if (role === "USER") return "Member";
 
     return role;
 }

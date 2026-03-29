@@ -39,7 +39,7 @@ const initials = computed(() => {
     const parts = name.split(/\s+/).filter(Boolean);
     if (!parts.length) return "U";
     if (parts.length === 1) return parts[0]?.slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+    return ((parts[0] || [""])[0] || "" + (parts[1] || [""])[0]).toUpperCase();
 });
 const avatarUrl = computed(() => userStore.user?.avatar || "");
 
@@ -215,6 +215,7 @@ async function changePasswordNow() {
                         </div>
 
                         <div class="mb-6">
+                            <label class="mb-2 block text-sm font-medium">Email</label>
                             <div class="flex gap-3">
                                 <Input
                                     v-model="email"

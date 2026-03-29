@@ -100,7 +100,7 @@ async function saveOwner() {
 
 <template>
     <div class="w-full">
-        <div class="mx-auto w-full max-w-4xl py-6">
+        <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-semibold">Instance settings</h1>
                 <p class="text-muted-foreground text-sm">Manage global instance settings</p>
@@ -128,8 +128,8 @@ async function saveOwner() {
                                     }}</span>
                                 </div>
                             </div>
-                            <Button size="icon" variant="ghost" @click="copyVersions" title="Copy versions">
-                                <Icon name="iconoir:copy" class="size-4" />
+                            <Button size="icon" title="Copy versions" variant="ghost" @click="copyVersions">
+                                <Icon class="size-4" name="iconoir:copy" />
                             </Button>
                         </div>
                     </div>

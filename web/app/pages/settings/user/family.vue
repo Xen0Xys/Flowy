@@ -7,6 +7,7 @@ import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {Skeleton} from "@/components/ui/skeleton";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {useClipboard} from "@vueuse/core";
 import {
     AlertDialog,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {useRouter} from "#app";
 import {isValidCurrencyCode, isValidEmail, isValidFamilyName, normalizeCurrencyCode} from "@/lib/validation";
+import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
 
 const userStore = useUserStore();
 const familyStore = useFamilyStore();
@@ -37,16 +39,42 @@ const invites = ref<any[]>([]);
 
 const loading = ref(false);
 const familyLoaded = ref(false);
-const creating = ref(false);
 const inviting = ref(false);
 
-const newFamilyName = ref("");
-const newFamilyCurrency = ref("EUR");
 const inviteEmail = ref("");
 
-const hasFamily = computed(() => userStore.hasFamily);
+const editFamilyName = ref("");
+const editFamilyCurrency = ref("");
+const savingFamilyName = ref(false);
+const savingFamilyCurrency = ref(false);
+
 const removingMemberId = ref<string | null>(null);
 const familyActionLoading = ref(false);
+const currencyOptions = Object.keys(CURRENCY_LOCALES_MAP);
+const familyRoleLabel = computed(() => {
+    if (!family.value || !userStore.user?.id) return "Member";
+    if (family.value.owner?.id === userStore.user.id) return "Owner";
+    return userStore.isFamilyAdmin ? "Admin" : "Member";
+});
+
+const canSaveFamilyName = computed(() => {
+    if (!userStore.isFamilyAdmin) return false;
+    if (!family.value) return false;
+
+    const nextName = editFamilyName.value.trim();
+
+    return Boolean(nextName) && nextName !== family.value.name;
+});
+
+const canSaveFamilyCurrency = computed(() => {
+    if (!userStore.isFamilyAdmin) return false;
+    if (!family.value) return false;
+
+    const nextCurrency = normalizeCurrencyCode(editFamilyCurrency.value);
+    const currentCurrency = normalizeCurrencyCode(family.value.currency);
+
+    return Boolean(nextCurrency) && nextCurrency !== currentCurrency;
+});
 
 async function loadFamily() {
     if (!userStore.token) return;
@@ -54,47 +82,16 @@ async function loadFamily() {
     loading.value = true;
     try {
         family.value = await familyStore.fetchFamily();
+        if (family.value) {
+            editFamilyName.value = family.value.name;
+            editFamilyCurrency.value = family.value.currency;
+        }
         if (userStore.isFamilyAdmin) invites.value = await familyStore.getInvites();
     } catch (err) {
         // errors are handled in the store (toasts)
     } finally {
         loading.value = false;
         familyLoaded.value = true;
-    }
-}
-
-async function handleCreateFamily() {
-    if (!userStore.token) return;
-    const name = newFamilyName.value.trim();
-    const currency = normalizeCurrencyCode(newFamilyCurrency.value);
-
-    if (!name) {
-        toast.error("Family name is required.");
-        return;
-    }
-
-    if (!isValidFamilyName(name)) {
-        toast.error("Family name must be between 3 and 50 characters.");
-        return;
-    }
-
-    if (!isValidCurrencyCode(currency)) {
-        toast.error("Currency must be a valid 3-letter ISO code.");
-        return;
-    }
-
-    creating.value = true;
-    try {
-        await familyStore.createFamily({
-            name,
-            currency,
-        });
-        newFamilyName.value = "";
-        newFamilyCurrency.value = currency;
-        // refresh profile and family
-        await loadFamily();
-    } finally {
-        creating.value = false;
     }
 }
 
@@ -170,9 +167,64 @@ async function handleLeaveFamily() {
     }
 }
 
+async function saveFamilyNameOnly() {
+    if (!userStore.token || !userStore.isFamilyAdmin) return;
+    const name = editFamilyName.value.trim();
+
+    if (!family.value) return;
+
+    if (name === family.value.name) {
+        return;
+    }
+
+    if (!name) {
+        toast.error("Family name is required.");
+        return;
+    }
+
+    if (!isValidFamilyName(name)) {
+        toast.error("Family name must be between 3 and 50 characters.");
+        return;
+    }
+
+    savingFamilyName.value = true;
+    try {
+        await familyStore.updateFamilySettings({name});
+        editFamilyName.value = name;
+        await loadFamily();
+    } finally {
+        savingFamilyName.value = false;
+    }
+}
+
+async function saveFamilyCurrencyOnly() {
+    if (!userStore.token || !userStore.isFamilyAdmin) return;
+    const currency = normalizeCurrencyCode(editFamilyCurrency.value);
+
+    if (!family.value) return;
+
+    const currentCurrency = normalizeCurrencyCode(family.value.currency);
+    if (currency === currentCurrency) {
+        return;
+    }
+
+    if (!isValidCurrencyCode(currency)) {
+        toast.error("Currency must be a valid 3-letter ISO code.");
+        return;
+    }
+
+    savingFamilyCurrency.value = true;
+    try {
+        await familyStore.updateFamilySettings({currency});
+        editFamilyCurrency.value = currency;
+        await loadFamily();
+    } finally {
+        savingFamilyCurrency.value = false;
+    }
+}
+
 onMounted(async () => {
-    if (hasFamily.value) await loadFamily();
-    else familyLoaded.value = true;
+    await loadFamily();
 });
 
 async function removeMember(id: string) {
@@ -203,110 +255,77 @@ async function removeMember(id: string) {
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <aside class="md:col-span-1">
                     <Card class="h-full" innerClass="p-6">
-                        <div class="flex flex-col gap-3">
-                            <div class="text-muted-foreground text-sm">Status</div>
-                            <div class="text-lg font-medium">
-                                <span v-if="hasFamily">In a family</span>
-                                <span v-else>Not in a family</span>
+                        <div class="flex flex-col items-center gap-4 text-center">
+                            <div v-if="!familyLoaded || loading" class="w-full space-y-4">
+                                <Skeleton class="mx-auto h-5 w-32" />
+                                <Skeleton class="mx-auto h-4 w-24" />
                             </div>
-                            <div class="mt-2">
-                                <template v-if="!hasFamily">
-                                    <div class="text-muted-foreground mb-2 text-sm">
-                                        Create a new family to start sharing budgets and members.
+
+                            <template v-else-if="family">
+                                <div>
+                                    <div class="text-lg font-medium">
+                                        {{ family.name }}
                                     </div>
-                                    <div class="flex flex-col gap-2">
-                                        <Input
-                                            v-model="newFamilyName"
-                                            aria-label="Family name"
-                                            placeholder="Family name" />
-                                        <Input
-                                            v-model="newFamilyCurrency"
-                                            aria-label="Currency"
-                                            placeholder="Currency (e.g. EUR)" />
-                                        <Button
-                                            :disabled="creating || !userStore.token || !newFamilyName"
-                                            aria-label="Create family"
-                                            @click="handleCreateFamily">
-                                            <span v-if="!creating">Create family</span>
-                                            <span v-else>Creating...</span>
-                                        </Button>
-                                    </div>
-                                </template>
-                                <template v-else>
                                     <div class="text-muted-foreground text-sm">
-                                        <div v-if="!familyLoaded || loading">
-                                            <Skeleton class="mb-2 h-4 w-32" />
-                                            <Skeleton class="h-3 w-28" />
+                                        {{ family.members?.length ?? 0 }} member{{
+                                            (family.members?.length ?? 0) !== 1 ? "s" : ""
+                                        }}
+                                    </div>
+                                </div>
+
+                                <p class="text-muted-foreground text-xs">
+                                    {{ familyRoleLabel }}
+                                </p>
+
+                                <hr class="border-border w-full" />
+
+                                <AlertDialog>
+                                    <div class="flex w-full items-center justify-between">
+                                        <div class="text-left">
+                                            <p class="text-sm font-medium">Danger zone</p>
+                                            <p class="text-muted-foreground text-xs">
+                                                {{ userStore.isFamilyAdmin ? "Delete this family" : "Leave this family" }}
+                                            </p>
                                         </div>
-                                        <div v-else>
-                                            <div>{{ family?.name }}</div>
-                                            <div class="text-xs">Currency: {{ family?.currency }}</div>
-                                            <div class="mt-3">
+                                        <AlertDialogTrigger asChild>
+                                            <Button size="sm" variant="destructive">
+                                                {{ userStore.isFamilyAdmin ? "Delete" : "Leave" }}
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                    </div>
+
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                {{ userStore.isFamilyAdmin ? "Delete family" : "Leave family" }}
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
                                                 <template v-if="userStore.isFamilyAdmin">
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button
-                                                                :disabled="familyActionLoading"
-                                                                aria-label="Delete family"
-                                                                size="sm"
-                                                                variant="destructive">
-                                                                <span v-if="!familyActionLoading">Delete family</span>
-                                                                <span v-else>Processing...</span>
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Delete family</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    This action will permanently delete the family,
-                                                                    remove all invites and unlink members. This cannot be
-                                                                    undone.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction @click="handleDeleteFamily"
-                                                                    >Delete</AlertDialogAction
-                                                                >
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
+                                                    This action will permanently delete the family,
+                                                    remove all invites and unlink members. This cannot be undone.
                                                 </template>
                                                 <template v-else>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button
-                                                                :disabled="familyActionLoading"
-                                                                aria-label="Leave family"
-                                                                size="sm"
-                                                                variant="destructive">
-                                                                <span v-if="!familyActionLoading">Leave family</span>
-                                                                <span v-else>Processing...</span>
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Leave family</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Are you sure you want to leave the family? You will
-                                                                    no longer have access to shared data.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                >
-                                                                <AlertDialogAction @click="handleLeaveFamily"
-                                                                    >Leave</AlertDialogAction
-                                                                >
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
+                                                    Are you sure you want to leave the family? You will no longer
+                                                    have access to shared data.
                                                 </template>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                :disabled="familyActionLoading"
+                                                @click="userStore.isFamilyAdmin ? handleDeleteFamily() : handleLeaveFamily()">
+                                                <span v-if="!familyActionLoading">
+                                                    {{ userStore.isFamilyAdmin ? "Delete" : "Leave" }}
+                                                </span>
+                                                <span v-else>Processing...</span>
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </template>
+
+                            <p v-else class="text-muted-foreground text-sm">Unable to load family details.</p>
                         </div>
                     </Card>
                 </aside>
@@ -336,6 +355,63 @@ async function removeMember(id: string) {
                                 <div class="text-muted-foreground mb-4 text-sm">
                                     Owner: {{ family.owner?.username }} ({{ family.owner?.email }})
                                 </div>
+
+                                <h4 class="mb-2 font-medium">Family settings</h4>
+                                <div class="mb-6 space-y-4">
+                                    <div>
+                                        <label class="mb-2 block text-sm font-medium">Family Name</label>
+                                        <div class="flex gap-3">
+                                            <Input
+                                                v-model="editFamilyName"
+                                                :disabled="!userStore.isFamilyAdmin"
+                                                aria-label="Family name"
+                                                class="flex-1"
+                                                placeholder="Family name" />
+                                            <Button
+                                                :disabled="savingFamilyName || !canSaveFamilyName"
+                                                aria-label="Save family name"
+                                                size="sm"
+                                                variant="default"
+                                                @click="saveFamilyNameOnly">
+                                                <span v-if="!savingFamilyName">Save</span>
+                                                <span v-else>Saving...</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="mb-2 block text-sm font-medium">Currency</label>
+                                        <div class="flex gap-3">
+                                            <Select v-model="editFamilyCurrency" :disabled="!userStore.isFamilyAdmin">
+                                                <SelectTrigger aria-label="Currency" class="flex-1">
+                                                    <SelectValue placeholder="Select currency" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <template v-for="code in currencyOptions" :key="code">
+                                                            <SelectItem :value="code">{{ code }}</SelectItem>
+                                                        </template>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <Button
+                                                :disabled="savingFamilyCurrency || !canSaveFamilyCurrency"
+                                                aria-label="Save family currency"
+                                                size="sm"
+                                                variant="default"
+                                                @click="saveFamilyCurrencyOnly">
+                                                <span v-if="!savingFamilyCurrency">Save</span>
+                                                <span v-else>Saving...</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p v-if="!userStore.isFamilyAdmin" class="text-muted-foreground mb-6 text-sm">
+                                    Only family admins can update family settings.
+                                </p>
+
+                                <hr class="border-border my-4" />
 
                                 <h4 class="font-medium">Members</h4>
                                 <ul class="mb-4">
