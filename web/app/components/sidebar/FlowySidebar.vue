@@ -34,7 +34,7 @@ const inSettings = computed(() => route.path.startsWith("/settings"));
 
 const config = useRuntimeConfig();
 const version = computed(() => {
-    return config.public.appVersion;
+    return config.public.appVersion as string;
 });
 
 // show/hide instance/admin settings links depending on permissions
@@ -114,7 +114,7 @@ async function handleLogout() {
                             </div>
                             <div class="flex flex-col gap-0.5 leading-none">
                                 <span class="font-semibold">Flowy</span>
-                                <span>{{ version }}</span>
+                                <span class="text-muted-foreground text-xs">{{ version }}</span>
                             </div>
                         </div>
                     </SidebarMenuButton>

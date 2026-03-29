@@ -1,10 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
+import pkg from "./package.json";
 
 export default defineNuxtConfig({
     runtimeConfig: {
         public: {
             apiBase: process.env.NUXT_PUBLIC_API_BASE || "",
+            appVersion: pkg.version,
         },
     },
     compatibilityDate: "2025-07-15",

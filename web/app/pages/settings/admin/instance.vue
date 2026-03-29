@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import {onMounted, ref} from "vue";
+import {computed, onMounted, ref} from "vue";
 import {useUserStore} from "~/stores/user.store";
+import {useApi} from "~/composables/useApi";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -18,8 +19,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import {isValidUuidV7} from "@/lib/validation";
 import {toast} from "vue-sonner";
+import {useClipboard} from "@vueuse/core";
 
 const userStore = useUserStore();
+const {apiFetch} = useApi();
+const config = useRuntimeConfig();
+
+const frontendVersion = computed(() => config.public.appVersion as string);
+const backendVersion = ref("...");
+
+const {copy} = useClipboard();
+
+const copyVersions = async () => {
+    const text = `Web: ${frontendVersion.value}\nServer: ${backendVersion.value}`;
+    await copy(text);
+    toast.success("Versions copied to clipboard");
+};
 
 const loading = ref(false);
 const settings = ref<any>(null);
@@ -36,6 +51,13 @@ async function load() {
         settings.value = s;
         ownerId.value = s?.instanceOwner ?? "";
         registrationEnabled.value = !!s?.registrationEnabled;
+
+        try {
+            const data = await apiFetch<{version: string}>("/version");
+            backendVersion.value = data.version;
+        } catch {
+            backendVersion.value = "unknown";
+        }
     } finally {
         loading.value = false;
     }
@@ -86,6 +108,31 @@ async function saveOwner() {
 
             <Card>
                 <div class="flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-medium">Versions</div>
+                            <div class="text-muted-foreground text-xs">Current version of the frontend and backend</div>
+                        </div>
+                        <div class="flex items-center gap-4 text-sm">
+                            <div class="flex flex-col items-end gap-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-muted-foreground text-xs">Web</span>
+                                    <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
+                                        frontendVersion
+                                    }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-muted-foreground text-xs">Server</span>
+                                    <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
+                                        backendVersion
+                                    }}</span>
+                                </div>
+                            </div>
+                            <Button size="icon" variant="ghost" @click="copyVersions" title="Copy versions">
+                                <Icon name="iconoir:copy" class="size-4" />
+                            </Button>
+                        </div>
+                    </div>
                     <div class="flex items-center justify-between">
                         <div>
                             <div class="text-sm font-medium">Registration</div>

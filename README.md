@@ -25,15 +25,19 @@ One place. All your accounts. Everyone in the loop.
 ## What Flowy gives you
 
 ### 🏠 A shared household workspace
+
 Create a family space and work on the same financial picture together. Invite your partner or family members — everyone sees the same data, in real time.
 
 ### 🏦 All your accounts in one place
+
 Manage checking, savings, credit, cash, investment, and custom account types from a single dashboard. No more switching between apps to get the full picture.
 
 ### 🧾 Transactions that actually make sense
+
 Classify each transaction with merchants and categories you define. Build your own catalog, adapted to how you actually spend money — not some generic preset list.
 
 ### 🔒 Your data, your server
+
 Flowy is self-hosted. You control the deployment, the database, and who has access. No third-party sync, no subscription required, no data harvested.
 
 ---
@@ -54,13 +58,13 @@ Flowy is self-hosted. You control the deployment, the database, and who has acce
 
 ## Flowy vs spreadsheet
 
-| | Flowy | Spreadsheet |
-|---|---|---|
-| **Onboarding** | Guided setup and family invites | Manual tab setup |
-| **Collaboration** | Shared household context | File links and version confusion |
-| **Structure** | Accounts, categories, merchants, transactions | Free-form cells |
-| **Consistency** | Reusable references, standardized entries | Ad hoc naming |
-| **Scale** | Built for long-term history and multi-user workflows | Fragile growth |
+|                   | Flowy                                                | Spreadsheet                      |
+| ----------------- | ---------------------------------------------------- | -------------------------------- |
+| **Onboarding**    | Guided setup and family invites                      | Manual tab setup                 |
+| **Collaboration** | Shared household context                             | File links and version confusion |
+| **Structure**     | Accounts, categories, merchants, transactions        | Free-form cells                  |
+| **Consistency**   | Reusable references, standardized entries            | Ad hoc naming                    |
+| **Scale**         | Built for long-term history and multi-user workflows | Fragile growth                   |
 
 ---
 
@@ -116,19 +120,19 @@ cp web/.env.example web/.env
 
 Configure required variables in `server/.env`:
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `APP_NAME` | App name used by JWT issuer and docs |
-| `APP_SECRET` | Secret for JWT/cookies (required) |
-| `NODE_ENV` | `development` \| `production` \| `test` |
-| `PREFIX` | Global API prefix (optional) |
+| Variable       | Description                                |
+| -------------- | ------------------------------------------ |
+| `DATABASE_URL` | PostgreSQL connection string               |
+| `APP_NAME`     | App name used by JWT issuer and docs       |
+| `APP_SECRET`   | Secret for JWT/cookies (required)          |
+| `NODE_ENV`     | `development` \| `production` \| `test`    |
+| `PREFIX`       | Global API prefix (optional)               |
 | `CORS_ORIGINS` | Comma-separated allowed origins (optional) |
 
 Frontend (`web/.env`):
 
-| Variable | Description |
-|---|---|
+| Variable               | Description         |
+| ---------------------- | ------------------- |
 | `NUXT_PUBLIC_API_BASE` | Public API base URL |
 
 ```bash
@@ -144,6 +148,7 @@ bun run dev
 ```
 
 Default local URLs:
+
 - Frontend: `http://localhost:3000`
 - API: `http://localhost:4000`
 - Swagger: `http://localhost:4000/api`
@@ -164,16 +169,19 @@ docker compose -f docker-compose.dev.yaml down
 ### Scripts
 
 **Root**
+
 - `bun run lint` — run oxlint + oxfmt check
 - `bun run lint:fix` — auto-fix lint and formatting
 
 **Frontend (`web/`)**
+
 - `bun run dev` — start Nuxt dev server
 - `bun run build` — production build
 - `bun run preview` — serve production build locally
 - `bun run generate` — generate static output
 
 **Backend (`server/`)**
+
 - `bun run dev` — run API in hot-reload mode
 - `bun run start` — start Nest via Bun
 - `bun run build` — bundle app into `dist/`

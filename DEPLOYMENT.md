@@ -122,12 +122,12 @@ In production, deploy this file via the Coolify UI with all required `SERVICE_*`
 
 ## 7. Quick troubleshooting
 
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| API healthcheck failing | Missing `APP_SECRET` or unreachable DB | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server` |
-| Frontend cannot reach API | Wrong `NUXT_PUBLIC_API_BASE` | Set the API public URL (Coolify) or `http://localhost:4000` locally |
-| Postgres auth errors | Credentials mismatch | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify) |
-| `flowy-server:latest` not found | Image unavailable | Use `docker-compose.dev.yaml` or publish images to a registry |
+| Symptom                         | Likely cause                           | Fix                                                                          |
+| ------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
+| API healthcheck failing         | Missing `APP_SECRET` or unreachable DB | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server` |
+| Frontend cannot reach API       | Wrong `NUXT_PUBLIC_API_BASE`           | Set the API public URL (Coolify) or `http://localhost:4000` locally          |
+| Postgres auth errors            | Credentials mismatch                   | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify)      |
+| `flowy-server:latest` not found | Image unavailable                      | Use `docker-compose.dev.yaml` or publish images to a registry                |
 
 ---
 
