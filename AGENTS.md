@@ -19,13 +19,13 @@
 ## BUILD / LINT / TEST COMMANDS
 
 16. ROOT INSTALL — `bun install` (runs workspace-aware install for frontend and backend).
-17. ROOT LINT CHECK — `bun run lint` (executes `oxlint .` followed by `prettier --check .`).
-18. ROOT LINT FIX — `bun run lint:fix` (runs `oxlint --fix` then `prettier --write`).
+17. ROOT LINT CHECK — `bun run lint` (executes `oxlint .` followed by `oxfmt --check .`).
+18. ROOT LINT FIX — `bun run lint:fix` (runs `oxlint --fix .` then `oxfmt --write .`).
 19. ROOT TEST SUITE — `bun test` (Bun’s built-in test runner; respects `bunfig.toml` if present).
 20. SINGLE TEST FILE — `bun test path/to/file.test.ts` (replace with the relative file you want to isolate).
 21. WATCHING TESTS — `bun test --watch path/to/file.test.ts` will re-run on file changes.
 22. FRONTEND DEV — From `web/`: `bun run dev` for Nuxt dev server (Vite under the hood).
-23. FRONTEND BUILD — `bun run build` (emits `.output/` for deployment).
+23. FRONTEND BUILD — `bun run build` (emits `.output/` for deployment) but do not run it by default after frontend changes.
 24. FRONTEND PREVIEW — `bun run preview` to serve the production build locally.
 25. FRONTEND GENERATE — `bun run generate` for static output; respects Nuxt route rules.
 26. FRONTEND PREPARE — `bun run postinstall` triggers `nuxt prepare` (already executed automatically; rerun if modules change).
@@ -40,12 +40,25 @@
 35. DATABASE SEED — `bunx prisma db seed` runs `server/prisma/seed.ts`.
 36. DOCKER FRONTEND — `docker build -f web/Dockerfile -t flowy-nuxt web`.
 37. DOCKER BACKEND — `docker build -f server/Dockerfile -t flowy-nest server` (needs `DATABASE_URL` build-arg value).
-38. LOGGING — Backend logs with Nest’s Logger plus custom Prisma query timing; keep log noise low in commits.
+38. LOGGING — Backend logs with Nest's Logger plus custom Prisma query timing; keep log noise low in commits.
+
+## REPOSITORY STRUCTURE
+
+- `web/` — Nuxt workspace (client app + Nitro server routes).
+- `web/app/` — Frontend source: pages, layouts, components, stores, middleware, plugins, composables, and shared UI helpers.
+- `web/server/` — Nitro server endpoints and server-side plugins used by the frontend workspace.
+- `web/public/` and `web/i18n/` — Public static assets and locale resources.
+- `server/` — Nest Fastify workspace.
+- `server/src/modules/` — Domain modules (`accounting/`, `admin/`, `auth/`, `users/`, `helper/`).
+- `server/src/common/` — Shared backend building blocks (decorators, guards, middlewares, pipes).
+- `server/prisma/` — Prisma schema, generated client output, migrations, and seed scripts.
+- `server/tests/` — Backend test suite.
+- Root deployment files (`docker-compose*.yaml`, `DEPLOYMENT.md`) — Local, production, and Coolify deployment entry points.
 
 ## CODE STYLE BASELINE
 
-39. FORMATTING OWNER — Prettier config at root controls everything (4 spaces, double quotes, trailing commas, compact brackets).
-40. PRETTIER INVOCATION — Use `bunx prettier --write <globs>` for manual formatting.
+39. FORMATTING OWNER — Oxlint + Oxfmt at root control linting and formatting conventions for the monorepo.
+40. OXFMT INVOCATION — Use `bunx oxfmt --write <globs>` for manual formatting.
 41. OXLINT — Primary linting surface; do not disable rules without justification in PR descriptions.
 42. IMPORT ORDER — Group by standard libs, third-party packages, then local aliases; leave a blank line between groups.
 43. TYPE MODULES — Root `tsconfig.json` sets `module` to `NodeNext`; prefer ES module syntax everywhere.
@@ -73,7 +86,7 @@
 61. ROUTING — Pages live under `web/app/pages/`; route naming follows file path conventions. Keep default layout lean.
 62. FORMS — Use `<form>` with native validation where possible; for advanced validation integrate vee-validate or zod-late as needed.
 63. TESTING (FRONTEND) — When adding tests, prefer Vitest via Bun once configured; align directories under `web/tests/` or alongside components.
-64. ACCESSIBILITY — Buttons always expose `aria` props; ensure focus-visible styles align with Prettier class wrapping.
+64. ACCESSIBILITY — Buttons always expose `aria` props; ensure focus-visible styles stay readable after formatter class wrapping.
 
 ## BACKEND (NEST FASTIFY)
 
@@ -146,10 +159,10 @@
 
 ## PULL REQUEST EXPECTATIONS
 
-116. CHECKLIST — Run lint + tests locally before requesting review.
+116. CHECKLIST — Run lint + relevant tests locally before requesting review.
 117. DIFF SIZE — Keep PRs scoped; large rewrites need RFC-style context.
 118. REVIEW NOTES — Reference this AGENTS guide when justifying choices.
-119. CI FRIENDLINESS — Assume CI executes `bun install`, `bun run lint`, `bun test`, then targeted builds; keep these passing.
+119. CI FRIENDLINESS — Assume CI executes `bun install`, `bun run lint`, and targeted test/build jobs; keep these passing.
 120. DOCUMENTATION — Update this file when process or tooling changes.
 
 ## CONTRIBUTION PROCESS
@@ -188,6 +201,7 @@
 ## QUALITY & COMMITS
 
 151. FEATURE TESTING — Validate every change you ship with the most relevant checks (focused unit tests, `bun test`, manual UX walkthrough, `docker compose` smoke test, etc.) and mention those results in your summary.
-152. TEST REPORTING — If a required check cannot run, explain the reason, list the pending command(s), and note any manual validation performed.
-153. GITMOJI COMMITS — Prefix every commit message with a gitmoji (e.g., `:sparkles:`) followed by a concise intent description.
-154. COMMIT FORMAT — Use `<gitmoji> short description` and keep each commit focused on a single concern.
+152. FRONTEND BUILD POLICY — Do not run `bun run build` in `web/` as a default post-change check; run it only when explicitly requested, for release prep, or when diagnosing build-specific issues.
+153. TEST REPORTING — If a required check cannot run, explain the reason, list the pending command(s), and note any manual validation performed.
+154. GITMOJI COMMITS — Prefix every commit message with a gitmoji (e.g., `:sparkles:`) followed by a concise intent description starting with a capital letter. For example: `:sparkles: Add user registration endpoint with validation`. This helps maintain a clear and consistent commit history that quickly conveys the nature of changes at a glance.
+155. COMMIT FORMAT — Use `<gitmoji> short description` and keep each commit focused on a single concern.
