@@ -10,6 +10,7 @@ import {
     useVueTable,
 } from "@tanstack/vue-table";
 import {useMediaQuery} from "@vueuse/core";
+import {cn} from "~/lib/utils";
 
 import type {Transaction} from "~/stores/transaction.store";
 import {useFamilyStore} from "~/stores/family.store";
@@ -187,6 +188,7 @@ const table = useVueTable({
                             cell.column.id === 'date' ? (isMobile ? 'w-[115px]' : 'w-[150px]') : '',
                             cell.column.id === 'account' ? 'w-[180px]' : '',
                             cell.column.id === 'category' ? 'w-[200px]' : '',
+                            cell.column.id === 'description' ? (isMobile ? 'max-w-[180px]' : 'max-w-[360px]') : '',
                             cell.column.id === 'amount' ? 'w-[150px]' : '',
                         ]">
                         <template v-if="cell.column.id === 'date'">
@@ -196,11 +198,14 @@ const table = useVueTable({
                         <template v-else-if="cell.column.id === 'description'">
                             <span
                                 v-if="row.original.isRebalance"
-                                class="text-muted-foreground flex items-center gap-1.5 font-medium italic">
+                                :title="String(cell.getValue())"
+                                class="text-muted-foreground flex min-w-0 items-center gap-1.5 font-medium italic">
                                 <Icon name="iconoir:system-restart" class="h-4 w-4" />
+                                <span class="block truncate">{{ cell.getValue() }}</span>
+                            </span>
+                            <span v-else :class="cn('block truncate font-medium')" :title="String(cell.getValue())">
                                 {{ cell.getValue() }}
                             </span>
-                            <span v-else class="font-medium">{{ cell.getValue() }}</span>
                         </template>
 
                         <template v-else-if="cell.column.id === 'category'">

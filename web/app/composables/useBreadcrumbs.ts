@@ -24,6 +24,12 @@ export function useBreadcrumbs() {
             return items;
         }
 
+        if (path === "/import") {
+            items.push({label: t("breadcrumbs.transactions"), href: "/transactions", icon: "iconoir:credit-card"});
+            items.push({label: t("breadcrumbs.import"), icon: "iconoir:upload"});
+            return items;
+        }
+
         if (path.startsWith("/transactions")) {
             items.push({label: t("breadcrumbs.transactions"), href: "/transactions", icon: "iconoir:credit-card"});
             return items;

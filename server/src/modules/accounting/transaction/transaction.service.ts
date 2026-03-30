@@ -1,4 +1,4 @@
-import {ForbiddenException, Injectable, NotFoundException} from "@nestjs/common";
+import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from "@nestjs/common";
 import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {TransactionEntity} from "./models/entities/transaction.entity";
@@ -19,6 +19,16 @@ type TransactionWithRelations = Prisma.TransactionsGetPayload<{
 @Injectable()
 export class TransactionService {
     constructor(private readonly prismaService: PrismaService) {}
+
+    private normalizeTransactionDate(date: string | Date): Date {
+        const parsedDate = date instanceof Date ? date : new Date(date);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            throw new BadRequestException("Invalid transaction date. Expected ISO-8601 date or datetime");
+        }
+
+        return parsedDate;
+    }
 
     private toDecimal(nb: number): number {
         return Math.round(nb * 100) / 100;
@@ -164,22 +174,12 @@ export class TransactionService {
         }
     }
 
-    private buildTransactionSignature(transaction: {
-        amount: number;
-        description: string;
-        date: string | Date;
-        merchantId?: string | null;
-        categoryId?: string | null;
-        isRebalance?: boolean;
-    }): string {
+    private buildTransactionSignature(transaction: {amount: number; description: string; date: string | Date}): string {
         const amount = this.toDecimal(transaction.amount);
         const description = transaction.description;
-        const date = new Date(transaction.date).toISOString();
-        const merchantId = transaction.merchantId ?? null;
-        const categoryId = transaction.categoryId ?? null;
-        const isRebalance = transaction.isRebalance ?? false;
+        const date = this.normalizeTransactionDate(transaction.date).toISOString();
 
-        return JSON.stringify([amount, description, date, merchantId, categoryId, isRebalance]);
+        return JSON.stringify([amount, description, date]);
     }
 
     private async analyzeBulkTransactionsAgainstDatabase(
@@ -212,9 +212,6 @@ export class TransactionService {
                 amount: true,
                 description: true,
                 date: true,
-                merchant_id: true,
-                category_id: true,
-                is_rebalance: true,
             },
         });
 
@@ -224,9 +221,6 @@ export class TransactionService {
                     amount: transaction.amount,
                     description: transaction.description,
                     date: transaction.date,
-                    merchantId: transaction.merchant_id,
-                    categoryId: transaction.category_id,
-                    isRebalance: transaction.is_rebalance,
                 }),
             ),
         );
@@ -314,7 +308,7 @@ export class TransactionService {
                     account_id: accountId,
                     amount: createTransactionDto.amount,
                     description: createTransactionDto.description,
-                    date: createTransactionDto.date,
+                    date: this.normalizeTransactionDate(createTransactionDto.date),
                     merchant_id: createTransactionDto.merchantId,
                     category_id: createTransactionDto.categoryId,
                     is_rebalance: createTransactionDto.isRebalance ?? false,
@@ -382,7 +376,7 @@ export class TransactionService {
                     account_id: accountId,
                     amount: transaction.amount,
                     description: transaction.description,
-                    date: transaction.date,
+                    date: this.normalizeTransactionDate(transaction.date),
                     merchant_id: transaction.merchantId,
                     category_id: transaction.categoryId,
                     is_rebalance: transaction.isRebalance ?? false,
@@ -445,7 +439,9 @@ export class TransactionService {
                     ...(updateTransactionDto.description !== undefined
                         ? {description: updateTransactionDto.description}
                         : {}),
-                    ...(updateTransactionDto.date !== undefined ? {date: updateTransactionDto.date} : {}),
+                    ...(updateTransactionDto.date !== undefined
+                        ? {date: this.normalizeTransactionDate(updateTransactionDto.date)}
+                        : {}),
                     ...(updateTransactionDto.merchantId !== undefined
                         ? {merchant_id: updateTransactionDto.merchantId}
                         : {}),

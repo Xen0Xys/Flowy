@@ -156,12 +156,14 @@
         "users": "Users",
         "profile": "Profile",
         "family": "Family",
-        "references": "References"
+        "references": "References",
+        "import": "Import"
     },
     "sidebar": {
         "menu": "Menu",
         "dashboard": "Dashboard",
         "transactions": "Transactions",
+        "import": "Import",
         "accounts": "Accounts",
         "settings": "Settings",
         "backToDashboard": "Back to Dashboard",
@@ -588,5 +590,124 @@
                 "deleteMerchant": "Failed deleting merchant"
             }
         }
+    },
+    "import": {
+        "title": "Import Transactions",
+        "subtitle": "Import transactions from a CSV file",
+        "account": {
+            "title": "Select Account",
+            "description": "Choose the account where you want to import transactions",
+            "noAccounts": "No accounts available. Create an account first.",
+            "createAccount": "Create Account"
+        },
+        "upload": {
+            "title": "Upload CSV File",
+            "description": "Drag and drop your CSV file here or click to browse",
+            "selectFile": "Select File",
+            "loading": "Reading file...",
+            "supportedFormats": "Supported formats: CSV",
+            "maxRows": "Maximum {max} rows per file"
+        },
+        "config": {
+            "title": "Configure Import",
+            "description": "Verify the detected settings and preview your data",
+            "delimiter": "Delimiter",
+            "selectDelimiter": "Select delimiter",
+            "headers": "First row contains headers",
+            "preview": "Data Preview",
+            "previewRows": "Showing first {count} rows"
+        },
+        "mapping": {
+            "title": "Map Columns",
+            "description": "Assign CSV columns to transaction fields",
+            "requiredFields": "Required Fields",
+            "column": "Column",
+            "selectColumn": "Select column",
+            "fields": {
+                "date": "Date",
+                "description": "Description",
+                "amount": "Amount",
+                "credit": "Credit (Income)",
+                "debit": "Debit (Expense)"
+            },
+            "singleColumn": "Single column",
+            "dualColumn": "Credit/Debit columns",
+            "amountHint": "Positive values = income, negative = expense",
+            "preview": "Mapped Preview",
+            "parseAndPreview": "Parse & Preview"
+        },
+        "preview": {
+            "stats": {
+                "total": "total",
+                "willImport": "will import",
+                "duplicates": "duplicates",
+                "dbDuplicates": "in database",
+                "ignored": "ignored"
+            },
+            "status": {
+                "pending": "Pending",
+                "willImport": "Ready",
+                "duplicateInternal": "Duplicate",
+                "duplicateDb": "In Database",
+                "ignored": "Ignored"
+            },
+            "readyToImport": "{count} transactions ready to import",
+            "categoryPlaceholder": "Category name",
+            "merchantPlaceholder": "Merchant name",
+            "createCategoryDescription": "Add a new category for your transactions.",
+            "createMerchantDescription": "Add a new merchant for your transactions.",
+            "findIcons": "Find icons at",
+            "pagination": "Page {page} of {total}"
+        },
+        "result": {
+            "title": "Import Complete",
+            "description": "Your transactions have been processed",
+            "imported": "Imported",
+            "skipped": "Skipped (duplicates)",
+            "newImport": "New Import",
+            "done": "Done"
+        },
+        "actions": {
+            "next": "Next",
+            "reset": "Reset",
+            "testDb": "Test Against Database",
+            "import": "Import"
+        },
+        "errors": {
+            "fileRead": "Failed to read file",
+            "invalidDate": "Invalid date format",
+            "invalidDescription": "Missing description",
+            "invalidAmount": "Invalid amount",
+            "noValidTransactions": "No valid transactions found",
+            "testFailed": "Failed to test transactions",
+            "importFailed": "Failed to import transactions"
+        },
+        "warnings": {
+            "rowsWithErrors": "{count} rows have errors and were skipped"
+        },
+        "success": {
+            "testComplete": "{count} transactions ready to import"
+        }
+    },
+    "common": {
+        "user": "User",
+        "settings": "Settings",
+        "back": "Back",
+        "all": "All",
+        "none": "None",
+        "actions": "Actions",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "cancel": "Cancel",
+        "close": "Close",
+        "copy": "Copy",
+        "edit": "Edit",
+        "loading": "Loading...",
+        "processing": "Processing...",
+        "areYouSure": "Are you sure?",
+        "yes": "Yes",
+        "no": "No"
     }
 }

@@ -123,6 +123,32 @@ describe("TransactionController (e2e)", () => {
         expect(storedAccount?.balance).toBe(-42.35);
     });
 
+    test("accepts ISO date-only values on create", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Import Dates", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const create = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -10,
+                description: "CSV row",
+                date: "2026-01-15",
+            });
+
+        expect(create.status).toBe(201);
+
+        const stored = await prisma.transactions.findUnique({
+            where: {id: create.body.id},
+        });
+        expect(stored?.date.toISOString()).toBe("2026-01-15T00:00:00.000Z");
+    });
+
     test("bulk test endpoint previews only duplicates already in database", async () => {
         const user = await registerUser(server);
         const account = await agent
@@ -218,6 +244,96 @@ describe("TransactionController (e2e)", () => {
             where: {id: account.body.id},
         });
         expect(storedAccount?.balance).toBe(1455.01);
+    });
+
+    test("bulk import accepts ISO date-only values and still detects duplicates", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "CSV Import", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const existing = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -9.9,
+                description: "Coffee",
+                date: "2026-04-02",
+            });
+        expect(existing.status).toBe(201);
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                {
+                    amount: -9.9,
+                    description: "Coffee",
+                    date: "2026-04-02",
+                },
+                {
+                    amount: 1200,
+                    description: "Salary",
+                    date: "2026-04-03",
+                },
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(1);
+        expect(bulk.body.duplicates).toHaveLength(1);
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {account_id: account.body.id},
+            orderBy: {date: "asc"},
+        });
+        expect(storedTransactions).toHaveLength(2);
+        expect(storedTransactions[0]?.date.toISOString()).toBe("2026-04-02T00:00:00.000Z");
+        expect(storedTransactions[1]?.date.toISOString()).toBe("2026-04-03T00:00:00.000Z");
+    });
+
+    test("bulk duplicate check ignores isRebalance when amount, description and date match", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Signature", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const existing = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -42,
+                description: "Internal transfer",
+                date: "2026-04-10T08:30:00.000Z",
+                isRebalance: false,
+            });
+        expect(existing.status).toBe(201);
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                {
+                    amount: -42,
+                    description: "Internal transfer",
+                    date: "2026-04-10T08:30:00.000Z",
+                    isRebalance: true,
+                },
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(0);
+        expect(bulk.body.duplicates).toHaveLength(1);
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {account_id: account.body.id},
+        });
+        expect(storedTransactions).toHaveLength(1);
     });
 
     test("bulk create keeps identical rows from payload when absent in database", async () => {
