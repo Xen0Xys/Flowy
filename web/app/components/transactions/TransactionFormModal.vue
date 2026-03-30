@@ -71,10 +71,35 @@ watch(
     (isOpen) => {
         if (isOpen) {
             loadData();
+            resetForm();
         }
     },
     {immediate: true},
 );
+
+const resetForm = () => {
+    if (props.transaction) {
+        transactionType.value = props.transaction.amount < 0 ? "expense" : "income";
+        formData.value = {
+            amount: Math.abs(props.transaction.amount),
+            description: props.transaction.description,
+            date: props.transaction.date ? new Date(props.transaction.date).toISOString().split("T")[0] || "" : "",
+            categoryId: props.transaction.category?.id || "none",
+            merchantId: props.transaction.merchant?.id || "none",
+            selectedAccountId: props.transaction.accountId || props.accountId || "",
+        };
+    } else {
+        transactionType.value = "expense";
+        formData.value = {
+            amount: 0,
+            description: "",
+            date: new Date().toISOString().split("T")[0] || "",
+            categoryId: "none",
+            merchantId: "none",
+            selectedAccountId: props.accountId || "",
+        };
+    }
+};
 
 const formData = ref({
     amount: 0,
@@ -95,7 +120,7 @@ watch(
             formData.value = {
                 amount: Math.abs(newTransaction.amount),
                 description: newTransaction.description,
-                date: newTransaction.date ? new Date(newTransaction.date).toISOString().split("T")[0] : "",
+                date: newTransaction.date ? new Date(newTransaction.date).toISOString().split("T")[0] || "" : "",
                 categoryId: newTransaction.category?.id || "none",
                 merchantId: newTransaction.merchant?.id || "none",
                 selectedAccountId: newTransaction.accountId || props.accountId || "",
@@ -105,7 +130,7 @@ watch(
             formData.value = {
                 amount: 0,
                 description: "",
-                date: new Date().toISOString().split("T")[0],
+                date: new Date().toISOString().split("T")[0] || "",
                 categoryId: "none",
                 merchantId: "none",
                 selectedAccountId: props.accountId || "",
@@ -234,15 +259,15 @@ const executeDelete = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="description"> {{ t("transactions.table.description") }} </Label>
+                    <Input id="description" v-model="formData.description" class="col-span-3" required />
+                </div>
+
+                <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="amount"> {{ t("transactions.table.amount") }} </Label>
                     <div class="col-span-3">
                         <Input id="amount" v-model.number="formData.amount" min="0" required step="0.01" type="number" />
                     </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="description"> {{ t("transactions.table.description") }} </Label>
-                    <Input id="description" v-model="formData.description" class="col-span-3" required />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
@@ -307,9 +332,9 @@ const executeDelete = async () => {
             <div v-if="props.transaction" class="border-t pt-4">
                 <Button
                     :disabled="isSubmitting || isDeleting"
+                    class="w-full"
                     type="button"
                     variant="destructive"
-                    class="w-full"
                     @click="confirmDelete">
                     <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
                     {{ t("common.delete") }}

@@ -338,7 +338,7 @@ const formatCompactCurrency = (value: number) => {
                                             class="text-muted-foreground h-5 w-5 transition-transform" />
                                         <h3 class="flex items-center gap-2 text-lg font-semibold">
                                             <Icon class="text-muted-foreground h-5 w-5" name="iconoir:folder" />
-                                            {{ category.type }}
+                                            {{ t(`accounts.types.${category.type.toLowerCase()}`) }}
                                         </h3>
                                     </div>
                                     <div class="flex items-center gap-4 text-sm">
