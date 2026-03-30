@@ -10,6 +10,7 @@ import {
     ParseUUIDPipe,
     Patch,
     Post,
+    Query,
     UseGuards,
 } from "@nestjs/common";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
@@ -20,6 +21,8 @@ import {CreateTransactionDto} from "./models/dto/create-transaction.dto";
 import {UpdateTransactionDto} from "./models/dto/update-transaction.dto";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {TransactionEntity} from "./models/entities/transaction.entity";
+import {SearchTransactionsDto} from "./models/dto/search-transactions.dto";
+import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
 
 @Controller("transaction")
 export class TransactionController {
@@ -30,6 +33,16 @@ export class TransactionController {
     @ApiBearerAuth()
     async getAllTransactions(@User() user: UserEntity): Promise<TransactionEntity[]> {
         return this.transactionService.getTransactions(user);
+    }
+
+    @Get("search")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async searchTransactions(
+        @User() user: UserEntity,
+        @Query() query: SearchTransactionsDto,
+    ): Promise<SearchTransactionsResultEntity> {
+        return this.transactionService.searchTransactions(user, query);
     }
 
     @Get(":accountId")

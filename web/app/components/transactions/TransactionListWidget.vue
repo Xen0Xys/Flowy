@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import {ref, computed} from "vue";
+import {ref, computed, watch, onMounted} from "vue";
 import {useMediaQuery} from "@vueuse/core";
+import {watchDebounced} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
-import type {Transaction} from "~/stores/transaction.store";
+import {useTransactionStore, type Transaction, type TransactionSearchFilters} from "~/stores/transaction.store";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
 import {Button} from "~/components/ui/button";
 import {ScrollArea} from "~/components/ui/scroll-area";
 import {NuxtLink} from "#components";
-import {CalendarDate, DateFormatter, getLocalTimeZone} from "@internationalized/date";
 
 const props = defineProps<{
-    transactions: Transaction[];
     accountId?: string;
     showViewAll?: boolean;
     viewAllLink?: string;
@@ -27,6 +26,7 @@ const emit = defineEmits<{
 
 const isMobile = useMediaQuery("(max-width: 768px)");
 const {t} = useI18n();
+const transactionStore = useTransactionStore();
 
 const isTransactionModalOpen = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
@@ -43,7 +43,8 @@ const filters = ref<TransactionFilters>({
 
 const availableCategories = computed(() => {
     const categoriesMap = new Map<string, {id: string; name: string}>();
-    for (const tx of props.transactions) {
+    const items = transactionStore.searchResult?.items ?? [];
+    for (const tx of items) {
         if (tx.category && !categoriesMap.has(tx.category.id)) {
             categoriesMap.set(tx.category.id, {id: tx.category.id, name: tx.category.name});
         }
@@ -53,7 +54,8 @@ const availableCategories = computed(() => {
 
 const availableMerchants = computed(() => {
     const merchantsMap = new Map<string, {id: string; name: string}>();
-    for (const tx of props.transactions) {
+    const items = transactionStore.searchResult?.items ?? [];
+    for (const tx of items) {
         if (tx.merchant && !merchantsMap.has(tx.merchant.id)) {
             merchantsMap.set(tx.merchant.id, {id: tx.merchant.id, name: tx.merchant.name});
         }
@@ -65,55 +67,71 @@ const accountNameById = computed(() => {
     return Object.fromEntries((props.availableAccounts || []).map((account) => [account.id, account.name]));
 });
 
-const filteredTransactions = computed(() => {
-    return props.transactions.filter((t) => {
-        // 1. Search (description, category, merchant)
-        if (filters.value.search) {
-            const query = filters.value.search.toLowerCase();
-            const matchDesc = t.description.toLowerCase().includes(query);
-            const matchCat = t.category?.name.toLowerCase().includes(query);
-            const matchMerchant = t.merchant?.name.toLowerCase().includes(query);
-            if (!matchDesc && !matchCat && !matchMerchant) return false;
-        }
+const transactions = computed(() => transactionStore.searchResult?.items ?? []);
+const isLoading = computed(() => transactionStore.isSearching);
+const totalResults = computed(() => transactionStore.searchResult?.total ?? 0);
 
-        // 2. Type
-        if (filters.value.type === "income" && t.amount <= 0) return false;
-        if (filters.value.type === "expense" && t.amount >= 0) return false;
+const buildSearchFilters = (): TransactionSearchFilters => {
+    const searchFilters: TransactionSearchFilters = {};
 
-        // 3. Category
-        if (filters.value.categoryId !== "all" && t.category?.id !== filters.value.categoryId) return false;
+    if (props.accountId) {
+        searchFilters.accountId = props.accountId;
+    } else if (filters.value.accountId !== "all") {
+        searchFilters.accountId = filters.value.accountId;
+    }
 
-        // 4. Account
-        if (filters.value.accountId !== "all" && t.accountId !== filters.value.accountId) return false;
+    if (filters.value.search.trim()) {
+        searchFilters.search = filters.value.search.trim();
+    }
 
-        // 5. Merchant
-        if (filters.value.merchantId !== "all" && t.merchant?.id !== filters.value.merchantId) return false;
+    if (filters.value.type !== "all") {
+        searchFilters.type = filters.value.type;
+    }
 
-        // 6. Rebalance
-        if (filters.value.rebalance === "only" && !t.isRebalance) return false;
-        if (filters.value.rebalance === "exclude" && t.isRebalance) return false;
+    if (filters.value.categoryId !== "all") {
+        searchFilters.categoryId = filters.value.categoryId;
+    }
 
-        // 7. Date Range
-        if (filters.value.dateRange.start || filters.value.dateRange.end) {
-            const tDate = new Date(t.date);
-            tDate.setHours(0, 0, 0, 0);
+    if (filters.value.merchantId !== "all") {
+        searchFilters.merchantId = filters.value.merchantId;
+    }
 
-            if (filters.value.dateRange.start) {
-                const calStart = filters.value.dateRange.start as any;
-                const start = new Date(calStart.year, calStart.month - 1, calStart.day);
-                start.setHours(0, 0, 0, 0);
-                if (tDate < start) return false;
-            }
-            if (filters.value.dateRange.end) {
-                const calEnd = filters.value.dateRange.end as any;
-                const end = new Date(calEnd.year, calEnd.month - 1, calEnd.day);
-                end.setHours(23, 59, 59, 999);
-                if (tDate > end) return false;
-            }
-        }
+    if (filters.value.rebalance !== "all") {
+        searchFilters.rebalance = filters.value.rebalance;
+    }
 
-        return true;
-    });
+    if (filters.value.dateRange.start) {
+        const start = filters.value.dateRange.start as any;
+        searchFilters.startDate = `${start.year}-${String(start.month).padStart(2, "0")}-${String(start.day).padStart(2, "0")}`;
+    }
+
+    if (filters.value.dateRange.end) {
+        const end = filters.value.dateRange.end as any;
+        searchFilters.endDate = `${end.year}-${String(end.month).padStart(2, "0")}-${String(end.day).padStart(2, "0")}`;
+    }
+
+    return searchFilters;
+};
+
+const fetchTransactions = async () => {
+    try {
+        const searchFilters = buildSearchFilters();
+        await transactionStore.searchTransactions(searchFilters);
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+watchDebounced(
+    filters,
+    () => {
+        fetchTransactions();
+    },
+    {debounce: 300, deep: true},
+);
+
+onMounted(() => {
+    fetchTransactions();
 });
 
 const handleNewTransactionClick = () => {
@@ -127,6 +145,7 @@ const handleTransactionClick = (transaction: Transaction) => {
 };
 
 const onTransactionSaved = () => {
+    fetchTransactions();
     emit("saved");
 };
 </script>
@@ -169,8 +188,8 @@ const onTransactionSaved = () => {
                     : 'overflow-hidden rounded-b-md border-t'
             ">
             <TransactionTable
-                :transactions="filteredTransactions"
-                :is-filtered="filteredTransactions.length !== transactions.length"
+                :transactions="transactions"
+                :is-filtered="totalResults !== transactions.length || Object.keys(buildSearchFilters()).length > 0"
                 :show-account-column="props.showAccountColumn"
                 :account-name-by-id="accountNameById"
                 @row-click="handleTransactionClick" />

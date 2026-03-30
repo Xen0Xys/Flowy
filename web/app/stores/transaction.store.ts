@@ -68,10 +68,34 @@ export type BulkTransactionsCreateResult = {
     duplicates: CreateTransactionPayload[];
 };
 
+export type TransactionSearchFilters = {
+    search?: string;
+    type?: "all" | "income" | "expense";
+    accountId?: string | "all";
+    categoryId?: string | "all";
+    merchantId?: string | "all";
+    rebalance?: "all" | "only" | "exclude";
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    pageSize?: number;
+};
+
+export type SearchTransactionsResult = {
+    items: Transaction[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    isPaginated: boolean;
+};
+
 export const useTransactionStore = defineStore("transaction", {
     state: () => ({
         transactions: [] as Transaction[],
         currentAccountTransactions: [] as Transaction[],
+        searchResult: null as SearchTransactionsResult | null,
+        isSearching: false,
     }),
 
     actions: {
@@ -104,6 +128,71 @@ export const useTransactionStore = defineStore("transaction", {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
                 toast.error(message);
                 throw new Error(message);
+            }
+        },
+
+        async searchTransactions(filters: TransactionSearchFilters = {}) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            this.isSearching = true;
+
+            const params = new URLSearchParams();
+
+            if (filters.search?.trim()) {
+                params.set("search", filters.search.trim());
+            }
+
+            if (filters.type && filters.type !== "all") {
+                params.set("type", filters.type);
+            }
+
+            if (filters.accountId && filters.accountId !== "all") {
+                params.set("accountId", filters.accountId);
+            }
+
+            if (filters.categoryId && filters.categoryId !== "all") {
+                params.set("categoryId", filters.categoryId);
+            }
+
+            if (filters.merchantId && filters.merchantId !== "all") {
+                params.set("merchantId", filters.merchantId);
+            }
+
+            if (filters.rebalance && filters.rebalance !== "all") {
+                params.set("rebalance", filters.rebalance);
+            }
+
+            if (filters.startDate) {
+                params.set("startDate", filters.startDate);
+            }
+
+            if (filters.endDate) {
+                params.set("endDate", filters.endDate);
+            }
+
+            if (filters.page !== undefined) {
+                params.set("page", String(filters.page));
+            }
+
+            if (filters.pageSize !== undefined) {
+                params.set("pageSize", String(filters.pageSize));
+            }
+
+            const queryString = params.toString();
+            const endpoint = queryString ? `/transaction/search?${queryString}` : "/transaction/search";
+
+            try {
+                const result = await apiFetch<SearchTransactionsResult>(endpoint);
+                this.searchResult = result;
+                return result;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
+                toast.error(message);
+                throw new Error(message);
+            } finally {
+                this.isSearching = false;
             }
         },
 

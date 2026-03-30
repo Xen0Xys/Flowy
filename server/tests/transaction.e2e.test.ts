@@ -65,6 +65,10 @@ describe("TransactionController (e2e)", () => {
         expect(list.status).toBe(401);
         expect(list.body.message).toBe("Authorization token is missing");
 
+        const search = await agent.get("/transaction/search");
+        expect(search.status).toBe(401);
+        expect(search.body.message).toBe("Authorization token is missing");
+
         const byAccount = await agent.get("/transaction/account-id");
         expect(byAccount.status).toBe(401);
         expect(byAccount.body.message).toBe("Authorization token is missing");
@@ -402,6 +406,153 @@ describe("TransactionController (e2e)", () => {
         expect(listA.status).toBe(200);
         expect(listA.body).toHaveLength(1);
         expect(listA.body[0].description).toBe("Salary");
+    });
+
+    test("searches transactions with frontend-like filters", async () => {
+        const user = await registerUser(server);
+
+        const accountA = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING"});
+        const accountB = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS"});
+
+        expect(accountA.status).toBe(201);
+        expect(accountB.status).toBe(201);
+
+        const groceriesCategory = await prisma.userCategories.create({
+            data: {
+                user_id: user.user.id,
+                name: "Groceries",
+                hex_color: "#10B981",
+                icon: "cart",
+            },
+        });
+        const salaryCategory = await prisma.userCategories.create({
+            data: {
+                user_id: user.user.id,
+                name: "Salary",
+                hex_color: "#3B82F6",
+                icon: "wallet",
+            },
+        });
+
+        const marketMerchant = await prisma.userMerchants.create({
+            data: {
+                user_id: user.user.id,
+                name: "Fresh Market",
+            },
+        });
+
+        const expenseTx = await agent
+            .post(`/transaction/${accountA.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -42.2,
+                description: "Weekly grocery run",
+                date: "2026-02-15",
+                categoryId: groceriesCategory.id,
+                merchantId: marketMerchant.id,
+                isRebalance: false,
+            });
+        expect(expenseTx.status).toBe(201);
+
+        const incomeTx = await agent
+            .post(`/transaction/${accountA.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: 2200,
+                description: "Monthly salary",
+                date: "2026-02-01",
+                categoryId: salaryCategory.id,
+                isRebalance: false,
+            });
+        expect(incomeTx.status).toBe(201);
+
+        const rebalanceTx = await agent
+            .post(`/transaction/${accountB.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -100,
+                description: "Transfer to savings",
+                date: "2026-02-18",
+                isRebalance: true,
+            });
+        expect(rebalanceTx.status).toBe(201);
+
+        const response = await agent
+            .get("/transaction/search")
+            .query({
+                search: "market",
+                type: "expense",
+                accountId: accountA.body.id,
+                categoryId: groceriesCategory.id,
+                merchantId: marketMerchant.id,
+                rebalance: "exclude",
+                startDate: "2026-02-10",
+                endDate: "2026-02-20",
+            })
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.isPaginated).toBe(false);
+        expect(response.body.total).toBe(1);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].id).toBe(expenseTx.body.id);
+    });
+
+    test("search endpoint supports optional pagination metadata", async () => {
+        const user = await registerUser(server);
+
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Pagination Account", type: "CHECKING"});
+        expect(account.status).toBe(201);
+
+        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+            amount: 100,
+            description: "Salary",
+            date: "2026-02-01",
+        });
+        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+            amount: -10,
+            description: "Coffee",
+            date: "2026-02-02",
+        });
+        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+            amount: -20,
+            description: "Lunch",
+            date: "2026-02-03",
+        });
+
+        const response = await agent
+            .get("/transaction/search")
+            .query({page: 2, pageSize: 1})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.isPaginated).toBe(true);
+        expect(response.body.total).toBe(3);
+        expect(response.body.page).toBe(2);
+        expect(response.body.pageSize).toBe(1);
+        expect(response.body.totalPages).toBe(3);
+        expect(response.body.items).toHaveLength(1);
+    });
+
+    test("rejects invalid search date range", async () => {
+        const user = await registerUser(server);
+
+        const response = await agent
+            .get("/transaction/search")
+            .query({startDate: "2026-03-15", endDate: "2026-03-01"})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe("startDate must be before or equal to endDate");
     });
 
     test("forbids access to another user's account transactions", async () => {

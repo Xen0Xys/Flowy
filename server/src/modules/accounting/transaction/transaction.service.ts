@@ -1,4 +1,4 @@
-import {BadRequestException, ForbiddenException, Injectable, NotFoundException} from "@nestjs/common";
+import {BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException} from "@nestjs/common";
 import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {TransactionEntity} from "./models/entities/transaction.entity";
@@ -8,6 +8,12 @@ import {CategoryEntity} from "../reference/models/entities/category.entity";
 import {MerchantEntity} from "../reference/models/entities/merchant.entity";
 import {Prisma} from "../../../../prisma/generated/client";
 import {BulkAnalysisAccountEntity, BulkAnalysisEntity} from "./models/entities/bulk-analysis.entity";
+import {
+    SearchTransactionsDto,
+    TransactionSearchRebalance,
+    TransactionSearchType,
+} from "./models/dto/search-transactions.dto";
+import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
@@ -18,6 +24,8 @@ type TransactionWithRelations = Prisma.TransactionsGetPayload<{
 
 @Injectable()
 export class TransactionService {
+    private readonly logger = new Logger(TransactionService.name);
+
     constructor(private readonly prismaService: PrismaService) {}
 
     private normalizeTransactionDate(date: string | Date): Date {
@@ -32,6 +40,26 @@ export class TransactionService {
 
     private toDecimal(nb: number): number {
         return Math.round(nb * 100) / 100;
+    }
+
+    private normalizeDateForRangeStart(date: string): Date {
+        const parsedDate = this.normalizeTransactionDate(date);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            parsedDate.setUTCHours(0, 0, 0, 0);
+        }
+
+        return parsedDate;
+    }
+
+    private normalizeDateForRangeEnd(date: string): Date {
+        const parsedDate = this.normalizeTransactionDate(date);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            parsedDate.setUTCHours(23, 59, 59, 999);
+        }
+
+        return parsedDate;
     }
 
     private toTransactionEntity(transaction: TransactionWithRelations): TransactionEntity {
@@ -266,6 +294,148 @@ export class TransactionService {
         });
 
         return transactions.map((transaction) => this.toTransactionEntity(transaction));
+    }
+
+    async searchTransactions(user: UserEntity, query: SearchTransactionsDto): Promise<SearchTransactionsResultEntity> {
+        const where: Prisma.TransactionsWhereInput = {
+            account: {
+                user_id: user.id,
+            },
+        };
+
+        if (query.accountId) {
+            where.account_id = query.accountId;
+        }
+
+        if (query.categoryId) {
+            where.category_id = query.categoryId;
+        }
+
+        if (query.merchantId) {
+            where.merchant_id = query.merchantId;
+        }
+
+        if (query.type === TransactionSearchType.INCOME) {
+            where.amount = {gt: 0};
+        }
+
+        if (query.type === TransactionSearchType.EXPENSE) {
+            where.amount = {lt: 0};
+        }
+
+        if (query.rebalance === TransactionSearchRebalance.ONLY) {
+            where.is_rebalance = true;
+        }
+
+        if (query.rebalance === TransactionSearchRebalance.EXCLUDE) {
+            where.is_rebalance = false;
+        }
+
+        if (query.startDate || query.endDate) {
+            const dateRange: Prisma.DateTimeFilter = {};
+
+            if (query.startDate) {
+                dateRange.gte = this.normalizeDateForRangeStart(query.startDate);
+            }
+
+            if (query.endDate) {
+                dateRange.lte = this.normalizeDateForRangeEnd(query.endDate);
+            }
+
+            if (dateRange.gte && dateRange.lte && dateRange.gte > dateRange.lte) {
+                throw new BadRequestException("startDate must be before or equal to endDate");
+            }
+
+            where.date = dateRange;
+        }
+
+        const normalizedSearch = query.search?.trim();
+        if (normalizedSearch) {
+            where.OR = [
+                {
+                    description: {
+                        contains: normalizedSearch,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    merchant: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+                {
+                    category: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            ];
+        }
+
+        const isPaginated = query.page !== undefined || query.pageSize !== undefined;
+        const page = query.page ?? 1;
+        const pageSize = query.pageSize ?? 25;
+
+        if (!isPaginated) {
+            const transactions = await this.prismaService.transactions.findMany({
+                where,
+                include: {
+                    merchant: true,
+                    category: true,
+                },
+                orderBy: [{date: "desc"}, {created_at: "desc"}],
+            });
+
+            const items = transactions.map((transaction) => this.toTransactionEntity(transaction));
+
+            return new SearchTransactionsResultEntity({
+                items,
+                total: items.length,
+                page: 1,
+                pageSize: items.length,
+                totalPages: 1,
+                isPaginated: false,
+            });
+        }
+
+        const [total, transactions] = await this.prismaService.$transaction([
+            this.prismaService.transactions.count({where}),
+            this.prismaService.transactions.findMany({
+                where,
+                include: {
+                    merchant: true,
+                    category: true,
+                },
+                orderBy: [{date: "desc"}, {created_at: "desc"}],
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+
+        const items = transactions.map((transaction) => this.toTransactionEntity(transaction));
+        const totalPages = Math.ceil(total / pageSize);
+
+        if (totalPages > 0 && page > totalPages) {
+            this.logger.warn(`Requested page ${page} exceeds total pages ${totalPages} for user ${user.id}`);
+        }
+
+        return new SearchTransactionsResultEntity({
+            items,
+            total,
+            page,
+            pageSize,
+            totalPages,
+            isPaginated: true,
+        });
     }
 
     async getTransactionsByAccountId(user: UserEntity, accountId: string): Promise<TransactionEntity[]> {

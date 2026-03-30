@@ -5,8 +5,6 @@ import {useRoute, useRouter} from "vue-router";
 import {useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
-import type {Transaction} from "~/stores/transaction.store";
-import {useTransactionStore} from "~/stores/transaction.store";
 import type {TimeRange} from "~/utils/accounts";
 import {buildDateRange} from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
@@ -54,7 +52,6 @@ const timeRange = ref<TimeRange>("1M");
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
-const transactions = computed(() => transactionStore.currentAccountTransactions);
 
 const chartColor = computed(() => {
     const series = evolutionSeries.value;
@@ -77,11 +74,7 @@ const y = (d: {balance: number}) => d.balance;
 const loadData = async () => {
     isLoading.value = true;
     try {
-        await Promise.all([
-            accountStore.fetchAccountById(accountId),
-            familyStore.fetchFamily(),
-            transactionStore.fetchTransactionsByAccountId(accountId),
-        ]);
+        await Promise.all([accountStore.fetchAccountById(accountId), familyStore.fetchFamily()]);
         await loadChartData();
     } catch (err) {
         console.error(err);
@@ -345,7 +338,6 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                     <TransactionListWidget
                         :account-id="accountId"
                         :show-view-all="true"
-                        :transactions="transactions"
                         view-all-link="/transactions"
                         @saved="onTransactionSaved" />
                 </template>
