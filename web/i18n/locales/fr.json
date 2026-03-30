@@ -395,7 +395,7 @@
             "resetPasswordFor": "Définir un nouveau mot de passe pour {username}.",
             "newPassword": "Nouveau mot de passe",
             "resetting": "Réinitialisation...",
-            "deletePrompt": "Êtes-vous sûr de vouloir supprimer",
+            "deletePromptWithName": "Êtes-vous sûr de vouloir supprimer {username} ?",
             "toasts": {
                 "uuidCopied": "UUID copié dans le presse-papiers"
             },
@@ -412,6 +412,7 @@
             "owner": "Propriétaire",
             "admin": "Admin",
             "member": "Membre",
+            "memberCount": "{n} membre | {n} membres",
             "memberCountLabel": "membre",
             "deleteThis": "Supprimer cette famille",
             "leaveThis": "Quitter cette famille",
@@ -447,6 +448,16 @@
                 "nameRequired": "Le nom de la famille est requis.",
                 "nameLength": "Le nom de la famille doit contenir entre 3 et 50 caractères.",
                 "currencyInvalid": "La devise doit être un code ISO à 3 lettres valide."
+            },
+            "aria": {
+                "saveFamilyName": "Enregistrer le nom de la famille",
+                "currency": "Devise",
+                "saveFamilyCurrency": "Enregistrer la devise",
+                "removeMember": "Retirer le membre",
+                "inviteEmail": "Email d'invitation",
+                "inviteMember": "Inviter un membre",
+                "copyInviteCode": "Copier le code d'invitation",
+                "revokeInvite": "Révoquer l'invitation"
             }
         },
         "references": {

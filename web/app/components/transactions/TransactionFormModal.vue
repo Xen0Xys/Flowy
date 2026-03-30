@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
+import {toast} from "vue-sonner";
 import {
     type CreateTransactionPayload,
     type Transaction,
@@ -56,8 +57,8 @@ const loadData = async () => {
             referenceStore.fetchReferences(),
             !props.accountId ? accountStore.fetchAccounts() : Promise.resolve(),
         ]);
-    } catch (e) {
-        console.error(t("transactions.form.errors.loadData"), e);
+    } catch (e: unknown) {
+        toast.error(t("transactions.form.errors.loadData"));
     }
 };
 
@@ -294,28 +295,26 @@ const executeDelete = async () => {
                 </div>
             </form>
 
-            <DialogFooter class="flex w-full items-center sm:justify-between">
+            <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" @click="emit('update:open', false)">
+                    {{ t("common.cancel") }}
+                </Button>
+                <Button :disabled="isSubmitting || isDeleting" type="submit" @click="save">
+                    {{ isSubmitting ? t("common.saving") : t("transactions.form.saveChanges") }}
+                </Button>
+            </DialogFooter>
+
+            <div v-if="props.transaction" class="border-t pt-4">
                 <Button
-                    v-if="props.transaction"
                     :disabled="isSubmitting || isDeleting"
                     type="button"
                     variant="destructive"
+                    class="w-full"
                     @click="confirmDelete">
                     <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
                     {{ t("common.delete") }}
                 </Button>
-                <div v-else></div>
-                <!-- spacer for justify-between -->
-
-                <div class="flex items-center gap-2">
-                    <Button type="button" variant="outline" @click="emit('update:open', false)">
-                        {{ t("common.cancel") }}
-                    </Button>
-                    <Button :disabled="isSubmitting || isDeleting" type="submit" @click="save">
-                        {{ isSubmitting ? t("common.saving") : t("transactions.form.saveChanges") }}
-                    </Button>
-                </div>
-            </DialogFooter>
+            </div>
         </DialogContent>
     </Dialog>
 

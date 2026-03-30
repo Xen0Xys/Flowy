@@ -167,7 +167,7 @@ function findFamilyMemberRole(family: Family, userId: string) {
 function formatFamilyRole(role: string | null | undefined) {
     if (!role) return "-";
 
-    if (role === "ADMIN") return "Administrator";
+    if (role === "ADMIN") return t("settings.family.admin");
     if (role === "USER") return t("settings.family.member");
 
     return role;
@@ -506,9 +506,11 @@ async function copyUserId(id: string) {
             <AlertDialogHeader>
                 <AlertDialogTitle>{{ t("settings.users.deleteUser") }}</AlertDialogTitle>
                 <AlertDialogDescription v-if="deleteDialogUser">
-                    {{ t("settings.users.deletePrompt") }}
-                    <span class="font-semibold">{{ deleteDialogUser.username }}</span
-                    >?
+                    {{
+                        t("settings.users.deletePromptWithName", {
+                            username: deleteDialogUser.username,
+                        })
+                    }}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

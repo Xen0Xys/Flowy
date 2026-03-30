@@ -2,7 +2,7 @@
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
-import {computed, onMounted, ref, watchEffect} from "vue";
+import {computed, onMounted, ref, watch, watchEffect} from "vue";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -136,6 +136,11 @@ watchEffect(() => {
 });
 
 onMounted(async () => {
+    await computeEffectiveRole();
+});
+
+// Recompute role when language changes
+watch(locale, async () => {
     await computeEffectiveRole();
 });
 

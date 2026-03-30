@@ -395,7 +395,7 @@
             "resetPasswordFor": "Set a new password for {username}.",
             "newPassword": "New password",
             "resetting": "Resetting...",
-            "deletePrompt": "Are you sure you want to delete",
+            "deletePromptWithName": "Are you sure you want to delete {username}?",
             "toasts": {
                 "uuidCopied": "UUID copied to clipboard"
             },
@@ -412,6 +412,7 @@
             "owner": "Owner",
             "admin": "Admin",
             "member": "Member",
+            "memberCount": "{n} member | {n} members",
             "memberCountLabel": "member",
             "deleteThis": "Delete this family",
             "leaveThis": "Leave this family",
@@ -447,6 +448,16 @@
                 "nameRequired": "Family name is required.",
                 "nameLength": "Family name must be between 3 and 50 characters.",
                 "currencyInvalid": "Currency must be a valid 3-letter ISO code."
+            },
+            "aria": {
+                "saveFamilyName": "Save family name",
+                "currency": "Currency",
+                "saveFamilyCurrency": "Save family currency",
+                "removeMember": "Remove member",
+                "inviteEmail": "Invite email",
+                "inviteMember": "Invite member",
+                "copyInviteCode": "Copy invite code",
+                "revokeInvite": "Revoke invite"
             }
         },
         "references": {

@@ -269,8 +269,7 @@ async function removeMember(id: string) {
                                         {{ family.name }}
                                     </div>
                                     <div class="text-muted-foreground text-sm">
-                                        {{ family.members?.length ?? 0 }} {{ t("settings.family.memberCountLabel")
-                                        }}{{ (family.members?.length ?? 0) !== 1 ? "s" : "" }}
+                                        {{ t("settings.family.memberCount", family.members?.length ?? 0) }}
                                     </div>
                                 </div>
 
@@ -390,7 +389,7 @@ async function removeMember(id: string) {
                                                 :placeholder="t('settings.family.familyName')" />
                                             <Button
                                                 :disabled="savingFamilyName || !canSaveFamilyName"
-                                                aria-label="Save family name"
+                                                :aria-label="t('settings.family.aria.saveFamilyName')"
                                                 size="sm"
                                                 variant="default"
                                                 @click="saveFamilyNameOnly">
@@ -406,7 +405,9 @@ async function removeMember(id: string) {
                                         }}</label>
                                         <div class="flex gap-3">
                                             <Select v-model="editFamilyCurrency" :disabled="!userStore.isFamilyAdmin">
-                                                <SelectTrigger aria-label="Currency" class="flex-1">
+                                                <SelectTrigger
+                                                    :aria-label="t('settings.family.aria.currency')"
+                                                    class="flex-1">
                                                     <SelectValue :placeholder="t('settings.family.selectCurrency')" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -419,7 +420,7 @@ async function removeMember(id: string) {
                                             </Select>
                                             <Button
                                                 :disabled="savingFamilyCurrency || !canSaveFamilyCurrency"
-                                                aria-label="Save family currency"
+                                                :aria-label="t('settings.family.aria.saveFamilyCurrency')"
                                                 size="sm"
                                                 variant="default"
                                                 @click="saveFamilyCurrencyOnly">
@@ -458,7 +459,7 @@ async function removeMember(id: string) {
                                                             userStore.isFamilyAdmin && member.id !== userStore.user?.id
                                                         "
                                                         :disabled="removingMemberId === member.id || familyActionLoading"
-                                                        aria-label="Remove member"
+                                                        :aria-label="t('settings.family.aria.removeMember')"
                                                         size="sm"
                                                         variant="destructive">
                                                         <span v-if="removingMemberId !== member.id">
@@ -496,11 +497,11 @@ async function removeMember(id: string) {
                                 <div v-if="userStore.isFamilyAdmin" class="mb-3 flex gap-2">
                                     <Input
                                         v-model="inviteEmail"
-                                        aria-label="Invite email"
+                                        :aria-label="t('settings.family.aria.inviteEmail')"
                                         :placeholder="t('settings.family.invitePlaceholder')" />
                                     <Button
                                         :disabled="!inviteEmail || inviting"
-                                        aria-label="Invite member"
+                                        :aria-label="t('settings.family.aria.inviteMember')"
                                         @click="handleInvite">
                                         <span v-if="!inviting">{{ t("settings.family.invite") }}</span>
                                         <span v-else>{{ t("settings.family.inviting") }}</span>
@@ -522,13 +523,13 @@ async function removeMember(id: string) {
                                         </div>
                                         <div class="flex gap-2">
                                             <Button
-                                                aria-label="Copy invite code"
+                                                :aria-label="t('settings.family.aria.copyInviteCode')"
                                                 size="sm"
                                                 @click="copyInviteCode(inv.code)"
                                                 >{{ t("common.copy") }}</Button
                                             >
                                             <Button
-                                                aria-label="Revoke invite"
+                                                :aria-label="t('settings.family.aria.revokeInvite')"
                                                 size="sm"
                                                 variant="destructive"
                                                 @click="handleRevoke(inv.code)"
