@@ -554,14 +554,17 @@
             "success": {
                 "transactionCreated": "Transaction créée",
                 "transactionUpdated": "Transaction mise à jour",
-                "transactionDeleted": "Transaction supprimée"
+                "transactionDeleted": "Transaction supprimée",
+                "bulkTransactionsCreated": "{count} transactions importées"
             },
             "errors": {
                 "fetchTransactions": "Échec du chargement des transactions",
                 "fetchAccountTransactions": "Échec du chargement des transactions du compte",
                 "createTransaction": "Échec de création de la transaction",
                 "updateTransaction": "Échec de mise à jour de la transaction",
-                "deleteTransaction": "Échec de suppression de la transaction"
+                "deleteTransaction": "Échec de suppression de la transaction",
+                "testBulkTransactions": "Échec de validation de l'aperçu d'import",
+                "createBulkTransactions": "Échec de l'import des transactions"
             }
         }
     },

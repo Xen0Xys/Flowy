@@ -58,6 +58,16 @@ export type UpdateTransactionPayload = {
     isRebalance?: boolean;
 };
 
+export type BulkTransactionsTestResult = {
+    wouldInsertCount: number;
+    duplicates: CreateTransactionPayload[];
+};
+
+export type BulkTransactionsCreateResult = {
+    insertedCount: number;
+    duplicates: CreateTransactionPayload[];
+};
+
 export const useTransactionStore = defineStore("transaction", {
     state: () => ({
         transactions: [] as Transaction[],
@@ -117,6 +127,45 @@ export const useTransactionStore = defineStore("transaction", {
                 return newTransaction;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createTransaction");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async testBulkTransactions(accountId: string, payload: CreateTransactionPayload[]) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                return await apiFetch<BulkTransactionsTestResult>(`/transaction/${accountId}/bulk/test`, {
+                    method: "POST",
+                    body: payload,
+                });
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.testBulkTransactions");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async createBulkTransactions(accountId: string, payload: CreateTransactionPayload[]) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const result = await apiFetch<BulkTransactionsCreateResult>(`/transaction/${accountId}/bulk`, {
+                    method: "POST",
+                    body: payload,
+                });
+
+                await Promise.all([this.fetchTransactions(), this.fetchTransactionsByAccountId(accountId)]);
+
+                toast.success(i18nT("transaction.store.success.bulkTransactionsCreated", {count: result.insertedCount}));
+                return result;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.createBulkTransactions");
                 toast.error(message);
                 throw new Error(message);
             }

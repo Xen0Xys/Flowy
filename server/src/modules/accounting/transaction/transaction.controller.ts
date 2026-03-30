@@ -6,6 +6,7 @@ import {
     HttpCode,
     HttpStatus,
     Param,
+    ParseArrayPipe,
     ParseUUIDPipe,
     Patch,
     Post,
@@ -50,6 +51,35 @@ export class TransactionController {
         @Body() createTransactionDto: CreateTransactionDto,
     ): Promise<TransactionEntity> {
         return this.transactionService.addTransactions(user, accountId, createTransactionDto);
+    }
+
+    @Post(":accountId/bulk/test")
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async testBulkTransactions(
+        @User() user: UserEntity,
+        @Param("accountId", new ParseUUIDPipe({version: "7"})) accountId: string,
+        @Body(new ParseArrayPipe({items: CreateTransactionDto})) createTransactionDtos: CreateTransactionDto[],
+    ): Promise<{
+        wouldInsertCount: number;
+        duplicates: CreateTransactionDto[];
+    }> {
+        return this.transactionService.testBulkTransactions(user, accountId, createTransactionDtos);
+    }
+
+    @Post(":accountId/bulk")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async addBulkTransactions(
+        @User() user: UserEntity,
+        @Param("accountId", new ParseUUIDPipe({version: "7"})) accountId: string,
+        @Body(new ParseArrayPipe({items: CreateTransactionDto})) createTransactionDtos: CreateTransactionDto[],
+    ): Promise<{
+        insertedCount: number;
+        duplicates: CreateTransactionDto[];
+    }> {
+        return this.transactionService.addBulkTransactions(user, accountId, createTransactionDtos);
     }
 
     @Patch(":transactionId")

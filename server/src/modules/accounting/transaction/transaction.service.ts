@@ -1,5 +1,5 @@
 import {ForbiddenException, Injectable, NotFoundException} from "@nestjs/common";
-import {PrismaService} from "../../helper/prisma.service";
+import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {TransactionEntity} from "./models/entities/transaction.entity";
 import {CreateTransactionDto} from "./models/dto/create-transaction.dto";
@@ -7,6 +7,7 @@ import {UpdateTransactionDto} from "./models/dto/update-transaction.dto";
 import {CategoryEntity} from "../reference/models/entities/category.entity";
 import {MerchantEntity} from "../reference/models/entities/merchant.entity";
 import {Prisma} from "../../../../prisma/generated/client";
+import {BulkAnalysisAccountEntity, BulkAnalysisEntity} from "./models/entities/bulk-analysis.entity";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
@@ -60,8 +61,9 @@ export class TransactionService {
         });
     }
 
-    private async getOwnedAccountOrThrow(user: UserEntity, accountId: string) {
-        const account = await this.prismaService.accounts.findUnique({
+    private async getOwnedAccountOrThrow(user: UserEntity, accountId: string, tx?: TxClient) {
+        const prisma = this.prismaService.withTx(tx);
+        const account = await prisma.accounts.findUnique({
             where: {id: accountId},
         });
 
@@ -80,9 +82,12 @@ export class TransactionService {
         user: UserEntity,
         merchantId?: string | null,
         categoryId?: string | null,
+        tx?: TxClient,
     ): Promise<void> {
+        const prisma = this.prismaService.withTx(tx);
+
         if (merchantId) {
-            const merchant = await this.prismaService.userMerchants.findUnique({
+            const merchant = await prisma.userMerchants.findUnique({
                 where: {id: merchantId},
             });
 
@@ -92,7 +97,7 @@ export class TransactionService {
         }
 
         if (categoryId) {
-            const category = await this.prismaService.userCategories.findUnique({
+            const category = await prisma.userCategories.findUnique({
                 where: {id: categoryId},
             });
 
@@ -100,6 +105,154 @@ export class TransactionService {
                 throw new NotFoundException("Category not found");
             }
         }
+    }
+
+    private async validateBulkReferencesOwnership(
+        user: UserEntity,
+        createTransactionDtos: CreateTransactionDto[],
+        tx?: TxClient,
+    ): Promise<void> {
+        const prisma = this.prismaService.withTx(tx);
+
+        const merchantIds = Array.from(
+            new Set(
+                createTransactionDtos.map((transaction) => transaction.merchantId).filter((id): id is string => !!id),
+            ),
+        );
+        const categoryIds = Array.from(
+            new Set(
+                createTransactionDtos.map((transaction) => transaction.categoryId).filter((id): id is string => !!id),
+            ),
+        );
+
+        if (merchantIds.length > 0) {
+            const ownedMerchants = await prisma.userMerchants.findMany({
+                where: {
+                    id: {in: merchantIds},
+                    user_id: user.id,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            const ownedMerchantIds = new Set(ownedMerchants.map((merchant) => merchant.id));
+            const hasMissingMerchant = merchantIds.some((merchantId) => !ownedMerchantIds.has(merchantId));
+
+            if (hasMissingMerchant) {
+                throw new NotFoundException("Merchant not found");
+            }
+        }
+
+        if (categoryIds.length > 0) {
+            const ownedCategories = await prisma.userCategories.findMany({
+                where: {
+                    id: {in: categoryIds},
+                    user_id: user.id,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            const ownedCategoryIds = new Set(ownedCategories.map((category) => category.id));
+            const hasMissingCategory = categoryIds.some((categoryId) => !ownedCategoryIds.has(categoryId));
+
+            if (hasMissingCategory) {
+                throw new NotFoundException("Category not found");
+            }
+        }
+    }
+
+    private buildTransactionSignature(transaction: {
+        amount: number;
+        description: string;
+        date: string | Date;
+        merchantId?: string | null;
+        categoryId?: string | null;
+        isRebalance?: boolean;
+    }): string {
+        const amount = this.toDecimal(transaction.amount);
+        const description = transaction.description;
+        const date = new Date(transaction.date).toISOString();
+        const merchantId = transaction.merchantId ?? null;
+        const categoryId = transaction.categoryId ?? null;
+        const isRebalance = transaction.isRebalance ?? false;
+
+        return JSON.stringify([amount, description, date, merchantId, categoryId, isRebalance]);
+    }
+
+    private async analyzeBulkTransactionsAgainstDatabase(
+        user: UserEntity,
+        accountId: string,
+        createTransactionDtos: CreateTransactionDto[],
+        tx?: TxClient,
+    ): Promise<BulkAnalysisEntity> {
+        const prisma = this.prismaService.withTx(tx);
+
+        const account = await this.getOwnedAccountOrThrow(user, accountId, tx);
+        await this.validateBulkReferencesOwnership(user, createTransactionDtos, tx);
+
+        if (createTransactionDtos.length === 0) {
+            return new BulkAnalysisEntity({
+                account: new BulkAnalysisAccountEntity({
+                    id: account.id,
+                    balance: account.balance,
+                }),
+                toInsert: [],
+                duplicates: [],
+            });
+        }
+
+        const existingTransactions = await prisma.transactions.findMany({
+            where: {
+                account_id: accountId,
+            },
+            select: {
+                amount: true,
+                description: true,
+                date: true,
+                merchant_id: true,
+                category_id: true,
+                is_rebalance: true,
+            },
+        });
+
+        const existingSignatures = new Set(
+            existingTransactions.map((transaction) =>
+                this.buildTransactionSignature({
+                    amount: transaction.amount,
+                    description: transaction.description,
+                    date: transaction.date,
+                    merchantId: transaction.merchant_id,
+                    categoryId: transaction.category_id,
+                    isRebalance: transaction.is_rebalance,
+                }),
+            ),
+        );
+
+        const toInsert: CreateTransactionDto[] = [];
+        const duplicates: CreateTransactionDto[] = [];
+
+        for (const transaction of createTransactionDtos) {
+            const signature = this.buildTransactionSignature(transaction);
+
+            if (existingSignatures.has(signature)) {
+                duplicates.push({...transaction});
+                continue;
+            }
+
+            toInsert.push(transaction);
+        }
+
+        return new BulkAnalysisEntity({
+            account: new BulkAnalysisAccountEntity({
+                id: account.id,
+                balance: account.balance,
+            }),
+            toInsert,
+            duplicates,
+        });
     }
 
     async getTransactions(user: UserEntity): Promise<TransactionEntity[]> {
@@ -178,6 +331,76 @@ export class TransactionService {
         });
 
         return this.toTransactionEntity(createdTransaction);
+    }
+
+    async testBulkTransactions(
+        user: UserEntity,
+        accountId: string,
+        createTransactionDtos: CreateTransactionDto[],
+    ): Promise<{
+        wouldInsertCount: number;
+        duplicates: CreateTransactionDto[];
+    }> {
+        const analysis = await this.analyzeBulkTransactionsAgainstDatabase(user, accountId, createTransactionDtos);
+
+        return {
+            wouldInsertCount: analysis.toInsert.length,
+            duplicates: analysis.duplicates,
+        };
+    }
+
+    async addBulkTransactions(
+        user: UserEntity,
+        accountId: string,
+        createTransactionDtos: CreateTransactionDto[],
+    ): Promise<{
+        insertedCount: number;
+        duplicates: CreateTransactionDto[];
+    }> {
+        return this.prismaService.$transaction(async (tx) => {
+            const analysis = await this.analyzeBulkTransactionsAgainstDatabase(
+                user,
+                accountId,
+                createTransactionDtos,
+                tx,
+            );
+
+            if (analysis.toInsert.length === 0) {
+                return {
+                    insertedCount: 0,
+                    duplicates: analysis.duplicates,
+                };
+            }
+
+            const totalAmount = analysis.toInsert.reduce(
+                (sum, transaction) => this.toDecimal(sum + transaction.amount),
+                0,
+            );
+
+            await tx.transactions.createMany({
+                data: analysis.toInsert.map((transaction) => ({
+                    account_id: accountId,
+                    amount: transaction.amount,
+                    description: transaction.description,
+                    date: transaction.date,
+                    merchant_id: transaction.merchantId,
+                    category_id: transaction.categoryId,
+                    is_rebalance: transaction.isRebalance ?? false,
+                })),
+            });
+
+            await tx.accounts.update({
+                where: {id: accountId},
+                data: {
+                    balance: this.toDecimal(analysis.account.balance + totalAmount),
+                },
+            });
+
+            return {
+                insertedCount: analysis.toInsert.length,
+                duplicates: analysis.duplicates,
+            };
+        });
     }
 
     async updateTransaction(

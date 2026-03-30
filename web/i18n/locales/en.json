@@ -554,14 +554,17 @@
             "success": {
                 "transactionCreated": "Transaction created",
                 "transactionUpdated": "Transaction updated",
-                "transactionDeleted": "Transaction deleted"
+                "transactionDeleted": "Transaction deleted",
+                "bulkTransactionsCreated": "{count} transactions imported"
             },
             "errors": {
                 "fetchTransactions": "Failed fetching transactions",
                 "fetchAccountTransactions": "Failed fetching account transactions",
                 "createTransaction": "Failed creating transaction",
                 "updateTransaction": "Failed updating transaction",
-                "deleteTransaction": "Failed deleting transaction"
+                "deleteTransaction": "Failed deleting transaction",
+                "testBulkTransactions": "Failed validating import preview",
+                "createBulkTransactions": "Failed importing transactions"
             }
         }
     },

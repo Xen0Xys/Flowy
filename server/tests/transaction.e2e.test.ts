@@ -77,6 +77,14 @@ describe("TransactionController (e2e)", () => {
         expect(create.status).toBe(401);
         expect(create.body.message).toBe("Authorization token is missing");
 
+        const bulkTest = await agent.post("/transaction/account-id/bulk/test").send([]);
+        expect(bulkTest.status).toBe(401);
+        expect(bulkTest.body.message).toBe("Authorization token is missing");
+
+        const bulkCreate = await agent.post("/transaction/account-id/bulk").send([]);
+        expect(bulkCreate.status).toBe(401);
+        expect(bulkCreate.body.message).toBe("Authorization token is missing");
+
         const update = await agent.patch("/transaction/transaction-id").send({description: "Updated"});
         expect(update.status).toBe(401);
         expect(update.body.message).toBe("Authorization token is missing");
@@ -113,6 +121,136 @@ describe("TransactionController (e2e)", () => {
             where: {id: account.body.id},
         });
         expect(storedAccount?.balance).toBe(-42.35);
+    });
+
+    test("bulk test endpoint previews only duplicates already in database", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Preview", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const existing = {
+            amount: -80.5,
+            description: "Rent",
+            date: "2026-02-01T09:00:00.000Z",
+            isRebalance: false,
+        };
+
+        const firstInsert = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send(existing);
+        expect(firstInsert.status).toBe(201);
+
+        const preview = await agent
+            .post(`/transaction/${account.body.id}/bulk/test`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                existing,
+                {
+                    amount: 2000,
+                    description: "Salary",
+                    date: "2026-02-02T08:00:00.000Z",
+                },
+            ]);
+
+        expect(preview.status).toBe(200);
+        expect(preview.body.wouldInsertCount).toBe(1);
+        expect(preview.body.duplicates).toHaveLength(1);
+        expect(preview.body.duplicates[0]).toEqual(expect.objectContaining(existing));
+    });
+
+    test("bulk create inserts only non-duplicates found in database", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Create", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const duplicateInDb = {
+            amount: -19.99,
+            description: "Streaming",
+            date: "2026-02-10T10:00:00.000Z",
+            isRebalance: false,
+        };
+
+        const existingInsert = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send(duplicateInDb);
+        expect(existingInsert.status).toBe(201);
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                duplicateInDb,
+                {
+                    amount: 1500,
+                    description: "Freelance",
+                    date: "2026-02-11T10:00:00.000Z",
+                },
+                {
+                    amount: -25,
+                    description: "Dinner",
+                    date: "2026-02-11T19:00:00.000Z",
+                },
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(2);
+        expect(bulk.body.duplicates).toHaveLength(1);
+        expect(bulk.body.duplicates[0]).toEqual(expect.objectContaining(duplicateInDb));
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {
+                account_id: account.body.id,
+            },
+        });
+        expect(storedTransactions).toHaveLength(3);
+
+        const storedAccount = await prisma.accounts.findUnique({
+            where: {id: account.body.id},
+        });
+        expect(storedAccount?.balance).toBe(1455.01);
+    });
+
+    test("bulk create keeps identical rows from payload when absent in database", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Same Rows", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const sameTx = {
+            amount: -12.5,
+            description: "Transfer",
+            date: "2026-03-01T10:30:00.000Z",
+        };
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([sameTx, sameTx]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(2);
+        expect(bulk.body.duplicates).toHaveLength(0);
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {
+                account_id: account.body.id,
+                description: "Transfer",
+            },
+        });
+        expect(storedTransactions).toHaveLength(2);
     });
 
     test("lists only current user's transactions", async () => {
