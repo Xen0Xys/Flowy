@@ -65,13 +65,9 @@ describe("TransactionController (e2e)", () => {
         expect(list.status).toBe(401);
         expect(list.body.message).toBe("Authorization token is missing");
 
-        const search = await agent.get("/transaction/search");
+        const search = await agent.get("/transaction");
         expect(search.status).toBe(401);
         expect(search.body.message).toBe("Authorization token is missing");
-
-        const byAccount = await agent.get("/transaction/account-id");
-        expect(byAccount.status).toBe(401);
-        expect(byAccount.body.message).toBe("Authorization token is missing");
 
         const create = await agent.post("/transaction/account-id").send({
             amount: 12.34,
@@ -404,8 +400,9 @@ describe("TransactionController (e2e)", () => {
         const listA = await agent.get("/transaction").set("Authorization", `Bearer ${userA.token}`);
 
         expect(listA.status).toBe(200);
-        expect(listA.body).toHaveLength(1);
-        expect(listA.body[0].description).toBe("Salary");
+        expect(listA.body.total).toBe(1);
+        expect(listA.body.items).toHaveLength(1);
+        expect(listA.body.items[0].description).toBe("Salary");
     });
 
     test("searches transactions with frontend-like filters", async () => {
@@ -484,7 +481,7 @@ describe("TransactionController (e2e)", () => {
         expect(rebalanceTx.status).toBe(201);
 
         const response = await agent
-            .get("/transaction/search")
+            .get("/transaction")
             .query({
                 search: "market",
                 type: "expense",
@@ -530,7 +527,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const response = await agent
-            .get("/transaction/search")
+            .get("/transaction")
             .query({page: 2, pageSize: 1})
             .set("Authorization", `Bearer ${user.token}`);
 
@@ -547,7 +544,7 @@ describe("TransactionController (e2e)", () => {
         const user = await registerUser(server);
 
         const response = await agent
-            .get("/transaction/search")
+            .get("/transaction")
             .query({startDate: "2026-03-15", endDate: "2026-03-01"})
             .set("Authorization", `Bearer ${user.token}`);
 
@@ -555,7 +552,7 @@ describe("TransactionController (e2e)", () => {
         expect(response.body.message).toBe("startDate must be before or equal to endDate");
     });
 
-    test("forbids access to another user's account transactions", async () => {
+    test("does not leak another user's account transactions when filtering by accountId", async () => {
         const owner = await registerUser(server);
         const outsider = await registerUser(server);
 
@@ -566,10 +563,14 @@ describe("TransactionController (e2e)", () => {
 
         expect(account.status).toBe(201);
 
-        const list = await agent.get(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
+        const list = await agent
+            .get("/transaction")
+            .query({accountId: account.body.id})
+            .set("Authorization", `Bearer ${outsider.token}`);
 
-        expect(list.status).toBe(403);
-        expect(list.body.message).toBe("You do not have permission to access this account");
+        expect(list.status).toBe(200);
+        expect(list.body.total).toBe(0);
+        expect(list.body.items).toHaveLength(0);
     });
 
     test("updates a transaction and reconciles account balance", async () => {
@@ -683,10 +684,12 @@ describe("TransactionController (e2e)", () => {
         const missingTransactionId = "0195c8dd-c263-7569-99f6-9fc20aca3051";
 
         const byAccount = await agent
-            .get(`/transaction/${missingAccountId}`)
+            .get("/transaction")
+            .query({accountId: missingAccountId})
             .set("Authorization", `Bearer ${user.token}`);
-        expect(byAccount.status).toBe(404);
-        expect(byAccount.body.message).toBe("Account not found");
+        expect(byAccount.status).toBe(200);
+        expect(byAccount.body.total).toBe(0);
+        expect(byAccount.body.items).toHaveLength(0);
 
         const create = await agent
             .post(`/transaction/${missingAccountId}`)
@@ -716,7 +719,10 @@ describe("TransactionController (e2e)", () => {
     test("rejects invalid UUID v7 params on protected routes", async () => {
         const user = await registerUser(server);
 
-        const byAccount = await agent.get("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
+        const byAccount = await agent
+            .get("/transaction")
+            .query({accountId: "not-a-uuid"})
+            .set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(400);
 
         const create = await agent.post("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`).send({

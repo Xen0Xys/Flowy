@@ -222,6 +222,7 @@
         "setBalanceDescription": "Définissez le nouveau solde actuel de ce compte. Une transaction de rééquilibrage est créée automatiquement si la valeur change.",
         "targetBalance": "Solde cible",
         "saveBalance": "Enregistrer le solde",
+        "noData": "Aucun historique de solde pour cette période",
         "store": {
             "success": {
                 "accountCreated": "Compte créé",

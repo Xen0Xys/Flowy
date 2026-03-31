@@ -2,6 +2,32 @@
 import tailwindcss from "@tailwindcss/vite";
 import pkg from "./package.json";
 
+let securityHeaders = {};
+if (process.env.NODE_ENV === "production") {
+    securityHeaders = {
+        headers: {
+            contentSecurityPolicy: {
+                "default-src": ["'self'"],
+                "script-src": ["'self'", "'unsafe-inline'"],
+                "style-src": ["'self'", "'unsafe-inline'"],
+                "img-src": ["'self'", "data:", "https:"],
+                "connect-src": ["'self'"],
+                "font-src": ["'self'"],
+                "object-src": ["'none'"],
+                "media-src": ["'none'"],
+                "frame-src": ["'none'"],
+                "upgrade-insecure-requests": true,
+            },
+
+            crossOriginEmbedderPolicy: false,
+            crossOriginOpenerPolicy: "same-origin",
+            crossOriginResourcePolicy: false,
+
+            referrerPolicy: "strict-origin-when-cross-origin",
+        },
+    };
+}
+
 export default defineNuxtConfig({
     runtimeConfig: {
         public: {
@@ -76,26 +102,5 @@ export default defineNuxtConfig({
             },
         },
     },
-    security: {
-        headers: {
-            contentSecurityPolicy: {
-                "default-src": ["'self'"],
-                "script-src": ["'self'", "'unsafe-inline'"],
-                "style-src": ["'self'", "'unsafe-inline'"],
-                "img-src": ["'self'", "data:", "https:"],
-                "connect-src": ["'self'"],
-                "font-src": ["'self'"],
-                "object-src": ["'none'"],
-                "media-src": ["'none'"],
-                "frame-src": ["'none'"],
-                "upgrade-insecure-requests": true,
-            },
-
-            crossOriginEmbedderPolicy: false,
-            crossOriginOpenerPolicy: "same-origin",
-            crossOriginResourcePolicy: false,
-
-            referrerPolicy: "strict-origin-when-cross-origin",
-        },
-    },
+    security: securityHeaders,
 });

@@ -73,6 +73,9 @@ const y = (d: {balance: number}) => d.balance;
 
 const loadData = async () => {
     isLoading.value = true;
+    const startTime = Date.now();
+    const minLoadingTime = 150; // Minimum time to show skeleton (ms)
+
     try {
         await Promise.all([accountStore.fetchAccountById(accountId), familyStore.fetchFamily()]);
         await loadChartData();
@@ -80,6 +83,11 @@ const loadData = async () => {
         console.error(err);
         router.push("/");
     } finally {
+        // Ensure skeleton is visible for at least minLoadingTime
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minLoadingTime) {
+            await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsed));
+        }
         isLoading.value = false;
     }
 };
@@ -89,7 +97,16 @@ const loadChartData = async () => {
     await accountStore.fetchAccountBalanceEvolution(accountId, startDate, endDate);
 };
 
-onMounted(loadData);
+// Use double requestAnimationFrame to ensure the skeleton is rendered before loading data
+// This prevents UI freeze when data loads very quickly (e.g., empty accounts)
+// The first rAF schedules before paint, the second rAF schedules after paint
+onMounted(() => {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            loadData();
+        });
+    });
+});
 
 watch(timeRange, () => {
     loadChartData();
@@ -217,18 +234,13 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                     </div>
                 </div>
 
-                <div v-if="isLoading" class="flex flex-col gap-6 md:min-h-0 md:flex-1">
-                    <Skeleton class="h-[400px] w-full shrink-0" />
-                    <div class="space-y-4 md:flex-1 md:overflow-hidden">
-                        <Skeleton class="h-20 w-full" />
-                        <Skeleton class="h-20 w-full" />
-                        <Skeleton class="h-20 w-full" />
+                <!-- Graph with KPI -->
+                <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
+                    <div v-if="isLoading" class="flex flex-col gap-4">
+                        <Skeleton class="h-8 w-32" />
+                        <Skeleton class="h-[300px] w-full" />
                     </div>
-                </div>
-
-                <template v-else-if="account">
-                    <!-- Graph with KPI -->
-                    <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
+                    <template v-else-if="account">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
                                 <h3 class="text-muted-foreground text-sm font-medium">
@@ -252,7 +264,12 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                         <div>
                             <div class="-mx-6 mt-6 h-[300px] md:mx-0">
                                 <ClientOnly>
-                                    <ChartContainer :config="chartConfig">
+                                    <div
+                                        v-if="evolutionSeries.length === 0"
+                                        class="flex h-full items-center justify-center">
+                                        <p class="text-muted-foreground text-sm">{{ t("account.noData") }}</p>
+                                    </div>
+                                    <ChartContainer v-else :config="chartConfig">
                                         <VisXYContainer
                                             :data="evolutionSeries"
                                             :padding="{
@@ -332,15 +349,15 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                 </ClientOnly>
                             </div>
                         </div>
-                    </div>
+                    </template>
+                </div>
 
-                    <!-- Transactions -->
-                    <TransactionListWidget
-                        :account-id="accountId"
-                        :show-view-all="true"
-                        view-all-link="/transactions"
-                        @saved="onTransactionSaved" />
-                </template>
+                <!-- Transactions -->
+                <TransactionListWidget
+                    :account-id="accountId"
+                    :show-view-all="true"
+                    view-all-link="/transactions"
+                    @saved="onTransactionSaved" />
 
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />

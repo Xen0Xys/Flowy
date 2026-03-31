@@ -1,5 +1,6 @@
 export default defineNitroPlugin((nitroApp) => {
     nitroApp.hooks.hook("nuxt-security:routeRules", (appSecurityOptions: Record<string, any>) => {
+        if (process.env.NODE_ENV !== "production") return;
         const runtimeConfig = useRuntimeConfig();
         const apiBase = runtimeConfig.public?.apiBase;
 

@@ -31,28 +31,11 @@ export class TransactionController {
     @Get()
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getAllTransactions(@User() user: UserEntity): Promise<TransactionEntity[]> {
-        return this.transactionService.getTransactions(user);
-    }
-
-    @Get("search")
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
     async searchTransactions(
         @User() user: UserEntity,
         @Query() query: SearchTransactionsDto,
     ): Promise<SearchTransactionsResultEntity> {
         return this.transactionService.searchTransactions(user, query);
-    }
-
-    @Get(":accountId")
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    async getTransactionByAccountId(
-        @User() user: UserEntity,
-        @Param("accountId", new ParseUUIDPipe({version: "7"})) accountId: string,
-    ): Promise<TransactionEntity[]> {
-        return this.transactionService.getTransactionsByAccountId(user, accountId);
     }
 
     @Post(":accountId")

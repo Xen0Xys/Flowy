@@ -1,9 +1,13 @@
-<script setup lang="ts">
-import {ref, computed, watch, onMounted} from "vue";
-import {useMediaQuery} from "@vueuse/core";
-import {watchDebounced} from "@vueuse/core";
+<script lang="ts" setup>
+import {computed, onMounted, ref} from "vue";
+import {useMediaQuery, watchDebounced} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
-import {useTransactionStore, type Transaction, type TransactionSearchFilters} from "~/stores/transaction.store";
+import {
+    type SearchTransactionsResult,
+    type Transaction,
+    type TransactionSearchFilters,
+    useTransactionStore,
+} from "~/stores/transaction.store";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
@@ -43,7 +47,7 @@ const filters = ref<TransactionFilters>({
 
 const availableCategories = computed(() => {
     const categoriesMap = new Map<string, {id: string; name: string}>();
-    const items = transactionStore.searchResult?.items ?? [];
+    const items = searchResult.value.items ?? [];
     for (const tx of items) {
         if (tx.category && !categoriesMap.has(tx.category.id)) {
             categoriesMap.set(tx.category.id, {id: tx.category.id, name: tx.category.name});
@@ -54,7 +58,7 @@ const availableCategories = computed(() => {
 
 const availableMerchants = computed(() => {
     const merchantsMap = new Map<string, {id: string; name: string}>();
-    const items = transactionStore.searchResult?.items ?? [];
+    const items = searchResult.value.items ?? [];
     for (const tx of items) {
         if (tx.merchant && !merchantsMap.has(tx.merchant.id)) {
             merchantsMap.set(tx.merchant.id, {id: tx.merchant.id, name: tx.merchant.name});
@@ -67,9 +71,11 @@ const accountNameById = computed(() => {
     return Object.fromEntries((props.availableAccounts || []).map((account) => [account.id, account.name]));
 });
 
-const transactions = computed(() => transactionStore.searchResult?.items ?? []);
-const isLoading = computed(() => transactionStore.isSearching);
-const totalResults = computed(() => transactionStore.searchResult?.total ?? 0);
+const searchResult = ref<SearchTransactionsResult>({} as any);
+const isLoading = ref(false);
+
+const transactions = computed(() => searchResult.value.items ?? []);
+const totalResults = computed(() => searchResult.value.total ?? 0);
 
 const buildSearchFilters = (): TransactionSearchFilters => {
     const searchFilters: TransactionSearchFilters = {};
@@ -113,14 +119,17 @@ const buildSearchFilters = (): TransactionSearchFilters => {
     return searchFilters;
 };
 
-const fetchTransactions = async () => {
+async function fetchTransactions() {
     try {
+        isLoading.value = true;
         const searchFilters = buildSearchFilters();
-        await transactionStore.searchTransactions(searchFilters);
+        searchResult.value = await transactionStore.searchTransactions(searchFilters);
     } catch (err) {
         console.error(err);
+    } finally {
+        isLoading.value = false;
     }
-};
+}
 
 watchDebounced(
     filters,
@@ -165,40 +174,41 @@ const onTransactionSaved = () => {
                         {{ t("transactions.list.viewAll") }}
                     </NuxtLink>
                 </div>
-                <Button v-if="accountId" @click="handleNewTransactionClick" size="sm">
-                    <Icon name="iconoir:plus" class="h-4 w-4" />
+                <Button v-if="accountId" size="sm" @click="handleNewTransactionClick">
+                    <Icon class="h-4 w-4" name="iconoir:plus" />
                     {{ t("transactions.list.newTransaction") }}
                 </Button>
             </div>
 
             <TransactionFiltersBar
                 v-model="filters"
+                :available-accounts="props.availableAccounts"
                 :available-categories="availableCategories"
                 :available-merchants="availableMerchants"
-                :available-accounts="props.availableAccounts"
                 :show-account-filter="props.showAccountFilter" />
         </div>
 
         <component
             :is="!isMobile ? ScrollArea : 'div'"
-            :scrollbar-class="!isMobile ? 'pt-[41px]' : ''"
             :class="
                 !isMobile
                     ? 'overflow-hidden rounded-b-md border-t md:min-h-0 md:flex-1'
                     : 'overflow-hidden rounded-b-md border-t'
-            ">
+            "
+            :scrollbar-class="!isMobile ? 'pt-[41px]' : ''">
             <TransactionTable
-                :transactions="transactions"
-                :is-filtered="totalResults !== transactions.length || Object.keys(buildSearchFilters()).length > 0"
-                :show-account-column="props.showAccountColumn"
                 :account-name-by-id="accountNameById"
+                :is-filtered="totalResults !== transactions.length || Object.keys(buildSearchFilters()).length > 0"
+                :is-loading="isLoading"
+                :show-account-column="props.showAccountColumn"
+                :transactions="transactions"
                 @row-click="handleTransactionClick" />
         </component>
 
         <TransactionFormModal
             v-model:open="isTransactionModalOpen"
-            :transaction="selectedTransaction"
             :account-id="accountId"
+            :transaction="selectedTransaction"
             @saved="onTransactionSaved" />
     </div>
 </template>

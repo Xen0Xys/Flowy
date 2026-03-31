@@ -91,12 +91,7 @@ export type SearchTransactionsResult = {
 };
 
 export const useTransactionStore = defineStore("transaction", {
-    state: () => ({
-        transactions: [] as Transaction[],
-        currentAccountTransactions: [] as Transaction[],
-        searchResult: null as SearchTransactionsResult | null,
-        isSearching: false,
-    }),
+    state: () => ({}),
 
     actions: {
         async fetchTransactions() {
@@ -105,9 +100,7 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const transactions = await apiFetch<Transaction[]>("/transaction");
-                this.transactions = transactions;
-                return transactions;
+                return await apiFetch<Transaction[]>("/transaction");
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
@@ -121,9 +114,7 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const transactions = await apiFetch<Transaction[]>(`/transaction/${accountId}`);
-                this.currentAccountTransactions = transactions;
-                return transactions;
+                return await apiFetch<Transaction[]>(`/transaction/${accountId}`);
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
                 toast.error(message);
@@ -135,8 +126,6 @@ export const useTransactionStore = defineStore("transaction", {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
-
-            this.isSearching = true;
 
             const params = new URLSearchParams();
 
@@ -181,18 +170,14 @@ export const useTransactionStore = defineStore("transaction", {
             }
 
             const queryString = params.toString();
-            const endpoint = queryString ? `/transaction/search?${queryString}` : "/transaction/search";
+            const endpoint = queryString ? `/transaction?${queryString}` : "/transaction";
 
             try {
-                const result = await apiFetch<SearchTransactionsResult>(endpoint);
-                this.searchResult = result;
-                return result;
+                return await apiFetch<SearchTransactionsResult>(endpoint);
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
                 throw new Error(message);
-            } finally {
-                this.isSearching = false;
             }
         },
 

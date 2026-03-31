@@ -19,6 +19,7 @@ import {toCurrency} from "~/lib/currency";
 import {Button} from "~/components/ui/button";
 import {Badge} from "~/components/ui/badge";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
+import {Skeleton} from "~/components/ui/skeleton";
 import {valueUpdater} from "~/components/ui/table/utils";
 
 const props = defineProps<{
@@ -26,6 +27,7 @@ const props = defineProps<{
     isFiltered?: boolean;
     showAccountColumn?: boolean;
     accountNameById?: Record<string, string>;
+    isLoading?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -244,11 +246,41 @@ const table = useVueTable({
                     </TableCell>
                 </TableRow>
 
-                <TableRow v-if="table.getRowModel().rows.length === 0">
+                <TableRow v-if="table.getRowModel().rows.length === 0 && !isLoading">
                     <TableCell :colspan="columns.length" class="text-muted-foreground h-24 text-center">
                         {{ isFiltered ? t("transactions.table.noMatch") : t("transactions.table.noTransactions") }}
                     </TableCell>
                 </TableRow>
+
+                <template v-if="isLoading">
+                    <TableRow v-for="i in 5" :key="`skeleton-${i}`" class="hover:bg-muted/50">
+                        <template v-if="isMobile">
+                            <TableCell class="w-[115px]">
+                                <Skeleton class="h-4 w-20" />
+                            </TableCell>
+                            <TableCell class="max-w-[180px]">
+                                <Skeleton class="h-4 w-32" />
+                            </TableCell>
+                        </template>
+                        <template v-else>
+                            <TableCell class="w-[150px]">
+                                <Skeleton class="h-4 w-20" />
+                            </TableCell>
+                            <TableCell v-if="showAccountColumn" class="w-[180px]">
+                                <Skeleton class="h-4 w-24" />
+                            </TableCell>
+                            <TableCell class="max-w-[360px]">
+                                <Skeleton class="h-4 w-48" />
+                            </TableCell>
+                            <TableCell class="w-[200px]">
+                                <Skeleton class="h-5 w-16" />
+                            </TableCell>
+                            <TableCell class="w-[150px] text-right">
+                                <Skeleton class="ml-auto h-4 w-20" />
+                            </TableCell>
+                        </template>
+                    </TableRow>
+                </template>
             </TableBody>
         </Table>
     </div>

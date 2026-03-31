@@ -222,6 +222,7 @@
         "setBalanceDescription": "Set the new current balance for this account. A rebalance transaction is created automatically when the value changes.",
         "targetBalance": "Target balance",
         "saveBalance": "Save balance",
+        "noData": "No balance history for this period",
         "store": {
             "success": {
                 "accountCreated": "Account created",
