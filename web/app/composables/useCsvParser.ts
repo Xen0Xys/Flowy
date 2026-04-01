@@ -75,21 +75,52 @@ export function useCsvParser() {
 
         const cleaned = value.trim();
 
+        const isValidDateParts = (year: string, month: string, day: string): boolean => {
+            const y = Number.parseInt(year, 10);
+            const m = Number.parseInt(month, 10);
+            const d = Number.parseInt(day, 10);
+
+            if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+                return false;
+            }
+
+            if (m < 1 || m > 12 || d < 1 || d > 31) {
+                return false;
+            }
+
+            const date = new Date(Date.UTC(y, m - 1, d));
+
+            return date.getUTCFullYear() === y && date.getUTCMonth() + 1 === m && date.getUTCDate() === d;
+        };
+
         // Helper to format as ISO-8601 DateTime
         const toISOString = (year: string, month: string, day: string): string => {
+            if (!isValidDateParts(year, month, day)) {
+                return "";
+            }
+
             return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00.000Z`;
         };
+
+        // Try compact ISO format: YYYYMMDD
+        const compactIsoMatch = cleaned.match(/^(\d{4})(\d{2})(\d{2})$/);
+        if (compactIsoMatch) {
+            const parsed = toISOString(compactIsoMatch[1]!, compactIsoMatch[2]!, compactIsoMatch[3]!);
+            return parsed || null;
+        }
 
         // Try ISO format first: YYYY-MM-DD
         const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
         if (isoMatch) {
-            return toISOString(isoMatch[1]!, isoMatch[2]!, isoMatch[3]!);
+            const parsed = toISOString(isoMatch[1]!, isoMatch[2]!, isoMatch[3]!);
+            return parsed || null;
         }
 
         // Try DD/MM/YYYY or DD-MM-YYYY (EU format)
         const euMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
         if (euMatch) {
-            return toISOString(euMatch[3]!, euMatch[2]!, euMatch[1]!);
+            const parsed = toISOString(euMatch[3]!, euMatch[2]!, euMatch[1]!);
+            return parsed || null;
         }
 
         // Try MM/DD/YYYY (US format - ambiguous, assume EU if day > 12)
@@ -101,14 +132,17 @@ export function useCsvParser() {
 
             // If first > 12, it must be day (EU format)
             if (first > 12) {
-                return toISOString(year, second.toString(), first.toString());
+                const parsed = toISOString(year, second.toString(), first.toString());
+                return parsed || null;
             }
             // If second > 12, it must be day (US format)
             if (second > 12) {
-                return toISOString(year, first.toString(), second.toString());
+                const parsed = toISOString(year, first.toString(), second.toString());
+                return parsed || null;
             }
             // Ambiguous - assume EU format
-            return toISOString(year, second.toString(), first.toString());
+            const parsed = toISOString(year, second.toString(), first.toString());
+            return parsed || null;
         }
 
         return null;
