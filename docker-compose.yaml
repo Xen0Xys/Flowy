@@ -1,5 +1,5 @@
 services:
-    postgres:
+    flowy-postgres:
         image: tensorchord/vchord-postgres:pg18-v1.1.1
         restart: unless-stopped
         environment:
@@ -16,8 +16,8 @@ services:
         volumes:
             - flowy-db-data:/var/lib/postgresql
 
-    server:
-        image: flowy-server:latest
+    flowy-server:
+        image: xen0xys/flowy-server:latest
         environment:
             DATABASE_URL: postgres://${POSTGRES_USER:-flowy}:${POSTGRES_PASSWORD:-flowy}@postgres:5432/${POSTGRES_DB:-flowy}
             APP_NAME: Flowy Server
@@ -25,28 +25,28 @@ services:
             PREFIX: ${APP_PREFIX:-}
             CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://server:4000/version"]
+            test: ["CMD", "curl", "-f", "http://flowy-server:4000/version"]
             interval: 10s
             timeout: 5s
             retries: 5
         depends_on:
-            postgres:
+            flowy-postgres:
                 condition: service_healthy
         ports:
             - "4000:4000"
         restart: unless-stopped
 
-    web:
-        image: flowy-web:latest
+    flowy-web:
+        image: xen0xys/flowy-web:latest
         environment:
             NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost:4000}
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://web:3000/"]
+            test: ["CMD", "curl", "-f", "http://flowy-web:3000/"]
             interval: 10s
             timeout: 5s
             retries: 5
         depends_on:
-            server:
+            flowy-server:
                 condition: service_started
         ports:
             - "3000:3000"

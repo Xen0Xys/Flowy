@@ -17,11 +17,7 @@ services:
             - flowy-db-data:/var/lib/postgresql
 
     flowy-server:
-        build:
-            context: ./server
-            dockerfile: Dockerfile
-            args:
-                - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
+        image: xen0xys/flowy-server:latest
         environment:
             - SERVICE_URL_FLOWY_SERVER_4000
             - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
@@ -40,9 +36,7 @@ services:
         restart: unless-stopped
 
     flowy-web:
-        build:
-            context: ./web
-            dockerfile: Dockerfile
+        image: xen0xys/flowy-web:latest
         environment:
             - SERVICE_URL_FLOWY_WEB_3000
             - NUXT_PUBLIC_API_BASE=${SERVICE_URL_FLOWY_SERVER}
