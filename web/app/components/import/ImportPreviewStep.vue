@@ -488,7 +488,7 @@ async function submitMerchant() {
                             id="merchant-name"
                             v-model="newMerchantName"
                             class="col-span-3"
-                            placeholder="e.g. Walmart"
+                            :placeholder="t('settings.references.merchantPlaceholder')"
                             @keyup.enter="submitMerchant" />
                     </div>
                 </div>
@@ -522,7 +522,7 @@ async function submitMerchant() {
                             id="category-name"
                             v-model="newCategoryName"
                             class="col-span-3"
-                            placeholder="e.g. Groceries" />
+                            :placeholder="t('settings.references.categoryPlaceholder')" />
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
                         <Label for="category-color" class="mt-2 text-right text-sm font-medium">
@@ -541,7 +541,7 @@ async function submitMerchant() {
                                     }"
                                     :style="{backgroundColor: color}"
                                     @click="newCategoryColor = color"
-                                    aria-label="Select color"></button>
+                                    :aria-label="t('settings.references.aria.selectColor')"></button>
                             </div>
                             <div class="flex items-center gap-2">
                                 <Input
@@ -569,7 +569,7 @@ async function submitMerchant() {
                                             newCategoryIcon === iconName,
                                     }"
                                     @click="newCategoryIcon = iconName"
-                                    aria-label="Select icon">
+                                    :aria-label="t('settings.references.aria.selectIcon')">
                                     <Icon :name="iconName" class="h-4 w-4" />
                                 </button>
                             </div>
