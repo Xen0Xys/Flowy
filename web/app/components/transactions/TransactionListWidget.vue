@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
-import {useMediaQuery, watchDebounced} from "@vueuse/core";
+import {useIntersectionObserver, useMediaQuery, watchDebounced} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {
     type SearchTransactionsResult,
@@ -13,7 +13,10 @@ import TransactionFormModal from "~/components/transactions/TransactionFormModal
 import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
 import {Button} from "~/components/ui/button";
 import {ScrollArea} from "~/components/ui/scroll-area";
+import {cn} from "~/lib/utils";
 import {NuxtLink} from "#components";
+
+const PAGE_SIZE = 25;
 
 const props = defineProps<{
     accountId?: string;
@@ -71,13 +74,31 @@ const accountNameById = computed(() => {
     return Object.fromEntries((props.availableAccounts || []).map((account) => [account.id, account.name]));
 });
 
-const searchResult = ref<SearchTransactionsResult>({} as any);
-const isLoading = ref(false);
+const searchResult = ref<SearchTransactionsResult>({
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: PAGE_SIZE,
+    totalPages: 1,
+    isPaginated: false,
+});
 
-const transactions = computed(() => searchResult.value.items ?? []);
+const transactions = ref<Transaction[]>([]);
+const currentPage = ref(1);
+const isLoadingInitial = ref(false);
+const isLoadingMore = ref(false);
+const loadMoreTrigger = ref<HTMLElement | null>(null);
+
 const totalResults = computed(() => searchResult.value.total ?? 0);
+const isLoading = computed(() => isLoadingInitial.value || isLoadingMore.value);
+const hasMorePages = computed(() => currentPage.value < (searchResult.value.totalPages ?? 1));
 
-const buildSearchFilters = (): TransactionSearchFilters => {
+const hasActiveFilters = computed(() => {
+    const currentFilters = buildSearchFilters();
+    return Object.keys(currentFilters).some((key) => key !== "accountId");
+});
+
+const buildSearchFilters = (page = 1): TransactionSearchFilters => {
     const searchFilters: TransactionSearchFilters = {};
 
     if (props.accountId) {
@@ -116,31 +137,79 @@ const buildSearchFilters = (): TransactionSearchFilters => {
         searchFilters.endDate = `${end.year}-${String(end.month).padStart(2, "0")}-${String(end.day).padStart(2, "0")}`;
     }
 
+    searchFilters.page = page;
+    searchFilters.pageSize = PAGE_SIZE;
+
     return searchFilters;
 };
 
-async function fetchTransactions() {
+async function fetchTransactions(page = 1, append = false) {
+    if (append && (!hasMorePages.value || isLoadingMore.value || isLoadingInitial.value)) {
+        return;
+    }
+
     try {
-        isLoading.value = true;
-        const searchFilters = buildSearchFilters();
-        searchResult.value = await transactionStore.searchTransactions(searchFilters);
+        if (append) {
+            isLoadingMore.value = true;
+        } else {
+            isLoadingInitial.value = true;
+        }
+
+        const searchFilters = buildSearchFilters(page);
+        const nextResult = await transactionStore.searchTransactions(searchFilters);
+
+        searchResult.value = nextResult;
+        currentPage.value = nextResult.page;
+        transactions.value = append ? [...transactions.value, ...nextResult.items] : nextResult.items;
     } catch (err) {
         console.error(err);
     } finally {
-        isLoading.value = false;
+        if (append) {
+            isLoadingMore.value = false;
+        } else {
+            isLoadingInitial.value = false;
+        }
     }
 }
+
+const fetchFirstPage = () => fetchTransactions(1, false);
+
+const fetchNextPage = () => {
+    if (!hasMorePages.value) {
+        return;
+    }
+
+    return fetchTransactions(currentPage.value + 1, true);
+};
 
 watchDebounced(
     filters,
     () => {
-        fetchTransactions();
+        fetchFirstPage();
     },
     {debounce: 300, deep: true},
 );
 
 onMounted(() => {
-    fetchTransactions();
+    fetchFirstPage();
+
+    if (!process.client) {
+        return;
+    }
+
+    useIntersectionObserver(
+        loadMoreTrigger,
+        ([entry]) => {
+            if (!entry?.isIntersecting) {
+                return;
+            }
+
+            fetchNextPage();
+        },
+        {
+            rootMargin: "250px 0px",
+        },
+    );
 });
 
 const handleNewTransactionClick = () => {
@@ -154,7 +223,7 @@ const handleTransactionClick = (transaction: Transaction) => {
 };
 
 const onTransactionSaved = () => {
-    fetchTransactions();
+    fetchFirstPage();
     emit("saved");
 };
 </script>
@@ -190,19 +259,16 @@ const onTransactionSaved = () => {
 
         <component
             :is="!isMobile ? ScrollArea : 'div'"
-            :class="
-                !isMobile
-                    ? 'overflow-hidden rounded-b-md border-t md:min-h-0 md:flex-1'
-                    : 'overflow-hidden rounded-b-md border-t'
-            "
+            :class="cn('overflow-hidden rounded-b-md border-t', !isMobile && 'md:min-h-0 md:flex-1')"
             :scrollbar-class="!isMobile ? 'pt-[41px]' : ''">
             <TransactionTable
                 :account-name-by-id="accountNameById"
-                :is-filtered="totalResults !== transactions.length || Object.keys(buildSearchFilters()).length > 0"
+                :is-filtered="hasActiveFilters"
                 :is-loading="isLoading"
                 :show-account-column="props.showAccountColumn"
                 :transactions="transactions"
                 @row-click="handleTransactionClick" />
+            <div v-if="hasMorePages" ref="loadMoreTrigger" aria-hidden="true" class="h-1 w-full" />
         </component>
 
         <TransactionFormModal

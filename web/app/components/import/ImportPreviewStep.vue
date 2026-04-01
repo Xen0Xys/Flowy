@@ -292,17 +292,17 @@ async function submitMerchant() {
         </div>
 
         <!-- Transactions table -->
-        <div class="flex-1 overflow-auto p-6">
+        <div class="flex-1 overflow-auto">
             <ScrollArea class="h-full">
                 <Table>
                     <TableHeader class="bg-background sticky top-0">
                         <TableRow>
                             <TableHead class="w-12">#</TableHead>
-                            <TableHead class="min-w-[100px]">{{ t("transactions.table.date") }}</TableHead>
-                            <TableHead class="min-w-[200px]">{{ t("transactions.table.description") }}</TableHead>
-                            <TableHead class="min-w-[100px]">{{ t("transactions.table.amount") }}</TableHead>
-                            <TableHead class="min-w-[140px]">{{ t("transactions.table.category") }}</TableHead>
-                            <TableHead class="min-w-[140px]">{{ t("transactions.filters.merchant") }}</TableHead>
+                            <TableHead class="min-w-25">{{ t("transactions.table.date") }}</TableHead>
+                            <TableHead class="min-w-50">{{ t("transactions.table.description") }}</TableHead>
+                            <TableHead class="min-w-25">{{ t("transactions.table.amount") }}</TableHead>
+                            <TableHead class="min-w-35">{{ t("transactions.table.category") }}</TableHead>
+                            <TableHead class="min-w-35">{{ t("transactions.filters.merchant") }}</TableHead>
                             <TableHead class="w-28">{{ t("common.actions") }}</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -438,14 +438,14 @@ async function submitMerchant() {
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 border-t px-6 py-3">
-            <Button size="sm" variant="ghost" :disabled="currentPage === 1" @click="currentPage--">
-                <Icon name="iconoir:nav-arrow-left" class="h-4 w-4" />
+            <Button :disabled="currentPage === 1" size="sm" variant="ghost" @click="currentPage--">
+                <Icon class="h-4 w-4" name="iconoir:nav-arrow-left" />
             </Button>
             <span class="text-muted-foreground text-sm">
                 {{ t("import.preview.pagination", {page: currentPage, total: totalPages}) }}
             </span>
-            <Button size="sm" variant="ghost" :disabled="currentPage === totalPages" @click="currentPage++">
-                <Icon name="iconoir:nav-arrow-right" class="h-4 w-4" />
+            <Button :disabled="currentPage === totalPages" size="sm" variant="ghost" @click="currentPage++">
+                <Icon class="h-4 w-4" name="iconoir:nav-arrow-right" />
             </Button>
         </div>
 
@@ -481,14 +481,14 @@ async function submitMerchant() {
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid grid-cols-4 items-center gap-4">
-                        <Label for="merchant-name" class="text-right text-sm font-medium">
+                        <Label class="text-right text-sm font-medium" for="merchant-name">
                             {{ t("settings.references.name") }}
                         </Label>
                         <Input
                             id="merchant-name"
                             v-model="newMerchantName"
-                            class="col-span-3"
                             :placeholder="t('settings.references.merchantPlaceholder')"
+                            class="col-span-3"
                             @keyup.enter="submitMerchant" />
                     </div>
                 </div>
@@ -515,17 +515,17 @@ async function submitMerchant() {
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid grid-cols-4 items-center gap-4">
-                        <Label for="category-name" class="text-right text-sm font-medium">
+                        <Label class="text-right text-sm font-medium" for="category-name">
                             {{ t("settings.references.name") }}
                         </Label>
                         <Input
                             id="category-name"
                             v-model="newCategoryName"
-                            class="col-span-3"
-                            :placeholder="t('settings.references.categoryPlaceholder')" />
+                            :placeholder="t('settings.references.categoryPlaceholder')"
+                            class="col-span-3" />
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
-                        <Label for="category-color" class="mt-2 text-right text-sm font-medium">
+                        <Label class="mt-2 text-right text-sm font-medium" for="category-color">
                             {{ t("settings.references.color") }}
                         </Label>
                         <div class="col-span-3 flex flex-col gap-3">
@@ -533,28 +533,28 @@ async function submitMerchant() {
                                 <button
                                     v-for="color in PRESET_COLORS"
                                     :key="color"
-                                    type="button"
-                                    class="border-border h-6 w-6 rounded-full border transition-transform hover:scale-110"
+                                    :aria-label="t('settings.references.aria.selectColor')"
                                     :class="{
                                         'ring-ring ring-offset-background ring-2 ring-offset-2':
                                             newCategoryColor === color,
                                     }"
                                     :style="{backgroundColor: color}"
-                                    @click="newCategoryColor = color"
-                                    :aria-label="t('settings.references.aria.selectColor')"></button>
+                                    class="border-border h-6 w-6 rounded-full border transition-transform hover:scale-110"
+                                    type="button"
+                                    @click="newCategoryColor = color"></button>
                             </div>
                             <div class="flex items-center gap-2">
                                 <Input
                                     id="category-color"
-                                    type="color"
                                     v-model="newCategoryColor"
-                                    class="h-10 w-16 cursor-pointer p-1" />
-                                <Input v-model="newCategoryColor" placeholder="#000000" class="uppercase" />
+                                    class="h-10 w-16 cursor-pointer p-1"
+                                    type="color" />
+                                <Input v-model="newCategoryColor" class="uppercase" placeholder="#000000" />
                             </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
-                        <Label for="category-icon" class="mt-2 text-right text-sm font-medium">
+                        <Label class="mt-2 text-right text-sm font-medium" for="category-icon">
                             {{ t("settings.references.icon") }}
                         </Label>
                         <div class="col-span-3 flex flex-col gap-3">
@@ -562,14 +562,14 @@ async function submitMerchant() {
                                 <button
                                     v-for="iconName in PRESET_ICONS"
                                     :key="iconName"
-                                    type="button"
-                                    class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+                                    :aria-label="t('settings.references.aria.selectIcon')"
                                     :class="{
                                         'bg-primary text-primary-foreground hover:bg-primary':
                                             newCategoryIcon === iconName,
                                     }"
-                                    @click="newCategoryIcon = iconName"
-                                    :aria-label="t('settings.references.aria.selectIcon')">
+                                    class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+                                    type="button"
+                                    @click="newCategoryIcon = iconName">
                                     <Icon :name="iconName" class="h-4 w-4" />
                                 </button>
                             </div>
@@ -583,9 +583,9 @@ async function submitMerchant() {
                             <div class="text-muted-foreground text-xs">
                                 {{ t("import.preview.findIcons") }}
                                 <a
+                                    class="hover:text-foreground underline"
                                     href="https://icones.js.org/collection/iconoir"
-                                    target="_blank"
-                                    class="hover:text-foreground underline">
+                                    target="_blank">
                                     {{ t("settings.references.iconLibrary") }}
                                 </a>
                             </div>

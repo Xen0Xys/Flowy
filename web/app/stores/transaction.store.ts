@@ -109,7 +109,11 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                return await apiFetch<Transaction[]>(`/transaction/${accountId}`);
+                const params = new URLSearchParams({accountId});
+                const endpoint = `/transaction?${params.toString()}`;
+                const result = await apiFetch<SearchTransactionsResult>(endpoint);
+
+                return result.items;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
                 toast.error(message);

@@ -83,12 +83,6 @@ onMounted(async () => {
     }
 });
 
-// Get selected account
-const selectedAccount = computed(() => {
-    if (!selectedAccountId.value) return null;
-    return accountStore.accounts.find((a) => a.id === selectedAccountId.value);
-});
-
 // Handle account selection (called from ImportConfigStep)
 function selectAccount(accountId: string) {
     selectedAccountId.value = accountId;
@@ -297,44 +291,42 @@ async function handleTestDb() {
     dbDuplicates.value = [];
 
     try {
-        const payload: CreateTransactionPayload[] = importState.value.transactions
-            .filter((tx) => tx.status !== "error")
-            .map((tx) => ({
-                amount: tx.amount,
-                description: tx.description,
-                date: tx.date,
-                categoryId: tx.categoryId ?? undefined,
-                merchantId: tx.merchantId ?? undefined,
-                isRebalance: tx.isRebalance,
-            }));
+        const activeTransactions = importState.value.transactions.filter((tx) => tx.status !== "error");
+
+        const payload: CreateTransactionPayload[] = activeTransactions.map((tx) => ({
+            amount: tx.amount,
+            description: tx.description,
+            date: tx.date,
+            categoryId: tx.categoryId ?? undefined,
+            merchantId: tx.merchantId ?? undefined,
+            isRebalance: tx.isRebalance,
+        }));
 
         const result = await transactionStore.testBulkTransactions(selectedAccountId.value, payload);
 
-        // Mark DB duplicates
-        for (const dup of result.duplicates) {
-            const tx = importState.value.transactions.find(
-                (t) => t.date === dup.date && t.description === dup.description && t.amount === dup.amount,
-            );
-            if (tx && tx.status !== "error" && tx.status !== "duplicate_internal") {
-                importState.value = updateTransaction(selectedAccountId.value, importState.value, tx.id, {
-                    status: "duplicate_db",
-                });
-            }
-        }
+        const toKey = (tx: {date: string; description: string; amount: number}) =>
+            JSON.stringify([tx.date, tx.description, tx.amount]);
 
-        // Mark non-duplicates as will_import
-        for (const tx of importState.value.transactions) {
-            if (tx.status === "pending" || tx.status === "will_import") {
-                const isDup = result.duplicates.some(
-                    (d) => d.date === tx.date && d.description === tx.description && d.amount === tx.amount,
-                );
-                if (!isDup) {
-                    importState.value = updateTransaction(selectedAccountId.value, importState.value, tx.id, {
-                        status: "will_import",
-                    });
-                }
+        const duplicateKeySet = new Set(result.duplicates.map((dup) => toKey(dup)));
+
+        const nextTransactions = importState.value.transactions.map((tx) => {
+            if (tx.status === "error" || tx.status === "duplicate_internal") {
+                return tx;
             }
-        }
+
+            const nextStatus = duplicateKeySet.has(toKey(tx)) ? "duplicate_db" : "will_import";
+
+            if (tx.status === nextStatus) {
+                return tx;
+            }
+
+            return {
+                ...tx,
+                status: nextStatus,
+            };
+        });
+
+        importState.value = updateTransactions(selectedAccountId.value, importState.value, nextTransactions);
 
         toast.success(t("import.success.testComplete", {count: result.wouldInsertCount}));
     } catch (error: any) {
@@ -354,7 +346,8 @@ async function handleImport() {
 
     try {
         const payload: CreateTransactionPayload[] = importState.value.transactions
-            .filter((tx) => tx.status === "will_import")
+            // Import every active row unless user explicitly ignored it
+            .filter((tx) => tx.status !== "error")
             .map((tx) => ({
                 amount: tx.amount,
                 description: tx.description,
@@ -431,7 +424,7 @@ const stats = computed(() => {
     const pending = importState.value.transactions.filter((tx) => tx.status === "pending").length;
     const duplicates = importState.value.transactions.filter((tx) => tx.status === "duplicate_internal").length;
     const dbDups = importState.value.transactions.filter((tx) => tx.status === "duplicate_db").length;
-    const willImport = importState.value.transactions.filter((tx) => tx.status === "will_import").length;
+    const willImport = importState.value.transactions.filter((tx) => tx.status !== "error").length;
     const errors = importState.value.transactions.filter((tx) => tx.status === "error").length;
 
     return {total, pending, duplicates, dbDups, willImport, errors};
