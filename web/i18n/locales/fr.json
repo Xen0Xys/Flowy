@@ -16,7 +16,9 @@
         "edit": "Modifier",
         "loading": "Chargement...",
         "processing": "Traitement...",
-        "areYouSure": "Êtes-vous sûr ?"
+        "areYouSure": "Êtes-vous sûr ?",
+        "yes": "Oui",
+        "no": "Non"
     },
     "app": {
         "head": {
@@ -596,8 +598,6 @@
         "title": "Importer des transactions",
         "subtitle": "Importer des transactions depuis un fichier CSV",
         "account": {
-            "title": "Sélectionner un compte",
-            "description": "Choisissez le compte sur lequel importer les transactions",
             "noAccounts": "Aucun compte disponible. Créez d'abord un compte.",
             "createAccount": "Créer un compte"
         },
@@ -692,26 +692,5 @@
         "success": {
             "testComplete": "{count} transactions prêtes à être importées"
         }
-    },
-    "common": {
-        "user": "Utilisateur",
-        "settings": "Paramètres",
-        "back": "Retour",
-        "all": "Tous",
-        "none": "Aucun",
-        "actions": "Actions",
-        "save": "Enregistrer",
-        "saving": "Enregistrement...",
-        "delete": "Supprimer",
-        "deleting": "Suppression...",
-        "cancel": "Annuler",
-        "close": "Fermer",
-        "copy": "Copier",
-        "edit": "Modifier",
-        "loading": "Chargement...",
-        "processing": "Traitement...",
-        "areYouSure": "Êtes-vous sûr ?",
-        "yes": "Oui",
-        "no": "Non"
     }
 }
