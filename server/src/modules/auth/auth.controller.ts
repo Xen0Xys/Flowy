@@ -15,7 +15,7 @@ export class AuthController {
 
     @Get("csrf")
     async getCsrfToken(@Res({passthrough: true}) reply: FastifyReply): Promise<{csrfToken: string}> {
-        const token = (reply as FastifyReply & {generateCsrf: () => Promise<string>}).generateCsrf();
+        const token: string = reply.generateCsrf();
         return {
             csrfToken: token,
         };

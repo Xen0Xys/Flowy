@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, computed} from "vue";
+import {computed} from "vue";
 import {useMediaQuery} from "@vueuse/core";
 import type {DateRange} from "reka-ui";
 import {Calendar as CalendarIcon} from "lucide-vue-next";
@@ -68,7 +68,7 @@ const formattedDate = computed(() => {
                     v-model="internalValue"
                     initial-focus
                     :number-of-months="isMobile ? 1 : 2"
-                    @update:start-value="(startDate) => (internalValue.start = startDate)" />
+                    @update:start-value="(startDate) => (internalValue = {start: startDate})" />
             </PopoverContent>
         </Popover>
     </div>

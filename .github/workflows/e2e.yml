@@ -35,6 +35,7 @@ jobs:
             DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flowy_test
             APP_SECRET: supersecret
             APP_NAME: "Flowy Server"
+            NODE_ENV: test
 
         steps:
             - uses: actions/checkout@v6

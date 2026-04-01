@@ -5,7 +5,20 @@ export default defineNitroPlugin((nitroApp) => {
 
         const connectSrc = ["'self'"];
 
-        if (typeof apiBase === "string" && apiBase.trim().length > 0) connectSrc.push(apiBase.trim());
+        if (typeof apiBase === "string" && apiBase.trim().length > 0) {
+            try {
+                const url = new URL(apiBase.trim());
+                const origin = url.origin;
+
+                connectSrc.push(origin);
+
+                // Add websocket equivalent for https origins
+                if (url.protocol === "https:") connectSrc.push(origin.replace(/^https:/, "wss:"));
+                else if (url.protocol === "http:") connectSrc.push(origin.replace(/^http:/, "ws:"));
+            } catch {
+                // Invalid URL - skip adding to CSP
+            }
+        }
 
         const globalRule = (appSecurityOptions["/**"] ??= {});
         const headers = (globalRule.headers ??= {});
