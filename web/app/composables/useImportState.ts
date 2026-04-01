@@ -28,16 +28,26 @@ export interface ImportState {
 
 const STORAGE_KEY_PREFIX = "flowy:import";
 
+type LatestImportStateResult = {
+    state: ImportState;
+    accountId: string | null;
+};
+
+type StoredImportState = {
+    accountId: string | null;
+    state: ImportState;
+};
+
 export function useImportState() {
     const userStore = useUserStore();
 
     /**
-     * Get storage key for current user and account
+     * Get single storage key for current user
      */
-    function getStorageKey(accountId: string): string {
+    function getStorageKey(): string {
         const userId = userStore.user?.id;
         if (!userId) return "";
-        return `${STORAGE_KEY_PREFIX}:${userId}:${accountId}`;
+        return `${STORAGE_KEY_PREFIX}:${userId}`;
     }
 
     /**
@@ -46,7 +56,7 @@ export function useImportState() {
     function saveState(accountId: string, state: ImportState): void {
         if (!process.client) return;
 
-        const key = getStorageKey(accountId);
+        const key = getStorageKey();
         if (!key) return;
 
         try {
@@ -54,9 +64,54 @@ export function useImportState() {
                 ...state,
                 lastModified: Date.now(),
             };
-            localStorage.setItem(key, JSON.stringify(stateToSave));
+            const payload: StoredImportState = {
+                accountId,
+                state: stateToSave,
+            };
+            localStorage.setItem(key, JSON.stringify(payload));
         } catch (error) {
             console.error("Failed to save import state:", error);
+        }
+    }
+
+    /**
+     * Save temporary import state (before account is selected)
+     */
+    function saveTempState(state: ImportState): void {
+        if (!process.client) return;
+
+        const key = getStorageKey();
+        if (!key) return;
+
+        try {
+            const stateToSave: ImportState = {
+                ...state,
+                lastModified: Date.now(),
+            };
+            const payload: StoredImportState = {
+                accountId: null,
+                state: stateToSave,
+            };
+            localStorage.setItem(key, JSON.stringify(payload));
+        } catch (error) {
+            console.error("Failed to save temp import state:", error);
+        }
+    }
+
+    function loadStoredState(): StoredImportState | null {
+        if (!process.client) return null;
+
+        const key = getStorageKey();
+        if (!key) return null;
+
+        try {
+            const stored = localStorage.getItem(key);
+            if (!stored) return null;
+
+            return JSON.parse(stored) as StoredImportState;
+        } catch (error) {
+            console.error("Failed to load stored import state:", error);
+            return null;
         }
     }
 
@@ -64,21 +119,30 @@ export function useImportState() {
      * Load import state from localStorage
      */
     function loadState(accountId: string): ImportState | null {
-        if (!process.client) return null;
+        const stored = loadStoredState();
+        if (!stored) return null;
+        return stored.accountId === accountId ? stored.state : null;
+    }
 
-        const key = getStorageKey(accountId);
-        if (!key) return null;
+    /**
+     * Load temporary import state (before account is selected)
+     */
+    function loadTempState(): ImportState | null {
+        const stored = loadStoredState();
+        if (!stored) return null;
+        return stored.accountId === null ? stored.state : null;
+    }
 
-        try {
-            const stored = localStorage.getItem(key);
-            if (!stored) return null;
-
-            const state = JSON.parse(stored) as ImportState;
-            return state;
-        } catch (error) {
-            console.error("Failed to load import state:", error);
-            return null;
-        }
+    /**
+     * Load most recent import state (temp or account-bound)
+     */
+    function loadLatestState(): LatestImportStateResult | null {
+        const stored = loadStoredState();
+        if (!stored) return null;
+        return {
+            state: stored.state,
+            accountId: stored.accountId,
+        };
     }
 
     /**
@@ -87,13 +151,35 @@ export function useImportState() {
     function clearState(accountId: string): void {
         if (!process.client) return;
 
-        const key = getStorageKey(accountId);
+        const key = getStorageKey();
         if (!key) return;
 
         try {
-            localStorage.removeItem(key);
+            const stored = loadStoredState();
+            if (stored?.accountId === accountId) {
+                localStorage.removeItem(key);
+            }
         } catch (error) {
             console.error("Failed to clear import state:", error);
+        }
+    }
+
+    /**
+     * Clear temporary import state
+     */
+    function clearTempState(): void {
+        if (!process.client) return;
+
+        const key = getStorageKey();
+        if (!key) return;
+
+        try {
+            const stored = loadStoredState();
+            if (stored?.accountId === null) {
+                localStorage.removeItem(key);
+            }
+        } catch (error) {
+            console.error("Failed to clear temp import state:", error);
         }
     }
 
@@ -125,66 +211,95 @@ export function useImportState() {
     /**
      * Update step in state
      */
-    function updateStep(accountId: string, state: ImportState, step: ImportStep): ImportState {
+    function updateStep(accountId: string | null, state: ImportState, step: ImportStep): ImportState {
         const newState: ImportState = {
             ...state,
             currentStep: step,
             lastModified: Date.now(),
         };
-        saveState(accountId, newState);
+        if (accountId) {
+            saveState(accountId, newState);
+        } else {
+            saveTempState(newState);
+        }
         return newState;
     }
 
     /**
      * Update raw CSV data
      */
-    function updateRawRows(accountId: string, state: ImportState, rawRows: string[][], fileName: string): ImportState {
+    function updateRawRows(
+        accountId: string | null,
+        state: ImportState,
+        rawRows: string[][],
+        fileName: string,
+    ): ImportState {
         const newState: ImportState = {
             ...state,
             rawRows,
             fileName,
             lastModified: Date.now(),
         };
-        saveState(accountId, newState);
+        if (accountId) {
+            saveState(accountId, newState);
+        } else {
+            saveTempState(newState);
+        }
         return newState;
     }
 
     /**
      * Update file config in state
      */
-    function updateFileConfig(accountId: string, state: ImportState, config: Partial<FileConfig>): ImportState {
+    function updateFileConfig(accountId: string | null, state: ImportState, config: Partial<FileConfig>): ImportState {
         const newState: ImportState = {
             ...state,
             fileConfig: {...state.fileConfig, ...config},
             lastModified: Date.now(),
         };
-        saveState(accountId, newState);
+        if (accountId) {
+            saveState(accountId, newState);
+        } else {
+            saveTempState(newState);
+        }
         return newState;
     }
 
     /**
      * Update column mapping in state
      */
-    function updateMapping(accountId: string, state: ImportState, mapping: Partial<ColumnMapping>): ImportState {
+    function updateMapping(accountId: string | null, state: ImportState, mapping: Partial<ColumnMapping>): ImportState {
         const newState: ImportState = {
             ...state,
             mapping: {...state.mapping, ...mapping},
             lastModified: Date.now(),
         };
-        saveState(accountId, newState);
+        if (accountId) {
+            saveState(accountId, newState);
+        } else {
+            saveTempState(newState);
+        }
         return newState;
     }
 
     /**
      * Update transactions in state
      */
-    function updateTransactions(accountId: string, state: ImportState, transactions: ParsedTransaction[]): ImportState {
+    function updateTransactions(
+        accountId: string | null,
+        state: ImportState,
+        transactions: ParsedTransaction[],
+    ): ImportState {
         const newState: ImportState = {
             ...state,
             transactions,
             lastModified: Date.now(),
         };
-        saveState(accountId, newState);
+        if (accountId) {
+            saveState(accountId, newState);
+        } else {
+            saveTempState(newState);
+        }
         return newState;
     }
 
@@ -192,7 +307,7 @@ export function useImportState() {
      * Update single transaction
      */
     function updateTransaction(
-        accountId: string,
+        accountId: string | null,
         state: ImportState,
         transactionId: string,
         updates: Partial<ParsedTransaction>,
@@ -204,14 +319,14 @@ export function useImportState() {
     /**
      * Mark transaction as ignored
      */
-    function ignoreTransaction(accountId: string, state: ImportState, transactionId: string): ImportState {
+    function ignoreTransaction(accountId: string | null, state: ImportState, transactionId: string): ImportState {
         return updateTransaction(accountId, state, transactionId, {status: "error", error: "ignored"});
     }
 
     /**
      * Mark transaction as pending (restore from ignored)
      */
-    function restoreTransaction(accountId: string, state: ImportState, transactionId: string): ImportState {
+    function restoreTransaction(accountId: string | null, state: ImportState, transactionId: string): ImportState {
         return updateTransaction(accountId, state, transactionId, {status: "pending", error: undefined});
     }
 
@@ -219,7 +334,7 @@ export function useImportState() {
      * Update category/merchant assignment for transaction
      */
     function assignCategoryOrMerchant(
-        accountId: string,
+        accountId: string | null,
         state: ImportState,
         transactionId: string,
         updates: {categoryId?: string | null; merchantId?: string | null},
@@ -240,6 +355,10 @@ export function useImportState() {
         saveState,
         loadState,
         clearState,
+        saveTempState,
+        loadTempState,
+        loadLatestState,
+        clearTempState,
         createDefaultState,
         updateStep,
         updateRawRows,

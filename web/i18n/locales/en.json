@@ -616,7 +616,10 @@
             "selectDelimiter": "Select delimiter",
             "headers": "First row contains headers",
             "preview": "Data Preview",
-            "previewRows": "Showing first {count} rows"
+            "previewRows": "Showing first {count} rows",
+            "account": "Target Account",
+            "accountDescription": "Select the account where transactions will be imported",
+            "selectAccount": "Please select an account"
         },
         "mapping": {
             "title": "Map Columns",

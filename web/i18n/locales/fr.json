@@ -616,7 +616,10 @@
             "selectDelimiter": "Sélectionner un séparateur",
             "headers": "La première ligne contient les en-têtes",
             "preview": "Aperçu des données",
-            "previewRows": "Affichage des {count} premières lignes"
+            "previewRows": "Affichage des {count} premières lignes",
+            "account": "Compte cible",
+            "accountDescription": "Sélectionnez le compte sur lequel les transactions seront importées",
+            "selectAccount": "Veuillez sélectionner un compte"
         },
         "mapping": {
             "title": "Mapper les colonnes",

@@ -97,9 +97,9 @@ async function submit() {
             <div :class="cn('grid w-full grid-cols-1 gap-8 md:grid-cols-2')">
                 <aside class="relative hidden items-center justify-center overflow-hidden rounded-lg md:flex">
                     <img
-                        :src="bgImage"
                         :alt="t('auth.register.backgroundAlt')"
-                        class="absolute inset-0 h-full w-full object-cover opacity-80" />
+                        class="absolute inset-0 h-full w-full object-cover opacity-80"
+                        src="/assets/register-image.webp" />
                     <div class="relative z-10 p-8 text-center text-white">
                         <h2 class="mb-2 text-3xl font-bold">{{ t("auth.register.heading") }}</h2>
                         <p class="text-sm opacity-90">{{ t("auth.register.subtitle") }}</p>
@@ -168,9 +168,9 @@ async function submit() {
 
                             <div class="pt-2">
                                 <Button
+                                    :aria-label="t('auth.register.title')"
                                     :as="'button'"
                                     :disabled="loading"
-                                    :aria-label="t('auth.register.title')"
                                     type="submit">
                                     {{ loading ? t("auth.register.loading") : t("auth.register.title") }}
                                 </Button>

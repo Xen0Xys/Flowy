@@ -18,8 +18,6 @@ const form = ref({email: "", password: ""});
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-const bgImage = "https://images.unsplash.com/photo-1508780709619-79562169bc64?w=1600&q=80&auto=format&fit=crop";
-
 function validate() {
     const email = form.value.email.trim();
 
@@ -70,9 +68,9 @@ async function submit() {
             <div :class="cn('grid w-full grid-cols-1 gap-8 md:grid-cols-2')">
                 <aside class="relative hidden items-center justify-center overflow-hidden rounded-lg md:flex">
                     <img
-                        :src="bgImage"
                         :alt="t('auth.login.backgroundAlt')"
-                        class="absolute inset-0 h-full w-full object-cover opacity-80" />
+                        class="absolute inset-0 h-full w-full object-cover opacity-80"
+                        src="/assets/login-image.webp" />
                     <div class="relative z-10 p-8 text-center text-white">
                         <h2 class="mb-2 text-3xl font-bold">{{ t("auth.login.welcome") }}</h2>
                         <p class="text-sm opacity-90">{{ t("auth.login.subtitle") }}</p>
@@ -125,9 +123,9 @@ async function submit() {
 
                             <div class="pt-2">
                                 <Button
+                                    :aria-label="t('auth.login.title')"
                                     :as="'button'"
                                     :disabled="loading"
-                                    :aria-label="t('auth.login.title')"
                                     type="submit">
                                     {{ loading ? t("auth.login.loading") : t("auth.login.title") }}
                                 </Button>

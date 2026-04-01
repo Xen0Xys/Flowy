@@ -17,6 +17,8 @@ const {parseFile, parseDate, generateId, detectInternalDuplicates} = useCsvParse
 const {
     loadState,
     clearState,
+    loadLatestState,
+    clearTempState,
     createDefaultState,
     updateStep,
     updateRawRows,
@@ -30,12 +32,13 @@ const {
 } = useImportState();
 
 // Steps
-type Step = "account" | "upload" | "config" | "mapping" | "preview" | "result";
-const currentStep = ref<Step>("account");
+type Step = "upload" | "config" | "mapping" | "preview" | "result";
+const currentStep = ref<Step>("upload");
 
 // Selected account
 const selectedAccountId = ref<string | null>(null);
 const isLoadingAccounts = ref(false);
+const isInitializing = ref(true);
 
 // State
 const importState = ref<ImportState>(createDefaultState());
@@ -51,10 +54,32 @@ onMounted(async () => {
     try {
         await accountStore.fetchAccounts();
         await referenceStore.fetchReferences();
+
+        const latest = loadLatestState();
+        const hasData =
+            latest &&
+            ((latest.state.rawRows && latest.state.rawRows.length > 0) ||
+                (latest.state.transactions && latest.state.transactions.length > 0));
+
+        if (hasData && latest) {
+            importState.value = latest.state;
+            selectedAccountId.value = latest.accountId;
+
+            const stepMap: Record<ImportStep, Step> = {
+                upload: "upload",
+                config: "config",
+                mapping: "mapping",
+                preview: "preview",
+                result: "result",
+            };
+
+            currentStep.value = stepMap[latest.state.currentStep] || "config";
+        }
     } catch (error) {
         console.error("Failed to load accounts:", error);
     } finally {
         isLoadingAccounts.value = false;
+        isInitializing.value = false;
     }
 });
 
@@ -64,20 +89,27 @@ const selectedAccount = computed(() => {
     return accountStore.accounts.find((a) => a.id === selectedAccountId.value);
 });
 
-// Handle account selection
+// Handle account selection (called from ImportConfigStep)
 function selectAccount(accountId: string) {
     selectedAccountId.value = accountId;
 
+    // Check if current state has data (from temp state)
+    const currentHasData = importState.value.rawRows.length > 0 || importState.value.transactions.length > 0;
+
     // Load saved state for this account
     const savedState = loadState(accountId);
-    const hasData =
+    const savedHasData =
         savedState &&
         ((savedState.rawRows && savedState.rawRows.length > 0) ||
             (savedState.transactions && savedState.transactions.length > 0));
 
-    if (hasData && savedState && savedState.currentStep) {
+    if (currentHasData && !savedHasData) {
+        // Transfer temp state to this account
+        importState.value = updateStep(accountId, importState.value, importState.value.currentStep);
+        clearTempState();
+    } else if (savedHasData && savedState && savedState.currentStep) {
+        // Load existing state for this account
         importState.value = savedState;
-        // Restore step from saved state (convert from ImportStep to Step)
         const stepMap: Record<ImportStep, Step> = {
             upload: "upload",
             config: "config",
@@ -86,26 +118,20 @@ function selectAccount(accountId: string) {
             result: "result",
         };
         currentStep.value = stepMap[savedState.currentStep] || "upload";
-    } else {
-        importState.value = createDefaultState();
-        currentStep.value = "upload";
     }
 }
 
 // Save current step to state
 function saveStep(step: Step) {
     currentStep.value = step;
-    if (selectedAccountId.value) {
-        const stepMap: Record<Step, ImportStep> = {
-            account: "upload",
-            upload: "upload",
-            config: "config",
-            mapping: "mapping",
-            preview: "preview",
-            result: "result",
-        };
-        importState.value = updateStep(selectedAccountId.value, importState.value, stepMap[step]);
-    }
+    const stepMap: Record<Step, ImportStep> = {
+        upload: "upload",
+        config: "config",
+        mapping: "mapping",
+        preview: "preview",
+        result: "result",
+    };
+    importState.value = updateStep(selectedAccountId.value, importState.value, stepMap[step]);
 }
 
 // File upload handler
@@ -116,10 +142,10 @@ async function handleFileUpload(file: File) {
         const result: CsvParseResult = await parseFile(file);
 
         // Save raw rows and file name
-        importState.value = updateRawRows(selectedAccountId.value!, importState.value, result.rows, file.name);
+        importState.value = updateRawRows(selectedAccountId.value, importState.value, result.rows, file.name);
 
         // Update file config
-        importState.value = updateFileConfig(selectedAccountId.value!, importState.value, {
+        importState.value = updateFileConfig(selectedAccountId.value, importState.value, {
             delimiter: result.delimiter,
             hasHeaders: result.hasHeaders,
         });
@@ -134,16 +160,16 @@ async function handleFileUpload(file: File) {
 
 // Config step handlers
 function updateDelimiter(delimiter: Delimiter) {
-    importState.value = updateFileConfig(selectedAccountId.value!, importState.value, {delimiter});
+    importState.value = updateFileConfig(selectedAccountId.value, importState.value, {delimiter});
 }
 
 function updateHasHeaders(hasHeaders: boolean) {
-    importState.value = updateFileConfig(selectedAccountId.value!, importState.value, {hasHeaders});
+    importState.value = updateFileConfig(selectedAccountId.value, importState.value, {hasHeaders});
 }
 
 // Mapping step handlers
 function handleMappingUpdate(mapping: ColumnMapping) {
-    importState.value = updateMapping(selectedAccountId.value!, importState.value, mapping);
+    importState.value = updateMapping(selectedAccountId.value, importState.value, mapping);
 }
 
 function applyMappingAndParse() {
@@ -236,33 +262,36 @@ function applyMappingAndParse() {
         }
     }
 
-    importState.value = updateTransactions(selectedAccountId.value!, importState.value, transactions);
+    importState.value = updateTransactions(selectedAccountId.value, importState.value, transactions);
     saveStep("preview");
 }
 
 // Preview step handlers
 function handleIgnoreTransaction(transactionId: string) {
-    importState.value = ignoreTransaction(selectedAccountId.value!, importState.value, transactionId);
+    importState.value = ignoreTransaction(selectedAccountId.value, importState.value, transactionId);
 }
 
 function handleRestoreTransaction(transactionId: string) {
-    importState.value = restoreTransaction(selectedAccountId.value!, importState.value, transactionId);
+    importState.value = restoreTransaction(selectedAccountId.value, importState.value, transactionId);
 }
 
 function handleAssignCategory(transactionId: string, categoryId: string | null) {
-    importState.value = assignCategoryOrMerchant(selectedAccountId.value!, importState.value, transactionId, {
+    importState.value = assignCategoryOrMerchant(selectedAccountId.value, importState.value, transactionId, {
         categoryId,
     });
 }
 
 function handleAssignMerchant(transactionId: string, merchantId: string | null) {
-    importState.value = assignCategoryOrMerchant(selectedAccountId.value!, importState.value, transactionId, {
+    importState.value = assignCategoryOrMerchant(selectedAccountId.value, importState.value, transactionId, {
         merchantId,
     });
 }
 
 async function handleTestDb() {
-    if (!selectedAccountId.value) return;
+    if (!selectedAccountId.value) {
+        toast.error(t("import.config.selectAccount"));
+        return;
+    }
 
     isTesting.value = true;
     dbDuplicates.value = [];
@@ -287,7 +316,7 @@ async function handleTestDb() {
                 (t) => t.date === dup.date && t.description === dup.description && t.amount === dup.amount,
             );
             if (tx && tx.status !== "error" && tx.status !== "duplicate_internal") {
-                importState.value = updateTransaction(selectedAccountId.value!, importState.value, tx.id, {
+                importState.value = updateTransaction(selectedAccountId.value, importState.value, tx.id, {
                     status: "duplicate_db",
                 });
             }
@@ -300,7 +329,7 @@ async function handleTestDb() {
                     (d) => d.date === tx.date && d.description === tx.description && d.amount === tx.amount,
                 );
                 if (!isDup) {
-                    importState.value = updateTransaction(selectedAccountId.value!, importState.value, tx.id, {
+                    importState.value = updateTransaction(selectedAccountId.value, importState.value, tx.id, {
                         status: "will_import",
                     });
                 }
@@ -316,7 +345,10 @@ async function handleTestDb() {
 }
 
 async function handleImport() {
-    if (!selectedAccountId.value) return;
+    if (!selectedAccountId.value) {
+        toast.error(t("import.config.selectAccount"));
+        return;
+    }
 
     isImporting.value = true;
 
@@ -354,6 +386,8 @@ function handleReset() {
     importResult.value = null;
     if (selectedAccountId.value) {
         clearState(selectedAccountId.value);
+    } else {
+        clearTempState();
     }
     currentStep.value = "upload";
 }
@@ -361,7 +395,6 @@ function handleReset() {
 function handleFullReset() {
     handleReset();
     selectedAccountId.value = null;
-    currentStep.value = "account";
 }
 
 function handleDone() {
@@ -371,9 +404,6 @@ function handleDone() {
 // Navigation
 function goBack() {
     switch (currentStep.value) {
-        case "upload":
-            currentStep.value = "account";
-            break;
         case "config":
             currentStep.value = "upload";
             break;
@@ -387,7 +417,7 @@ function goBack() {
 }
 
 const canGoBack = computed(() => {
-    return ["upload", "config", "mapping", "preview"].includes(currentStep.value);
+    return ["config", "mapping", "preview"].includes(currentStep.value);
 });
 
 // Duplicate groups
@@ -418,21 +448,18 @@ const stats = computed(() => {
                     <p class="text-muted-foreground text-sm">{{ t("import.subtitle") }}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <Button v-if="canGoBack" variant="ghost" @click="goBack">
-                        <Icon name="iconoir:arrow-left" class="mr-2 h-4 w-4" />
+                    <Button v-if="canGoBack && !isInitializing" variant="ghost" @click="goBack">
+                        <Icon class="mr-2 h-4 w-4" name="iconoir:arrow-left" />
                         {{ t("common.back") }}
                     </Button>
-                    <Button
-                        v-if="currentStep !== 'account' && currentStep !== 'result'"
-                        variant="outline"
-                        @click="handleReset">
+                    <Button v-if="currentStep !== 'result' && !isInitializing" variant="outline" @click="handleReset">
                         {{ t("import.actions.reset") }}
                     </Button>
                 </div>
             </div>
 
-            <!-- Progress indicator (hidden on account step) -->
-            <div v-if="currentStep !== 'account'" class="mt-4 flex items-center gap-2">
+            <!-- Progress indicator (hidden during initialization) -->
+            <div v-if="!isInitializing" class="mt-4 flex items-center gap-2">
                 <template v-for="(step, index) in ['upload', 'config', 'mapping', 'preview'] as Step[]" :key="step">
                     <div
                         :class="
@@ -454,49 +481,9 @@ const stats = computed(() => {
 
         <!-- Content -->
         <div class="flex-1 overflow-auto">
-            <!-- Account Selection Step -->
-            <div v-if="currentStep === 'account'" class="flex h-full items-center justify-center p-6">
-                <div class="w-full max-w-md">
-                    <h2 class="mb-2 text-lg font-semibold">{{ t("import.account.title") }}</h2>
-                    <p class="text-muted-foreground mb-6 text-sm">{{ t("import.account.description") }}</p>
-
-                    <div v-if="isLoadingAccounts" class="flex items-center justify-center py-8">
-                        <Icon name="iconoir:refresh" class="h-8 w-8 animate-spin" />
-                    </div>
-
-                    <div v-else-if="accountStore.accounts.length === 0" class="text-muted-foreground py-8 text-center">
-                        <p>{{ t("import.account.noAccounts") }}</p>
-                        <NuxtLink to="/">
-                            <Button class="mt-4" variant="outline">
-                                {{ t("import.account.createAccount") }}
-                            </Button>
-                        </NuxtLink>
-                    </div>
-
-                    <div v-else class="space-y-2">
-                        <button
-                            v-for="account in accountStore.accounts"
-                            :key="account.id"
-                            type="button"
-                            :class="
-                                cn(
-                                    'hover:bg-muted flex w-full items-center justify-between rounded-lg border p-4 text-left transition-colors',
-                                    selectedAccountId === account.id && 'border-primary bg-primary/5',
-                                )
-                            "
-                            @click="selectAccount(account.id)">
-                            <div>
-                                <div class="font-medium">{{ account.name }}</div>
-                                <div class="text-muted-foreground text-sm">{{ account.type }}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-medium">
-                                    {{ account.balance.toFixed(2) }}
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
+            <!-- Loading state during initialization -->
+            <div v-if="isInitializing" class="flex h-full items-center justify-center">
+                <Icon class="h-8 w-8 animate-spin" name="iconoir:refresh" />
             </div>
 
             <!-- Upload Step -->
@@ -508,44 +495,48 @@ const stats = computed(() => {
             <!-- Config Step -->
             <ImportConfigStep
                 v-else-if="currentStep === 'config'"
-                :rows="importState.rawRows"
+                :accounts="accountStore.accounts"
                 :delimiter="importState.fileConfig.delimiter"
-                :has-headers="importState.fileConfig.hasHeaders"
                 :file-name="importState.fileName"
+                :has-headers="importState.fileConfig.hasHeaders"
+                :is-loading-accounts="isLoadingAccounts"
+                :rows="importState.rawRows"
+                :selected-account-id="selectedAccountId"
+                @next="saveStep('mapping')"
                 @update:delimiter="updateDelimiter"
                 @update:hasHeaders="updateHasHeaders"
-                @next="saveStep('mapping')" />
+                @update:accountId="selectAccount" />
 
             <!-- Mapping Step -->
             <ImportMappingStep
                 v-else-if="currentStep === 'mapping'"
-                :rows="importState.rawRows"
                 :has-headers="importState.fileConfig.hasHeaders"
                 :mapping="importState.mapping"
-                @update:mapping="handleMappingUpdate"
-                @parse="applyMappingAndParse" />
+                :rows="importState.rawRows"
+                @parse="applyMappingAndParse"
+                @update:mapping="handleMappingUpdate" />
 
             <!-- Preview Step -->
             <ImportPreviewStep
                 v-else-if="currentStep === 'preview'"
-                :transactions="importState.transactions"
                 :duplicate-groups="internalDuplicateGroups"
-                :stats="stats"
-                :is-testing="isTesting"
                 :is-importing="isImporting"
+                :is-testing="isTesting"
+                :stats="stats"
+                :transactions="importState.transactions"
                 @ignore="handleIgnoreTransaction"
+                @import="handleImport"
                 @restore="handleRestoreTransaction"
-                @assign-category="handleAssignCategory"
-                @assign-merchant="handleAssignMerchant"
                 @test="handleTestDb"
-                @import="handleImport" />
+                @assign-category="handleAssignCategory"
+                @assign-merchant="handleAssignMerchant" />
 
             <!-- Result Step -->
             <ImportResultStep
                 v-else-if="currentStep === 'result'"
                 :result="importResult"
-                @reset="handleFullReset"
-                @done="handleDone" />
+                @done="handleDone"
+                @reset="handleFullReset" />
         </div>
     </div>
 </template>

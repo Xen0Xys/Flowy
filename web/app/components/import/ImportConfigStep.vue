@@ -1,16 +1,22 @@
 <script lang="ts" setup>
 import type {Delimiter} from "~/composables/useCsvParser";
+import type {Account} from "~/stores/account.store";
+import {cn} from "~/lib/utils";
 
 const props = defineProps<{
     rows: string[][];
     delimiter: Delimiter;
     hasHeaders: boolean;
     fileName?: string;
+    accounts: Account[];
+    selectedAccountId: string | null;
+    isLoadingAccounts: boolean;
 }>();
 
 const emit = defineEmits<{
     (e: "update:delimiter", delimiter: Delimiter): void;
     (e: "update:hasHeaders", value: boolean): void;
+    (e: "update:accountId", accountId: string): void;
     (e: "next"): void;
 }>();
 
@@ -22,6 +28,16 @@ const delimiterOptions: {value: Delimiter; label: string}[] = [
     {value: "\t", label: "\\t (tab)"},
     {value: "|", label: "| (pipe)"},
 ];
+
+const localSelectedAccountId = ref<string | null>(props.selectedAccountId);
+
+// Sync with parent
+watch(
+    () => props.selectedAccountId,
+    (newVal) => {
+        localSelectedAccountId.value = newVal;
+    },
+);
 
 const previewRows = computed(() => {
     const maxRows = 10;
@@ -37,12 +53,27 @@ const columnCount = computed(() => {
     return props.rows[0]?.length ?? 0;
 });
 
+const canProceed = computed(() => {
+    return localSelectedAccountId.value !== null;
+});
+
 function handleDelimiterChange(value: string) {
     emit("update:delimiter", value as Delimiter);
 }
 
 function handleHasHeadersChange(value: boolean) {
     emit("update:hasHeaders", value);
+}
+
+function handleAccountSelect(accountId: string) {
+    localSelectedAccountId.value = accountId;
+    emit("update:accountId", accountId);
+}
+
+function handleNext() {
+    if (canProceed.value) {
+        emit("next");
+    }
 }
 </script>
 
@@ -56,6 +87,50 @@ function handleHasHeadersChange(value: boolean) {
                     <Icon class="mr-1 inline h-3 w-3" name="iconoir:submit-document" />
                     {{ fileName }}
                 </p>
+            </div>
+
+            <!-- Account Selection -->
+            <div class="space-y-3">
+                <Label class="text-base">{{ t("import.config.account") }}</Label>
+                <p class="text-muted-foreground text-sm">{{ t("import.config.accountDescription") }}</p>
+
+                <div v-if="isLoadingAccounts" class="flex items-center justify-center py-4">
+                    <Icon name="iconoir:refresh" class="h-6 w-6 animate-spin" />
+                </div>
+
+                <div v-else-if="accounts.length === 0" class="text-muted-foreground py-4 text-center">
+                    <p>{{ t("import.account.noAccounts") }}</p>
+                    <NuxtLink to="/">
+                        <Button class="mt-2" variant="outline" size="sm">
+                            {{ t("import.account.createAccount") }}
+                        </Button>
+                    </NuxtLink>
+                </div>
+
+                <div v-else class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <button
+                        v-for="account in accounts"
+                        :key="account.id"
+                        type="button"
+                        :class="
+                            cn(
+                                'hover:bg-muted flex flex-col items-start rounded-lg border p-3 text-left transition-colors',
+                                localSelectedAccountId === account.id
+                                    ? 'border-primary bg-primary/5 ring-primary ring-1'
+                                    : 'border-border',
+                            )
+                        "
+                        @click="handleAccountSelect(account.id)">
+                        <div class="flex w-full items-center justify-between">
+                            <span class="font-medium">{{ account.name }}</span>
+                            <Icon
+                                v-if="localSelectedAccountId === account.id"
+                                name="iconoir:check-circle"
+                                class="text-primary h-5 w-5" />
+                        </div>
+                        <span class="text-muted-foreground text-sm">{{ account.type }}</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Configuration -->
@@ -129,7 +204,7 @@ function handleHasHeadersChange(value: boolean) {
 
             <!-- Actions -->
             <div class="flex justify-end">
-                <Button @click="emit('next')">
+                <Button :disabled="!canProceed" @click="handleNext">
                     {{ t("import.actions.next") }}
                     <Icon class="ml-2 h-4 w-4" name="iconoir:arrow-right" />
                 </Button>
