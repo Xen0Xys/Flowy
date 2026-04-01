@@ -69,7 +69,11 @@ function handleClose(value: boolean) {
                     {{ merchant ? t("settings.references.editMerchant") : t("settings.references.createMerchant") }}
                 </DialogTitle>
                 <DialogDescription>
-                    {{ merchant ? "Make changes to your merchant." : "Add a new merchant for your transactions." }}
+                    {{
+                        merchant
+                            ? t("settings.references.editMerchantDescription")
+                            : t("settings.references.createMerchantDescription")
+                    }}
                 </DialogDescription>
             </DialogHeader>
             <div class="grid gap-4 py-4">

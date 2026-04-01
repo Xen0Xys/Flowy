@@ -50,8 +50,7 @@ const filters = ref<TransactionFilters>({
 
 const availableCategories = computed(() => {
     const categoriesMap = new Map<string, {id: string; name: string}>();
-    const items = searchResult.value.items ?? [];
-    for (const tx of items) {
+    for (const tx of transactions.value) {
         if (tx.category && !categoriesMap.has(tx.category.id)) {
             categoriesMap.set(tx.category.id, {id: tx.category.id, name: tx.category.name});
         }
@@ -61,8 +60,7 @@ const availableCategories = computed(() => {
 
 const availableMerchants = computed(() => {
     const merchantsMap = new Map<string, {id: string; name: string}>();
-    const items = searchResult.value.items ?? [];
-    for (const tx of items) {
+    for (const tx of transactions.value) {
         if (tx.merchant && !merchantsMap.has(tx.merchant.id)) {
             merchantsMap.set(tx.merchant.id, {id: tx.merchant.id, name: tx.merchant.name});
         }
@@ -95,7 +93,12 @@ const hasMorePages = computed(() => currentPage.value < (searchResult.value.tota
 
 const hasActiveFilters = computed(() => {
     const currentFilters = buildSearchFilters();
-    return Object.keys(currentFilters).some((key) => key !== "accountId");
+    const hasOtherFilters = Object.keys(currentFilters).some(
+        (key) => key !== "accountId" && key !== "page" && key !== "pageSize",
+    );
+    // User-selected account filter counts as active, but props.accountId (context) doesn't
+    const hasAccountFilter = !props.accountId && filters.value.accountId !== "all";
+    return hasOtherFilters || hasAccountFilter;
 });
 
 const buildSearchFilters = (page = 1): TransactionSearchFilters => {

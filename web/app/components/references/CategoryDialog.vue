@@ -111,7 +111,11 @@ function handleClose(value: boolean) {
                     {{ category ? t("settings.references.editCategory") : t("settings.references.createCategory") }}
                 </DialogTitle>
                 <DialogDescription>
-                    {{ category ? "Make changes to your category." : "Add a new category for your transactions." }}
+                    {{
+                        category
+                            ? t("settings.references.editCategoryDescription")
+                            : t("settings.references.createCategoryDescription")
+                    }}
                 </DialogDescription>
             </DialogHeader>
             <div class="grid gap-4 py-4">

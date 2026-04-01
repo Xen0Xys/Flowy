@@ -108,14 +108,9 @@ const loadChartData = async () => {
     await accountStore.fetchAccountBalanceEvolution(accountId, startDate, endDate);
 };
 
-// Use double requestAnimationFrame to ensure the skeleton is rendered before loading data
-// This prevents UI freeze when data loads very quickly (e.g., empty accounts)
-// The first rAF schedules before paint, the second rAF schedules after paint
 onMounted(() => {
     requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            loadData();
-        });
+        loadData();
     });
 });
 

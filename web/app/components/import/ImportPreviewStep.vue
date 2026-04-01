@@ -20,8 +20,8 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: "ignore", id: string): void;
     (e: "restore", id: string): void;
-    (e: "assignCategory", id: string, categoryId: string | null): void;
-    (e: "assignMerchant", id: string, merchantId: string | null): void;
+    (e: "assign-category", id: string, categoryId: string | null): void;
+    (e: "assign-merchant", id: string, merchantId: string | null): void;
     (e: "test"): void;
     (e: "import"): void;
 }>();
@@ -128,12 +128,12 @@ function getStatusBadgeText(status: ParsedTransaction["status"]) {
 
 // Category select handler
 function handleCategoryChange(transactionId: string, categoryId: string | null) {
-    emit("assignCategory", transactionId, categoryId);
+    emit("assign-category", transactionId, categoryId);
 }
 
 // Merchant select handler
 function handleMerchantChange(transactionId: string, merchantId: string | null) {
-    emit("assignMerchant", transactionId, merchantId);
+    emit("assign-merchant", transactionId, merchantId);
 }
 
 // Open create merchant dialog
@@ -153,7 +153,7 @@ async function handleMerchantCreated(name: string) {
     try {
         const merchant = await referenceStore.createMerchant({name});
         if (activeTransactionId.value) {
-            emit("assignMerchant", activeTransactionId.value, merchant.id);
+            emit("assign-merchant", activeTransactionId.value, merchant.id);
         }
         createMerchantDialog.value = false;
         activeTransactionId.value = null;
@@ -167,7 +167,7 @@ async function handleCategoryCreated(payload: {name: string; hexColor: string; i
     try {
         const category = await referenceStore.createCategory(payload);
         if (activeTransactionId.value) {
-            emit("assignCategory", activeTransactionId.value, category.id);
+            emit("assign-category", activeTransactionId.value, category.id);
         }
         createCategoryDialog.value = false;
         activeTransactionId.value = null;

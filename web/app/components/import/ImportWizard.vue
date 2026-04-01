@@ -13,7 +13,7 @@ const {t} = useI18n();
 const accountStore = useAccountStore();
 const referenceStore = useReferenceStore();
 const transactionStore = useTransactionStore();
-const {parseFile, parseDate, generateId, detectInternalDuplicates} = useCsvParser();
+const {parseFile, parseDate, parseAmount, generateId, detectInternalDuplicates} = useCsvParser();
 const {
     loadState,
     clearState,
@@ -199,10 +199,8 @@ function applyMappingAndParse() {
         let amount: number | null = null;
 
         if (mapping.amount !== null) {
-            const {parseAmount} = useCsvParser();
             amount = parseAmount(row[mapping.amount] ?? "");
         } else if (mapping.credit !== null || mapping.debit !== null) {
-            const {parseAmount} = useCsvParser();
             const credit = mapping.credit !== null ? parseAmount(row[mapping.credit] ?? "") : null;
             const debit = mapping.debit !== null ? parseAmount(row[mapping.debit] ?? "") : null;
 

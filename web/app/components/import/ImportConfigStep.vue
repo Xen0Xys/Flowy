@@ -20,7 +20,12 @@ const emit = defineEmits<{
     (e: "next"): void;
 }>();
 
-const {t} = useI18n();
+const {t, te} = useI18n();
+
+function getAccountTypeLabel(type: string): string {
+    const key = `accounts.types.${type.toLowerCase()}`;
+    return te(key) ? t(key) : type;
+}
 
 const delimiterOptions: {value: Delimiter; label: string}[] = [
     {value: ",", label: ", (comma)"},
@@ -128,7 +133,7 @@ function handleNext() {
                                 name="iconoir:check-circle"
                                 class="text-primary h-5 w-5" />
                         </div>
-                        <span class="text-muted-foreground text-sm">{{ account.type }}</span>
+                        <span class="text-muted-foreground text-sm">{{ getAccountTypeLabel(account.type) }}</span>
                     </button>
                 </div>
             </div>

@@ -40,7 +40,7 @@ export function useCsvParser() {
         }
 
         // Remove currency symbols and spaces
-        cleaned = cleaned.replace(/[€$£¥CHF]/gi, "").trim();
+        cleaned = cleaned.replace(/(CHF|[€$£¥])/gi, "").trim();
 
         // Remove thousands separators (spaces)
         cleaned = cleaned.replace(/\s+/g, "");
@@ -116,32 +116,32 @@ export function useCsvParser() {
             return parsed || null;
         }
 
-        // Try DD/MM/YYYY or DD-MM-YYYY (EU format)
-        const euMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-        if (euMatch) {
-            const parsed = toISOString(euMatch[3]!, euMatch[2]!, euMatch[1]!);
-            return parsed || null;
-        }
+        // Try DD/MM/YYYY or MM/DD/YYYY (ambiguous format)
+        // Disambiguate based on values: if first > 12 → EU (DD/MM), if second > 12 → US (MM/DD)
+        const ambiguousMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (ambiguousMatch) {
+            const first = parseInt(ambiguousMatch[1]!);
+            const second = parseInt(ambiguousMatch[2]!);
+            const year = ambiguousMatch[3]!;
 
-        // Try MM/DD/YYYY (US format - ambiguous, assume EU if day > 12)
-        const usMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-        if (usMatch) {
-            const first = parseInt(usMatch[1]!);
-            const second = parseInt(usMatch[2]!);
-            const year = usMatch[3]!;
+            let day: number;
+            let month: number;
 
-            // If first > 12, it must be day (EU format)
             if (first > 12) {
-                const parsed = toISOString(year, second.toString(), first.toString());
-                return parsed || null;
+                // First number > 12 → must be day (EU format: DD/MM/YYYY)
+                day = first;
+                month = second;
+            } else if (second > 12) {
+                // Second number > 12 → must be day (US format: MM/DD/YYYY)
+                day = second;
+                month = first;
+            } else {
+                // Ambiguous: both numbers ≤ 12 → assume EU format (DD/MM/YYYY)
+                day = first;
+                month = second;
             }
-            // If second > 12, it must be day (US format)
-            if (second > 12) {
-                const parsed = toISOString(year, first.toString(), second.toString());
-                return parsed || null;
-            }
-            // Ambiguous - assume EU format
-            const parsed = toISOString(year, second.toString(), first.toString());
+
+            const parsed = toISOString(year, month.toString(), day.toString());
             return parsed || null;
         }
 
