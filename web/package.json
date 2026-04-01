@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "nuxt build",
+        "check:i18n": "bun run ./scripts/check-i18n.ts",
         "dev": "nuxt dev",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
