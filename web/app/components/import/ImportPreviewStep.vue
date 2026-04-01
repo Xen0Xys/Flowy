@@ -292,149 +292,151 @@ async function submitMerchant() {
         </div>
 
         <!-- Transactions table -->
-        <div class="flex-1 overflow-auto">
-            <ScrollArea class="h-full">
-                <Table>
-                    <TableHeader class="bg-background sticky top-0">
-                        <TableRow>
-                            <TableHead class="w-12">#</TableHead>
-                            <TableHead class="min-w-25">{{ t("transactions.table.date") }}</TableHead>
-                            <TableHead class="min-w-50">{{ t("transactions.table.description") }}</TableHead>
-                            <TableHead class="min-w-25">{{ t("transactions.table.amount") }}</TableHead>
-                            <TableHead class="min-w-35">{{ t("transactions.table.category") }}</TableHead>
-                            <TableHead class="min-w-35">{{ t("transactions.filters.merchant") }}</TableHead>
-                            <TableHead class="w-28">{{ t("common.actions") }}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow
-                            v-for="(transaction, index) in paginatedTransactions"
-                            :key="transaction.id"
-                            :class="
-                                cn(
-                                    transaction.status === 'error' && 'opacity-50',
-                                    transaction.status === 'duplicate_internal' && 'bg-orange-500/5',
-                                    transaction.status === 'duplicate_db' && 'bg-red-500/5',
-                                )
-                            ">
-                            <TableCell class="text-muted-foreground">
-                                {{ (currentPage - 1) * PAGE_SIZE + index + 1 }}
-                            </TableCell>
-                            <TableCell>
-                                {{ formatDateForDisplay(transaction.date) }}
-                            </TableCell>
-                            <TableCell class="max-w-[300px] truncate">
-                                {{ transaction.description }}
-                            </TableCell>
-                            <TableCell>
-                                <span
-                                    :class="
-                                        cn(
-                                            'font-medium',
-                                            transaction.amount > 0
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400',
-                                        )
-                                    ">
-                                    {{ transaction.amount.toFixed(2) }}
-                                </span>
-                            </TableCell>
-                            <TableCell>
-                                <div class="flex items-center gap-1">
-                                    <Select
-                                        :model-value="transaction.categoryId"
-                                        @update:model-value="handleCategoryChange(transaction.id, $event)">
-                                        <SelectTrigger class="h-8 w-full">
-                                            <SelectValue :placeholder="t('transactions.form.selectCategory')">
-                                                <div v-if="transaction.categoryId" class="flex items-center gap-2">
-                                                    <div
-                                                        v-if="categoryMap.get(transaction.categoryId)"
-                                                        :style="{
-                                                            backgroundColor: categoryMap.get(transaction.categoryId)
-                                                                ?.hexColor,
-                                                        }"
-                                                        class="h-3 w-3 rounded-full" />
-                                                    <span class="truncate">
-                                                        {{ categoryMap.get(transaction.categoryId)?.name }}
-                                                    </span>
-                                                </div>
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem :value="null as any">
-                                                {{ t("common.none") }}
-                                            </SelectItem>
-                                            <SelectItem
-                                                v-for="cat in referenceStore.categories"
-                                                :key="cat.id"
-                                                :value="cat.id">
-                                                <div class="flex items-center gap-2">
-                                                    <div
-                                                        :style="{backgroundColor: cat.hexColor}"
-                                                        class="h-3 w-3 rounded-full" />
-                                                    {{ cat.name }}
-                                                </div>
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button size="icon-sm" variant="ghost" @click="openCreateCategory(transaction.id)">
-                                        <Icon class="h-4 w-4" name="iconoir:plus" />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <div class="flex items-center gap-1">
-                                    <Select
-                                        :model-value="transaction.merchantId"
-                                        @update:model-value="handleMerchantChange(transaction.id, $event)">
-                                        <SelectTrigger class="h-8 w-full">
-                                            <SelectValue :placeholder="t('transactions.form.selectMerchant')">
-                                                {{ merchantMap.get(transaction.merchantId)?.name }}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem :value="null as any">
-                                                {{ t("common.none") }}
-                                            </SelectItem>
-                                            <SelectItem
-                                                v-for="merch in referenceStore.merchants"
-                                                :key="merch.id"
-                                                :value="merch.id">
-                                                {{ merch.name }}
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button size="icon-sm" variant="ghost" @click="openCreateMerchant(transaction.id)">
-                                        <Icon class="h-4 w-4" name="iconoir:plus" />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <div class="flex items-center gap-1">
-                                    <Badge :variant="getStatusBadgeVariant(transaction.status)">
-                                        {{ getStatusBadgeText(transaction.status) }}
-                                    </Badge>
-                                    <Button
-                                        v-if="transaction.status !== 'error'"
-                                        size="icon-sm"
-                                        variant="ghost"
-                                        @click="emit('ignore', transaction.id)">
-                                        <Icon class="h-4 w-4" name="iconoir:cancel" />
-                                    </Button>
-                                    <Button
-                                        v-if="transaction.status === 'error'"
-                                        size="icon-sm"
-                                        variant="ghost"
-                                        @click="emit('restore', transaction.id)">
-                                        <Icon class="h-4 w-4" name="iconoir:undo" />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </ScrollArea>
-        </div>
+        <ScrollArea class="min-h-0 flex-1 overflow-hidden" scrollbar-class="pt-[41px]">
+            <Table wrapperClass="overflow-visible pr-3">
+                <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
+                    <TableRow>
+                        <TableHead class="w-12">#</TableHead>
+                        <TableHead class="min-w-25">{{ t("transactions.table.date") }}</TableHead>
+                        <TableHead class="min-w-50">{{ t("transactions.table.description") }}</TableHead>
+                        <TableHead class="min-w-25">{{ t("transactions.table.amount") }}</TableHead>
+                        <TableHead class="min-w-35">{{ t("transactions.table.category") }}</TableHead>
+                        <TableHead class="min-w-35">{{ t("transactions.filters.merchant") }}</TableHead>
+                        <TableHead class="relative w-28">
+                            {{ t("common.actions") }}
+                            <div
+                                class="bg-muted absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow
+                        v-for="(transaction, index) in paginatedTransactions"
+                        :key="transaction.id"
+                        :class="
+                            cn(
+                                transaction.status === 'error' && 'opacity-50',
+                                transaction.status === 'duplicate_internal' && 'bg-orange-500/5',
+                                transaction.status === 'duplicate_db' && 'bg-red-500/5',
+                            )
+                        ">
+                        <TableCell class="text-muted-foreground">
+                            {{ (currentPage - 1) * PAGE_SIZE + index + 1 }}
+                        </TableCell>
+                        <TableCell>
+                            {{ formatDateForDisplay(transaction.date) }}
+                        </TableCell>
+                        <TableCell class="max-w-[300px] truncate">
+                            {{ transaction.description }}
+                        </TableCell>
+                        <TableCell>
+                            <span
+                                :class="
+                                    cn(
+                                        'font-medium',
+                                        transaction.amount > 0
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400',
+                                    )
+                                ">
+                                {{ transaction.amount.toFixed(2) }}
+                            </span>
+                        </TableCell>
+                        <TableCell>
+                            <div class="flex items-center gap-1">
+                                <Select
+                                    :model-value="transaction.categoryId"
+                                    @update:model-value="handleCategoryChange(transaction.id, $event)">
+                                    <SelectTrigger class="h-8 w-full">
+                                        <SelectValue :placeholder="t('transactions.form.selectCategory')">
+                                            <div v-if="transaction.categoryId" class="flex items-center gap-2">
+                                                <div
+                                                    v-if="categoryMap.get(transaction.categoryId)"
+                                                    :style="{
+                                                        backgroundColor: categoryMap.get(transaction.categoryId)
+                                                            ?.hexColor,
+                                                    }"
+                                                    class="h-3 w-3 rounded-full" />
+                                                <span class="truncate">
+                                                    {{ categoryMap.get(transaction.categoryId)?.name }}
+                                                </span>
+                                            </div>
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem :value="null as any">
+                                            {{ t("common.none") }}
+                                        </SelectItem>
+                                        <SelectItem
+                                            v-for="cat in referenceStore.categories"
+                                            :key="cat.id"
+                                            :value="cat.id">
+                                            <div class="flex items-center gap-2">
+                                                <div
+                                                    :style="{backgroundColor: cat.hexColor}"
+                                                    class="h-3 w-3 rounded-full" />
+                                                {{ cat.name }}
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button size="icon-sm" variant="ghost" @click="openCreateCategory(transaction.id)">
+                                    <Icon class="h-4 w-4" name="iconoir:plus" />
+                                </Button>
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <div class="flex items-center gap-1">
+                                <Select
+                                    :model-value="transaction.merchantId"
+                                    @update:model-value="handleMerchantChange(transaction.id, $event)">
+                                    <SelectTrigger class="h-8 w-full">
+                                        <SelectValue :placeholder="t('transactions.form.selectMerchant')">
+                                            {{ merchantMap.get(transaction.merchantId)?.name }}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem :value="null as any">
+                                            {{ t("common.none") }}
+                                        </SelectItem>
+                                        <SelectItem
+                                            v-for="merch in referenceStore.merchants"
+                                            :key="merch.id"
+                                            :value="merch.id">
+                                            {{ merch.name }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button size="icon-sm" variant="ghost" @click="openCreateMerchant(transaction.id)">
+                                    <Icon class="h-4 w-4" name="iconoir:plus" />
+                                </Button>
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <div class="flex items-center gap-1">
+                                <Badge :variant="getStatusBadgeVariant(transaction.status)">
+                                    {{ getStatusBadgeText(transaction.status) }}
+                                </Badge>
+                                <Button
+                                    v-if="transaction.status !== 'error'"
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    @click="emit('ignore', transaction.id)">
+                                    <Icon class="h-4 w-4" name="iconoir:cancel" />
+                                </Button>
+                                <Button
+                                    v-if="transaction.status === 'error'"
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    @click="emit('restore', transaction.id)">
+                                    <Icon class="h-4 w-4" name="iconoir:undo" />
+                                </Button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </ScrollArea>
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 border-t px-6 py-3">
