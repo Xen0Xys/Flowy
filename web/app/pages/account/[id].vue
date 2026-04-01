@@ -67,9 +67,9 @@ const chartColor = computed(() => {
     return "#94a3b8"; // slate-400
 });
 
-const chartConfig = {
+const chartConfig = computed(() => ({
     balance: {label: t("dashboard.balance"), color: "hsl(var(--primary))"},
-};
+}));
 
 const x = (d: {date: string}) => new Date(d.date).getTime();
 const y = (d: {balance: number}) => d.balance;

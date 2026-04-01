@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from "vue";
+import {onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Card} from "@/components/ui/card";
@@ -7,15 +7,7 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -213,7 +205,7 @@ async function deleteMerchant(id: string) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead class="w-[50px]"></TableHead>
+                                    <TableHead class="w-12.5"></TableHead>
                                     <TableHead>{{ t("settings.references.name") }}</TableHead>
                                     <TableHead>{{ t("settings.references.color") }}</TableHead>
                                     <TableHead class="text-right">{{ t("common.actions") }}</TableHead>
@@ -223,11 +215,11 @@ async function deleteMerchant(id: string) {
                                 <TableRow v-for="category in referenceStore.categories" :key="category.id">
                                     <TableCell>
                                         <div
-                                            class="flex h-8 w-8 items-center justify-center rounded-md"
                                             :style="{
                                                 backgroundColor: category.hexColor + '20',
                                                 color: category.hexColor,
-                                            }">
+                                            }"
+                                            class="flex h-8 w-8 items-center justify-center rounded-md">
                                             <Icon :name="category.icon" class="h-4 w-4" />
                                         </div>
                                     </TableCell>
@@ -235,29 +227,29 @@ async function deleteMerchant(id: string) {
                                     <TableCell>
                                         <div class="flex items-center gap-2 text-sm">
                                             <div
-                                                class="border-border h-4 w-4 rounded-full border"
-                                                :style="{backgroundColor: category.hexColor}"></div>
+                                                :style="{backgroundColor: category.hexColor}"
+                                                class="border-border h-4 w-4 rounded-full border"></div>
                                             {{ category.hexColor }}
                                         </div>
                                     </TableCell>
                                     <TableCell class="text-right">
                                         <div class="flex justify-end gap-2">
                                             <Button
-                                                variant="ghost"
+                                                :aria-label="t('settings.references.aria.editCategory')"
                                                 size="icon"
-                                                @click="openCategoryDialog(category)"
-                                                aria-label="Edit category">
-                                                <Icon name="iconoir:edit-pencil" class="text-muted-foreground h-4 w-4" />
+                                                variant="ghost"
+                                                @click="openCategoryDialog(category)">
+                                                <Icon class="text-muted-foreground h-4 w-4" name="iconoir:edit-pencil" />
                                             </Button>
 
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button
-                                                        variant="ghost"
-                                                        size="icon"
                                                         :disabled="deletingCategoryId === category.id"
-                                                        aria-label="Delete category">
-                                                        <Icon name="iconoir:trash" class="text-destructive h-4 w-4" />
+                                                        :aria-label="t('settings.references.aria.deleteCategory')"
+                                                        size="icon"
+                                                        variant="ghost">
+                                                        <Icon class="text-destructive h-4 w-4" name="iconoir:trash" />
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
@@ -266,10 +258,11 @@ async function deleteMerchant(id: string) {
                                                             t("settings.references.deleteCategory")
                                                         }}</AlertDialogTitle>
                                                         <AlertDialogDescription>
-                                                            Are you sure you want to delete the category "{{
-                                                                category.name
-                                                            }}"? Transactions using this category will lose their
-                                                            association.
+                                                            {{
+                                                                t("settings.references.deleteCategoryDescription", {
+                                                                    name: category.name,
+                                                                })
+                                                            }}
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
@@ -284,7 +277,7 @@ async function deleteMerchant(id: string) {
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="referenceStore.categories.length === 0">
-                                    <TableCell colspan="4" class="h-24 text-center">
+                                    <TableCell class="h-24 text-center" colspan="4">
                                         {{ t("settings.references.noCategories") }}
                                     </TableCell>
                                 </TableRow>
@@ -308,21 +301,21 @@ async function deleteMerchant(id: string) {
                                     <TableCell class="text-right">
                                         <div class="flex justify-end gap-2">
                                             <Button
-                                                variant="ghost"
+                                                :aria-label="t('settings.references.aria.editMerchant')"
                                                 size="icon"
-                                                @click="openMerchantDialog(merchant)"
-                                                aria-label="Edit merchant">
-                                                <Icon name="iconoir:edit-pencil" class="text-muted-foreground h-4 w-4" />
+                                                variant="ghost"
+                                                @click="openMerchantDialog(merchant)">
+                                                <Icon class="text-muted-foreground h-4 w-4" name="iconoir:edit-pencil" />
                                             </Button>
 
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button
-                                                        variant="ghost"
-                                                        size="icon"
                                                         :disabled="deletingMerchantId === merchant.id"
-                                                        aria-label="Delete merchant">
-                                                        <Icon name="iconoir:trash" class="text-destructive h-4 w-4" />
+                                                        :aria-label="t('settings.references.aria.deleteMerchant')"
+                                                        size="icon"
+                                                        variant="ghost">
+                                                        <Icon class="text-destructive h-4 w-4" name="iconoir:trash" />
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
@@ -331,10 +324,11 @@ async function deleteMerchant(id: string) {
                                                             t("settings.references.deleteMerchant")
                                                         }}</AlertDialogTitle>
                                                         <AlertDialogDescription>
-                                                            Are you sure you want to delete the merchant "{{
-                                                                merchant.name
-                                                            }}"? Transactions using this merchant will lose their
-                                                            association.
+                                                            {{
+                                                                t("settings.references.deleteMerchantDescription", {
+                                                                    name: merchant.name,
+                                                                })
+                                                            }}
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
@@ -349,7 +343,7 @@ async function deleteMerchant(id: string) {
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="referenceStore.merchants.length === 0">
-                                    <TableCell colspan="2" class="h-24 text-center">
+                                    <TableCell class="h-24 text-center" colspan="2">
                                         {{ t("settings.references.noMerchants") }}
                                     </TableCell>
                                 </TableRow>
@@ -374,20 +368,24 @@ async function deleteMerchant(id: string) {
                     <DialogDescription>
                         {{
                             editingCategory
-                                ? "Make changes to your category."
-                                : "Add a new category for your transactions."
+                                ? t("settings.references.editCategoryDescription")
+                                : t("settings.references.createCategoryDescription")
                         }}
                     </DialogDescription>
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid grid-cols-4 items-center gap-4">
-                        <label for="name" class="text-right text-sm font-medium">{{
+                        <label class="text-right text-sm font-medium" for="name">{{
                             t("settings.references.name")
                         }}</label>
-                        <Input id="name" v-model="categoryForm.name" class="col-span-3" placeholder="e.g. Groceries" />
+                        <Input
+                            id="name"
+                            v-model="categoryForm.name"
+                            class="col-span-3"
+                            :placeholder="t('settings.references.categoryPlaceholder')" />
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
-                        <label for="color" class="mt-2 text-right text-sm font-medium">{{
+                        <label class="mt-2 text-right text-sm font-medium" for="color">{{
                             t("settings.references.color")
                         }}</label>
                         <div class="col-span-3 flex flex-col gap-3">
@@ -395,28 +393,28 @@ async function deleteMerchant(id: string) {
                                 <button
                                     v-for="color in PRESET_COLORS"
                                     :key="color"
-                                    type="button"
-                                    class="border-border h-6 w-6 rounded-full border transition-transform hover:scale-110"
                                     :class="{
                                         'ring-ring ring-offset-background ring-2 ring-offset-2':
                                             categoryForm.hexColor === color,
                                     }"
                                     :style="{backgroundColor: color}"
-                                    @click="categoryForm.hexColor = color"
-                                    aria-label="Select color"></button>
+                                    :aria-label="t('settings.references.aria.selectColor')"
+                                    class="border-border h-6 w-6 rounded-full border transition-transform hover:scale-110"
+                                    type="button"
+                                    @click="categoryForm.hexColor = color"></button>
                             </div>
                             <div class="flex items-center gap-2">
                                 <Input
                                     id="color"
-                                    type="color"
                                     v-model="categoryForm.hexColor"
-                                    class="h-10 w-16 cursor-pointer p-1" />
-                                <Input v-model="categoryForm.hexColor" placeholder="#000000" class="uppercase" />
+                                    class="h-10 w-16 cursor-pointer p-1"
+                                    type="color" />
+                                <Input v-model="categoryForm.hexColor" class="uppercase" placeholder="#000000" />
                             </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-4 items-start gap-4">
-                        <label for="icon" class="mt-2 text-right text-sm font-medium">{{
+                        <label class="mt-2 text-right text-sm font-medium" for="icon">{{
                             t("settings.references.icon")
                         }}</label>
                         <div class="col-span-3 flex flex-col gap-3">
@@ -424,14 +422,14 @@ async function deleteMerchant(id: string) {
                                 <button
                                     v-for="iconName in PRESET_ICONS"
                                     :key="iconName"
-                                    type="button"
-                                    class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
                                     :class="{
                                         'bg-primary text-primary-foreground hover:bg-primary':
                                             categoryForm.icon === iconName,
                                     }"
-                                    @click="categoryForm.icon = iconName"
-                                    aria-label="Select icon">
+                                    :aria-label="t('settings.references.aria.selectIcon')"
+                                    class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+                                    type="button"
+                                    @click="categoryForm.icon = iconName">
                                     <Icon :name="iconName" class="h-4 w-4" />
                                 </button>
                             </div>
@@ -443,11 +441,11 @@ async function deleteMerchant(id: string) {
                                 <Input id="icon" v-model="categoryForm.icon" placeholder="iconoir:label" />
                             </div>
                             <div class="text-muted-foreground text-xs">
-                                Find icons at
+                                {{ t("settings.references.findIconsAt") }}
                                 <a
+                                    class="hover:text-foreground underline"
                                     href="https://icones.js.org/collection/iconoir"
                                     target="_blank"
-                                    class="hover:text-foreground underline"
                                     >{{ t("settings.references.iconLibrary") }}</a
                                 >
                             </div>
@@ -478,21 +476,21 @@ async function deleteMerchant(id: string) {
                     <DialogDescription>
                         {{
                             editingMerchant
-                                ? "Make changes to your merchant."
-                                : "Add a new merchant for your transactions."
+                                ? t("settings.references.editMerchantDescription")
+                                : t("settings.references.createMerchantDescription")
                         }}
                     </DialogDescription>
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid grid-cols-4 items-center gap-4">
-                        <label for="merchant-name" class="text-right text-sm font-medium">{{
+                        <label class="text-right text-sm font-medium" for="merchant-name">{{
                             t("settings.references.name")
                         }}</label>
                         <Input
                             id="merchant-name"
                             v-model="merchantForm.name"
                             class="col-span-3"
-                            placeholder="e.g. Walmart" />
+                            :placeholder="t('settings.references.merchantPlaceholder')" />
                     </div>
                 </div>
                 <DialogFooter>

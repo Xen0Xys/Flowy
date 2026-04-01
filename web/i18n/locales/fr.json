@@ -473,12 +473,29 @@
             "iconLibrary": "Icônes (Iconoir)",
             "deleteCategory": "Supprimer la catégorie",
             "deleteMerchant": "Supprimer le marchand",
+            "deleteCategoryDescription": "Êtes-vous sûr de vouloir supprimer la catégorie \"{name}\" ? Les transactions utilisant cette catégorie perdront leur association.",
+            "deleteMerchantDescription": "Êtes-vous sûr de vouloir supprimer le marchand \"{name}\" ? Les transactions utilisant ce marchand perdront leur association.",
             "noCategories": "Aucune catégorie trouvée. Créez-en une pour commencer.",
             "noMerchants": "Aucun marchand trouvé. Créez-en un pour commencer.",
             "editCategory": "Modifier la catégorie",
             "createCategory": "Créer une catégorie",
+            "editCategoryDescription": "Apportez des modifications à votre catégorie.",
+            "createCategoryDescription": "Ajoutez une nouvelle catégorie pour vos transactions.",
             "editMerchant": "Modifier le marchand",
-            "createMerchant": "Créer un marchand"
+            "createMerchant": "Créer un marchand",
+            "editMerchantDescription": "Apportez des modifications à votre marchand.",
+            "createMerchantDescription": "Ajoutez un nouveau marchand pour vos transactions.",
+            "aria": {
+                "editCategory": "Modifier la catégorie",
+                "deleteCategory": "Supprimer la catégorie",
+                "editMerchant": "Modifier le marchand",
+                "deleteMerchant": "Supprimer le marchand",
+                "selectColor": "Sélectionner la couleur",
+                "selectIcon": "Sélectionner l'icône"
+            },
+            "findIconsAt": "Trouver des icônes sur",
+            "categoryPlaceholder": "ex : Courses",
+            "merchantPlaceholder": "ex : Walmart"
         }
     },
     "user": {

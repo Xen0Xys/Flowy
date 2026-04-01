@@ -60,9 +60,11 @@ const languagePreference = computed<string>({
     },
     set: (value) => {
         if (value === "browser") {
-            localeCookie.value = null;
-            void setLocale(resolveBrowserLocale());
-            localeCookie.value = null;
+            // Properly sequence: await locale change, then clear cookie once
+            void (async () => {
+                localeCookie.value = null;
+                await setLocale(resolveBrowserLocale());
+            })();
             return;
         }
 
@@ -249,8 +251,8 @@ async function changePasswordNow() {
                                 <Input
                                     v-model="username"
                                     :aria-label="t('profile.username')"
-                                    class="flex-1"
-                                    :placeholder="t('profile.username')" />
+                                    :placeholder="t('profile.username')"
+                                    class="flex-1" />
                                 <Button
                                     :disabled="savingUsername || !userStore.token"
                                     aria-label="Save username"
@@ -269,8 +271,8 @@ async function changePasswordNow() {
                                 <Input
                                     v-model="email"
                                     :aria-label="t('profile.email')"
-                                    class="flex-1"
                                     :placeholder="t('profile.email')"
+                                    class="flex-1"
                                     type="email" />
                                 <Button
                                     :disabled="savingEmail || !userStore.token"

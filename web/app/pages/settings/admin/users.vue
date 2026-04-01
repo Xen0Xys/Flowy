@@ -74,7 +74,7 @@ const isResettingCurrentUser = computed(() =>
     Boolean(resetDialogUser.value && resettingId.value === resetDialogUser.value.id),
 );
 
-const columns: ColumnDef<AdminUser>[] = [
+const columns = computed<ColumnDef<AdminUser>[]>(() => [
     {
         accessorKey: "username",
         header: t("auth.common.username"),
@@ -92,14 +92,14 @@ const columns: ColumnDef<AdminUser>[] = [
         header: "",
         enableSorting: false,
     },
-];
+]);
 
 const table = useVueTable({
     get data() {
         return users.value;
     },
     get columns() {
-        return columns;
+        return columns.value;
     },
     state: {
         get globalFilter() {

@@ -39,9 +39,9 @@ import {CurveType} from "@unovis/ts";
 
 const {locale, t} = useI18n();
 
-const chartConfig = {
+const chartConfig = computed(() => ({
     balance: {label: t("dashboard.balance"), color: "#2563eb"},
-};
+}));
 
 const x = (d: {date: string}) => new Date(d.date).getTime();
 const y = (d: {balance: number}) => d.balance;

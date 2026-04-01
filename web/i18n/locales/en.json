@@ -470,15 +470,32 @@
             "name": "Name",
             "color": "Color",
             "icon": "Icon",
-            "iconLibrary": "Icones (Iconoir)",
+            "iconLibrary": "Icons (Iconoir)",
             "deleteCategory": "Delete category",
             "deleteMerchant": "Delete merchant",
+            "deleteCategoryDescription": "Are you sure you want to delete the category \"{name}\"? Transactions using this category will lose their association.",
+            "deleteMerchantDescription": "Are you sure you want to delete the merchant \"{name}\"? Transactions using this merchant will lose their association.",
             "noCategories": "No categories found. Create one to get started.",
             "noMerchants": "No merchants found. Create one to get started.",
             "editCategory": "Edit Category",
             "createCategory": "Create Category",
+            "editCategoryDescription": "Make changes to your category.",
+            "createCategoryDescription": "Add a new category for your transactions.",
             "editMerchant": "Edit Merchant",
-            "createMerchant": "Create Merchant"
+            "createMerchant": "Create Merchant",
+            "editMerchantDescription": "Make changes to your merchant.",
+            "createMerchantDescription": "Add a new merchant for your transactions.",
+            "aria": {
+                "editCategory": "Edit category",
+                "deleteCategory": "Delete category",
+                "editMerchant": "Edit merchant",
+                "deleteMerchant": "Delete merchant",
+                "selectColor": "Select color",
+                "selectIcon": "Select icon"
+            },
+            "findIconsAt": "Find icons at",
+            "categoryPlaceholder": "e.g. Groceries",
+            "merchantPlaceholder": "e.g. Walmart"
         }
     },
     "user": {

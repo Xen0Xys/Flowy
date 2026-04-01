@@ -2,11 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
-
-const i18nT = (key: string, params?: Record<string, unknown>) => {
-    const i18n = useNuxtApp().$i18n;
-    return (params ? (i18n?.t(key, params) as string | undefined) : (i18n?.t(key) as string | undefined)) ?? key;
-};
+import {i18nT} from "~/utils/i18n";
 
 export type LoginCredentials = {
     email: string;

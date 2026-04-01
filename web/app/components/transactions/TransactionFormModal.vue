@@ -208,7 +208,7 @@ const executeDelete = async () => {
 
 <template>
     <Dialog :open="open" @update:open="onOpenChange">
-        <DialogContent class="sm:max-w-[425px]">
+        <DialogContent class="sm:max-w-106.25">
             <DialogHeader>
                 <DialogTitle>
                     {{ props.transaction ? t("transactions.form.editTitle") : t("transactions.form.newTitle") }}
@@ -318,16 +318,16 @@ const executeDelete = async () => {
                         </Select>
                     </div>
                 </div>
-            </form>
 
-            <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
-                <Button type="button" variant="outline" @click="emit('update:open', false)">
-                    {{ t("common.cancel") }}
-                </Button>
-                <Button :disabled="isSubmitting || isDeleting" type="submit" @click="save">
-                    {{ isSubmitting ? t("common.saving") : t("transactions.form.saveChanges") }}
-                </Button>
-            </DialogFooter>
+                <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" variant="outline" @click="emit('update:open', false)">
+                        {{ t("common.cancel") }}
+                    </Button>
+                    <Button :disabled="isSubmitting || isDeleting" type="submit">
+                        {{ isSubmitting ? t("common.saving") : t("transactions.form.saveChanges") }}
+                    </Button>
+                </DialogFooter>
+            </form>
 
             <div v-if="props.transaction" class="border-t pt-4">
                 <Button
