@@ -14,6 +14,8 @@ import {
 } from "~/components/ui/sidebar";
 import {computed, onMounted, ref, watch} from "vue";
 import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
+import {useAccountStore} from "~/stores/account.store";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -32,13 +34,16 @@ const inSettings = computed(() => route.path.startsWith("/settings"));
 
 const config = useRuntimeConfig();
 const version = computed(() => {
-    return config.public.appVersion;
+    return config.public.appVersion as string;
 });
 
 // show/hide instance/admin settings links depending on permissions
 const userStore = useUserStore();
+const authStore = useAuthStore();
+const accountStore = useAccountStore();
 const showAdminLinks = ref(false);
 const {isMobile} = useSidebar();
+const userAccounts = computed(() => accountStore.accounts);
 
 const userName = computed(() => userStore.user?.username || "User");
 const userEmail = computed(() => userStore.user?.email || "");
@@ -48,10 +53,7 @@ const userInitials = computed(() => {
     const trimmed = source.trim();
     if (!trimmed) return "U";
     const parts = trimmed.split(/\s+/).filter(Boolean);
-    const initials =
-        parts.length >= 2
-            ? `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`
-            : `${trimmed[0] ?? "U"}`;
+    const initials = parts.length >= 2 ? `${parts[0][0] ?? ""}${parts[1][0] ?? ""}` : `${trimmed[0] ?? "U"}`;
     return initials.toUpperCase();
 });
 
@@ -66,22 +68,36 @@ async function computeAdminVisibility() {
     }
 }
 
+async function loadAccountsForSidebar() {
+    if (!userStore.token || userAccounts.value.length > 0) return;
+
+    try {
+        await accountStore.fetchAccounts();
+    } catch {
+        // ignore sidebar-only account loading errors
+    }
+}
+
 onMounted(async () => {
     // compute once on client mount
     await computeAdminVisibility();
+    await loadAccountsForSidebar();
 });
 
 // recompute when token changes (login/logout)
 watch(
     () => userStore.token,
     async (token) => {
-        if (token) await computeAdminVisibility();
-        else showAdminLinks.value = false;
+        if (token) {
+            await Promise.all([computeAdminVisibility(), loadAccountsForSidebar()]);
+        } else {
+            showAdminLinks.value = false;
+        }
     },
 );
 
 async function handleLogout() {
-    userStore.logout();
+    authStore.logout();
     await useRouter().push("/auth/login");
 }
 </script>
@@ -93,13 +109,12 @@ async function handleLogout() {
                 <SidebarMenuItem>
                     <SidebarMenuButton as-child size="lg">
                         <div>
-                            <div
-                                class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <Icon name="iconoir:apple-shortcuts"></Icon>
+                            <div class="flex aspect-square size-8 items-center justify-center rounded-lg">
+                                <img alt="Flowy Logo" class="size-8" src="/flowy-logo.webp" />
                             </div>
                             <div class="flex flex-col gap-0.5 leading-none">
                                 <span class="font-semibold">Flowy</span>
-                                <span>{{ version }}</span>
+                                <span class="text-muted-foreground text-xs">{{ version }}</span>
                             </div>
                         </div>
                     </SidebarMenuButton>
@@ -107,37 +122,49 @@ async function handleLogout() {
             </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-            <SidebarGroup
-                :aria-hidden="inSettings"
-                :class="{hidden: inSettings}">
+            <SidebarGroup :aria-hidden="inSettings" :class="{hidden: inSettings}">
                 <SidebarGroupLabel>Menu</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton
-                                :is-active="isActiveFunction('/')"
-                                as-child>
+                            <SidebarMenuButton :is-active="isActiveFunction('/')" as-child>
                                 <NuxtLink to="/">
                                     <Icon name="iconoir:home"></Icon>
                                     <span>Dashboard</span>
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton :is-active="isActiveFunction('/transactions')" as-child>
+                                <NuxtLink to="/transactions">
+                                    <Icon name="iconoir:credit-card"></Icon>
+                                    <span>Transactions</span>
+                                </NuxtLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+                <SidebarGroupLabel v-if="userAccounts.length">Accounts</SidebarGroupLabel>
+                <SidebarGroupContent v-if="userAccounts.length">
+                    <SidebarMenu>
+                        <SidebarMenuItem v-for="account in userAccounts" :key="account.id">
+                            <SidebarMenuButton :is-active="isActiveFunction(`/account/${account.id}`)" as-child>
+                                <NuxtLink :to="`/account/${account.id}`">
+                                    <Icon name="iconoir:wallet"></Icon>
+                                    <span>{{ account.name }}</span>
+                                </NuxtLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
-
-            <SidebarGroup
-                :aria-hidden="!inSettings"
-                :class="{hidden: !inSettings}">
+            <SidebarGroup :aria-hidden="!inSettings" :class="{hidden: !inSettings}">
                 <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <!-- User settings category -->
                         <SidebarMenuItem>
-                            <SidebarMenuButton
-                                :is-active="isActiveFunction('/')"
-                                as-child>
+                            <SidebarMenuButton :is-active="isActiveFunction('/')" as-child>
                                 <NuxtLink to="/">
                                     <Icon name="iconoir:arrow-left"></Icon>
                                     Back to Dashboard
@@ -151,11 +178,7 @@ async function handleLogout() {
                     <SidebarMenu>
                         <!-- User settings category -->
                         <SidebarMenuItem>
-                            <SidebarMenuButton
-                                :is-active="
-                                    isActiveFunction('/settings/user/profile')
-                                "
-                                as-child>
+                            <SidebarMenuButton :is-active="isActiveFunction('/settings/user/profile')" as-child>
                                 <NuxtLink to="/settings/user/profile">
                                     <Icon name="iconoir:user"></Icon>
                                     Profile
@@ -163,29 +186,27 @@ async function handleLogout() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton
-                                :is-active="
-                                    isActiveFunction('/settings/user/family')
-                                "
-                                as-child>
+                            <SidebarMenuButton :is-active="isActiveFunction('/settings/user/family')" as-child>
                                 <NuxtLink to="/settings/user/family">
                                     <Icon name="iconoir:community"></Icon>
                                     Family</NuxtLink
                                 >
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton :is-active="isActiveFunction('/settings/user/references')" as-child>
+                                <NuxtLink to="/settings/user/references">
+                                    <Icon name="iconoir:book"></Icon>
+                                    References</NuxtLink
+                                >
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
-                <SidebarGroupLabel v-if="showAdminLinks"
-                    >Instance Management</SidebarGroupLabel
-                >
+                <SidebarGroupLabel v-if="showAdminLinks">Instance Management</SidebarGroupLabel>
                 <SidebarGroupContent v-if="showAdminLinks">
                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            :is-active="
-                                isActiveFunction('/settings/admin/instance')
-                            "
-                            as-child>
+                        <SidebarMenuButton :is-active="isActiveFunction('/settings/admin/instance')" as-child>
                             <NuxtLink to="/settings/admin/instance">
                                 <Icon name="iconoir:server"></Icon>
                                 Instance</NuxtLink
@@ -193,11 +214,7 @@ async function handleLogout() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            :is-active="
-                                isActiveFunction('/settings/admin/users')
-                            "
-                            as-child>
+                        <SidebarMenuButton :is-active="isActiveFunction('/settings/admin/users')" as-child>
                             <NuxtLink to="/settings/admin/users">
                                 <Icon name="iconoir:user-crown"></Icon>
                                 Users</NuxtLink
@@ -210,30 +227,20 @@ async function handleLogout() {
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton
-                        :is-active="isActiveFunction('/unknown')"
-                        aria-disabled="true"
-                        as-child>
+                    <SidebarMenuButton :is-active="isActiveFunction('/unknown')" aria-disabled="true" as-child>
                         <NuxtLink>
                             <Icon name="iconoir:help-circle"></Icon>
                             <span>Get Help</span>
-                            <Badge class="ml-auto" variant="secondary"
-                                >WIP</Badge
-                            >
+                            <Badge class="ml-auto" variant="secondary">WIP</Badge>
                         </NuxtLink>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                    <SidebarMenuButton
-                        :is-active="isActiveFunction('/unknown')"
-                        aria-disabled="true"
-                        as-child>
+                    <SidebarMenuButton :is-active="isActiveFunction('/unknown')" aria-disabled="true" as-child>
                         <NuxtLink>
                             <Icon name="iconoir:search"></Icon>
                             <span>Search</span>
-                            <Badge class="ml-auto" variant="secondary"
-                                >WIP</Badge
-                            >
+                            <Badge class="ml-auto" variant="secondary">WIP</Badge>
                         </NuxtLink>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -246,26 +253,20 @@ async function handleLogout() {
                                 class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                                 size="lg">
                                 <Avatar class="h-8 w-8 rounded-lg">
-                                    <AvatarImage
-                                        :alt="userName"
-                                        :src="userAvatar" />
+                                    <AvatarImage :alt="userName" :src="userAvatar" />
                                     <AvatarFallback class="rounded-lg">
                                         {{ userInitials }}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div
-                                    class="grid flex-1 text-left text-sm leading-tight">
+                                <div class="grid flex-1 text-left text-sm leading-tight">
                                     <span class="truncate font-medium">
                                         {{ userName }}
                                     </span>
-                                    <span
-                                        class="text-muted-foreground truncate text-xs">
+                                    <span class="text-muted-foreground truncate text-xs">
                                         {{ userEmail }}
                                     </span>
                                 </div>
-                                <Icon
-                                    class="ml-auto size-4"
-                                    name="iconoir:nav-arrow-down" />
+                                <Icon class="ml-auto size-4" name="iconoir:nav-arrow-down" />
                             </SidebarMenuButton>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
@@ -274,23 +275,18 @@ async function handleLogout() {
                             align="end"
                             class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg">
                             <DropdownMenuLabel class="p-0 font-normal">
-                                <div
-                                    class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                                <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                                     <Avatar class="h-8 w-8 rounded-lg">
-                                        <AvatarImage
-                                            :alt="userName"
-                                            :src="userAvatar" />
+                                        <AvatarImage :alt="userName" :src="userAvatar" />
                                         <AvatarFallback class="rounded-lg">
                                             {{ userInitials }}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div
-                                        class="grid flex-1 text-left text-sm leading-tight">
+                                    <div class="grid flex-1 text-left text-sm leading-tight">
                                         <span class="truncate font-medium">
                                             {{ userName }}
                                         </span>
-                                        <span
-                                            class="text-muted-foreground truncate text-xs">
+                                        <span class="text-muted-foreground truncate text-xs">
                                             {{ userEmail }}
                                         </span>
                                     </div>

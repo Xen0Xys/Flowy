@@ -12,10 +12,7 @@ export class InstanceConfigService {
                 key: ConfigKey.SELF_HOSTED,
             },
         });
-        if (!selfHosted)
-            throw new InternalServerErrorException(
-                "Self-hosted configuration not found",
-            );
+        if (!selfHosted) throw new InternalServerErrorException("Self-hosted configuration not found");
         return selfHosted ? selfHosted.value === "true" : false;
     }
 
@@ -25,10 +22,7 @@ export class InstanceConfigService {
                 key: ConfigKey.REGISTRATION_ENABLED,
             },
         });
-        if (!registrationConfig)
-            throw new InternalServerErrorException(
-                "Registration configuration not found",
-            );
+        if (!registrationConfig) throw new InternalServerErrorException("Registration configuration not found");
         return registrationConfig ? registrationConfig.value === "true" : false;
     }
 }

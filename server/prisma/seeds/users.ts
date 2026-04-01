@@ -4,11 +4,7 @@ import argon2 from "argon2";
 
 export const USERS_COUNT = 40;
 
-export async function seedUsers(
-    prisma: any,
-    familyIds: string[] = [],
-    faker: Faker,
-) {
+export async function seedUsers(prisma: any, familyIds: string[] = [], faker: Faker) {
     const passwordHash = await argon2.hash(faker.internet.password());
 
     const users: Array<any> = [];
@@ -30,9 +26,7 @@ export async function seedUsers(
     for (let i = 0; i < randomUsersCount; i++) {
         const id = Bun.randomUUIDv7();
         const family_id =
-            familyIds.length > 0 && Math.random() < 0.7
-                ? familyIds[Math.floor(Math.random() * familyIds.length)]
-                : null;
+            familyIds.length > 0 && Math.random() < 0.7 ? familyIds[Math.floor(Math.random() * familyIds.length)] : null;
 
         users.push({
             id,

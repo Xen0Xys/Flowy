@@ -1,13 +1,7 @@
-import {
-    Injectable,
-    NotFoundException,
-    UnauthorizedException,
-} from "@nestjs/common";
+import {Injectable, NotFoundException, UnauthorizedException} from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
-import {ConfigKey} from "../../../prisma/generated/enums";
-import {UserRoles} from "../../../prisma/generated/enums";
+import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
-import argon2 from "argon2";
 
 @Injectable()
 export class AdminService {
@@ -33,8 +27,7 @@ export class AdminService {
     }
 
     async deleteUser(id: string, currentUserId: string) {
-        if (id === currentUserId)
-            throw new UnauthorizedException("Cannot delete yourself");
+        if (id === currentUserId) throw new UnauthorizedException("Cannot delete yourself");
 
         const user = await this.prisma.users.findUnique({where: {id}});
         if (!user) throw new NotFoundException("User not found");
@@ -81,12 +74,5 @@ export class AdminService {
             create: {key: ConfigKey.INSTANCE_OWNER, value: newOwnerId},
             update: {value: newOwnerId},
         });
-    }
-
-    async adminUpdateUserPassword(id: string, password: string): Promise<void> {
-        const user = await this.prisma.users.findUnique({where: {id}});
-        if (!user) throw new NotFoundException("User not found");
-        const hashed: string = await argon2.hash(password);
-        await this.prisma.users.update({where: {id}, data: {password: hashed}});
     }
 }

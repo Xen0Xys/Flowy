@@ -1,34 +1,20 @@
 import "reflect-metadata";
-import fs from "node:fs";
-import path from "node:path";
-import {config as loadEnv} from "dotenv";
-import {
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    test,
-} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
-import {CustomValidationPipe} from "../src/common/pipes/validation.pipe";
+import {loadServer} from "../src/app";
 import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import crypto from "node:crypto";
 import request from "supertest";
-import {buildRegisterPayload, ensureInstanceConfig} from "./test-utils";
-
-const envPath = path.resolve(__dirname, "../.env");
-if (fs.existsSync(envPath)) {
-    loadEnv({path: envPath});
-}
+import {createCsrfAgent, ensureInstanceConfig, registerUser} from "./test-utils";
 
 let app: NestFastifyApplication;
 let server: Server;
 let prisma: PrismaClient;
+let agent: ReturnType<typeof request.agent>;
 
 describe("FamilyController (e2e)", () => {
     beforeAll(async () => {
@@ -44,10 +30,8 @@ describe("FamilyController (e2e)", () => {
             imports: [AppModule],
         }).compile();
 
-        app = moduleRef.createNestApplication<NestFastifyApplication>(
-            new FastifyAdapter({exposeHeadRoutes: true}),
-        );
-        app.useGlobalPipes(new CustomValidationPipe());
+        app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter({exposeHeadRoutes: true}));
+        await loadServer(app);
         await app.init();
         const instance = app.getHttpAdapter().getInstance();
         await instance.ready();
@@ -63,6 +47,7 @@ describe("FamilyController (e2e)", () => {
             where: {key: ConfigKey.REGISTRATION_ENABLED},
             data: {value: "true"},
         });
+        agent = await createCsrfAgent(server);
     });
 
     afterAll(async () => {
@@ -76,17 +61,15 @@ describe("FamilyController (e2e)", () => {
      * CREATE
      */
     test("requires authentication to create a family", async () => {
-        const response = await request(server)
-            .post("/family/create")
-            .send({name: "Ghost", currency: "USD"});
+        const response = await agent.post("/family/create").send({name: "Ghost", currency: "USD"});
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Authorization token is missing");
     });
 
     test("creates a family and promotes creator to admin", async () => {
-        const admin = await registerUser();
-        const familyResponse = await request(server)
+        const admin = await registerUser(server);
+        const familyResponse = await agent
             .post("/family/create")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({name: "The Crew", currency: "EUR"});
@@ -104,10 +87,10 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects family creation when user already belongs to one", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const duplicate = await request(server)
+        const duplicate = await agent
             .post("/family/create")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({name: "Another", currency: "USD"});
@@ -120,11 +103,11 @@ describe("FamilyController (e2e)", () => {
      * INVITES
      */
     test("allows admins to invite members and list pending invites", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
         const inviteEmail = `member-${crypto.randomUUID()}@e2e.test`;
 
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: inviteEmail});
@@ -132,9 +115,7 @@ describe("FamilyController (e2e)", () => {
         expect(inviteResponse.status).toBe(201);
         expect(inviteResponse.body.code).toEqual(expect.any(String));
 
-        const listResponse = await request(server)
-            .get("/family/invites")
-            .set("Authorization", `Bearer ${admin.token}`);
+        const listResponse = await agent.get("/family/invites").set("Authorization", `Bearer ${admin.token}`);
 
         expect(listResponse.status).toBe(200);
         expect(listResponse.body).toEqual([
@@ -146,17 +127,17 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("admin can invite and member can accept invite", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         expect(inviteResponse.status).toBe(201);
 
-        const joinResponse = await request(server)
+        const joinResponse = await agent
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
@@ -169,44 +150,42 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("non-admin member cannot invite others", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
         // admin invites and member joins
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         expect(inviteResponse.status).toBe(201);
 
-        const joinResponse = await request(server)
+        const joinResponse = await agent
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
 
         // now the member (non-admin) attempts to invite
-        const forbiddenInvite = await request(server)
+        const forbiddenInvite = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${member.token}`)
             .send({email: `other-${crypto.randomUUID()}@e2e.test`});
 
         expect(forbiddenInvite.status).toBe(403);
-        expect(forbiddenInvite.body.message).toBe(
-            "User must be a family admin",
-        );
+        expect(forbiddenInvite.body.message).toBe("User must be a family admin");
     });
 
     test("allows admins to revoke invites", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: `temp-${crypto.randomUUID()}@e2e.test`});
         const code = inviteResponse.body.code;
 
-        const revokeResponse = await request(server)
+        const revokeResponse = await agent
             .delete(`/family/invites/${code}`)
             .set("Authorization", `Bearer ${admin.token}`);
 
@@ -217,50 +196,44 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects invite listing when user is not admin", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         expect(inviteResponse.status).toBe(201);
 
-        const listResponse = await request(server)
-            .get("/family/invites")
-            .set("Authorization", `Bearer ${member.token}`);
+        const listResponse = await agent.get("/family/invites").set("Authorization", `Bearer ${member.token}`);
 
         expect(listResponse.status).toBe(403);
-        expect(listResponse.body.message).toBe(
-            "User is not associated with a family",
-        );
+        expect(listResponse.body.message).toBe("User is not associated with a family");
     });
 
     /**
      * JOIN
      */
     test("rejects joining without authentication", async () => {
-        const response = await request(server).post("/family/join/any-code");
+        const response = await agent.post("/family/join/any-code");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Authorization token is missing");
     });
 
     test("allows invited users to join and removes the invite", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
-        const member = await registerUser();
+        const member = await registerUser(server);
 
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         const code = inviteResponse.body.code;
 
-        const joinResponse = await request(server)
-            .post(`/family/join/${code}`)
-            .set("Authorization", `Bearer ${member.token}`);
+        const joinResponse = await agent.post(`/family/join/${code}`).set("Authorization", `Bearer ${member.token}`);
 
         expect(joinResponse.status).toBe(204);
 
@@ -277,32 +250,28 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects joining when invite email does not match user", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
         const inviteEmail = `expected-${crypto.randomUUID()}@e2e.test`;
 
-        const inviteResponse = await request(server)
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: inviteEmail});
 
-        const outsider = await registerUser();
-        const joinResponse = await request(server)
+        const outsider = await registerUser(server);
+        const joinResponse = await agent
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${outsider.token}`);
 
         expect(joinResponse.status).toBe(401);
-        expect(joinResponse.body.message).toBe(
-            "Invite code is not for this user",
-        );
+        expect(joinResponse.body.message).toBe("Invite code is not for this user");
     });
 
     test("rejects joining when invite code does not exist", async () => {
-        const user = await registerUser();
+        const user = await registerUser(server);
 
-        const response = await request(server)
-            .post("/family/join/unknown-code")
-            .set("Authorization", `Bearer ${user.token}`);
+        const response = await agent.post("/family/join/unknown-code").set("Authorization", `Bearer ${user.token}`);
 
         expect(response.status).toBe(404);
         expect(response.body.message).toBe("Invite code does not exist");
@@ -311,13 +280,55 @@ describe("FamilyController (e2e)", () => {
     /**
      * QUIT
      */
+    test("requires authentication to quit a family", async () => {
+        const response = await agent.delete("/family/quit");
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authorization token is missing");
+    });
+
+    test("allows a non-admin member to quit while family remains", async () => {
+        const admin = await registerUser(server);
+        const family = await createFamily(admin.token);
+        const member = await registerUser(server);
+
+        const inviteResponse = await agent
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await agent
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        const quitResponse = await agent.delete("/family/quit").set("Authorization", `Bearer ${member.token}`);
+        expect(quitResponse.status).toBe(204);
+
+        const refreshedMember = await prisma.users.findUnique({
+            where: {id: member.user.id},
+        });
+        expect(refreshedMember?.family_id).toBeNull();
+        expect(refreshedMember?.family_role).toBeNull();
+
+        const storedFamily = await prisma.family.findUnique({
+            where: {id: family.id},
+        });
+        expect(storedFamily).not.toBeNull();
+
+        const refreshedAdmin = await prisma.users.findUnique({
+            where: {id: admin.user.id},
+        });
+        expect(refreshedAdmin?.family_id).toBe(family.id);
+        expect(refreshedAdmin?.family_role).toBe(UserRoles.ADMIN);
+    });
+
     test("allows members to quit and disallows quitting when not in a family", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const quitResponse = await request(server)
-            .delete("/family/quit")
-            .set("Authorization", `Bearer ${admin.token}`);
+        const quitResponse = await agent.delete("/family/quit").set("Authorization", `Bearer ${admin.token}`);
         expect(quitResponse.status).toBe(204);
 
         const refreshedAdmin = await prisma.users.findUnique({
@@ -326,42 +337,113 @@ describe("FamilyController (e2e)", () => {
         expect(refreshedAdmin?.family_id).toBeNull();
         expect(refreshedAdmin?.family_role).toBeNull();
 
-        const stranger = await registerUser();
-        const invalidQuit = await request(server)
-            .delete("/family/quit")
-            .set("Authorization", `Bearer ${stranger.token}`);
+        const stranger = await registerUser(server);
+        const invalidQuit = await agent.delete("/family/quit").set("Authorization", `Bearer ${stranger.token}`);
 
         expect(invalidQuit.status).toBe(404);
         expect(invalidQuit.body.message).toBe("User is not in a family");
     });
 
-    test("allows admin to delete a family and only admin can do it", async () => {
-        const admin = await registerUser();
+    /**
+     * SETTINGS
+     */
+    test("requires authentication to update family settings", async () => {
+        const response = await agent.patch("/family/settings").send({
+            name: "Renamed family",
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authorization token is missing");
+    });
+
+    test("allows admin to update family settings", async () => {
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
 
-        // Create another member
-        const member = await registerUser();
-        const inviteResponse = await request(server)
+        const response = await agent
+            .patch("/family/settings")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({name: "Renamed family", currency: "USD"});
+
+        expect(response.status).toBe(200);
+        expect(response.body.name).toBe("Renamed family");
+        expect(response.body.currency).toBe("USD");
+        expect(response.body.owner.email).toBe(admin.user.email);
+
+        const updatedFamily = await prisma.family.findUnique({
+            where: {id: family.id},
+        });
+        expect(updatedFamily?.name).toBe("Renamed family");
+        expect(updatedFamily?.currency).toBe("USD");
+    });
+
+    test("rejects settings update for non-admin family member", async () => {
+        const admin = await registerUser(server);
+        await createFamily(admin.token);
+        const member = await registerUser(server);
+
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         expect(inviteResponse.status).toBe(201);
 
-        const joinResponse = await request(server)
+        const joinResponse = await agent
+            .post(`/family/join/${inviteResponse.body.code}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(joinResponse.status).toBe(204);
+
+        const response = await agent
+            .patch("/family/settings")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({name: "Nope"});
+
+        expect(response.status).toBe(403);
+        expect(response.body.message).toBe("User must be a family admin");
+    });
+
+    test("rejects invalid settings payload", async () => {
+        const admin = await registerUser(server);
+        await createFamily(admin.token);
+
+        const response = await agent
+            .patch("/family/settings")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({name: "", currency: "EURO"});
+
+        expect(response.status).toBe(400);
+        expect(Array.isArray(response.body.message)).toBe(true);
+        expect(response.body.message).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({property: "name"}),
+                expect.objectContaining({property: "currency"}),
+            ]),
+        );
+    });
+
+    test("allows admin to delete a family and only admin can do it", async () => {
+        const admin = await registerUser(server);
+        const family = await createFamily(admin.token);
+
+        // Create another member
+        const member = await registerUser(server);
+        const inviteResponse = await agent
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({email: member.user.email});
+        expect(inviteResponse.status).toBe(201);
+
+        const joinResponse = await agent
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
 
         // Non-admin cannot delete
-        const forbidden = await request(server)
-            .delete("/family")
-            .set("Authorization", `Bearer ${member.token}`);
+        const forbidden = await agent.delete("/family").set("Authorization", `Bearer ${member.token}`);
         expect(forbidden.status).toBe(403);
 
         // Admin deletes family
-        const del = await request(server)
-            .delete("/family")
-            .set("Authorization", `Bearer ${admin.token}`);
+        const del = await agent.delete("/family").set("Authorization", `Bearer ${admin.token}`);
         expect(del.status).toBe(204);
 
         const stored = await prisma.family.findUnique({where: {id: family.id}});
@@ -378,31 +460,27 @@ describe("FamilyController (e2e)", () => {
      * GET FAMILY INFO
      */
     test("requires authentication to get family info", async () => {
-        const response = await request(server).get("/family/family");
+        const response = await agent.get("/family/family");
 
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Authorization token is missing");
     });
 
     test("rejects when user is not in a family", async () => {
-        const stranger = await registerUser();
+        const stranger = await registerUser(server);
 
-        const response = await request(server)
-            .get("/family/family")
-            .set("Authorization", `Bearer ${stranger.token}`);
+        const response = await agent.get("/family/family").set("Authorization", `Bearer ${stranger.token}`);
 
         expect(response.status).toBe(404);
         expect(response.body.message).toBe("User is not in a family");
     });
 
     test("returns family info for admin and members", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         const family = await createFamily(admin.token);
 
         // Admin can fetch family info
-        const adminRes = await request(server)
-            .get("/family/family")
-            .set("Authorization", `Bearer ${admin.token}`);
+        const adminRes = await agent.get("/family/family").set("Authorization", `Bearer ${admin.token}`);
 
         expect(adminRes.status).toBe(200);
         expect(adminRes.body.name).toBe(family.name);
@@ -410,21 +488,19 @@ describe("FamilyController (e2e)", () => {
         expect(adminRes.body.owner.email).toBe(admin.user.email);
 
         // Member (after joining) can also fetch family info and sees same owner
-        const member = await registerUser();
-        const inviteResponse = await request(server)
+        const member = await registerUser(server);
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         expect(inviteResponse.status).toBe(201);
 
-        const joinResponse = await request(server)
+        const joinResponse = await agent
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
 
-        const memberRes = await request(server)
-            .get("/family/family")
-            .set("Authorization", `Bearer ${member.token}`);
+        const memberRes = await agent.get("/family/family").set("Authorization", `Bearer ${member.token}`);
 
         expect(memberRes.status).toBe(200);
         expect(memberRes.body.name).toBe(family.name);
@@ -435,24 +511,24 @@ describe("FamilyController (e2e)", () => {
      * REMOVE MEMBER
      */
     test("allows admin to remove a non-admin member", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
         // invite and join member
-        const member = await registerUser();
-        const inviteResponse = await request(server)
+        const member = await registerUser(server);
+        const inviteResponse = await agent
             .post("/family/invite")
             .set("Authorization", `Bearer ${admin.token}`)
             .send({email: member.user.email});
         expect(inviteResponse.status).toBe(201);
 
-        const joinResponse = await request(server)
+        const joinResponse = await agent
             .post(`/family/join/${inviteResponse.body.code}`)
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
 
         // admin removes member
-        const removeResponse = await request(server)
+        const removeResponse = await agent
             .delete(`/family/members/${member.user.id}`)
             .set("Authorization", `Bearer ${admin.token}`);
         expect(removeResponse.status).toBe(204);
@@ -465,10 +541,10 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects removing the family admin/owner", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const resp = await request(server)
+        const resp = await agent
             .delete(`/family/members/${admin.user.id}`)
             .set("Authorization", `Bearer ${admin.token}`);
 
@@ -477,12 +553,12 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("rejects removing a member not in your family", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const outsider = await registerUser();
+        const outsider = await registerUser(server);
 
-        const resp = await request(server)
+        const resp = await agent
             .delete(`/family/members/${outsider.user.id}`)
             .set("Authorization", `Bearer ${admin.token}`);
 
@@ -491,56 +567,24 @@ describe("FamilyController (e2e)", () => {
     });
 
     test("returns 404 when member does not exist", async () => {
-        const admin = await registerUser();
+        const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const fakeId = crypto.randomUUID();
-        const resp = await request(server)
-            .delete(`/family/members/${fakeId}`)
-            .set("Authorization", `Bearer ${admin.token}`);
+        const fakeId: string = "019d2f14-e490-732f-8732-cdcbac41f0ab";
+        const resp = await agent.delete(`/family/members/${fakeId}`).set("Authorization", `Bearer ${admin.token}`);
 
         expect(resp.status).toBe(404);
         expect(resp.body.message).toBe("Member not found");
     });
 });
 
-interface RegisteredUser {
-    token: string;
-    user: {
-        id: string;
-        email: string;
-        username: string;
-    };
-}
-
-async function registerUser(
-    overrides: Partial<{
-        username: string;
-        email: string;
-        password: string;
-    }> = {},
-): Promise<RegisteredUser> {
-    const payload = buildRegisterPayload(overrides);
-    const response = await request(server).post("/user/register").send(payload);
-
-    expect(response.status).toBe(201);
-    expect(response.body.token).toEqual(expect.any(String));
-    return response.body;
-}
-
-async function createFamily(
-    token: string,
-    overrides: Partial<{name: string; currency: string}> = {},
-) {
+async function createFamily(token: string, overrides: Partial<{name: string; currency: string}> = {}) {
     const payload = {
         name: overrides.name ?? `Family-${crypto.randomUUID().slice(0, 5)}`,
         currency: overrides.currency ?? "EUR",
     };
 
-    const response = await request(server)
-        .post("/family/create")
-        .set("Authorization", `Bearer ${token}`)
-        .send(payload);
+    const response = await agent.post("/family/create").set("Authorization", `Bearer ${token}`).send(payload);
     expect(response.status).toBe(201);
 
     const createdFamily = await prisma.family.findFirstOrThrow();

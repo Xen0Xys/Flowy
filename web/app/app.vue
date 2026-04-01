@@ -12,9 +12,7 @@ const pageTitle = computed(() => {
     if (path.startsWith("/auth/login")) return "Login";
     if (path.startsWith("/auth/register")) return "Register";
     if (path.startsWith("/onboarding")) return "Onboarding";
-    if (path.startsWith("/settings/admin/instance")) {
-        return "Instance Settings";
-    }
+    if (path.startsWith("/settings/admin/instance")) return "Instance Settings";
     if (path.startsWith("/settings/admin/users")) return "Admin Users";
     if (path.startsWith("/settings/user/profile")) return "Profile";
     if (path.startsWith("/settings/user/family")) return "Family";
@@ -24,9 +22,20 @@ const pageTitle = computed(() => {
 });
 
 useHead({
-    title: computed(() =>
-        pageTitle.value ? `Flowy - ${pageTitle.value}` : "Flowy",
-    ),
+    title: computed(() => (pageTitle.value ? `Flowy - ${pageTitle.value}` : "Flowy")),
+    link: [
+        {
+            rel: "icon",
+            type: "image/webp",
+            href: "/flowy-logo.webp",
+        },
+    ],
+    meta: [
+        {
+            name: "robots",
+            content: "noindex, nofollow",
+        },
+    ],
 });
 </script>
 

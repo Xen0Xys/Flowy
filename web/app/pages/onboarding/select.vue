@@ -59,8 +59,7 @@ async function joinFamily() {
         error.value = null;
         await router.push("/");
     } catch (err: any) {
-        const msg =
-            err?.data?.message ?? err?.message ?? "Failed to join family";
+        const msg = err?.data?.message ?? err?.message ?? "Failed to join family";
         toast.error(msg);
         error.value = null;
     } finally {
@@ -70,47 +69,22 @@ async function joinFamily() {
 </script>
 
 <template>
-    <div
-        :class="
-            cn(
-                'flex w-full grow flex-col justify-center self-center px-4',
-                'max-w-3xl',
-            )
-        ">
+    <div :class="cn('flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
         <Card innerClass="p-3">
-            <Stepper
-                :class="
-                    cn(
-                        'flex w-max justify-center gap-6 md:items-center',
-                        'flex-col md:flex-row',
-                    )
-                ">
+            <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
                 <template v-for="(s, i) in steps" :key="i">
                     <StepperItem
-                        :data-state="
-                            i === active
-                                ? 'active'
-                                : i < active
-                                  ? 'completed'
-                                  : 'inactive'
-                        "
+                        :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
                         :step="i"
                         class="flex">
-                        <StepperTrigger
-                            class="px-3 py-2"
-                            @click="() => (active = i)">
+                        <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
                             <div class="flex items-center gap-3">
                                 <StepperIndicator>
-                                    <span
-                                        class="inline-flex h-8 w-8 items-center justify-center"
-                                        >{{ i + 1 }}</span
-                                    >
+                                    <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
                                 </StepperIndicator>
                                 <div class="text-left">
                                     <StepperTitle>{{ s.title }}</StepperTitle>
-                                    <StepperDescription>{{
-                                        s.description
-                                    }}</StepperDescription>
+                                    <StepperDescription>{{ s.description }}</StepperDescription>
                                 </div>
                             </div>
                         </StepperTrigger>
@@ -120,59 +94,40 @@ async function joinFamily() {
         </Card>
 
         <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-            <Card
-                :innerClass="
-                    cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')
-                ">
+            <Card :innerClass="cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')">
                 <div class="flex flex-col gap-1">
                     <h2 class="text-lg font-medium">Create</h2>
                     <p class="text-muted-foreground text-sm">
-                        Create a new family to manage shared expenses and invite
-                        members. The creator becomes the family admin and can
-                        send invites.
+                        Create a new family to manage shared expenses and invite members. The creator becomes the family
+                        admin and can send invites.
                     </p>
                 </div>
                 <div class="flex justify-end">
-                    <Button :as="'button'" @click="goCreate"
-                        >Create a new family</Button
-                    >
+                    <Button :as="'button'" @click="goCreate">Create a new family</Button>
                 </div>
             </Card>
 
-            <Card
-                :innerClass="
-                    cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')
-                ">
+            <Card :innerClass="cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')">
                 <div class="flex flex-col gap-2">
                     <div>
                         <h2 class="text-lg font-medium">Join</h2>
                         <p class="text-muted-foreground text-sm">
-                            If someone already created a family, enter the
-                            invite code they sent you to join.
+                            If someone already created a family, enter the invite code they sent you to join.
                         </p>
                     </div>
                     <div>
-                        <Input
-                            v-model="code"
-                            placeholder="Invite code"
-                            autofocus />
+                        <Input v-model="code" placeholder="Invite code" autofocus />
                     </div>
                 </div>
 
                 <form class="flex flex-col" @submit.prevent="joinFamily">
                     <div class="flex items-center justify-end">
-                        <Button
-                            :as="'button'"
-                            :disabled="loading"
-                            type="submit"
-                            >{{ loading ? "Joining..." : "Join" }}</Button
-                        >
+                        <Button :as="'button'" :disabled="loading" type="submit">{{
+                            loading ? "Joining..." : "Join"
+                        }}</Button>
                     </div>
 
-                    <div
-                        v-if="error"
-                        class="text-destructive text-sm"
-                        role="alert">
+                    <div v-if="error" class="text-destructive text-sm" role="alert">
                         {{ error }}
                     </div>
                 </form>

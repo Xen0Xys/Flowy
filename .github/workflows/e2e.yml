@@ -34,7 +34,8 @@ jobs:
         env:
             DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flowy_test
             APP_SECRET: supersecret
-            APP_NAME: Flowy Server
+            APP_NAME: "Flowy Server"
+            NODE_ENV: test
 
         steps:
             - uses: actions/checkout@v6
@@ -60,4 +61,10 @@ jobs:
 
             - name: Run e2e tests
               working-directory: server
-              run: bun test
+              run: bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage
+
+            - name: Check coverage threshold (90%+)
+              uses: tluijken/code-coverage-threshold@v1
+              with:
+                  coverage-file: server/coverage/lcov.info
+                  minimum-coverage: 90

@@ -37,17 +37,20 @@ enum UserRoles {
 }
 
 model Users {
-  id            String        @id @default(uuid(7)) @db.Uuid
-  username      String        @db.VarChar(30)
-  email         String        @unique
+  id            String           @id @default(uuid(7)) @db.Uuid
+  username      String           @db.VarChar(30)
+  email         String           @unique
   password      String
-  jwt_id        String        @unique
+  jwt_id        String           @unique
   user_settings UserSettings?
   family_role   UserRoles?
-  family_id     String?       @db.Uuid
-  family        Family?       @relation(fields: [family_id], references: [id], onDelete: SetNull)
-  created_at    DateTime      @default(now())
-  updated_at    DateTime      @updatedAt
+  family_id     String?          @db.Uuid
+  family        Family?          @relation(fields: [family_id], references: [id], onDelete: SetNull)
+  accounts      Accounts[]
+  merchants     UserMerchants[]
+  categories    UserCategories[]
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
 
   @@map("users")
 }
@@ -73,4 +76,75 @@ model FamilyInvites {
   expires_at DateTime
 
   @@map("family_invites")
+}
+
+enum AccountTypes {
+  CHECKING // Compte courant
+  SAVINGS // Compte d'épargne
+  CREDIT // Carte de crédit
+  CASH // Argent liquide
+  INVESTMENT // Compte d'investissement
+  OTHER // Autre
+
+  @@map("account_types")
+}
+
+model Accounts {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  user_id      String         @db.Uuid
+  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type         AccountTypes
+  name         String         @db.VarChar(50)
+  balance      Float          @default(0)
+  transactions Transactions[]
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+
+  @@map("accounts")
+}
+
+model Transactions {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  account_id   String          @db.Uuid
+  account      Accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  amount       Float
+  description  String          @db.VarChar(255)
+  date         DateTime        @default(now())
+  merchant_id  String?         @db.Uuid
+  merchant     UserMerchants?  @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
+  category_id  String?         @db.Uuid
+  category     UserCategories? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  is_rebalance Boolean         @default(false)
+  created_at   DateTime        @default(now())
+  updated_at   DateTime        @updatedAt
+
+  @@map("transactions")
+}
+
+model UserMerchants {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  user_id      String         @db.Uuid
+  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name         String         @db.VarChar(50)
+  transactions Transactions[]
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+
+  @@unique([user_id, name])
+  @@map("user_merchants")
+}
+
+model UserCategories {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  user_id      String         @db.Uuid
+  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name         String         @db.VarChar(50)
+  hex_color    String         @db.VarChar(7)
+  icon         String         @db.VarChar(50)
+  transactions Transactions[]
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+
+  @@unique([user_id, name])
+  @@map("user_categories")
 }

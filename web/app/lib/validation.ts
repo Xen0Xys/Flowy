@@ -6,8 +6,7 @@ export const FAMILY_NAME_MIN_LENGTH = 3;
 export const FAMILY_NAME_MAX_LENGTH = 50;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const UUID_V7_REGEX =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V7_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isValidEmail(value: string): boolean {
     return EMAIL_REGEX.test(value.trim());

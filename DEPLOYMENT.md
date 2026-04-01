@@ -1,140 +1,134 @@
 # Flowy Deployment
 
-This guide walks through every step needed to launch Flowy locally or in production with Docker. It covers three deployment contexts:
+This guide is based directly on the 3 Compose files in this repository:
 
-1. **Full stack** via `docker compose` (Postgres + Nest backend + Nuxt frontend)
-2. **Backend only** (standalone container)
-3. **Frontend only** (standalone container)
+1. `docker-compose.yaml` (runtime with prebuilt images)
+2. `docker-compose.dev.yaml` (local build for development)
+3. `docker-compose.coolify.yaml` (Coolify deployment)
 
 ## 1. Prerequisites
 
 - Docker 24+ and Docker Compose v2
-- Bun 1.3+ (for builds outside Docker)
-- Node.js 20+ (ships inside the Bun image)
-- Ports 3000 (frontend) and 4000 (backend) available; override through env vars if needed
+- A `.env` file at the project root
+- Ports `3000` (web) and `4000` (API) available for local variants
 
 ## 2. Environment variables
 
-Create a `.env` file at the repository root (same folder as `docker-compose.yml`):
+### 2.1 Shared variables (local)
+
+These variables cover `docker-compose.yaml` and `docker-compose.dev.yaml`:
 
 ```bash
-# Database
+# Postgres
 POSTGRES_DB=flowy
 POSTGRES_USER=flowy
 POSTGRES_PASSWORD=flowy
-POSTGRES_PORT=5432
 
-# Backend
-APP_NAME=Flowy
+# API (Nest)
 APP_SECRET=change-me
-APP_PREFIX=""
-BACKEND_PORT=4000
-DATABASE_URL=postgresql://flowy:flowy@db:5432/flowy
+APP_PREFIX=
+CORS_ORIGINS=http://localhost:3000
 
-# Frontend
-FRONTEND_PORT=3000
+# Web (Nuxt)
 NUXT_PUBLIC_API_BASE=http://localhost:4000
 ```
 
-> **Important:** `APP_SECRET` must be a strong random string. In production, always rotate the Postgres credentials and block public access to the database.
+Notes:
 
-## 3. Full stack (frontend + backend + Postgres)
+- `APP_NAME` is fixed to `Flowy Server` in the Compose files.
+- `DATABASE_URL` is built automatically in services from Postgres variables.
+- Use a strong value for `APP_SECRET` in real environments.
+
+### 2.2 Coolify-specific variables
+
+`docker-compose.coolify.yaml` expects variables injected by Coolify:
+
+- `SERVICE_USER_POSTGRES`
+- `SERVICE_PASSWORD_POSTGRES`
+- `SERVICE_BASE64_128_APPSECRET`
+- `SERVICE_URL_FLOWY_WEB`
+- `SERVICE_URL_FLOWY_SERVER`
+- `SERVICE_URL_FLOWY_WEB_3000`
+- `SERVICE_URL_FLOWY_SERVER_4000`
+
+You can keep `POSTGRES_DB` and `APP_PREFIX` if you need to override defaults.
+
+## 3. `docker-compose.yaml` variant (prebuilt images)
+
+This file uses:
+
+- `tensorchord/vchord-postgres:pg18-v1.1.1`
+- `flowy-server:latest`
+- `flowy-web:latest`
+
+Commands:
 
 ```bash
-docker compose up --build -d
-```
-
-- Frontend: `http://localhost:3000`
-- API: `http://localhost:4000`
-- Swagger: `http://localhost:4000/api`
-
-Follow the logs:
-
-```bash
-docker compose logs -f backend
-```
-
-Stop and remove containers:
-
-```bash
+docker compose up -d
+docker compose logs -f
 docker compose down
 ```
 
-Postgres data persists through the `flowy-db-data` volume.
+Access:
 
-## 4. Backend-only deployment
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:4000`
 
-### 4.1 Build the image
+Important: this variant has no `build` section for `server` and `web`. Make sure `flowy-server:latest` and `flowy-web:latest` are available locally or in your registry.
 
-```bash
-cd server
-bun install
-bun run build
-cd ..
-docker build -f server/Dockerfile \
-    -t flowy-backend \
-    --build-arg DATABASE_URL="postgresql://user:pass@host:5432/db" \
-    server
-```
+## 4. `docker-compose.dev.yaml` variant (local build)
 
-### 4.2 Run the container
+This file builds locally:
+
+- `./server/Dockerfile` with `DATABASE_URL` passed as a build arg
+- `./web/Dockerfile`
+
+Commands:
 
 ```bash
-docker run -d \
-    --name flowy-backend \
-    -e DATABASE_URL=postgresql://user:pass@host:5432/db \
-    -e APP_NAME=Flowy \
-    -e APP_SECRET=change-me \
-    -e PREFIX= \
-    -e PORT=4000 \
-    -p 4000:4000 \
-    flowy-backend
+docker compose -f docker-compose.dev.yaml up --build -d
+docker compose -f docker-compose.dev.yaml logs -f
+docker compose -f docker-compose.dev.yaml down
 ```
 
-The container automatically runs `prisma migrate deploy` and `prisma db seed` before `bun run start:prod`.
+Access:
 
-## 5. Frontend-only deployment
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:4000`
 
-### 5.1 Build the image
+## 5. `docker-compose.coolify.yaml` variant (Coolify)
+
+This file is intended for Coolify:
+
+- services named `flowy-postgres`, `flowy-server`, `flowy-web`
+- no explicit `ports` mapping (routing handled by Coolify)
+- `CORS_ORIGINS` points to `${SERVICE_URL_FLOWY_WEB}`
+- `NUXT_PUBLIC_API_BASE` points to `${SERVICE_URL_FLOWY_SERVER}`
+
+Local validation command:
 
 ```bash
-cd web
-bun install
-bun run build
-cd ..
-docker build -f web/Dockerfile -t flowy-frontend web
+docker compose -f docker-compose.coolify.yaml config
 ```
 
-### 5.2 Run the container
+In production, deploy this file via the Coolify UI with all required `SERVICE_*` variables configured.
 
-```bash
-docker run -d \
-    --name flowy-frontend \
-    -e HOST=0.0.0.0 \
-    -e PORT=3000 \
-    -e NUXT_PUBLIC_API_BASE=https://api.example.com \
-    -p 3000:3000 \
-    flowy-frontend
-```
+## 6. Health checks and persistence
 
-To connect this frontend to the backend from `docker compose`, set `NUXT_PUBLIC_API_BASE=http://backend:4000`.
-
-## 6. Best practices
-
-- Use a strong `APP_SECRET` and rotate it regularly.
-- Restrict Postgres network access (firewall or private Docker network).
-- Regenerate the Prisma client (`bunx prisma generate`) after every schema change, then restart the container.
-- Tail the logs (`docker compose logs -f`) to confirm automatic migrations succeed.
-- Put a reverse proxy (Traefik, Nginx) in front to manage HTTPS and TLS termination.
+- Postgres: `pg_isready` healthcheck
+- API: `curl http://<service>:4000/health` healthcheck
+- Web: `curl http://<service>:3000/` healthcheck
+- Persistent volume: `flowy-db-data` mounted to `/var/lib/postgresql`
 
 ## 7. Quick troubleshooting
 
-| Symptom                                      | Likely cause                          | Fix                                                 |
-| -------------------------------------------- | ------------------------------------- | --------------------------------------------------- |
-| Backend stuck on Prisma                      | Database unreachable                  | Check `DATABASE_URL` and the Postgres service state |
-| Frontend cannot reach the API                | Wrong `NUXT_PUBLIC_API_BASE` value    | Point to the public URL or `http://backend:4000`    |
-| `docker compose up` fails while building API | Missing `DATABASE_URL` build argument | Provide `DATABASE_URL` during build and at runtime  |
+| Symptom                         | Likely cause                           | Fix                                                                          |
+| ------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
+| API healthcheck failing         | Missing `APP_SECRET` or unreachable DB | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server` |
+| Frontend cannot reach API       | Wrong `NUXT_PUBLIC_API_BASE`           | Set the API public URL (Coolify) or `http://localhost:4000` locally          |
+| Postgres auth errors            | Credentials mismatch                   | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify)      |
+| `flowy-server:latest` not found | Image unavailable                      | Use `docker-compose.dev.yaml` or publish images to a registry                |
 
 ---
 
-You now have a reproducible Docker deployment for Flowy. Adjust ports, secrets, and network policies to match your infrastructure before going to production.
+You now have deployment documentation aligned with the 3 Compose strategies in this project.

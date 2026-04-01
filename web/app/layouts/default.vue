@@ -1,10 +1,7 @@
 <script lang="ts" setup>
-import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
-} from "@/components/ui/sidebar";
+import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
 import FlowySidebar from "~/components/sidebar/FlowySidebar.vue";
+import AppBreadcrumb from "~/components/layout/AppBreadcrumb.vue";
 import {useRoute} from "vue-router";
 import {computed} from "vue";
 
@@ -18,23 +15,18 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
 </script>
 
 <template>
-    <main
-        v-if="showSidebar"
-        class="flex h-dvh max-h-dvh min-h-dvh w-full grow flex-col">
+    <main v-if="showSidebar" class="flex h-dvh max-h-dvh min-h-dvh w-full grow flex-col">
         <SidebarProvider :defaultOpen="defaultOpen">
             <SidebarWatcher />
             <FlowySidebar />
             <SidebarInset>
                 <div class="flex h-full flex-col">
-                    <header
-                        class="bg-background flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <header class="bg-background flex h-16 shrink-0 items-center gap-2 border-b px-4">
                         <SidebarTrigger class="-ml-1" />
-                        <Separator
-                            class="mr-2 max-h-6"
-                            orientation="vertical" />
-                        <h3>Flowy</h3>
+                        <Separator class="mr-2 max-h-6" orientation="vertical" />
+                        <AppBreadcrumb />
                     </header>
-                    <div class="flex flex-1 flex-col overflow-y-auto p-4">
+                    <div class="flex flex-1 flex-col overflow-y-auto p-4 md:p-6 md:pb-0">
                         <slot />
                     </div>
                 </div>

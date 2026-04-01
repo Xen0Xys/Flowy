@@ -8,9 +8,7 @@ export class AppController {
     @Get("version")
     getVersion(): {version: string} {
         return {
-            version:
-                this.configService.get<string>("npm_package_version") ||
-                "unknown",
+            version: this.configService.get<string>("npm_package_version") || "unknown",
         };
     }
 }

@@ -2,6 +2,38 @@ import {Faker} from "@faker-js/faker";
 
 export const FAMILIES_COUNT = 10;
 
+const FRONTEND_SUPPORTED_CURRENCIES = [
+    "EUR",
+    "USD",
+    "GBP",
+    "JPY",
+    "CHF",
+    "CAD",
+    "AUD",
+    "CNY",
+    "KRW",
+    "INR",
+    "BRL",
+    "MXN",
+    "SEK",
+    "NOK",
+    "DKK",
+    "PLN",
+    "CZK",
+    "HUF",
+    "RON",
+    "TRY",
+    "ZAR",
+    "SGD",
+    "HKD",
+    "NZD",
+    "AED",
+    "SAR",
+    "THB",
+    "IDR",
+    "MYR",
+] as const;
+
 export async function seedFamilies(prisma: any, faker: Faker) {
     const families: Array<any> = [];
     for (let i = 0; i < FAMILIES_COUNT; i++) {
@@ -15,7 +47,7 @@ export async function seedFamilies(prisma: any, faker: Faker) {
         families.push({
             id,
             name: words.slice(0, 50),
-            currency: faker.finance?.currencyCode?.() ?? "USD",
+            currency: faker.helpers.arrayElement(FRONTEND_SUPPORTED_CURRENCIES),
         });
     }
 

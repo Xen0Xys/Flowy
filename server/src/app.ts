@@ -3,6 +3,8 @@ import {CustomValidationPipe} from "./common/pipes/validation.pipe";
 import {LoggerMiddleware} from "./common/middlewares/logger.middleware";
 import {SwaggerTheme, SwaggerThemeNameEnum} from "swagger-themes";
 import {DocumentBuilder, SwaggerModule} from "@nestjs/swagger";
+import fastifyCsrfProtection from "@fastify/csrf-protection";
+import fastifyCookie from "@fastify/cookie";
 import {FastifyListenOptions} from "fastify/types/instance";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyHelmet from "@fastify/helmet";
@@ -10,17 +12,13 @@ import {NestFactory} from "@nestjs/core";
 import {AppModule} from "./app.module";
 import {Logger} from "@nestjs/common";
 import * as fs from "fs";
-import path from "node:path";
+import path from "path";
 
 const logger: Logger = new Logger("App");
 
 const pkgJsonPath = path.resolve(process.cwd(), "package.json");
 const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
 
-process.env.APP_NAME = process.env.npm_package_name
-    ?.split("-")
-    .map((word: string): string => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 const port: number = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 
 async function bootstrap() {
@@ -39,30 +37,68 @@ async function bootstrap() {
     logger.log(`API Documentation available at http://localhost:${port}/api`);
 }
 
-async function loadServer(server: NestFastifyApplication) {
+export async function loadServer(server: NestFastifyApplication) {
     // Config
     server.setGlobalPrefix(process.env.PREFIX || "");
+
+    const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
     server.enableCors({
-        origin: "*",
+        origin: corsOrigins,
+        credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
     });
 
     // Middlewares
     server.use(new LoggerMiddleware().use);
+    await server.register(fastifyCookie as any, {
+        secret: process.env.APP_SECRET,
+    });
+    await server.register(fastifyCsrfProtection as any, {
+        cookieOpts: {
+            path: "/",
+            sameSite: "lax",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            signed: true,
+        },
+    });
+
     await server.register(fastifyMultipart as any, {
         limits: {
             fileSize: 500 * 1024 * 1024, // 500MB
         },
     });
-    await server.register(
-        fastifyHelmet as any,
-        {
-            contentSecurityPolicy: false,
-            crossOriginEmbedderPolicy: false,
-            crossOriginOpenerPolicy: false,
-            crossOriginResourcePolicy: false,
-        } as any,
-    );
+    await server.register(fastifyHelmet as any, {
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", `'unsafe-inline'`],
+                imgSrc: ["'self'", "data:"],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'none'"],
+                frameSrc: ["'none'"],
+                upgradeInsecureRequests: [],
+            },
+        },
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+        },
+        referrerPolicy: {policy: "strict-origin-when-cross-origin"},
+        permittedCrossDomainPolicies: false,
+        crossOriginEmbedderPolicy: true,
+        crossOriginOpenerPolicy: {policy: "same-origin"},
+        crossOriginResourcePolicy: {policy: "same-origin"},
+    });
 
     // Swagger
     const config = new DocumentBuilder()
@@ -90,4 +126,6 @@ async function loadServer(server: NestFastifyApplication) {
     server.useGlobalPipes(new CustomValidationPipe());
 }
 
-bootstrap();
+if (require.main === module) {
+    bootstrap();
+}

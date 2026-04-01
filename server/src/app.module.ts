@@ -1,18 +1,32 @@
 import {ClassSerializerInterceptor, Module} from "@nestjs/common";
-import {FamilyModule} from "./modules/family/family.module";
+import {FamilyModule} from "./modules/users/family/family.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import HelperModule from "./modules/helper/helper.module";
 import {AdminModule} from "./modules/admin/admin.module";
-import {UserModule} from "./modules/user/user.module";
+import {UserModule} from "./modules/users/user/user.module";
+import {AuthModule} from "./modules/auth/auth.module";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
-import {APP_INTERCEPTOR} from "@nestjs/core";
+import {APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {JwtModule} from "@nestjs/jwt";
+import {AccountModule} from "./modules/accounting/account/account.module";
+import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
+import {ReferenceModule} from "./modules/accounting/reference/reference.module";
+import {CsrfGuard} from "./common/guards/csrf.guard";
+import Joi from "joi";
 
 @Module({
     imports: [
-        ConfigModule.forRoot({isGlobal: true}),
+        ConfigModule.forRoot({
+            isGlobal: true,
+            validationSchema: Joi.object({
+                APP_SECRET: Joi.string().required(),
+                APP_NAME: Joi.string().required(),
+                DATABASE_URL: Joi.string().uri().required(),
+                NODE_ENV: Joi.string().valid("development", "production", "test").default("production"),
+            }),
+        }),
         JwtModule.registerAsync({
             global: true,
             inject: [ConfigService],
@@ -38,11 +52,19 @@ import {JwtModule} from "@nestjs/jwt";
         ]),
         HelperModule,
         UserModule,
+        AuthModule,
         AdminModule,
         FamilyModule,
+        AccountModule,
+        TransactionModule,
+        ReferenceModule,
     ],
     controllers: [AppController],
     providers: [
+        {
+            provide: APP_GUARD,
+            useClass: CsrfGuard,
+        },
         {
             provide: APP_INTERCEPTOR,
             useClass: ClassSerializerInterceptor,

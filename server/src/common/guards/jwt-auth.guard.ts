@@ -1,14 +1,9 @@
-import {
-    CanActivate,
-    ExecutionContext,
-    Injectable,
-    UnauthorizedException,
-} from "@nestjs/common";
-import {UserEntity} from "../../modules/user/models/entities/user.entity";
+import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from "@nestjs/common";
+import {UserEntity} from "../../modules/users/user/models/entities/user.entity";
 import {PrismaService} from "../../modules/helper/prisma.service";
 import {FastifyRequest} from "fastify";
 import {JwtService} from "@nestjs/jwt";
-import {UserService} from "../../modules/user/user.service";
+import {UserService} from "../../modules/users/user/user.service";
 
 export interface AuthenticatedRequest extends FastifyRequest {
     user?: UserEntity;
@@ -17,6 +12,7 @@ export interface AuthenticatedRequest extends FastifyRequest {
 interface JwtPayload {
     sub?: string;
     jti?: string;
+    aud?: string;
     [key: string]: unknown;
 }
 
@@ -28,26 +24,22 @@ export class JwtAuthGuard implements CanActivate {
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const request = context
-            .switchToHttp()
-            .getRequest<AuthenticatedRequest>();
+        const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
         const token = this.extractTokenFromHeader(request);
 
-        if (!token)
-            throw new UnauthorizedException("Authorization token is missing");
+        if (!token) throw new UnauthorizedException("Authorization token is missing");
 
         try {
-            const payload =
-                await this.jwtService.verifyAsync<JwtPayload>(token);
-            if (!payload?.sub)
-                throw new UnauthorizedException("Invalid authentication token");
+            const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+            if (!payload?.sub) throw new UnauthorizedException("Invalid authentication token");
+
+            if (!payload.aud || payload.aud !== "AUTH") throw new UnauthorizedException("Invalid authentication token");
 
             const user = await this.prismaService.users.findUnique({
                 where: {id: payload.sub},
             });
 
-            if (!user)
-                throw new UnauthorizedException("Invalid authentication token");
+            if (!user) throw new UnauthorizedException("Invalid authentication token");
 
             if (payload.jti && payload.jti !== user.jwt_id)
                 throw new UnauthorizedException("Invalid authentication token");
@@ -59,9 +51,7 @@ export class JwtAuthGuard implements CanActivate {
         }
     }
 
-    private extractTokenFromHeader(
-        request: FastifyRequest,
-    ): string | undefined {
+    private extractTokenFromHeader(request: FastifyRequest): string | undefined {
         const authHeader = request.headers.authorization;
         if (!authHeader) return undefined;
         const [scheme, token] = authHeader.split(" ");
