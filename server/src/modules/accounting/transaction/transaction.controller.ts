@@ -6,9 +6,11 @@ import {
     HttpCode,
     HttpStatus,
     Param,
+    ParseArrayPipe,
     ParseUUIDPipe,
     Patch,
     Post,
+    Query,
     UseGuards,
 } from "@nestjs/common";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
@@ -19,6 +21,8 @@ import {CreateTransactionDto} from "./models/dto/create-transaction.dto";
 import {UpdateTransactionDto} from "./models/dto/update-transaction.dto";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {TransactionEntity} from "./models/entities/transaction.entity";
+import {SearchTransactionsDto} from "./models/dto/search-transactions.dto";
+import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
 
 @Controller("transaction")
 export class TransactionController {
@@ -27,18 +31,11 @@ export class TransactionController {
     @Get()
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getAllTransactions(@User() user: UserEntity): Promise<TransactionEntity[]> {
-        return this.transactionService.getTransactions(user);
-    }
-
-    @Get(":accountId")
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    async getTransactionByAccountId(
+    async searchTransactions(
         @User() user: UserEntity,
-        @Param("accountId", new ParseUUIDPipe({version: "7"})) accountId: string,
-    ): Promise<TransactionEntity[]> {
-        return this.transactionService.getTransactionsByAccountId(user, accountId);
+        @Query() query: SearchTransactionsDto,
+    ): Promise<SearchTransactionsResultEntity> {
+        return this.transactionService.searchTransactions(user, query);
     }
 
     @Post(":accountId")
@@ -50,6 +47,35 @@ export class TransactionController {
         @Body() createTransactionDto: CreateTransactionDto,
     ): Promise<TransactionEntity> {
         return this.transactionService.addTransactions(user, accountId, createTransactionDto);
+    }
+
+    @Post(":accountId/bulk/test")
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async testBulkTransactions(
+        @User() user: UserEntity,
+        @Param("accountId", new ParseUUIDPipe({version: "7"})) accountId: string,
+        @Body(new ParseArrayPipe({items: CreateTransactionDto})) createTransactionDtos: CreateTransactionDto[],
+    ): Promise<{
+        wouldInsertCount: number;
+        duplicates: CreateTransactionDto[];
+    }> {
+        return this.transactionService.testBulkTransactions(user, accountId, createTransactionDtos);
+    }
+
+    @Post(":accountId/bulk")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async addBulkTransactions(
+        @User() user: UserEntity,
+        @Param("accountId", new ParseUUIDPipe({version: "7"})) accountId: string,
+        @Body(new ParseArrayPipe({items: CreateTransactionDto})) createTransactionDtos: CreateTransactionDto[],
+    ): Promise<{
+        insertedCount: number;
+        duplicates: CreateTransactionDto[];
+    }> {
+        return this.transactionService.addBulkTransactions(user, accountId, createTransactionDtos);
     }
 
     @Patch(":transactionId")

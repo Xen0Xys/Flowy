@@ -163,9 +163,18 @@ const main = async (): Promise<void> => {
         }
     }
 
-    const unusedKeys = [...baseLocaleKeys].filter(
-        (key) => !staticKeys.has(key) && !isCoveredByDynamicPrefix(key, dynamicPrefixes),
-    );
+    const unusedKeysByLocale = localeEntries
+        .map(([localeCode, localeKeys]) => {
+            const unusedKeys = [...localeKeys].filter(
+                (key) => !staticKeys.has(key) && !isCoveredByDynamicPrefix(key, dynamicPrefixes),
+            );
+
+            return {
+                localeCode,
+                unusedKeys,
+            };
+        })
+        .filter(({unusedKeys}) => unusedKeys.length > 0);
     const keysMissingFromBase = [...staticKeys].filter((key) => !baseLocaleKeys.has(key));
 
     if (keysMissingFromBase.length > 0) {
@@ -180,8 +189,8 @@ const main = async (): Promise<void> => {
         logKeyList("Dynamic key prefixes not found in locale files", invalidDynamicPrefixes.sort());
     }
 
-    if (unusedKeys.length > 0) {
-        logKeyList(`Unused keys in base locale (${baseLocaleCode})`, unusedKeys.sort());
+    for (const {localeCode, unusedKeys} of unusedKeysByLocale) {
+        logKeyList(`Unused keys in locale (${localeCode})`, unusedKeys.sort());
     }
 
     if (dynamicPrefixes.size > 0) {
@@ -194,7 +203,7 @@ const main = async (): Promise<void> => {
         keysMissingFromBase.length > 0 ||
         missingInLocales.length > 0 ||
         invalidDynamicPrefixes.length > 0 ||
-        unusedKeys.length > 0
+        unusedKeysByLocale.length > 0
     ) {
         process.exit(1);
     }

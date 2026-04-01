@@ -24,7 +24,8 @@ export default defineEventHandler(async (event) => {
         const body = await readBody<{path: string; duration: number}>(event);
         if (!body || !body.path) return {success: false};
 
-        const rawIp = getRequestIP(event, {xForwardedFor: true}) || "Unknown IP";
+        const cfIp = getHeader(event, "CF-Connecting-IP");
+        const rawIp = cfIp || getRequestIP(event, {xForwardedFor: true}) || "Unknown IP";
         const ip = sanitizeForLog(rawIp, 45); // Max IPv6 length is 45 chars
         const path = sanitizeForLog(body.path);
         const duration = coerceDuration(body.duration);

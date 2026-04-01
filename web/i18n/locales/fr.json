@@ -16,7 +16,9 @@
         "edit": "Modifier",
         "loading": "Chargement...",
         "processing": "Traitement...",
-        "areYouSure": "Êtes-vous sûr ?"
+        "areYouSure": "Êtes-vous sûr ?",
+        "yes": "Oui",
+        "no": "Non"
     },
     "app": {
         "head": {
@@ -156,12 +158,14 @@
         "users": "Utilisateurs",
         "profile": "Profil",
         "family": "Famille",
-        "references": "Références"
+        "references": "Références",
+        "import": "Import"
     },
     "sidebar": {
         "menu": "Menu",
         "dashboard": "Tableau de bord",
         "transactions": "Transactions",
+        "import": "Importer",
         "accounts": "Comptes",
         "settings": "Paramètres",
         "backToDashboard": "Retour au tableau de bord",
@@ -220,6 +224,7 @@
         "setBalanceDescription": "Définissez le nouveau solde actuel de ce compte. Une transaction de rééquilibrage est créée automatiquement si la valeur change.",
         "targetBalance": "Solde cible",
         "saveBalance": "Enregistrer le solde",
+        "noData": "Aucun historique de solde pour cette période",
         "store": {
             "success": {
                 "accountCreated": "Compte créé",
@@ -554,14 +559,17 @@
             "success": {
                 "transactionCreated": "Transaction créée",
                 "transactionUpdated": "Transaction mise à jour",
-                "transactionDeleted": "Transaction supprimée"
+                "transactionDeleted": "Transaction supprimée",
+                "bulkTransactionsCreated": "{count} transactions importées"
             },
             "errors": {
                 "fetchTransactions": "Échec du chargement des transactions",
                 "fetchAccountTransactions": "Échec du chargement des transactions du compte",
                 "createTransaction": "Échec de création de la transaction",
                 "updateTransaction": "Échec de mise à jour de la transaction",
-                "deleteTransaction": "Échec de suppression de la transaction"
+                "deleteTransaction": "Échec de suppression de la transaction",
+                "testBulkTransactions": "Échec de validation de l'aperçu d'import",
+                "createBulkTransactions": "Échec de l'import des transactions"
             }
         }
     },
@@ -584,6 +592,105 @@
                 "updateMerchant": "Échec de mise à jour du marchand",
                 "deleteMerchant": "Échec de suppression du marchand"
             }
+        }
+    },
+    "import": {
+        "title": "Importer des transactions",
+        "subtitle": "Importer des transactions depuis un fichier CSV",
+        "account": {
+            "noAccounts": "Aucun compte disponible. Créez d'abord un compte.",
+            "createAccount": "Créer un compte"
+        },
+        "upload": {
+            "title": "Télécharger un fichier CSV",
+            "description": "Glissez-déposez votre fichier CSV ici ou cliquez pour parcourir",
+            "selectFile": "Sélectionner un fichier",
+            "loading": "Lecture du fichier...",
+            "supportedFormats": "Formats supportés : CSV",
+            "maxRows": "Maximum {max} lignes par fichier"
+        },
+        "config": {
+            "title": "Configuration de l'import",
+            "description": "Vérifiez les paramètres détectés et prévisualisez vos données",
+            "delimiter": "Séparateur",
+            "selectDelimiter": "Sélectionner un séparateur",
+            "headers": "La première ligne contient les en-têtes",
+            "preview": "Aperçu des données",
+            "previewRows": "Affichage des {count} premières lignes",
+            "account": "Compte cible",
+            "accountDescription": "Sélectionnez le compte sur lequel les transactions seront importées",
+            "selectAccount": "Veuillez sélectionner un compte"
+        },
+        "mapping": {
+            "title": "Mapper les colonnes",
+            "description": "Assignez les colonnes CSV aux champs de transaction",
+            "requiredFields": "Champs requis",
+            "column": "Colonne",
+            "selectColumn": "Sélectionner une colonne",
+            "fields": {
+                "date": "Date",
+                "description": "Description",
+                "amount": "Montant",
+                "credit": "Crédit (Revenu)",
+                "debit": "Débit (Dépense)"
+            },
+            "singleColumn": "Colonne unique",
+            "dualColumn": "Colonnes Crédit/Débit",
+            "amountHint": "Valeurs positives = revenu, négatives = dépense",
+            "preview": "Aperçu mappé",
+            "parseAndPreview": "Analyser et prévisualiser"
+        },
+        "preview": {
+            "stats": {
+                "total": "total",
+                "willImport": "à importer",
+                "duplicates": "doublons",
+                "dbDuplicates": "en base de données",
+                "ignored": "ignorés"
+            },
+            "status": {
+                "pending": "En attente",
+                "willImport": "Prêt",
+                "duplicateInternal": "Doublon",
+                "duplicateDb": "En base de données",
+                "ignored": "Ignoré"
+            },
+            "readyToImport": "{count} transactions prêtes à être importées",
+            "categoryPlaceholder": "Nom de la catégorie",
+            "merchantPlaceholder": "Nom du marchand",
+            "createCategoryDescription": "Ajoutez une nouvelle catégorie pour vos transactions.",
+            "createMerchantDescription": "Ajoutez un nouveau marchand pour vos transactions.",
+            "findIcons": "Trouvez des icônes sur",
+            "pagination": "Page {page} sur {total}"
+        },
+        "result": {
+            "title": "Import terminé",
+            "description": "Vos transactions ont été traitées",
+            "imported": "Importées",
+            "skipped": "Ignorées (doublons)",
+            "newImport": "Nouvel import",
+            "done": "Terminé"
+        },
+        "actions": {
+            "next": "Suivant",
+            "reset": "Réinitialiser",
+            "testDb": "Tester contre la base de données",
+            "import": "Importer"
+        },
+        "errors": {
+            "fileRead": "Échec de la lecture du fichier",
+            "invalidDate": "Format de date invalide",
+            "invalidDescription": "Description manquante",
+            "invalidAmount": "Montant invalide",
+            "noValidTransactions": "Aucune transaction valide trouvée",
+            "testFailed": "Échec du test des transactions",
+            "importFailed": "Échec de l'import des transactions"
+        },
+        "warnings": {
+            "rowsWithErrors": "{count} lignes ont des erreurs et ont été ignorées"
+        },
+        "success": {
+            "testComplete": "{count} transactions prêtes à être importées"
         }
     }
 }

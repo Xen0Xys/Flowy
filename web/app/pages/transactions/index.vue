@@ -1,21 +1,18 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
-import {useTransactionStore} from "~/stores/transaction.store";
 import {useAccountStore} from "~/stores/account.store";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Button} from "~/components/ui/button";
 
-const transactionStore = useTransactionStore();
 const accountStore = useAccountStore();
 const {t} = useI18n();
 const isLoading = ref(true);
 
 const isTransactionModalOpen = ref(false);
 
-const allTransactions = computed(() => transactionStore.transactions);
 const availableAccounts = computed(() =>
     accountStore.accounts.map((account) => ({
         id: account.id,
@@ -26,7 +23,7 @@ const availableAccounts = computed(() =>
 const loadData = async () => {
     isLoading.value = true;
     try {
-        await Promise.all([transactionStore.fetchTransactions(), accountStore.fetchAccounts()]);
+        await accountStore.fetchAccounts();
     } catch (err) {
         console.error(err);
     } finally {
@@ -78,7 +75,6 @@ const onTransactionSaved = () => {
                         :available-accounts="availableAccounts"
                         :show-account-column="true"
                         :show-account-filter="true"
-                        :transactions="allTransactions"
                         @saved="onTransactionSaved" />
                 </template>
 

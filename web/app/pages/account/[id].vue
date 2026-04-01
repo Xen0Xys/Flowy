@@ -5,8 +5,6 @@ import {useRoute, useRouter} from "vue-router";
 import {useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
-import type {Transaction} from "~/stores/transaction.store";
-import {useTransactionStore} from "~/stores/transaction.store";
 import type {TimeRange} from "~/utils/accounts";
 import {buildDateRange} from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
@@ -33,6 +31,8 @@ import {
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
+import type {Transaction} from "~/stores/transaction.store";
+import {useTransactionStore} from "~/stores/transaction.store";
 
 const route = useRoute();
 const router = useRouter();
@@ -40,7 +40,7 @@ const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
 const transactionStore = useTransactionStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
-const {locale, t} = useI18n();
+const {locale, t, te} = useI18n();
 
 const accountId = route.params.id as string;
 const isLoading = ref(true);
@@ -51,10 +51,18 @@ const isSetBalanceDialogOpen = ref(false);
 const isSettingBalance = ref(false);
 const targetBalance = ref(0);
 const timeRange = ref<TimeRange>("1M");
+const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> | null>(null);
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
-const transactions = computed(() => transactionStore.currentAccountTransactions);
+const accountTypeLabel = computed(() => {
+    const type = account.value?.type;
+    if (!type) return "";
+
+    const normalizedType = type.toLowerCase();
+    const key = `accounts.types.${normalizedType}`;
+    return te(key) ? t(key) : type;
+});
 
 const chartColor = computed(() => {
     const series = evolutionSeries.value;
@@ -76,17 +84,21 @@ const y = (d: {balance: number}) => d.balance;
 
 const loadData = async () => {
     isLoading.value = true;
+    const startTime = Date.now();
+    const minLoadingTime = 150; // Minimum time to show skeleton (ms)
+
     try {
-        await Promise.all([
-            accountStore.fetchAccountById(accountId),
-            familyStore.fetchFamily(),
-            transactionStore.fetchTransactionsByAccountId(accountId),
-        ]);
+        await Promise.all([accountStore.fetchAccountById(accountId), familyStore.fetchFamily()]);
         await loadChartData();
     } catch (err) {
         console.error(err);
         router.push("/");
     } finally {
+        // Ensure skeleton is visible for at least minLoadingTime
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minLoadingTime) {
+            await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsed));
+        }
         isLoading.value = false;
     }
 };
@@ -96,7 +108,11 @@ const loadChartData = async () => {
     await accountStore.fetchAccountBalanceEvolution(accountId, startDate, endDate);
 };
 
-onMounted(loadData);
+onMounted(() => {
+    requestAnimationFrame(() => {
+        loadData();
+    });
+});
 
 watch(timeRange, () => {
     loadChartData();
@@ -143,6 +159,7 @@ const submitSetBalance = async () => {
             balance: targetBalance.value,
         });
         isSetBalanceDialogOpen.value = false;
+        transactionListWidgetRef.value?.refreshTransactions();
         await loadData();
     } catch (err) {
         console.error(err);
@@ -199,7 +216,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                     {{ account.name }}
                                 </h1>
                                 <div class="mt-1 flex flex-wrap items-center gap-2">
-                                    <Badge variant="secondary">{{ account.type }}</Badge>
+                                    <Badge variant="secondary">{{ accountTypeLabel }}</Badge>
                                     <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
                                         {{ t("account.updatedOn", {date: formatDate(account.updatedAt)}) }}
                                     </span>
@@ -224,18 +241,14 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                     </div>
                 </div>
 
-                <div v-if="isLoading" class="flex flex-col gap-6 md:min-h-0 md:flex-1">
-                    <Skeleton class="h-[400px] w-full shrink-0" />
-                    <div class="space-y-4 md:flex-1 md:overflow-hidden">
-                        <Skeleton class="h-20 w-full" />
-                        <Skeleton class="h-20 w-full" />
-                        <Skeleton class="h-20 w-full" />
+                <!-- Graph with KPI -->
+                <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
+                    <div v-if="isLoading" class="flex flex-col gap-4">
+                        <Skeleton class="h-6 w-28" />
+                        <Skeleton class="h-8 w-32" />
+                        <Skeleton class="h-75 w-full" />
                     </div>
-                </div>
-
-                <template v-else-if="account">
-                    <!-- Graph with KPI -->
-                    <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
+                    <template v-else-if="account">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
                                 <h3 class="text-muted-foreground text-sm font-medium">
@@ -259,7 +272,12 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                         <div>
                             <div class="-mx-6 mt-6 h-[300px] md:mx-0">
                                 <ClientOnly>
-                                    <ChartContainer :config="chartConfig">
+                                    <div
+                                        v-if="evolutionSeries.length === 0"
+                                        class="flex h-full items-center justify-center">
+                                        <p class="text-muted-foreground text-sm">{{ t("account.noData") }}</p>
+                                    </div>
+                                    <ChartContainer v-else :config="chartConfig">
                                         <VisXYContainer
                                             :data="evolutionSeries"
                                             :padding="{
@@ -339,16 +357,16 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                 </ClientOnly>
                             </div>
                         </div>
-                    </div>
+                    </template>
+                </div>
 
-                    <!-- Transactions -->
-                    <TransactionListWidget
-                        :account-id="accountId"
-                        :show-view-all="true"
-                        :transactions="transactions"
-                        view-all-link="/transactions"
-                        @saved="onTransactionSaved" />
-                </template>
+                <!-- Transactions -->
+                <TransactionListWidget
+                    ref="transactionListWidgetRef"
+                    :account-id="accountId"
+                    :show-view-all="true"
+                    view-all-link="/transactions"
+                    @saved="onTransactionSaved" />
 
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />

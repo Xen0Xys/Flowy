@@ -144,6 +144,14 @@ async function handleLogout() {
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton :is-active="isActiveFunction('/import')" as-child>
+                                <NuxtLink to="/import">
+                                    <Icon name="iconoir:upload"></Icon>
+                                    <span>{{ t("sidebar.import") }}</span>
+                                </NuxtLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
                 <SidebarGroupLabel v-if="userAccounts.length">{{ t("sidebar.accounts") }}</SidebarGroupLabel>

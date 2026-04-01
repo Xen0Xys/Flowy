@@ -10,6 +10,7 @@ import {
     useVueTable,
 } from "@tanstack/vue-table";
 import {useMediaQuery} from "@vueuse/core";
+import {cn} from "~/lib/utils";
 
 import type {Transaction} from "~/stores/transaction.store";
 import {useFamilyStore} from "~/stores/family.store";
@@ -18,6 +19,7 @@ import {toCurrency} from "~/lib/currency";
 import {Button} from "~/components/ui/button";
 import {Badge} from "~/components/ui/badge";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
+import {Skeleton} from "~/components/ui/skeleton";
 import {valueUpdater} from "~/components/ui/table/utils";
 
 const props = defineProps<{
@@ -25,6 +27,7 @@ const props = defineProps<{
     isFiltered?: boolean;
     showAccountColumn?: boolean;
     accountNameById?: Record<string, string>;
+    isLoading?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -187,6 +190,7 @@ const table = useVueTable({
                             cell.column.id === 'date' ? (isMobile ? 'w-[115px]' : 'w-[150px]') : '',
                             cell.column.id === 'account' ? 'w-[180px]' : '',
                             cell.column.id === 'category' ? 'w-[200px]' : '',
+                            cell.column.id === 'description' ? (isMobile ? 'max-w-[180px]' : 'max-w-[360px]') : '',
                             cell.column.id === 'amount' ? 'w-[150px]' : '',
                         ]">
                         <template v-if="cell.column.id === 'date'">
@@ -196,11 +200,14 @@ const table = useVueTable({
                         <template v-else-if="cell.column.id === 'description'">
                             <span
                                 v-if="row.original.isRebalance"
-                                class="text-muted-foreground flex items-center gap-1.5 font-medium italic">
+                                :title="String(cell.getValue())"
+                                class="text-muted-foreground flex min-w-0 items-center gap-1.5 font-medium italic">
                                 <Icon name="iconoir:system-restart" class="h-4 w-4" />
+                                <span class="block truncate">{{ cell.getValue() }}</span>
+                            </span>
+                            <span v-else :class="cn('block truncate font-medium')" :title="String(cell.getValue())">
                                 {{ cell.getValue() }}
                             </span>
-                            <span v-else class="font-medium">{{ cell.getValue() }}</span>
                         </template>
 
                         <template v-else-if="cell.column.id === 'category'">
@@ -239,11 +246,41 @@ const table = useVueTable({
                     </TableCell>
                 </TableRow>
 
-                <TableRow v-if="table.getRowModel().rows.length === 0">
+                <TableRow v-if="table.getRowModel().rows.length === 0 && !isLoading">
                     <TableCell :colspan="columns.length" class="text-muted-foreground h-24 text-center">
                         {{ isFiltered ? t("transactions.table.noMatch") : t("transactions.table.noTransactions") }}
                     </TableCell>
                 </TableRow>
+
+                <template v-if="isLoading">
+                    <TableRow v-for="i in 5" :key="`skeleton-${i}`" class="hover:bg-muted/50">
+                        <template v-if="isMobile">
+                            <TableCell class="w-[115px]">
+                                <Skeleton class="h-4 w-20" />
+                            </TableCell>
+                            <TableCell class="max-w-[180px]">
+                                <Skeleton class="h-4 w-32" />
+                            </TableCell>
+                        </template>
+                        <template v-else>
+                            <TableCell class="w-[150px]">
+                                <Skeleton class="h-4 w-20" />
+                            </TableCell>
+                            <TableCell v-if="showAccountColumn" class="w-[180px]">
+                                <Skeleton class="h-4 w-24" />
+                            </TableCell>
+                            <TableCell class="max-w-[360px]">
+                                <Skeleton class="h-4 w-48" />
+                            </TableCell>
+                            <TableCell class="w-[200px]">
+                                <Skeleton class="h-5 w-16" />
+                            </TableCell>
+                            <TableCell class="w-[150px] text-right">
+                                <Skeleton class="ml-auto h-4 w-20" />
+                            </TableCell>
+                        </template>
+                    </TableRow>
+                </template>
             </TableBody>
         </Table>
     </div>

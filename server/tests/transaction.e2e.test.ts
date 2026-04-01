@@ -65,9 +65,9 @@ describe("TransactionController (e2e)", () => {
         expect(list.status).toBe(401);
         expect(list.body.message).toBe("Authorization token is missing");
 
-        const byAccount = await agent.get("/transaction/account-id");
-        expect(byAccount.status).toBe(401);
-        expect(byAccount.body.message).toBe("Authorization token is missing");
+        const search = await agent.get("/transaction");
+        expect(search.status).toBe(401);
+        expect(search.body.message).toBe("Authorization token is missing");
 
         const create = await agent.post("/transaction/account-id").send({
             amount: 12.34,
@@ -76,6 +76,14 @@ describe("TransactionController (e2e)", () => {
         });
         expect(create.status).toBe(401);
         expect(create.body.message).toBe("Authorization token is missing");
+
+        const bulkTest = await agent.post("/transaction/account-id/bulk/test").send([]);
+        expect(bulkTest.status).toBe(401);
+        expect(bulkTest.body.message).toBe("Authorization token is missing");
+
+        const bulkCreate = await agent.post("/transaction/account-id/bulk").send([]);
+        expect(bulkCreate.status).toBe(401);
+        expect(bulkCreate.body.message).toBe("Authorization token is missing");
 
         const update = await agent.patch("/transaction/transaction-id").send({description: "Updated"});
         expect(update.status).toBe(401);
@@ -115,6 +123,252 @@ describe("TransactionController (e2e)", () => {
         expect(storedAccount?.balance).toBe(-42.35);
     });
 
+    test("accepts ISO date-only values on create", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Import Dates", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const create = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -10,
+                description: "CSV row",
+                date: "2026-01-15",
+            });
+
+        expect(create.status).toBe(201);
+
+        const stored = await prisma.transactions.findUnique({
+            where: {id: create.body.id},
+        });
+        expect(stored?.date.toISOString()).toBe("2026-01-15T00:00:00.000Z");
+    });
+
+    test("bulk test endpoint previews only duplicates already in database", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Preview", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const existing = {
+            amount: -80.5,
+            description: "Rent",
+            date: "2026-02-01T09:00:00.000Z",
+            isRebalance: false,
+        };
+
+        const firstInsert = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send(existing);
+        expect(firstInsert.status).toBe(201);
+
+        const preview = await agent
+            .post(`/transaction/${account.body.id}/bulk/test`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                existing,
+                {
+                    amount: 2000,
+                    description: "Salary",
+                    date: "2026-02-02T08:00:00.000Z",
+                },
+            ]);
+
+        expect(preview.status).toBe(200);
+        expect(preview.body.wouldInsertCount).toBe(1);
+        expect(preview.body.duplicates).toHaveLength(1);
+        expect(preview.body.duplicates[0]).toEqual(expect.objectContaining(existing));
+    });
+
+    test("bulk create inserts only non-duplicates found in database", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Create", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const duplicateInDb = {
+            amount: -19.99,
+            description: "Streaming",
+            date: "2026-02-10T10:00:00.000Z",
+            isRebalance: false,
+        };
+
+        const existingInsert = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send(duplicateInDb);
+        expect(existingInsert.status).toBe(201);
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                duplicateInDb,
+                {
+                    amount: 1500,
+                    description: "Freelance",
+                    date: "2026-02-11T10:00:00.000Z",
+                },
+                {
+                    amount: -25,
+                    description: "Dinner",
+                    date: "2026-02-11T19:00:00.000Z",
+                },
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(2);
+        expect(bulk.body.duplicates).toHaveLength(1);
+        expect(bulk.body.duplicates[0]).toEqual(expect.objectContaining(duplicateInDb));
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {
+                account_id: account.body.id,
+            },
+        });
+        expect(storedTransactions).toHaveLength(3);
+
+        const storedAccount = await prisma.accounts.findUnique({
+            where: {id: account.body.id},
+        });
+        expect(storedAccount?.balance).toBe(1455.01);
+    });
+
+    test("bulk import accepts ISO date-only values and still detects duplicates", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "CSV Import", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const existing = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -9.9,
+                description: "Coffee",
+                date: "2026-04-02",
+            });
+        expect(existing.status).toBe(201);
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                {
+                    amount: -9.9,
+                    description: "Coffee",
+                    date: "2026-04-02",
+                },
+                {
+                    amount: 1200,
+                    description: "Salary",
+                    date: "2026-04-03",
+                },
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(1);
+        expect(bulk.body.duplicates).toHaveLength(1);
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {account_id: account.body.id},
+            orderBy: {date: "asc"},
+        });
+        expect(storedTransactions).toHaveLength(2);
+        expect(storedTransactions[0]?.date.toISOString()).toBe("2026-04-02T00:00:00.000Z");
+        expect(storedTransactions[1]?.date.toISOString()).toBe("2026-04-03T00:00:00.000Z");
+    });
+
+    test("bulk duplicate check ignores isRebalance when amount, description and date match", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Signature", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const existing = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -42,
+                description: "Internal transfer",
+                date: "2026-04-10T08:30:00.000Z",
+                isRebalance: false,
+            });
+        expect(existing.status).toBe(201);
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                {
+                    amount: -42,
+                    description: "Internal transfer",
+                    date: "2026-04-10T08:30:00.000Z",
+                    isRebalance: true,
+                },
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(0);
+        expect(bulk.body.duplicates).toHaveLength(1);
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {account_id: account.body.id},
+        });
+        expect(storedTransactions).toHaveLength(1);
+    });
+
+    test("bulk create keeps identical rows from payload when absent in database", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk Same Rows", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const sameTx = {
+            amount: -12.5,
+            description: "Transfer",
+            date: "2026-03-01T10:30:00.000Z",
+        };
+
+        const bulk = await agent
+            .post(`/transaction/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([sameTx, sameTx]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(2);
+        expect(bulk.body.duplicates).toHaveLength(0);
+
+        const storedTransactions = await prisma.transactions.findMany({
+            where: {
+                account_id: account.body.id,
+                description: "Transfer",
+            },
+        });
+        expect(storedTransactions).toHaveLength(2);
+    });
+
     test("lists only current user's transactions", async () => {
         const userA = await registerUser(server);
         const userB = await registerUser(server);
@@ -146,11 +400,159 @@ describe("TransactionController (e2e)", () => {
         const listA = await agent.get("/transaction").set("Authorization", `Bearer ${userA.token}`);
 
         expect(listA.status).toBe(200);
-        expect(listA.body).toHaveLength(1);
-        expect(listA.body[0].description).toBe("Salary");
+        expect(listA.body.total).toBe(1);
+        expect(listA.body.items).toHaveLength(1);
+        expect(listA.body.items[0].description).toBe("Salary");
     });
 
-    test("forbids access to another user's account transactions", async () => {
+    test("searches transactions with frontend-like filters", async () => {
+        const user = await registerUser(server);
+
+        const accountA = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING"});
+        const accountB = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS"});
+
+        expect(accountA.status).toBe(201);
+        expect(accountB.status).toBe(201);
+
+        const groceriesCategory = await prisma.userCategories.create({
+            data: {
+                user_id: user.user.id,
+                name: "Groceries",
+                hex_color: "#10B981",
+                icon: "cart",
+            },
+        });
+        const salaryCategory = await prisma.userCategories.create({
+            data: {
+                user_id: user.user.id,
+                name: "Salary",
+                hex_color: "#3B82F6",
+                icon: "wallet",
+            },
+        });
+
+        const marketMerchant = await prisma.userMerchants.create({
+            data: {
+                user_id: user.user.id,
+                name: "Fresh Market",
+            },
+        });
+
+        const expenseTx = await agent
+            .post(`/transaction/${accountA.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -42.2,
+                description: "Weekly grocery run",
+                date: "2026-02-15",
+                categoryId: groceriesCategory.id,
+                merchantId: marketMerchant.id,
+                isRebalance: false,
+            });
+        expect(expenseTx.status).toBe(201);
+
+        const incomeTx = await agent
+            .post(`/transaction/${accountA.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: 2200,
+                description: "Monthly salary",
+                date: "2026-02-01",
+                categoryId: salaryCategory.id,
+                isRebalance: false,
+            });
+        expect(incomeTx.status).toBe(201);
+
+        const rebalanceTx = await agent
+            .post(`/transaction/${accountB.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -100,
+                description: "Transfer to savings",
+                date: "2026-02-18",
+                isRebalance: true,
+            });
+        expect(rebalanceTx.status).toBe(201);
+
+        const response = await agent
+            .get("/transaction")
+            .query({
+                search: "market",
+                type: "expense",
+                accountId: accountA.body.id,
+                categoryId: groceriesCategory.id,
+                merchantId: marketMerchant.id,
+                rebalance: "exclude",
+                startDate: "2026-02-10",
+                endDate: "2026-02-20",
+            })
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.isPaginated).toBe(false);
+        expect(response.body.total).toBe(1);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].id).toBe(expenseTx.body.id);
+    });
+
+    test("search endpoint supports optional pagination metadata", async () => {
+        const user = await registerUser(server);
+
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Pagination Account", type: "CHECKING"});
+        expect(account.status).toBe(201);
+
+        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+            amount: 100,
+            description: "Salary",
+            date: "2026-02-01",
+        });
+        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+            amount: -10,
+            description: "Coffee",
+            date: "2026-02-02",
+        });
+        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+            amount: -20,
+            description: "Lunch",
+            date: "2026-02-03",
+        });
+
+        const response = await agent
+            .get("/transaction")
+            .query({page: 2, pageSize: 1})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.isPaginated).toBe(true);
+        expect(response.body.total).toBe(3);
+        expect(response.body.page).toBe(2);
+        expect(response.body.pageSize).toBe(1);
+        expect(response.body.totalPages).toBe(3);
+        expect(response.body.items).toHaveLength(1);
+    });
+
+    test("rejects invalid search date range", async () => {
+        const user = await registerUser(server);
+
+        const response = await agent
+            .get("/transaction")
+            .query({startDate: "2026-03-15", endDate: "2026-03-01"})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe("startDate must be before or equal to endDate");
+    });
+
+    test("does not leak another user's account transactions when filtering by accountId", async () => {
         const owner = await registerUser(server);
         const outsider = await registerUser(server);
 
@@ -161,10 +563,14 @@ describe("TransactionController (e2e)", () => {
 
         expect(account.status).toBe(201);
 
-        const list = await agent.get(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
+        const list = await agent
+            .get("/transaction")
+            .query({accountId: account.body.id})
+            .set("Authorization", `Bearer ${outsider.token}`);
 
-        expect(list.status).toBe(403);
-        expect(list.body.message).toBe("You do not have permission to access this account");
+        expect(list.status).toBe(200);
+        expect(list.body.total).toBe(0);
+        expect(list.body.items).toHaveLength(0);
     });
 
     test("updates a transaction and reconciles account balance", async () => {
@@ -278,10 +684,12 @@ describe("TransactionController (e2e)", () => {
         const missingTransactionId = "0195c8dd-c263-7569-99f6-9fc20aca3051";
 
         const byAccount = await agent
-            .get(`/transaction/${missingAccountId}`)
+            .get("/transaction")
+            .query({accountId: missingAccountId})
             .set("Authorization", `Bearer ${user.token}`);
-        expect(byAccount.status).toBe(404);
-        expect(byAccount.body.message).toBe("Account not found");
+        expect(byAccount.status).toBe(200);
+        expect(byAccount.body.total).toBe(0);
+        expect(byAccount.body.items).toHaveLength(0);
 
         const create = await agent
             .post(`/transaction/${missingAccountId}`)
@@ -311,7 +719,10 @@ describe("TransactionController (e2e)", () => {
     test("rejects invalid UUID v7 params on protected routes", async () => {
         const user = await registerUser(server);
 
-        const byAccount = await agent.get("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
+        const byAccount = await agent
+            .get("/transaction")
+            .query({accountId: "not-a-uuid"})
+            .set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(400);
 
         const create = await agent.post("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`).send({

@@ -53,11 +53,40 @@ export type UpdateTransactionPayload = {
     isRebalance?: boolean;
 };
 
+export type BulkTransactionsTestResult = {
+    wouldInsertCount: number;
+    duplicates: CreateTransactionPayload[];
+};
+
+export type BulkTransactionsCreateResult = {
+    insertedCount: number;
+    duplicates: CreateTransactionPayload[];
+};
+
+export type TransactionSearchFilters = {
+    search?: string;
+    type?: "all" | "income" | "expense";
+    accountId?: string | "all";
+    categoryId?: string | "all";
+    merchantId?: string | "all";
+    rebalance?: "all" | "only" | "exclude";
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    pageSize?: number;
+};
+
+export type SearchTransactionsResult = {
+    items: Transaction[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    isPaginated: boolean;
+};
+
 export const useTransactionStore = defineStore("transaction", {
-    state: () => ({
-        transactions: [] as Transaction[],
-        currentAccountTransactions: [] as Transaction[],
-    }),
+    state: () => ({}),
 
     actions: {
         async fetchTransactions() {
@@ -66,9 +95,7 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const transactions = await apiFetch<Transaction[]>("/transaction");
-                this.transactions = transactions;
-                return transactions;
+                return await apiFetch<Transaction[]>("/transaction");
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
@@ -82,11 +109,72 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const transactions = await apiFetch<Transaction[]>(`/transaction/${accountId}`);
-                this.currentAccountTransactions = transactions;
-                return transactions;
+                const params = new URLSearchParams({accountId});
+                const endpoint = `/transaction?${params.toString()}`;
+                const result = await apiFetch<SearchTransactionsResult>(endpoint);
+
+                return result.items;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async searchTransactions(filters: TransactionSearchFilters = {}) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const params = new URLSearchParams();
+
+            if (filters.search?.trim()) {
+                params.set("search", filters.search.trim());
+            }
+
+            if (filters.type && filters.type !== "all") {
+                params.set("type", filters.type);
+            }
+
+            if (filters.accountId && filters.accountId !== "all") {
+                params.set("accountId", filters.accountId);
+            }
+
+            if (filters.categoryId && filters.categoryId !== "all") {
+                params.set("categoryId", filters.categoryId);
+            }
+
+            if (filters.merchantId && filters.merchantId !== "all") {
+                params.set("merchantId", filters.merchantId);
+            }
+
+            if (filters.rebalance && filters.rebalance !== "all") {
+                params.set("rebalance", filters.rebalance);
+            }
+
+            if (filters.startDate) {
+                params.set("startDate", filters.startDate);
+            }
+
+            if (filters.endDate) {
+                params.set("endDate", filters.endDate);
+            }
+
+            if (filters.page !== undefined) {
+                params.set("page", String(filters.page));
+            }
+
+            if (filters.pageSize !== undefined) {
+                params.set("pageSize", String(filters.pageSize));
+            }
+
+            const queryString = params.toString();
+            const endpoint = queryString ? `/transaction?${queryString}` : "/transaction";
+
+            try {
+                return await apiFetch<SearchTransactionsResult>(endpoint);
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -103,15 +191,49 @@ export const useTransactionStore = defineStore("transaction", {
                     body: payload,
                 });
 
-                this.transactions = [newTransaction, ...this.transactions];
-                if (newTransaction.accountId === accountId) {
-                    this.currentAccountTransactions = [newTransaction, ...this.currentAccountTransactions];
-                }
-
                 toast.success(i18nT("transaction.store.success.transactionCreated"));
                 return newTransaction;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createTransaction");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async testBulkTransactions(accountId: string, payload: CreateTransactionPayload[]) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                return await apiFetch<BulkTransactionsTestResult>(`/transaction/${accountId}/bulk/test`, {
+                    method: "POST",
+                    body: payload,
+                });
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.testBulkTransactions");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async createBulkTransactions(accountId: string, payload: CreateTransactionPayload[]) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const result = await apiFetch<BulkTransactionsCreateResult>(`/transaction/${accountId}/bulk`, {
+                    method: "POST",
+                    body: payload,
+                });
+
+                await Promise.all([this.fetchTransactions(), this.fetchTransactionsByAccountId(accountId)]);
+
+                toast.success(i18nT("transaction.store.success.bulkTransactionsCreated", {count: result.insertedCount}));
+                return result;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.createBulkTransactions");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -127,13 +249,6 @@ export const useTransactionStore = defineStore("transaction", {
                     method: "PATCH",
                     body: payload,
                 });
-
-                this.transactions = this.transactions.map((transaction) =>
-                    transaction.id === transactionId ? updatedTransaction : transaction,
-                );
-                this.currentAccountTransactions = this.currentAccountTransactions.map((transaction) =>
-                    transaction.id === transactionId ? updatedTransaction : transaction,
-                );
 
                 toast.success(i18nT("transaction.store.success.transactionUpdated"));
                 return updatedTransaction;
@@ -154,21 +269,12 @@ export const useTransactionStore = defineStore("transaction", {
                     method: "DELETE",
                 });
 
-                this.transactions = this.transactions.filter((transaction) => transaction.id !== transactionId);
-                this.currentAccountTransactions = this.currentAccountTransactions.filter(
-                    (transaction) => transaction.id !== transactionId,
-                );
-
                 toast.success(i18nT("transaction.store.success.transactionDeleted"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.deleteTransaction");
                 toast.error(message);
                 throw new Error(message);
             }
-        },
-
-        clearCurrentAccountTransactions() {
-            this.currentAccountTransactions = [];
         },
     },
 });
