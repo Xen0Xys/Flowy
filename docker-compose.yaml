@@ -19,7 +19,7 @@ services:
     flowy-server:
         image: xen0xys/flowy-server:latest
         environment:
-            DATABASE_URL: postgres://${POSTGRES_USER:-flowy}:${POSTGRES_PASSWORD:-flowy}@postgres:5432/${POSTGRES_DB:-flowy}
+            DATABASE_URL: postgres://${POSTGRES_USER:-flowy}:${POSTGRES_PASSWORD:-flowy}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
             APP_NAME: Flowy Server
             APP_SECRET: ${APP_SECRET:-change-me}
             PREFIX: ${APP_PREFIX:-}
