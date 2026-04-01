@@ -15,14 +15,7 @@ import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Badge} from "~/components/ui/badge";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "~/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {
@@ -47,7 +40,7 @@ const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
 const transactionStore = useTransactionStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
-const {locale, t} = useI18n();
+const {locale, t, te} = useI18n();
 
 const accountId = route.params.id as string;
 const isLoading = ref(true);
@@ -62,6 +55,14 @@ const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> 
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
+const accountTypeLabel = computed(() => {
+    const type = account.value?.type;
+    if (!type) return "";
+
+    const normalizedType = type.toLowerCase();
+    const key = `accounts.types.${normalizedType}`;
+    return te(key) ? t(key) : type;
+});
 
 const chartColor = computed(() => {
     const series = evolutionSeries.value;
@@ -220,7 +221,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                                     {{ account.name }}
                                 </h1>
                                 <div class="mt-1 flex flex-wrap items-center gap-2">
-                                    <Badge variant="secondary">{{ account.type }}</Badge>
+                                    <Badge variant="secondary">{{ accountTypeLabel }}</Badge>
                                     <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
                                         {{ t("account.updatedOn", {date: formatDate(account.updatedAt)}) }}
                                     </span>
