@@ -4,11 +4,6 @@ import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
-const i18nT = (key: string, params?: Record<string, unknown>) => {
-    const i18n = useNuxtApp().$i18n;
-    return (params ? (i18n?.t(key, params) as string | undefined) : (i18n?.t(key) as string | undefined)) ?? key;
-};
-
 export type TransactionMerchant = {
     id: string;
     userId: string;
@@ -192,11 +187,6 @@ export const useTransactionStore = defineStore("transaction", {
                     body: payload,
                 });
 
-                this.transactions = [newTransaction, ...this.transactions];
-                if (newTransaction.accountId === accountId) {
-                    this.currentAccountTransactions = [newTransaction, ...this.currentAccountTransactions];
-                }
-
                 toast.success(i18nT("transaction.store.success.transactionCreated"));
                 return newTransaction;
             } catch (err: any) {
@@ -256,13 +246,6 @@ export const useTransactionStore = defineStore("transaction", {
                     body: payload,
                 });
 
-                this.transactions = this.transactions.map((transaction) =>
-                    transaction.id === transactionId ? updatedTransaction : transaction,
-                );
-                this.currentAccountTransactions = this.currentAccountTransactions.map((transaction) =>
-                    transaction.id === transactionId ? updatedTransaction : transaction,
-                );
-
                 toast.success(i18nT("transaction.store.success.transactionUpdated"));
                 return updatedTransaction;
             } catch (err: any) {
@@ -282,21 +265,12 @@ export const useTransactionStore = defineStore("transaction", {
                     method: "DELETE",
                 });
 
-                this.transactions = this.transactions.filter((transaction) => transaction.id !== transactionId);
-                this.currentAccountTransactions = this.currentAccountTransactions.filter(
-                    (transaction) => transaction.id !== transactionId,
-                );
-
                 toast.success(i18nT("transaction.store.success.transactionDeleted"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.deleteTransaction");
                 toast.error(message);
                 throw new Error(message);
             }
-        },
-
-        clearCurrentAccountTransactions() {
-            this.currentAccountTransactions = [];
         },
     },
 });

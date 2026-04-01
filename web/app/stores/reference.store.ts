@@ -5,11 +5,6 @@ import {useUserStore} from "~/stores/user.store";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
 import {i18nT} from "~/utils/i18n";
 
-const i18nT = (key: string, params?: Record<string, unknown>) => {
-    const i18n = useNuxtApp().$i18n;
-    return (params ? (i18n?.t(key, params) as string | undefined) : (i18n?.t(key) as string | undefined)) ?? key;
-};
-
 type CreateCategoryPayload = {
     name: string;
     hexColor: string;

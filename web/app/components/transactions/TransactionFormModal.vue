@@ -345,7 +345,6 @@ const executeDelete = async () => {
                     {{ t("common.delete") }}
                 </Button>
             </div>
-            </div>
         </DialogContent>
     </Dialog>
 

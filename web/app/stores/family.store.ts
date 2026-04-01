@@ -4,11 +4,6 @@ import {useApi} from "~/composables/useApi";
 import {type User, useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
-const i18nT = (key: string, params?: Record<string, unknown>) => {
-    const i18n = useNuxtApp().$i18n;
-    return (params ? (i18n?.t(key, params) as string | undefined) : (i18n?.t(key) as string | undefined)) ?? key;
-};
-
 export type Family = {
     name: string;
     currency: string;

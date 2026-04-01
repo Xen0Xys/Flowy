@@ -53,7 +53,7 @@ function handleHasHeadersChange(value: boolean) {
                 <h2 class="text-lg font-semibold">{{ t("import.config.title") }}</h2>
                 <p class="text-muted-foreground text-sm">{{ t("import.config.description") }}</p>
                 <p v-if="fileName" class="text-muted-foreground mt-1 text-xs">
-                    <Icon name="iconoir:file" class="mr-1 inline h-3 w-3" />
+                    <Icon class="mr-1 inline h-3 w-3" name="iconoir:submit-document" />
                     {{ fileName }}
                 </p>
             </div>
