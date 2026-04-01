@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import {useMediaQuery, useStorage} from "@vueuse/core";
 import {useRouter} from "vue-router";
 import {useFamilyStore} from "~/stores/family.store";
@@ -36,9 +37,11 @@ import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from 
 import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
 
-const chartConfig = {
-    balance: {label: "Balance", color: "#2563eb"},
-};
+const {locale, t} = useI18n();
+
+const chartConfig = computed(() => ({
+    balance: {label: t("dashboard.balance"), color: "#2563eb"},
+}));
 
 const x = (d: {date: string}) => new Date(d.date).getTime();
 const y = (d: {balance: number}) => d.balance;
@@ -165,14 +168,14 @@ const formatCompactCurrency = (value: number) => {
                         <Icon class="icon-lg text-amber-500" name="iconoir:bank" />
                         <div>
                             <h1 class="text-2xl font-bold tracking-tight">
-                                Welcome, {{ userStore.user?.username ?? "User" }}
+                                {{ t("dashboard.welcome", {name: userStore.user?.username ?? t("common.user")}) }}
                             </h1>
-                            <p class="text-muted-foreground text-sm">Here's your financial overview</p>
+                            <p class="text-muted-foreground text-sm">{{ t("dashboard.subtitle") }}</p>
                         </div>
                     </div>
                     <Button @click="openCreateModal">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
-                        Add account
+                        {{ t("dashboard.addAccount") }}
                     </Button>
                 </div>
 
@@ -189,11 +192,11 @@ const formatCompactCurrency = (value: number) => {
                     v-else-if="accountStore.accounts.length === 0"
                     class="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
                     <Icon class="text-muted-foreground mb-4 h-12 w-12" name="iconoir:wallet" />
-                    <h3 class="text-lg font-medium">No accounts yet</h3>
+                    <h3 class="text-lg font-medium">{{ t("dashboard.noAccountsTitle") }}</h3>
                     <p class="text-muted-foreground mt-1 mb-4">
-                        Create your first bank account to start tracking your finances.
+                        {{ t("dashboard.noAccountsDescription") }}
                     </p>
-                    <Button @click="openCreateModal">Create my first account</Button>
+                    <Button @click="openCreateModal">{{ t("dashboard.createFirstAccount") }}</Button>
                 </div>
 
                 <template v-else>
@@ -201,12 +204,14 @@ const formatCompactCurrency = (value: number) => {
                     <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
-                                <h3 class="text-muted-foreground text-sm font-medium">Total Balance</h3>
+                                <h3 class="text-muted-foreground text-sm font-medium">
+                                    {{ t("dashboard.totalBalance") }}
+                                </h3>
                                 <div class="mt-1 text-3xl font-bold">
                                     {{ formatCurrency(totalBalance) }}
                                 </div>
                                 <p class="text-muted-foreground mt-1 text-sm">
-                                    Across {{ accountStore.accounts.length }} account(s)
+                                    {{ t("dashboard.acrossAccounts", {count: accountStore.accounts.length}) }}
                                 </p>
                             </div>
                             <Tabs v-model="timeRange" class="w-auto">
@@ -216,7 +221,7 @@ const formatCompactCurrency = (value: number) => {
                                     <TabsTrigger value="3M">3M</TabsTrigger>
                                     <TabsTrigger value="6M">6M</TabsTrigger>
                                     <TabsTrigger value="1Y">1Y</TabsTrigger>
-                                    <TabsTrigger value="ALL">All</TabsTrigger>
+                                    <TabsTrigger value="ALL">{{ t("common.all") }}</TabsTrigger>
                                 </TabsList>
                             </Tabs>
                         </div>
@@ -272,7 +277,7 @@ const formatCompactCurrency = (value: number) => {
                                                 :numTicks="isMobile ? 3 : undefined"
                                                 :tickFormat="
                                                     (d: number) =>
-                                                        new Date(d).toLocaleDateString('en-US', {
+                                                        new Date(d).toLocaleDateString(locale.value || 'en-US', {
                                                             month: 'short',
                                                             day: 'numeric',
                                                         })
@@ -289,7 +294,7 @@ const formatCompactCurrency = (value: number) => {
                                                     (d: any) => `
                                             <div class='flex flex-col gap-1 rounded-lg border bg-background p-2 shadow-sm'>
                                                 <span class='text-[0.70rem] uppercase text-muted-foreground'>
-                                                    ${new Date(d.date).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}
+                                                    ${new Date(d.date).toLocaleDateString(locale.value || 'en-US', {year: 'numeric', month: 'long', day: 'numeric'})}
                                                 </span>
                                                 <span class='font-bold text-muted-foreground'>
                                                     ${formatCurrency(d.balance)}
@@ -333,13 +338,13 @@ const formatCompactCurrency = (value: number) => {
                                             class="text-muted-foreground h-5 w-5 transition-transform" />
                                         <h3 class="flex items-center gap-2 text-lg font-semibold">
                                             <Icon class="text-muted-foreground h-5 w-5" name="iconoir:folder" />
-                                            {{ category.type }}
+                                            {{ t(`accounts.types.${category.type.toLowerCase()}`) }}
                                         </h3>
                                     </div>
                                     <div class="flex items-center gap-4 text-sm">
-                                        <span class="text-muted-foreground hidden sm:inline"
-                                            >{{ category.percentage.toFixed(1) }}% of total</span
-                                        >
+                                        <span class="text-muted-foreground hidden sm:inline">{{
+                                            t("dashboard.percentOfTotal", {value: category.percentage.toFixed(1)})
+                                        }}</span>
                                         <span class="text-base font-bold">{{ formatCurrency(category.value) }}</span>
                                     </div>
                                 </CollapsibleTrigger>
@@ -354,7 +359,11 @@ const formatCompactCurrency = (value: number) => {
                                             <div class="flex flex-col">
                                                 <span class="font-medium">{{ account.name }}</span>
                                                 <span class="text-muted-foreground mt-1 text-xs">
-                                                    {{ account.percentageOfCategory.toFixed(1) }}% of category
+                                                    {{
+                                                        t("dashboard.percentOfCategory", {
+                                                            value: account.percentageOfCategory.toFixed(1),
+                                                        })
+                                                    }}
                                                 </span>
                                             </div>
 
@@ -374,13 +383,13 @@ const formatCompactCurrency = (value: number) => {
                                                     <DropdownMenuContent align="end" @click.stop>
                                                         <DropdownMenuItem @click.stop="openEditModal(account)">
                                                             <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
-                                                            Edit
+                                                            {{ t("common.edit") }}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
                                                             class="text-destructive focus:text-destructive"
                                                             @click.stop="confirmDelete(account)">
                                                             <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
-                                                            Delete
+                                                            {{ t("common.delete") }}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -399,18 +408,17 @@ const formatCompactCurrency = (value: number) => {
                 <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. The account "{{ accountToDelete?.name }}" and all its
-                                associated data will be deleted.
+                                {{ t("dashboard.deleteAccountDescription", {name: accountToDelete?.name ?? ""}) }}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
                             <AlertDialogAction
                                 class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 @click="executeDelete">
-                                Delete
+                                {{ t("common.delete") }}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

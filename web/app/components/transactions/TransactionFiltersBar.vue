@@ -2,6 +2,7 @@
 import {computed, ref, watch} from "vue";
 import type {DateRange} from "reka-ui";
 import {useMediaQuery} from "@vueuse/core";
+import {useI18n} from "vue-i18n";
 
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -33,6 +34,7 @@ const emit = defineEmits<{
 }>();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
+const {t} = useI18n();
 
 // Local state to avoid mutating props directly
 const filters = ref<TransactionFilters>({...props.modelValue});
@@ -99,13 +101,13 @@ const resetFilters = () => {
                             class="pl-8"
                             :placeholder="
                                 props.showAccountFilter
-                                    ? 'Search description, category, merchant, account...'
-                                    : 'Search description, category, merchant...'
+                                    ? t('transactions.filters.searchWithAccount')
+                                    : t('transactions.filters.search')
                             " />
                     </div>
                     <Button v-if="hasActiveFilters" class="h-9 px-3" size="sm" variant="ghost" @click="resetFilters">
                         <Icon class="h-4 w-4" name="iconoir:cancel" />
-                        Clear filters
+                        {{ t("transactions.filters.clear") }}
                     </Button>
                 </div>
             </div>
@@ -114,21 +116,21 @@ const resetFilters = () => {
             <div class="flex flex-wrap items-center gap-2">
                 <Select v-model="filters.type">
                     <SelectTrigger class="w-35">
-                        <SelectValue placeholder="Type" />
+                        <SelectValue :placeholder="t('transactions.filters.type')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="income">Income</SelectItem>
-                        <SelectItem value="expense">Expense</SelectItem>
+                        <SelectItem value="all">{{ t("transactions.filters.allTypes") }}</SelectItem>
+                        <SelectItem value="income">{{ t("transactions.filters.income") }}</SelectItem>
+                        <SelectItem value="expense">{{ t("transactions.filters.expense") }}</SelectItem>
                     </SelectContent>
                 </Select>
 
                 <Select v-if="props.showAccountFilter" v-model="filters.accountId">
                     <SelectTrigger class="w-[170px]">
-                        <SelectValue placeholder="Account" />
+                        <SelectValue :placeholder="t('transactions.filters.account')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Accounts</SelectItem>
+                        <SelectItem value="all">{{ t("transactions.filters.allAccounts") }}</SelectItem>
                         <SelectItem
                             v-for="account in props.availableAccounts || []"
                             :key="account.id"
@@ -140,10 +142,10 @@ const resetFilters = () => {
 
                 <Select v-model="filters.categoryId">
                     <SelectTrigger class="w-40">
-                        <SelectValue placeholder="Category" />
+                        <SelectValue :placeholder="t('transactions.filters.category')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="all">{{ t("transactions.filters.allCategories") }}</SelectItem>
                         <SelectItem v-for="category in availableCategories" :key="category.id" :value="category.id">
                             {{ category.name }}
                         </SelectItem>
@@ -152,10 +154,10 @@ const resetFilters = () => {
 
                 <Select v-model="filters.merchantId">
                     <SelectTrigger class="w-[160px]">
-                        <SelectValue placeholder="Merchant" />
+                        <SelectValue :placeholder="t('transactions.filters.merchant')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Merchants</SelectItem>
+                        <SelectItem value="all">{{ t("transactions.filters.allMerchants") }}</SelectItem>
                         <SelectItem v-for="merchant in availableMerchants" :key="merchant.id" :value="merchant.id">
                             {{ merchant.name }}
                         </SelectItem>
@@ -164,12 +166,12 @@ const resetFilters = () => {
 
                 <Select v-model="filters.rebalance">
                     <SelectTrigger class="w-40">
-                        <SelectValue placeholder="Rebalance" />
+                        <SelectValue :placeholder="t('transactions.filters.rebalance')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Include Rebalance</SelectItem>
-                        <SelectItem value="exclude">Exclude Rebalance</SelectItem>
-                        <SelectItem value="only">Only Rebalance</SelectItem>
+                        <SelectItem value="all">{{ t("transactions.filters.includeRebalance") }}</SelectItem>
+                        <SelectItem value="exclude">{{ t("transactions.filters.excludeRebalance") }}</SelectItem>
+                        <SelectItem value="only">{{ t("transactions.filters.onlyRebalance") }}</SelectItem>
                     </SelectContent>
                 </Select>
 
@@ -181,7 +183,7 @@ const resetFilters = () => {
         <div class="flex items-center gap-2 md:hidden">
             <div class="relative flex-1">
                 <Icon class="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" name="iconoir:search" />
-                <Input v-model="filters.search" class="pl-8" placeholder="Search..." />
+                <Input v-model="filters.search" class="pl-8" :placeholder="t('transactions.filters.searchMobile')" />
             </div>
 
             <Sheet v-model:open="isSheetOpen">
@@ -198,7 +200,7 @@ const resetFilters = () => {
                 <SheetContent class="h-[85vh] rounded-t-xl" side="bottom">
                     <SheetHeader class="mb-6 text-left">
                         <div class="flex items-center justify-between">
-                            <SheetTitle>Filters</SheetTitle>
+                            <SheetTitle>{{ t("transactions.filters.title") }}</SheetTitle>
                             <Button
                                 v-if="hasActiveFilters"
                                 class="-mr-2 h-8 px-2"
@@ -206,7 +208,7 @@ const resetFilters = () => {
                                 variant="ghost"
                                 @click="resetFilters">
                                 <Icon class="h-4 w-4" name="iconoir:cancel" />
-                                Clear filters
+                                {{ t("transactions.filters.clear") }}
                             </Button>
                         </div>
                     </SheetHeader>
@@ -215,7 +217,7 @@ const resetFilters = () => {
                         <div class="space-y-2">
                             <label
                                 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Date Range
+                                {{ t("transactions.filters.dateRange") }}
                             </label>
                             <TransactionDateRangePicker v-model="filters.dateRange" class="w-full" />
                         </div>
@@ -223,16 +225,16 @@ const resetFilters = () => {
                         <div class="space-y-2">
                             <label
                                 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Type
+                                {{ t("transactions.filters.type") }}
                             </label>
                             <Select v-model="filters.type">
                                 <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Type" />
+                                    <SelectValue :placeholder="t('transactions.filters.type')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Types</SelectItem>
-                                    <SelectItem value="income">Income</SelectItem>
-                                    <SelectItem value="expense">Expense</SelectItem>
+                                    <SelectItem value="all">{{ t("transactions.filters.allTypes") }}</SelectItem>
+                                    <SelectItem value="income">{{ t("transactions.filters.income") }}</SelectItem>
+                                    <SelectItem value="expense">{{ t("transactions.filters.expense") }}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -240,14 +242,14 @@ const resetFilters = () => {
                         <div v-if="props.showAccountFilter" class="space-y-2">
                             <label
                                 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Account
+                                {{ t("transactions.filters.account") }}
                             </label>
                             <Select v-model="filters.accountId">
                                 <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Account" />
+                                    <SelectValue :placeholder="t('transactions.filters.account')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Accounts</SelectItem>
+                                    <SelectItem value="all">{{ t("transactions.filters.allAccounts") }}</SelectItem>
                                     <SelectItem
                                         v-for="account in props.availableAccounts || []"
                                         :key="account.id"
@@ -261,14 +263,14 @@ const resetFilters = () => {
                         <div class="space-y-2">
                             <label
                                 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Category
+                                {{ t("transactions.filters.category") }}
                             </label>
                             <Select v-model="filters.categoryId">
                                 <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Category" />
+                                    <SelectValue :placeholder="t('transactions.filters.category')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
+                                    <SelectItem value="all">{{ t("transactions.filters.allCategories") }}</SelectItem>
                                     <SelectItem
                                         v-for="category in availableCategories"
                                         :key="category.id"
@@ -282,14 +284,14 @@ const resetFilters = () => {
                         <div class="space-y-2">
                             <label
                                 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Merchant
+                                {{ t("transactions.filters.merchant") }}
                             </label>
                             <Select v-model="filters.merchantId">
                                 <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Merchant" />
+                                    <SelectValue :placeholder="t('transactions.filters.merchant')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Merchants</SelectItem>
+                                    <SelectItem value="all">{{ t("transactions.filters.allMerchants") }}</SelectItem>
                                     <SelectItem
                                         v-for="merchant in availableMerchants"
                                         :key="merchant.id"
@@ -303,22 +305,26 @@ const resetFilters = () => {
                         <div class="space-y-2">
                             <label
                                 class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Rebalance
+                                {{ t("transactions.filters.rebalance") }}
                             </label>
                             <Select v-model="filters.rebalance">
                                 <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Rebalance" />
+                                    <SelectValue :placeholder="t('transactions.filters.rebalance')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Include Rebalance</SelectItem>
-                                    <SelectItem value="exclude">Exclude Rebalance</SelectItem>
-                                    <SelectItem value="only">Only Rebalance</SelectItem>
+                                    <SelectItem value="all">{{ t("transactions.filters.includeRebalance") }}</SelectItem>
+                                    <SelectItem value="exclude">{{
+                                        t("transactions.filters.excludeRebalance")
+                                    }}</SelectItem>
+                                    <SelectItem value="only">{{ t("transactions.filters.onlyRebalance") }}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div class="mt-2">
-                            <Button class="w-full" @click="isSheetOpen = false">Apply Filters</Button>
+                            <Button class="w-full" @click="isSheetOpen = false">
+                                {{ t("transactions.filters.apply") }}
+                            </Button>
                         </div>
                     </div>
                 </SheetContent>

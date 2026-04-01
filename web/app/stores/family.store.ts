@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {type User, useUserStore} from "~/stores/user.store";
+import {i18nT} from "~/utils/i18n";
 
 export type Family = {
     name: string;
@@ -25,7 +26,7 @@ export const useFamilyStore = defineStore("family", {
                 this.family = family;
                 return family;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching family";
+                const message = err?.message ?? i18nT("family.store.errors.fetchFamily");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -42,10 +43,10 @@ export const useFamilyStore = defineStore("family", {
                 });
                 // server updates user's family; refresh profile to keep store in sync
                 await userStore.fetchProfile();
-                toast.success("Family created");
+                toast.success(i18nT("family.store.success.familyCreated"));
                 return family;
             } catch (err: any) {
-                const message = err?.message ?? "Failed creating family";
+                const message = err?.message ?? i18nT("family.store.errors.createFamily");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -60,10 +61,10 @@ export const useFamilyStore = defineStore("family", {
                     method: "POST",
                     body: {email},
                 });
-                toast.success("Invite created");
+                toast.success(i18nT("family.store.success.inviteCreated"));
                 return data;
             } catch (err: any) {
-                const message = err?.message ?? "Failed creating invite";
+                const message = err?.message ?? i18nT("family.store.errors.createInvite");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -76,7 +77,7 @@ export const useFamilyStore = defineStore("family", {
             try {
                 return await apiFetch<any[]>("/family/invites");
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching invites";
+                const message = err?.message ?? i18nT("family.store.errors.fetchInvites");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -90,9 +91,9 @@ export const useFamilyStore = defineStore("family", {
                 await apiFetch(`/family/invites/${code}`, {
                     method: "DELETE",
                 });
-                toast.success("Invite revoked");
+                toast.success(i18nT("family.store.success.inviteRevoked"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed revoking invite";
+                const message = err?.message ?? i18nT("family.store.errors.revokeInvite");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -108,9 +109,9 @@ export const useFamilyStore = defineStore("family", {
                 });
                 // server changed user's family; refresh profile
                 await userStore.fetchProfile();
-                toast.success("Joined family");
+                toast.success(i18nT("family.store.success.joinedFamily"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed joining family";
+                const message = err?.message ?? i18nT("family.store.errors.joinFamily");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -124,9 +125,9 @@ export const useFamilyStore = defineStore("family", {
                 await apiFetch("/family/quit", {method: "DELETE"});
                 // server removed user's family; refresh profile
                 await userStore.fetchProfile();
-                toast.success("Left family");
+                toast.success(i18nT("family.store.success.leftFamily"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed leaving family";
+                const message = err?.message ?? i18nT("family.store.errors.leaveFamily");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -145,10 +146,10 @@ export const useFamilyStore = defineStore("family", {
                     if (body.name) this.family.name = body.name;
                     if (body.currency) this.family.currency = body.currency;
                 }
-                toast.success("Family updated");
+                toast.success(i18nT("family.store.success.familyUpdated"));
                 return family;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating family";
+                const message = err?.message ?? i18nT("family.store.errors.updateFamily");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -165,16 +166,16 @@ export const useFamilyStore = defineStore("family", {
                 });
                 // refresh profile and return success
                 await userStore.fetchProfile();
-                toast.success("Member removed");
+                toast.success(i18nT("family.store.success.memberRemoved"));
                 return true;
             } catch (err: any) {
                 // If endpoint missing, give a helpful message
                 if (err?.status === 404 || err?.response?.status === 404) {
-                    const msg = "Remove member endpoint not found on server";
+                    const msg = i18nT("family.store.errors.removeMemberEndpointMissing");
                     toast.error(msg);
                     throw new Error(msg);
                 }
-                const message = err?.message ?? "Failed removing member";
+                const message = err?.message ?? i18nT("family.store.errors.removeMember");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -189,15 +190,15 @@ export const useFamilyStore = defineStore("family", {
                 await apiFetch(`/family`, {method: "DELETE"});
                 // After deletion, clear user's family info by refreshing profile
                 await userStore.fetchProfile();
-                toast.success("Family deleted");
+                toast.success(i18nT("family.store.success.familyDeleted"));
                 return true;
             } catch (err: any) {
                 if (err?.status === 404 || err?.response?.status === 404) {
-                    const msg = "Delete family endpoint not found on server";
+                    const msg = i18nT("family.store.errors.deleteFamilyEndpointMissing");
                     toast.error(msg);
                     throw new Error(msg);
                 }
-                const message = err?.message ?? "Failed deleting family";
+                const message = err?.message ?? i18nT("family.store.errors.deleteFamily");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -210,7 +211,7 @@ export const useFamilyStore = defineStore("family", {
             try {
                 return await apiFetch<Family>(`/admin/family/${familyId}`);
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching family";
+                const message = err?.message ?? i18nT("family.store.errors.fetchFamily");
                 toast.error(message);
                 throw new Error(message);
             }

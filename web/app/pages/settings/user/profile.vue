@@ -2,7 +2,7 @@
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
-import {computed, onMounted, ref, watchEffect} from "vue";
+import {computed, onMounted, ref, watch, watchEffect} from "vue";
 import {Card} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
+import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {
     isValidEmail,
@@ -33,6 +34,47 @@ import {
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const colorMode = useColorMode();
+const {t, locale, locales, setLocale} = useI18n();
+const localeCookie = useCookie<string | null>("i18n_redirected");
+
+function resolveBrowserLocale(): "en" | "fr" {
+    if (process.client) {
+        const browserLocales = [...(navigator.languages || []), navigator.language].filter(Boolean);
+        for (const browserLocale of browserLocales) {
+            const normalizedLocale = browserLocale.toLowerCase();
+            if (normalizedLocale.startsWith("fr")) return "fr";
+            if (normalizedLocale.startsWith("en")) return "en";
+        }
+    }
+
+    return "en";
+}
+
+const languagePreference = computed<string>({
+    get: () => {
+        if (localeCookie.value === "en" || localeCookie.value === "fr") {
+            return localeCookie.value;
+        }
+
+        return "browser";
+    },
+    set: (value) => {
+        if (value === "browser") {
+            // Properly sequence: await locale change, then clear cookie once
+            void (async () => {
+                localeCookie.value = null;
+                await setLocale(resolveBrowserLocale());
+            })();
+            return;
+        }
+
+        if (value === "en" || value === "fr") {
+            void setLocale(value);
+        }
+    },
+});
+
+const availableLocales = computed(() => locales.value.filter((entry) => entry.code === "en" || entry.code === "fr"));
 
 const initials = computed(() => {
     const name = userStore.user?.username ?? username.value ?? "";
@@ -43,12 +85,12 @@ const initials = computed(() => {
 });
 const avatarUrl = computed(() => userStore.user?.avatar || "");
 
-const effectiveRole = ref("Member");
+const effectiveRole = ref("");
 
 async function computeEffectiveRole() {
-    if (await userStore.isInstanceOwner) effectiveRole.value = "Instance Owner";
-    else if (userStore.isFamilyAdmin) effectiveRole.value = "Family Admin";
-    else effectiveRole.value = "Family Member";
+    if (await userStore.isInstanceOwner) effectiveRole.value = t("profile.roles.instanceOwner");
+    else if (userStore.isFamilyAdmin) effectiveRole.value = t("profile.roles.familyAdmin");
+    else effectiveRole.value = t("profile.roles.familyMember");
 }
 
 const username = ref("");
@@ -69,7 +111,7 @@ const {apiFetch} = useApi();
 async function deleteAccountNow() {
     if (!userStore.token) return;
     if (!confirmPassword.value.trim()) {
-        toast.error("Current password is required to delete your account.");
+        toast.error(t("profile.errors.currentPasswordRequired"));
         return;
     }
     deleting.value = true;
@@ -78,13 +120,13 @@ async function deleteAccountNow() {
             method: "DELETE",
             body: {currentPassword: confirmPassword.value.trim()},
         });
-        toast.success("Account deleted");
+        toast.success(t("profile.toasts.accountDeleted"));
         deleting.value = false;
         // always clear local session
         authStore.logout();
         await useRouter().push("/auth/login");
     } catch (err: any) {
-        const message = err?.data?.message ?? err?.message ?? "Failed deleting account";
+        const message = err?.data?.message ?? err?.message ?? t("profile.errors.deleteAccountFailed");
         toast.error(message);
         throw new Error(message);
     }
@@ -99,13 +141,18 @@ onMounted(async () => {
     await computeEffectiveRole();
 });
 
+// Recompute role when language changes
+watch(locale, async () => {
+    await computeEffectiveRole();
+});
+
 // instance ownership is fetched alongside profile (see token watcher)
 
 async function saveUsernameOnly() {
     if (!userStore.token) return;
     const nextUsername = username.value.trim();
     if (!isValidUsername(nextUsername)) {
-        toast.error(`Username must be between ${USERNAME_MIN_LENGTH} and ${USERNAME_MAX_LENGTH} characters.`);
+        toast.error(t("profile.errors.usernameLength", {min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH}));
         return;
     }
 
@@ -122,7 +169,7 @@ async function saveEmailOnly() {
     if (!userStore.token) return;
     const nextEmail = email.value.trim();
     if (!isValidEmail(nextEmail)) {
-        toast.error("Please enter a valid email address.");
+        toast.error(t("auth.common.errors.invalidEmail"));
         return;
     }
 
@@ -141,12 +188,12 @@ async function changePasswordNow() {
     const next = newPassword.value;
 
     if (!current || !next) {
-        toast.error("Current password and new password are required.");
+        toast.error(t("profile.errors.passwordsRequired"));
         return;
     }
 
     if (!isValidPassword(next)) {
-        toast.error(`New password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
+        toast.error(t("profile.errors.passwordLength", {min: PASSWORD_MIN_LENGTH}));
         return;
     }
 
@@ -167,8 +214,8 @@ async function changePasswordNow() {
     <div class="w-full">
         <div class="mx-auto w-full max-w-6xl py-6">
             <div class="mb-6">
-                <h1 class="text-2xl font-semibold">Profile</h1>
-                <p class="text-muted-foreground text-sm">Manage your personal information and credentials</p>
+                <h1 class="text-2xl font-semibold">{{ t("profile.title") }}</h1>
+                <p class="text-muted-foreground text-sm">{{ t("profile.description") }}</p>
             </div>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -199,29 +246,33 @@ async function changePasswordNow() {
                 <main class="md:col-span-2">
                     <Card class="h-full" innerClass="p-6">
                         <div class="mb-6">
-                            <label class="mb-2 block text-sm font-medium">Username</label>
+                            <label class="mb-2 block text-sm font-medium">{{ t("profile.username") }}</label>
                             <div class="flex gap-3">
-                                <Input v-model="username" aria-label="Username" class="flex-1" placeholder="Username" />
+                                <Input
+                                    v-model="username"
+                                    :aria-label="t('profile.username')"
+                                    :placeholder="t('profile.username')"
+                                    class="flex-1" />
                                 <Button
                                     :disabled="savingUsername || !userStore.token"
                                     aria-label="Save username"
                                     size="sm"
                                     variant="default"
                                     @click="saveUsernameOnly">
-                                    <span v-if="!savingUsername">Save</span>
-                                    <span v-else>Saving...</span>
+                                    <span v-if="!savingUsername">{{ t("profile.save") }}</span>
+                                    <span v-else>{{ t("profile.saving") }}</span>
                                 </Button>
                             </div>
                         </div>
 
                         <div class="mb-6">
-                            <label class="mb-2 block text-sm font-medium">Email</label>
+                            <label class="mb-2 block text-sm font-medium">{{ t("profile.email") }}</label>
                             <div class="flex gap-3">
                                 <Input
                                     v-model="email"
-                                    aria-label="Email"
+                                    :aria-label="t('profile.email')"
+                                    :placeholder="t('profile.email')"
                                     class="flex-1"
-                                    placeholder="Email"
                                     type="email" />
                                 <Button
                                     :disabled="savingEmail || !userStore.token"
@@ -229,8 +280,8 @@ async function changePasswordNow() {
                                     size="sm"
                                     variant="default"
                                     @click="saveEmailOnly">
-                                    <span v-if="!savingEmail">Save</span>
-                                    <span v-else>Saving...</span>
+                                    <span v-if="!savingEmail">{{ t("profile.save") }}</span>
+                                    <span v-else>{{ t("profile.saving") }}</span>
                                 </Button>
                             </div>
                         </div>
@@ -238,16 +289,38 @@ async function changePasswordNow() {
                         <hr class="border-border my-4" />
 
                         <div class="mb-6">
-                            <label class="mb-2 block text-sm font-medium">Appearance</label>
+                            <label class="mb-2 block text-sm font-medium">{{ t("profile.appearance") }}</label>
                             <Select v-model="colorMode.preference">
                                 <SelectTrigger class="w-[180px]">
-                                    <SelectValue placeholder="Select a theme" />
+                                    <SelectValue :placeholder="t('profile.selectTheme')" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        <SelectItem value="system">System</SelectItem>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="dark">Dark</SelectItem>
+                                        <SelectItem value="system">{{ t("profile.system") }}</SelectItem>
+                                        <SelectItem value="light">{{ t("profile.light") }}</SelectItem>
+                                        <SelectItem value="dark">{{ t("profile.dark") }}</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <hr class="border-border my-4" />
+
+                        <div class="mb-6">
+                            <label class="mb-2 block text-sm font-medium">{{ t("profile.language") }}</label>
+                            <Select v-model="languagePreference">
+                                <SelectTrigger class="w-[180px]">
+                                    <SelectValue :placeholder="t('profile.selectLanguage')" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value="browser">{{ t("profile.browser") }}</SelectItem>
+                                        <SelectItem
+                                            v-for="availableLocale in availableLocales"
+                                            :key="availableLocale.code"
+                                            :value="availableLocale.code">
+                                            {{ availableLocale.name }}
+                                        </SelectItem>
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
@@ -256,20 +329,20 @@ async function changePasswordNow() {
                         <hr class="border-border my-4" />
 
                         <div>
-                            <label class="mb-2 block text-sm font-medium">Change password</label>
+                            <label class="mb-2 block text-sm font-medium">{{ t("profile.changePassword") }}</label>
                             <p class="text-muted-foreground mb-3 text-sm">
-                                Enter your current password and choose a new password.
+                                {{ t("profile.changePasswordDescription") }}
                             </p>
                             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <Input
                                     v-model="currentPassword"
-                                    aria-label="Current password"
-                                    placeholder="Current password"
+                                    :aria-label="t('profile.currentPassword')"
+                                    :placeholder="t('profile.currentPassword')"
                                     type="password" />
                                 <Input
                                     v-model="newPassword"
-                                    aria-label="New password"
-                                    placeholder="New password"
+                                    :aria-label="t('profile.newPassword')"
+                                    :placeholder="t('profile.newPassword')"
                                     type="password" />
                             </div>
                             <div class="mt-4 flex justify-end">
@@ -278,8 +351,8 @@ async function changePasswordNow() {
                                     aria-label="Change password"
                                     size="sm"
                                     @click="changePasswordNow">
-                                    <span v-if="!changingPassword">Change password</span>
-                                    <span v-else>Updating...</span>
+                                    <span v-if="!changingPassword">{{ t("profile.changePasswordButton") }}</span>
+                                    <span v-else>{{ t("profile.updating") }}</span>
                                 </Button>
                             </div>
                             <hr class="border-border my-4" />
@@ -287,34 +360,37 @@ async function changePasswordNow() {
                                 <AlertDialog>
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm font-medium">Danger zone</p>
-                                            <p class="text-muted-foreground text-xs">Permanently delete your account</p>
+                                            <p class="text-sm font-medium">{{ t("profile.dangerZone") }}</p>
+                                            <p class="text-muted-foreground text-xs">
+                                                {{ t("profile.dangerZoneDescription") }}
+                                            </p>
                                         </div>
                                         <AlertDialogTrigger>
-                                            <Button size="sm" variant="destructive">Delete account</Button>
+                                            <Button size="sm" variant="destructive">{{
+                                                t("profile.deleteAccount")
+                                            }}</Button>
                                         </AlertDialogTrigger>
                                     </div>
 
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete account</AlertDialogTitle>
+                                            <AlertDialogTitle>{{ t("profile.deleteDialogTitle") }}</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This action is irreversible. Please enter your current password to
-                                                confirm.
+                                                {{ t("profile.deleteDialogDescription") }}
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <div class="mt-4">
                                             <Input
                                                 v-model="confirmPassword"
-                                                aria-label="Confirm password"
-                                                placeholder="Current password"
+                                                :aria-label="t('profile.confirmPassword')"
+                                                :placeholder="t('profile.currentPassword')"
                                                 type="password" />
                                         </div>
                                         <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogCancel>{{ t("profile.cancel") }}</AlertDialogCancel>
                                             <AlertDialogAction :disabled="deleting" @click="deleteAccountNow">
-                                                <span v-if="!deleting">Delete</span>
-                                                <span v-else>Deleting...</span>
+                                                <span v-if="!deleting">{{ t("profile.delete") }}</span>
+                                                <span v-else>{{ t("profile.deleting") }}</span>
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>

@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
+import {i18nT} from "~/utils/i18n";
 
 export type LoginCredentials = {
     email: string;
@@ -65,17 +66,17 @@ export const useAuthStore = defineStore("auth", {
                     body: credentials,
                 });
                 if (!data || !data.token) {
-                    toast.error("Login failed: missing token from server");
-                    throw new Error("Login response missing token");
+                    toast.error(i18nT("auth.store.errors.loginMissingToken"));
+                    throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
                 }
 
                 this.setToken(data.token);
                 const userStore = useUserStore();
                 userStore.user = data.user ?? null;
-                toast.success("Connected");
+                toast.success(i18nT("auth.store.success.connected"));
                 return data;
             } catch (err: any) {
-                const message = err?.data?.message ?? err?.message ?? "Login failed";
+                const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.loginFailed");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -89,17 +90,17 @@ export const useAuthStore = defineStore("auth", {
                     body: payload,
                 });
                 if (!data || !data.token) {
-                    toast.error("Registration failed: missing token from server");
-                    throw new Error("Register response missing token");
+                    toast.error(i18nT("auth.store.errors.registerMissingToken"));
+                    throw new Error(i18nT("auth.store.errors.registerResponseMissingToken"));
                 }
 
                 this.setToken(data.token);
                 const userStore = useUserStore();
                 userStore.user = data.user ?? null;
-                toast.success("Account created");
+                toast.success(i18nT("auth.store.success.accountCreated"));
                 return data;
             } catch (err: any) {
-                const message = err?.data?.message ?? err?.message ?? "Registration failed";
+                const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.registrationFailed");
                 toast.error(message);
                 throw new Error(message);
             }

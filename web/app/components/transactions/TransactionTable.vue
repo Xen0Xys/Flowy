@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref} from "vue";
+import {useI18n} from "vue-i18n";
 import {
     type ColumnDef,
     FlexRender,
@@ -32,6 +33,7 @@ const emit = defineEmits<{
 
 const familyStore = useFamilyStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
+const {locale, t} = useI18n();
 
 const sorting = ref<SortingState>([{id: "date", desc: true}]);
 
@@ -41,7 +43,7 @@ const formatCurrency = (value: number) => {
 };
 
 const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(locale.value || "en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -59,12 +61,12 @@ const columns = computed<ColumnDef<Transaction>[]>(() => {
         return [
             {
                 accessorKey: "date",
-                header: "Date",
+                header: t("transactions.table.date"),
                 enableSorting: true,
             },
             {
                 accessorKey: "description",
-                header: "Description",
+                header: t("transactions.table.description"),
                 enableSorting: true,
             },
         ];
@@ -73,23 +75,23 @@ const columns = computed<ColumnDef<Transaction>[]>(() => {
     const baseColumns: ColumnDef<Transaction>[] = [
         {
             accessorKey: "date",
-            header: "Date",
+            header: t("transactions.table.date"),
             enableSorting: true,
         },
         {
             accessorKey: "description",
-            header: "Description",
+            header: t("transactions.table.description"),
             enableSorting: true,
         },
         {
             id: "category",
             accessorFn: (row) => row.category?.name || "-",
-            header: "Category",
+            header: t("transactions.table.category"),
             enableSorting: true,
         },
         {
             accessorKey: "amount",
-            header: "Amount",
+            header: t("transactions.table.amount"),
             enableSorting: true,
         },
     ];
@@ -101,7 +103,7 @@ const columns = computed<ColumnDef<Transaction>[]>(() => {
     const accountColumn: ColumnDef<Transaction> = {
         id: "account",
         accessorFn: (row) => props.accountNameById?.[row.accountId] || "-",
-        header: "Account",
+        header: t("transactions.table.account"),
         enableSorting: true,
     };
 
@@ -206,7 +208,7 @@ const table = useVueTable({
                                 v-if="row.original.isRebalance"
                                 class="text-muted-foreground flex w-fit items-center gap-1.5 border-dashed bg-transparent px-2 py-0.5 whitespace-nowrap hover:bg-transparent"
                                 variant="outline">
-                                System
+                                {{ t("transactions.table.system") }}
                             </Badge>
                             <Badge
                                 v-else-if="row.original.category"
@@ -239,7 +241,7 @@ const table = useVueTable({
 
                 <TableRow v-if="table.getRowModel().rows.length === 0">
                     <TableCell :colspan="columns.length" class="text-muted-foreground h-24 text-center">
-                        {{ isFiltered ? "No transactions match your filters." : "No transactions found." }}
+                        {{ isFiltered ? t("transactions.table.noMatch") : t("transactions.table.noTransactions") }}
                     </TableCell>
                 </TableRow>
             </TableBody>

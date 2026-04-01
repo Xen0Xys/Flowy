@@ -252,6 +252,26 @@ describe("TransactionController (e2e)", () => {
         );
     });
 
+    test("rejects creating transaction with zero amount", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Main", type: "CHECKING"});
+
+        const create = await agent
+            .post(`/transaction/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: 0,
+                description: "Should fail",
+                date: "2026-01-15T12:00:00.000Z",
+            });
+
+        expect(create.status).toBe(400);
+        expect(create.body.message).toEqual(expect.arrayContaining([expect.objectContaining({property: "amount"})]));
+    });
+
     test("returns 404 when account or transaction does not exist", async () => {
         const user = await registerUser(server);
         const missingAccountId = "0195c8dd-c263-7569-99f6-9fc20aca3050";

@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
+import {i18nT} from "~/utils/i18n";
 
 export type TransactionMerchant = {
     id: string;
@@ -69,7 +70,7 @@ export const useTransactionStore = defineStore("transaction", {
                 this.transactions = transactions;
                 return transactions;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching transactions";
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -85,7 +86,7 @@ export const useTransactionStore = defineStore("transaction", {
                 this.currentAccountTransactions = transactions;
                 return transactions;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching account transactions";
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -107,10 +108,10 @@ export const useTransactionStore = defineStore("transaction", {
                     this.currentAccountTransactions = [newTransaction, ...this.currentAccountTransactions];
                 }
 
-                toast.success("Transaction created");
+                toast.success(i18nT("transaction.store.success.transactionCreated"));
                 return newTransaction;
             } catch (err: any) {
-                const message = err?.message ?? "Failed creating transaction";
+                const message = err?.message ?? i18nT("transaction.store.errors.createTransaction");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -134,10 +135,10 @@ export const useTransactionStore = defineStore("transaction", {
                     transaction.id === transactionId ? updatedTransaction : transaction,
                 );
 
-                toast.success("Transaction updated");
+                toast.success(i18nT("transaction.store.success.transactionUpdated"));
                 return updatedTransaction;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating transaction";
+                const message = err?.message ?? i18nT("transaction.store.errors.updateTransaction");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -158,9 +159,9 @@ export const useTransactionStore = defineStore("transaction", {
                     (transaction) => transaction.id !== transactionId,
                 );
 
-                toast.success("Transaction deleted");
+                toast.success(i18nT("transaction.store.success.transactionDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed deleting transaction";
+                const message = err?.message ?? i18nT("transaction.store.errors.deleteTransaction");
                 toast.error(message);
                 throw new Error(message);
             }

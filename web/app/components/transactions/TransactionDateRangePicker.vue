@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed} from "vue";
 import {useMediaQuery} from "@vueuse/core";
+import {useI18n} from "vue-i18n";
 import type {DateRange} from "reka-ui";
 import {Calendar as CalendarIcon} from "lucide-vue-next";
 import {getLocalTimeZone} from "@internationalized/date";
@@ -19,17 +20,21 @@ const emit = defineEmits<{
 }>();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
+const {locale, t} = useI18n();
 
 const internalValue = computed({
     get: () => props.modelValue,
     set: (val) => emit("update:modelValue", val),
 });
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-});
+const dateFormatter = computed(
+    () =>
+        new Intl.DateTimeFormat(locale.value || "en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+        }),
+);
 
 const formattedDate = computed(() => {
     if (internalValue.value?.start) {
@@ -38,11 +43,11 @@ const formattedDate = computed(() => {
 
         if (internalValue.value.end) {
             const endDate = (internalValue.value.end as any).toDate(getLocalTimeZone());
-            return `${dateFormatter.format(startDate)} - ${dateFormatter.format(endDate)}`;
+            return `${dateFormatter.value.format(startDate)} - ${dateFormatter.value.format(endDate)}`;
         }
-        return dateFormatter.format(startDate);
+        return dateFormatter.value.format(startDate);
     }
-    return "Pick a date range";
+    return t("transactions.filters.pickDateRange");
 });
 </script>
 

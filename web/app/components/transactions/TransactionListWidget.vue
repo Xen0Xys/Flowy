@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {ref, computed} from "vue";
 import {useMediaQuery} from "@vueuse/core";
+import {useI18n} from "vue-i18n";
 import type {Transaction} from "~/stores/transaction.store";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 }>();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
+const {t} = useI18n();
 
 const isTransactionModalOpen = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
@@ -134,17 +136,19 @@ const onTransactionSaved = () => {
         <div class="p-6 pb-4">
             <div class="mb-4 flex shrink-0 items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <h3 class="text-lg leading-none font-semibold tracking-tight">Transactions</h3>
+                    <h3 class="text-lg leading-none font-semibold tracking-tight">
+                        {{ t("transactions.list.title") }}
+                    </h3>
                     <NuxtLink
                         v-if="showViewAll && viewAllLink"
                         :to="viewAllLink"
                         class="text-muted-foreground hover:text-foreground text-sm hover:underline">
-                        View All
+                        {{ t("transactions.list.viewAll") }}
                     </NuxtLink>
                 </div>
                 <Button v-if="accountId" @click="handleNewTransactionClick" size="sm">
                     <Icon name="iconoir:plus" class="h-4 w-4" />
-                    New Transaction
+                    {{ t("transactions.list.newTransaction") }}
                 </Button>
             </div>
 

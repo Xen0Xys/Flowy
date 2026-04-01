@@ -3,6 +3,7 @@ import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import {i18nT} from "~/utils/i18n";
 
 type CreateCategoryPayload = {
     name: string;
@@ -52,7 +53,7 @@ export const useReferenceStore = defineStore("reference", {
                 this.merchants = merchs;
                 this.isLoaded = true;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching references";
+                const message = err?.message ?? i18nT("reference.store.errors.fetchReferences");
                 toast.error(message);
                 throw new Error(message);
             } finally {
@@ -78,10 +79,10 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.categories = [newCategory, ...this.categories];
-                toast.success("Category created");
+                toast.success(i18nT("reference.store.success.categoryCreated"));
                 return newCategory;
             } catch (err: any) {
-                const message = err?.message ?? "Failed creating category";
+                const message = err?.message ?? i18nT("reference.store.errors.createCategory");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -102,10 +103,10 @@ export const useReferenceStore = defineStore("reference", {
                 this.categories = this.categories.map((category) =>
                     category.id === categoryId ? updatedCategory : category,
                 );
-                toast.success("Category updated");
+                toast.success(i18nT("reference.store.success.categoryUpdated"));
                 return updatedCategory;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating category";
+                const message = err?.message ?? i18nT("reference.store.errors.updateCategory");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -123,9 +124,9 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.categories = this.categories.filter((category) => category.id !== categoryId);
-                toast.success("Category deleted");
+                toast.success(i18nT("reference.store.success.categoryDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed deleting category";
+                const message = err?.message ?? i18nT("reference.store.errors.deleteCategory");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -144,10 +145,10 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.merchants = [newMerchant, ...this.merchants];
-                toast.success("Merchant created");
+                toast.success(i18nT("reference.store.success.merchantCreated"));
                 return newMerchant;
             } catch (err: any) {
-                const message = err?.message ?? "Failed creating merchant";
+                const message = err?.message ?? i18nT("reference.store.errors.createMerchant");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -168,10 +169,10 @@ export const useReferenceStore = defineStore("reference", {
                 this.merchants = this.merchants.map((merchant) =>
                     merchant.id === merchantId ? updatedMerchant : merchant,
                 );
-                toast.success("Merchant updated");
+                toast.success(i18nT("reference.store.success.merchantUpdated"));
                 return updatedMerchant;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating merchant";
+                const message = err?.message ?? i18nT("reference.store.errors.updateMerchant");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -189,9 +190,9 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.merchants = this.merchants.filter((merchant) => merchant.id !== merchantId);
-                toast.success("Merchant deleted");
+                toast.success(i18nT("reference.store.success.merchantDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed deleting merchant";
+                const message = err?.message ?? i18nT("reference.store.errors.deleteMerchant");
                 toast.error(message);
                 throw new Error(message);
             }

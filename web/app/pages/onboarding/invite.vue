@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {ref} from "vue";
 import {toast} from "vue-sonner";
+import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -19,6 +20,7 @@ import {isValidEmail} from "@/lib/validation";
 
 const router = useRouter();
 const familyStore = useFamilyStore();
+const {t} = useI18n();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -26,9 +28,9 @@ const success = ref<string | null>(null);
 const invitedCount = ref(0);
 
 const steps = [
-    {title: "Welcome", description: "Get started with Flowy"},
-    {title: "Create/Join", description: "Create or join a family"},
-    {title: "Invite", description: "Invite members"},
+    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
+    {title: t("onboarding.steps.createJoin.title"), description: t("onboarding.steps.createJoin.description")},
+    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
 ];
 
 const active = ref(2);
@@ -37,14 +39,14 @@ function validate() {
     const email = form.value.email.trim();
 
     if (!email) {
-        const msg = "Email is required.";
+        const msg = t("auth.common.errors.emailRequired");
         toast.error(msg);
         error.value = null;
         return false;
     }
 
     if (!isValidEmail(email)) {
-        const msg = "Please enter a valid email address.";
+        const msg = t("auth.common.errors.invalidEmail");
         toast.error(msg);
         error.value = null;
         return false;
@@ -66,7 +68,7 @@ async function submit() {
         invitedCount.value += 1;
         form.value.email = "";
     } catch (err: any) {
-        const msg = err?.data?.message ?? err?.message ?? "Failed to send invite";
+        const msg = err?.data?.message ?? err?.message ?? t("onboarding.invite.errors.sendFailed");
         toast.error(msg);
         error.value = null;
     } finally {
@@ -107,19 +109,19 @@ function skip() {
 
         <Card :class="cn('w-full self-center', 'max-w-md')" :innerClass="cn('p-6')">
             <header class="text-center">
-                <h1 class="text-2xl font-semibold">Invite members</h1>
+                <h1 class="text-2xl font-semibold">{{ t("onboarding.invite.title") }}</h1>
             </header>
 
             <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
                 <FormItem>
                     <FormField name="email">
-                        <FormLabel for="email">Member email</FormLabel>
+                        <FormLabel for="email">{{ t("onboarding.invite.memberEmail") }}</FormLabel>
                         <FormControl>
                             <Input
                                 id="email"
                                 v-model="form.email"
                                 autofocus
-                                placeholder="member@example.org"
+                                :placeholder="t('onboarding.invite.memberEmailPlaceholder')"
                                 required
                                 type="email" />
                         </FormControl>
@@ -133,10 +135,10 @@ function skip() {
 
                 <div class="flex items-center justify-end gap-2">
                     <Button :as="'button'" :disabled="loading" type="submit">{{
-                        loading ? "Sending..." : "Send invite"
+                        loading ? t("onboarding.invite.sending") : t("onboarding.invite.send")
                     }}</Button>
                     <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">{{
-                        invitedCount > 0 ? "Continue" : "Skip"
+                        invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip")
                     }}</Button>
                 </div>
             </form>

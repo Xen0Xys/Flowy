@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {ref} from "vue";
 import {toast} from "vue-sonner";
+import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {useAuthStore} from "@/stores/auth.store";
 import {cn} from "@/lib/utils";
@@ -18,6 +19,7 @@ import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/compon
 
 const router = useRouter();
 const store = useAuthStore();
+const {t} = useI18n();
 
 const form = ref({username: "", email: "", password: ""});
 const loading = ref(false);
@@ -31,28 +33,31 @@ function validate() {
     const password = form.value.password;
 
     if (!username || !email || !password) {
-        const msg = "All fields are required.";
+        const msg = t("auth.register.errors.required");
         toast.error(msg);
         error.value = null;
         return false;
     }
 
     if (!isValidUsername(username)) {
-        const msg = `Username must be between ${USERNAME_MIN_LENGTH} and ${USERNAME_MAX_LENGTH} characters.`;
+        const msg = t("auth.register.errors.usernameLength", {
+            min: USERNAME_MIN_LENGTH,
+            max: USERNAME_MAX_LENGTH,
+        });
         toast.error(msg);
         error.value = null;
         return false;
     }
 
     if (!isValidEmail(email)) {
-        const msg = "Please enter a valid email address.";
+        const msg = t("auth.common.errors.invalidEmail");
         toast.error(msg);
         error.value = null;
         return false;
     }
 
     if (!isValidPassword(password)) {
-        const msg = `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+        const msg = t("auth.register.errors.passwordLength", {min: PASSWORD_MIN_LENGTH});
         toast.error(msg);
         error.value = null;
         return false;
@@ -93,28 +98,28 @@ async function submit() {
                 <aside class="relative hidden items-center justify-center overflow-hidden rounded-lg md:flex">
                     <img
                         :src="bgImage"
-                        alt="register background"
+                        :alt="t('auth.register.backgroundAlt')"
                         class="absolute inset-0 h-full w-full object-cover opacity-80" />
                     <div class="relative z-10 p-8 text-center text-white">
-                        <h2 class="mb-2 text-3xl font-bold">Create your account</h2>
-                        <p class="text-sm opacity-90">Join and start organizing with your family</p>
+                        <h2 class="mb-2 text-3xl font-bold">{{ t("auth.register.heading") }}</h2>
+                        <p class="text-sm opacity-90">{{ t("auth.register.subtitle") }}</p>
                     </div>
                     <div class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
                 </aside>
 
                 <div class="flex flex-col gap-6">
                     <section :class="cn('bg-card rounded-lg p-8 shadow-lg')">
-                        <h1 class="mb-6 text-2xl font-semibold">Register</h1>
+                        <h1 class="mb-6 text-2xl font-semibold">{{ t("auth.register.title") }}</h1>
 
                         <form class="space-y-4" novalidate @submit.prevent="submit">
                             <FormItem>
                                 <FormField name="username">
-                                    <FormLabel for="username">Username</FormLabel>
+                                    <FormLabel for="username">{{ t("auth.common.username") }}</FormLabel>
                                     <FormControl>
                                         <Input
                                             id="username"
                                             v-model="form.username"
-                                            aria-label="Username"
+                                            :aria-label="t('auth.common.username')"
                                             autocomplete="username"
                                             name="username"
                                             required />
@@ -125,12 +130,12 @@ async function submit() {
 
                             <FormItem>
                                 <FormField name="email">
-                                    <FormLabel for="email">Email</FormLabel>
+                                    <FormLabel for="email">{{ t("auth.common.email") }}</FormLabel>
                                     <FormControl>
                                         <Input
                                             id="email"
                                             v-model="form.email"
-                                            aria-label="Email"
+                                            :aria-label="t('auth.common.email')"
                                             autocomplete="email"
                                             name="email"
                                             required
@@ -142,12 +147,12 @@ async function submit() {
 
                             <FormItem>
                                 <FormField name="password">
-                                    <FormLabel for="password">Password</FormLabel>
+                                    <FormLabel for="password">{{ t("auth.common.password") }}</FormLabel>
                                     <FormControl>
                                         <Input
                                             id="password"
                                             v-model="form.password"
-                                            aria-label="Password"
+                                            :aria-label="t('auth.common.password')"
                                             autocomplete="new-password"
                                             name="password"
                                             required
@@ -162,15 +167,21 @@ async function submit() {
                             </div>
 
                             <div class="pt-2">
-                                <Button :as="'button'" :disabled="loading" aria-label="Register" type="submit">
-                                    {{ loading ? "Registering..." : "Register" }}
+                                <Button
+                                    :as="'button'"
+                                    :disabled="loading"
+                                    :aria-label="t('auth.register.title')"
+                                    type="submit">
+                                    {{ loading ? t("auth.register.loading") : t("auth.register.title") }}
                                 </Button>
                             </div>
                         </form>
 
                         <p class="mt-4 text-sm">
-                            Already have an account?
-                            <NuxtLink class="text-primary underline" to="/auth/login">Login</NuxtLink>
+                            {{ t("auth.register.hasAccount") }}
+                            <NuxtLink class="text-primary underline" to="/auth/login">{{
+                                t("auth.login.title")
+                            }}</NuxtLink>
                         </p>
                     </section>
                 </div>

@@ -1,8 +1,19 @@
-import {IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length} from "class-validator";
+import {
+    IsBoolean,
+    IsDateString,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    IsUUID,
+    Length,
+    NotEquals,
+} from "class-validator";
 
 export class CreateTransactionDto {
     @IsNotEmpty()
     @IsNumber({allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2})
+    @NotEquals(0)
     amount: number;
 
     @IsNotEmpty()

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import {useClipboard} from "@vueuse/core";
 import {
     type ColumnDef,
@@ -52,6 +53,7 @@ type DetailsState = {
 const userStore = useUserStore();
 const familyStore = useFamilyStore();
 const {copy, isSupported} = useClipboard({legacy: true});
+const {t} = useI18n();
 
 const users = ref<AdminUser[]>([]);
 const loading = ref(false);
@@ -72,32 +74,32 @@ const isResettingCurrentUser = computed(() =>
     Boolean(resetDialogUser.value && resettingId.value === resetDialogUser.value.id),
 );
 
-const columns: ColumnDef<AdminUser>[] = [
+const columns = computed<ColumnDef<AdminUser>[]>(() => [
     {
         accessorKey: "username",
-        header: "Username",
+        header: t("auth.common.username"),
     },
     {
         accessorKey: "email",
-        header: "Email",
+        header: t("auth.common.email"),
     },
     {
         accessorKey: "id",
-        header: "UUID",
+        header: t("settings.users.uuid"),
     },
     {
         id: "actions",
         header: "",
         enableSorting: false,
     },
-];
+]);
 
 const table = useVueTable({
     get data() {
         return users.value;
     },
     get columns() {
-        return columns;
+        return columns.value;
     },
     state: {
         get globalFilter() {
@@ -165,8 +167,8 @@ function findFamilyMemberRole(family: Family, userId: string) {
 function formatFamilyRole(role: string | null | undefined) {
     if (!role) return "-";
 
-    if (role === "ADMIN") return "Administrator";
-    if (role === "USER") return "Member";
+    if (role === "ADMIN") return t("settings.family.admin");
+    if (role === "USER") return t("settings.family.member");
 
     return role;
 }
@@ -206,11 +208,9 @@ async function openDetailsDialog(user: AdminUser) {
 
 async function handleDelete() {
     const user = deleteDialogUser.value;
-    console.log("handleDelete called with user:", user);
     if (!user) return;
     deletingId.value = user.id;
     try {
-        console.log(`Deleting user ${user.id}...`);
         await userStore.adminDeleteUser(user.id);
         deleteDialogUser.value = null;
         await loadUsers();
@@ -225,12 +225,12 @@ async function handleResetPassword() {
     const password = resetPasswordValue.value;
 
     if (!password.trim()) {
-        toast.error("Please enter a new password.");
+        toast.error(t("settings.users.errors.newPasswordRequired"));
         return;
     }
 
     if (!isValidPassword(password)) {
-        toast.error(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
+        toast.error(t("settings.users.errors.passwordLength", {min: PASSWORD_MIN_LENGTH}));
         return;
     }
 
@@ -246,15 +246,15 @@ async function handleResetPassword() {
 
 async function copyUserId(id: string) {
     if (!isSupported.value) {
-        toast.error("Clipboard is not supported in this browser");
+        toast.error(t("settings.users.errors.clipboardUnsupported"));
         return;
     }
 
     try {
         await copy(id);
-        toast.success("UUID copied to clipboard");
+        toast.success(t("settings.users.toasts.uuidCopied"));
     } catch {
-        toast.error("Failed to copy UUID");
+        toast.error(t("settings.users.errors.copyUuidFailed"));
     }
 }
 </script>
@@ -263,8 +263,8 @@ async function copyUserId(id: string) {
     <div class="w-full">
         <div class="mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
             <div class="mb-6 shrink-0">
-                <h1 class="text-2xl font-semibold">Users</h1>
-                <p class="text-muted-foreground text-sm">Manage users on this instance</p>
+                <h1 class="text-2xl font-semibold">{{ t("settings.users.title") }}</h1>
+                <p class="text-muted-foreground text-sm">{{ t("settings.users.subtitle") }}</p>
             </div>
 
             <div class="flex min-h-0 flex-1 flex-col space-y-4">
@@ -272,10 +272,10 @@ async function copyUserId(id: string) {
                     <Input
                         v-model="globalFilter"
                         class="w-full sm:max-w-sm"
-                        placeholder="Search by username, email or UUID..." />
+                        :placeholder="t('settings.users.searchPlaceholder')" />
                 </div>
 
-                <div v-if="loading" class="text-muted-foreground text-sm">Loading...</div>
+                <div v-if="loading" class="text-muted-foreground text-sm">{{ t("common.loading") }}</div>
 
                 <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border" scrollbar-class="pt-[41px]">
                     <Table wrapperClass="overflow-visible pr-3">
@@ -314,7 +314,7 @@ async function copyUserId(id: string) {
                                             class="text-muted-foreground/50 ml-2 h-4 w-4"
                                             name="iconoir:arrow-separate-vertical" />
                                     </Button>
-                                    <div v-else class="text-right">Actions</div>
+                                    <div v-else class="text-right">{{ t("common.actions") }}</div>
                                     <!-- Background extension for the last column to cover the gap -->
                                     <div
                                         v-if="index === headerGroup.headers.length - 1"
@@ -343,15 +343,15 @@ async function copyUserId(id: string) {
                                             <DropdownMenuContent align="end" class="w-48">
                                                 <DropdownMenuItem @click="openDetailsDialog(row.original)">
                                                     <Eye class="h-4 w-4" />
-                                                    View details
+                                                    {{ t("settings.users.viewDetails") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem @click="copyUserId(row.original.id)">
                                                     <Copy class="h-4 w-4" />
-                                                    Copy UUID
+                                                    {{ t("settings.users.copyUuid") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem @click="openResetDialog(row.original)">
                                                     <KeyRound class="h-4 w-4" />
-                                                    Reset password
+                                                    {{ t("settings.users.resetPassword") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
@@ -362,7 +362,7 @@ async function copyUserId(id: string) {
                                                     variant="destructive"
                                                     @click="openDeleteDialog(row.original)">
                                                     <Trash2 class="h-4 w-4" />
-                                                    Delete user
+                                                    {{ t("settings.users.deleteUser") }}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -374,7 +374,7 @@ async function copyUserId(id: string) {
 
                             <TableRow v-if="table.getRowModel().rows.length === 0">
                                 <TableCell :colspan="4" class="text-muted-foreground h-24 text-center">
-                                    No users found.
+                                    {{ t("settings.users.noUsers") }}
                                 </TableCell>
                             </TableRow>
                         </TableBody>
@@ -387,20 +387,20 @@ async function copyUserId(id: string) {
     <Dialog :open="Boolean(detailsState)" @update:open="(open) => !open && (detailsState = null)">
         <DialogContent class="max-w-lg">
             <DialogHeader>
-                <DialogTitle>User details</DialogTitle>
-                <DialogDescription> Detailed information for this account. </DialogDescription>
+                <DialogTitle>{{ t("settings.users.detailsTitle") }}</DialogTitle>
+                <DialogDescription>{{ t("settings.users.detailsDescription") }}</DialogDescription>
             </DialogHeader>
             <div v-if="detailsState" class="grid gap-3 text-sm">
                 <div>
-                    <p class="text-muted-foreground">Username</p>
+                    <p class="text-muted-foreground">{{ t("auth.common.username") }}</p>
                     <p class="font-medium">{{ detailsState.user.username }}</p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">Email</p>
+                    <p class="text-muted-foreground">{{ t("auth.common.email") }}</p>
                     <p class="font-medium">{{ detailsState.user.email }}</p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">UUID</p>
+                    <p class="text-muted-foreground">{{ t("settings.users.uuid") }}</p>
                     <div class="flex items-center gap-2">
                         <p
                             :title="detailsState.user.id"
@@ -419,13 +419,13 @@ async function copyUserId(id: string) {
                 </div>
                 <div class="border-t pt-3" />
                 <div>
-                    <p class="text-muted-foreground">Family role</p>
+                    <p class="text-muted-foreground">{{ t("settings.users.familyRole") }}</p>
                     <p class="font-medium">
                         {{ getDetailsFamilyRoleLabel(detailsState) }}
                     </p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">Family ID</p>
+                    <p class="text-muted-foreground">{{ t("settings.users.familyId") }}</p>
                     <div v-if="detailsState.user.familyId" class="flex items-center gap-2">
                         <p
                             :title="detailsState.user.familyId"
@@ -444,29 +444,29 @@ async function copyUserId(id: string) {
                     <p v-else class="font-medium">-</p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">Family name</p>
+                    <p class="text-muted-foreground">{{ t("settings.users.familyName") }}</p>
                     <p class="font-medium">
-                        {{ loadingDetails ? "Loading..." : (detailsState.family?.name ?? "-") }}
+                        {{ loadingDetails ? t("common.loading") : (detailsState.family?.name ?? "-") }}
                     </p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">Family currency</p>
+                    <p class="text-muted-foreground">{{ t("settings.users.familyCurrency") }}</p>
                     <p class="font-medium">
-                        {{ loadingDetails ? "Loading..." : (detailsState.family?.currency ?? "-") }}
+                        {{ loadingDetails ? t("common.loading") : (detailsState.family?.currency ?? "-") }}
                     </p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">Family owner</p>
+                    <p class="text-muted-foreground">{{ t("settings.users.familyOwner") }}</p>
                     <p class="font-medium">
-                        {{ loadingDetails ? "Loading..." : (detailsState.family?.owner?.username ?? "-") }}
+                        {{ loadingDetails ? t("common.loading") : (detailsState.family?.owner?.username ?? "-") }}
                     </p>
                 </div>
                 <div>
-                    <p class="text-muted-foreground">Members</p>
+                    <p class="text-muted-foreground">{{ t("settings.family.members") }}</p>
                     <p class="font-medium">
                         {{
                             loadingDetails
-                                ? "Loading..."
+                                ? t("common.loading")
                                 : detailsState.family
                                   ? (detailsState.family.members?.length as number) + 1
                                   : "-"
@@ -475,7 +475,7 @@ async function copyUserId(id: string) {
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" @click="detailsState = null">Close</Button>
+                <Button variant="outline" @click="detailsState = null">{{ t("common.close") }}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -483,19 +483,19 @@ async function copyUserId(id: string) {
     <Dialog :open="Boolean(resetDialogUser)" @update:open="(open) => !open && (resetDialogUser = null)">
         <DialogContent class="max-w-md">
             <DialogHeader>
-                <DialogTitle>Reset Password</DialogTitle>
+                <DialogTitle>{{ t("settings.users.resetPassword") }}</DialogTitle>
                 <DialogDescription v-if="resetDialogUser">
-                    Set a new password for {{ resetDialogUser.username }}.
+                    {{ t("settings.users.resetPasswordFor", {username: resetDialogUser.username}) }}
                 </DialogDescription>
             </DialogHeader>
             <div class="grid gap-2">
-                <Input v-model="resetPasswordValue" placeholder="New password" type="password" />
+                <Input v-model="resetPasswordValue" :placeholder="t('settings.users.newPassword')" type="password" />
             </div>
             <DialogFooter>
-                <Button variant="outline" @click="resetDialogUser = null">Cancel</Button>
+                <Button variant="outline" @click="resetDialogUser = null">{{ t("common.cancel") }}</Button>
                 <Button :disabled="isResettingCurrentUser" @click="handleResetPassword">
-                    <span v-if="!isResettingCurrentUser">Reset Password</span>
-                    <span v-else>Resetting...</span>
+                    <span v-if="!isResettingCurrentUser">{{ t("settings.users.resetPassword") }}</span>
+                    <span v-else>{{ t("settings.users.resetting") }}</span>
                 </Button>
             </DialogFooter>
         </DialogContent>
@@ -504,15 +504,17 @@ async function copyUserId(id: string) {
     <AlertDialog :open="Boolean(deleteDialogUser)" @update:open="(open) => !open && (deleteDialogUser = null)">
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Delete user</AlertDialogTitle>
+                <AlertDialogTitle>{{ t("settings.users.deleteUser") }}</AlertDialogTitle>
                 <AlertDialogDescription v-if="deleteDialogUser">
-                    Are you sure you want to delete
-                    <span class="font-semibold">{{ deleteDialogUser.username }}</span
-                    >?
+                    {{
+                        t("settings.users.deletePromptWithName", {
+                            username: deleteDialogUser.username,
+                        })
+                    }}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
                 <Button
                     :disabled="
                         Boolean(
@@ -522,7 +524,7 @@ async function copyUserId(id: string) {
                     "
                     variant="destructive"
                     @click="handleDelete"
-                    >Delete</Button
+                    >{{ t("common.delete") }}</Button
                 >
             </AlertDialogFooter>
         </AlertDialogContent>

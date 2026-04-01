@@ -1,0 +1,589 @@
+{
+    "common": {
+        "user": "Utilisateur",
+        "settings": "Paramètres",
+        "back": "Retour",
+        "all": "Tous",
+        "none": "Aucun",
+        "actions": "Actions",
+        "save": "Enregistrer",
+        "saving": "Enregistrement...",
+        "delete": "Supprimer",
+        "deleting": "Suppression...",
+        "cancel": "Annuler",
+        "close": "Fermer",
+        "copy": "Copier",
+        "edit": "Modifier",
+        "loading": "Chargement...",
+        "processing": "Traitement...",
+        "areYouSure": "Êtes-vous sûr ?"
+    },
+    "app": {
+        "head": {
+            "default": "Flowy",
+            "withPage": "Flowy - {page}"
+        },
+        "pageTitle": {
+            "dashboard": "Tableau de bord",
+            "login": "Connexion",
+            "register": "Inscription",
+            "onboarding": "Démarrage",
+            "instanceSettings": "Paramètres d'instance",
+            "adminUsers": "Utilisateurs admin",
+            "profile": "Profil",
+            "family": "Famille",
+            "settings": "Paramètres"
+        }
+    },
+    "auth": {
+        "common": {
+            "username": "Nom d'utilisateur",
+            "email": "Email",
+            "password": "Mot de passe",
+            "errors": {
+                "invalidEmail": "Veuillez saisir une adresse email valide.",
+                "emailRequired": "L'email est requis."
+            }
+        },
+        "login": {
+            "title": "Connexion",
+            "backgroundAlt": "Arrière-plan de connexion",
+            "welcome": "Bon retour",
+            "subtitle": "Connectez-vous pour accéder à votre tableau de bord",
+            "loading": "Connexion...",
+            "noAccount": "Vous n'avez pas de compte ?",
+            "errors": {
+                "required": "L'email et le mot de passe sont requis."
+            }
+        },
+        "register": {
+            "title": "Inscription",
+            "backgroundAlt": "Arrière-plan d'inscription",
+            "heading": "Créez votre compte",
+            "subtitle": "Rejoignez Flowy et organisez-vous en famille",
+            "loading": "Inscription...",
+            "hasAccount": "Vous avez déjà un compte ?",
+            "errors": {
+                "required": "Tous les champs sont requis.",
+                "usernameLength": "Le nom d'utilisateur doit contenir entre {min} et {max} caractères.",
+                "passwordLength": "Le mot de passe doit contenir au moins {min} caractères."
+            }
+        },
+        "store": {
+            "success": {
+                "connected": "Connecté",
+                "accountCreated": "Compte créé"
+            },
+            "errors": {
+                "loginFailed": "Échec de connexion",
+                "loginMissingToken": "Échec de connexion : token manquant dans la réponse serveur",
+                "loginResponseMissingToken": "La réponse de connexion ne contient pas de token",
+                "registrationFailed": "Échec de l'inscription",
+                "registerMissingToken": "Échec de l'inscription : token manquant dans la réponse serveur",
+                "registerResponseMissingToken": "La réponse d'inscription ne contient pas de token"
+            }
+        }
+    },
+    "onboarding": {
+        "steps": {
+            "welcome": {
+                "title": "Bienvenue",
+                "description": "Démarrez avec Flowy"
+            },
+            "createJoin": {
+                "title": "Créer/Rejoindre",
+                "description": "Créez ou rejoignez une famille"
+            },
+            "invite": {
+                "title": "Inviter",
+                "description": "Invitez des membres"
+            }
+        },
+        "select": {
+            "create": {
+                "title": "Créer",
+                "description": "Créez une nouvelle famille pour gérer les dépenses partagées et inviter des membres. Le créateur devient administrateur de la famille et peut envoyer des invitations.",
+                "button": "Créer une nouvelle famille"
+            },
+            "join": {
+                "title": "Rejoindre",
+                "description": "Si une famille existe déjà, saisissez le code d'invitation reçu pour la rejoindre.",
+                "inviteCode": "Code d'invitation",
+                "button": "Rejoindre",
+                "loading": "Rejoindre..."
+            },
+            "toast": {
+                "joined": "Vous avez rejoint la famille"
+            },
+            "errors": {
+                "inviteRequired": "Le code d'invitation est requis",
+                "joinFailed": "Échec de l'adhésion à la famille"
+            }
+        },
+        "create": {
+            "title": "Créer une famille",
+            "familyName": "Nom de la famille",
+            "currency": "Devise",
+            "selectCurrency": "Sélectionner une devise",
+            "create": "Créer",
+            "loading": "Création...",
+            "errors": {
+                "familyNameRequired": "Le nom de la famille est requis.",
+                "familyNameLength": "Le nom de la famille doit contenir entre {min} et {max} caractères.",
+                "currencyInvalid": "La devise doit être un code ISO à 3 lettres valide.",
+                "createFailed": "Échec de création de la famille"
+            }
+        },
+        "invite": {
+            "title": "Inviter des membres",
+            "memberEmail": "Email du membre",
+            "memberEmailPlaceholder": "member{'@'}example.org",
+            "send": "Envoyer l'invitation",
+            "sending": "Envoi...",
+            "continue": "Continuer",
+            "skip": "Passer",
+            "errors": {
+                "sendFailed": "Échec de l'envoi de l'invitation"
+            }
+        }
+    },
+    "breadcrumbs": {
+        "transactions": "Transactions",
+        "accounts": "Comptes",
+        "account": "Compte",
+        "settings": "Paramètres",
+        "instance": "Instance",
+        "users": "Utilisateurs",
+        "profile": "Profil",
+        "family": "Famille",
+        "references": "Références"
+    },
+    "sidebar": {
+        "menu": "Menu",
+        "dashboard": "Tableau de bord",
+        "transactions": "Transactions",
+        "accounts": "Comptes",
+        "settings": "Paramètres",
+        "backToDashboard": "Retour au tableau de bord",
+        "profile": "Profil",
+        "family": "Famille",
+        "references": "Références",
+        "instanceManagement": "Gestion de l'instance",
+        "instance": "Instance",
+        "users": "Utilisateurs",
+        "getHelp": "Obtenir de l'aide",
+        "search": "Rechercher",
+        "wip": "WIP",
+        "logOut": "Se déconnecter"
+    },
+    "dashboard": {
+        "welcome": "Bienvenue, {name}",
+        "subtitle": "Voici votre vue d'ensemble financière",
+        "addAccount": "Ajouter un compte",
+        "noAccountsTitle": "Aucun compte pour le moment",
+        "noAccountsDescription": "Créez votre premier compte bancaire pour commencer à suivre vos finances.",
+        "createFirstAccount": "Créer mon premier compte",
+        "totalBalance": "Solde total",
+        "balance": "Solde",
+        "acrossAccounts": "Sur {count} compte(s)",
+        "percentOfTotal": "{value}% du total",
+        "percentOfCategory": "{value}% de la catégorie",
+        "deleteAccountDescription": "Cette action est irréversible. Le compte \"{name}\" et toutes ses données associées seront supprimés."
+    },
+    "accounts": {
+        "types": {
+            "checking": "Courant",
+            "savings": "Épargne",
+            "investment": "Investissement",
+            "credit": "Crédit",
+            "cash": "Espèces",
+            "other": "Autre"
+        },
+        "form": {
+            "addTitle": "Ajouter un compte",
+            "editTitle": "Modifier le compte",
+            "description": "Renseignez les informations de votre compte bancaire.",
+            "name": "Nom du compte",
+            "namePlaceholder": "Ex : Compte courant",
+            "type": "Catégorie / Type",
+            "selectType": "Sélectionner un type",
+            "balance": "Solde",
+            "current": "actuel",
+            "initial": "initial"
+        }
+    },
+    "account": {
+        "updatedOn": "Mis à jour le {date}",
+        "setBalance": "Définir le solde",
+        "currentBalance": "Solde actuel",
+        "setBalanceTitle": "Définir le solde du compte",
+        "setBalanceDescription": "Définissez le nouveau solde actuel de ce compte. Une transaction de rééquilibrage est créée automatiquement si la valeur change.",
+        "targetBalance": "Solde cible",
+        "saveBalance": "Enregistrer le solde",
+        "store": {
+            "success": {
+                "accountCreated": "Compte créé",
+                "accountDeleted": "Compte supprimé",
+                "accountUpdated": "Compte mis à jour"
+            },
+            "errors": {
+                "fetchAccounts": "Échec du chargement des comptes",
+                "fetchAccount": "Échec du chargement du compte",
+                "createAccount": "Échec de création du compte",
+                "deleteAccount": "Échec de suppression du compte",
+                "updateAccount": "Échec de mise à jour du compte",
+                "fetchEvolution": "Échec du chargement de l'évolution du solde"
+            }
+        }
+    },
+    "transactions": {
+        "page": {
+            "title": "Toutes les transactions",
+            "subtitle": "Consultez et gérez toutes vos transactions."
+        },
+        "list": {
+            "title": "Transactions",
+            "viewAll": "Voir tout",
+            "newTransaction": "Nouvelle transaction"
+        },
+        "filters": {
+            "title": "Filtres",
+            "clear": "Effacer les filtres",
+            "apply": "Appliquer les filtres",
+            "search": "Rechercher description, catégorie, marchand...",
+            "searchWithAccount": "Rechercher description, catégorie, marchand, compte...",
+            "searchMobile": "Rechercher...",
+            "dateRange": "Période",
+            "pickDateRange": "Choisir une période",
+            "type": "Type",
+            "allTypes": "Tous les types",
+            "income": "Revenu",
+            "expense": "Dépense",
+            "account": "Compte",
+            "allAccounts": "Tous les comptes",
+            "category": "Catégorie",
+            "allCategories": "Toutes les catégories",
+            "merchant": "Marchand",
+            "allMerchants": "Tous les marchands",
+            "rebalance": "Rééquilibrage",
+            "includeRebalance": "Inclure les rééquilibrages",
+            "excludeRebalance": "Exclure les rééquilibrages",
+            "onlyRebalance": "Uniquement les rééquilibrages"
+        },
+        "table": {
+            "date": "Date",
+            "description": "Description",
+            "category": "Catégorie",
+            "amount": "Montant",
+            "account": "Compte",
+            "system": "Système",
+            "noMatch": "Aucune transaction ne correspond à vos filtres.",
+            "noTransactions": "Aucune transaction trouvée."
+        },
+        "form": {
+            "newTitle": "Nouvelle transaction",
+            "editTitle": "Modifier la transaction",
+            "newDescription": "Ajoutez une nouvelle transaction. Cliquez sur enregistrer quand vous avez terminé.",
+            "editDescription": "Mettez à jour les détails de cette transaction. Cliquez sur enregistrer quand vous avez terminé.",
+            "selectAccount": "Sélectionner un compte",
+            "selectCategory": "Sélectionner une catégorie",
+            "selectMerchant": "Sélectionner un marchand",
+            "systemTransaction": "Transaction système",
+            "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. La modifier peut désynchroniser le solde de votre compte.",
+            "saveChanges": "Enregistrer les modifications",
+            "deleteTitle": "Supprimer la transaction",
+            "deleteDescription": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.",
+            "errors": {
+                "loadData": "Impossible de charger les données requises",
+                "accountRequired": "Un compte est requis pour créer une transaction"
+            }
+        }
+    },
+    "profile": {
+        "title": "Profil",
+        "description": "Gérez vos informations personnelles et vos identifiants",
+        "username": "Nom d'utilisateur",
+        "email": "Email",
+        "save": "Enregistrer",
+        "saving": "Enregistrement...",
+        "appearance": "Apparence",
+        "selectTheme": "Sélectionner un thème",
+        "system": "Système",
+        "light": "Clair",
+        "dark": "Sombre",
+        "language": "Langue",
+        "selectLanguage": "Sélectionner la langue",
+        "browser": "Navigateur",
+        "changePassword": "Changer le mot de passe",
+        "changePasswordDescription": "Saisissez votre mot de passe actuel puis choisissez-en un nouveau.",
+        "currentPassword": "Mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "changePasswordButton": "Changer le mot de passe",
+        "updating": "Mise à jour...",
+        "dangerZone": "Zone de danger",
+        "dangerZoneDescription": "Supprimez définitivement votre compte",
+        "deleteAccount": "Supprimer le compte",
+        "delete": "Supprimer",
+        "cancel": "Annuler",
+        "deleteDialogTitle": "Supprimer le compte",
+        "deleteDialogDescription": "Cette action est irréversible. Veuillez saisir votre mot de passe actuel pour confirmer.",
+        "confirmPassword": "Confirmer le mot de passe",
+        "deleting": "Suppression...",
+        "roles": {
+            "instanceOwner": "Propriétaire de l'instance",
+            "familyAdmin": "Administrateur de la famille",
+            "familyMember": "Membre de la famille"
+        },
+        "errors": {
+            "currentPasswordRequired": "Le mot de passe actuel est requis pour supprimer votre compte.",
+            "deleteAccountFailed": "Échec de suppression du compte",
+            "usernameLength": "Le nom d'utilisateur doit contenir entre {min} et {max} caractères.",
+            "passwordsRequired": "Le mot de passe actuel et le nouveau mot de passe sont requis.",
+            "passwordLength": "Le nouveau mot de passe doit contenir au moins {min} caractères."
+        },
+        "toasts": {
+            "accountDeleted": "Compte supprimé"
+        }
+    },
+    "settings": {
+        "instance": {
+            "title": "Paramètres d'instance",
+            "subtitle": "Gérez les paramètres globaux de l'instance",
+            "versions": "Versions",
+            "versionsDescription": "Version actuelle du frontend et du backend",
+            "web": "Web",
+            "server": "Serveur",
+            "copyVersions": "Copier les versions",
+            "registration": "Inscription",
+            "registrationDescription": "Autoriser les utilisateurs à s'inscrire",
+            "registrationEnabled": "Inscription activée",
+            "saveRegistrationTitle": "Enregistrer le paramètre d'inscription",
+            "saveRegistrationDescription": "Modifier l'inscription impacte qui peut créer des comptes. Êtes-vous sûr ?",
+            "owner": "Propriétaire de l'instance",
+            "ownerDescription": "Définir le propriétaire de cette instance (id utilisateur)",
+            "ownerPlaceholder": "id propriétaire",
+            "changeOwnerTitle": "Changer le propriétaire de l'instance",
+            "changeOwnerDescription": "Changer le propriétaire de l'instance transfère le contrôle administrateur. Cette action est destructive. Continuer ?",
+            "unknown": "inconnu",
+            "toasts": {
+                "versionsCopied": "Versions copiées dans le presse-papiers"
+            },
+            "errors": {
+                "ownerRequired": "L'ID du propriétaire est requis.",
+                "ownerInvalid": "L'ID du propriétaire doit être un UUID v7 valide."
+            }
+        },
+        "users": {
+            "title": "Utilisateurs",
+            "subtitle": "Gérez les utilisateurs de cette instance",
+            "searchPlaceholder": "Rechercher par nom d'utilisateur, email ou UUID...",
+            "uuid": "UUID",
+            "viewDetails": "Voir les détails",
+            "copyUuid": "Copier l'UUID",
+            "resetPassword": "Réinitialiser le mot de passe",
+            "deleteUser": "Supprimer l'utilisateur",
+            "noUsers": "Aucun utilisateur trouvé.",
+            "detailsTitle": "Détails utilisateur",
+            "detailsDescription": "Informations détaillées pour ce compte.",
+            "familyRole": "Rôle familial",
+            "familyId": "ID de la famille",
+            "familyName": "Nom de la famille",
+            "familyCurrency": "Devise familiale",
+            "familyOwner": "Propriétaire de la famille",
+            "resetPasswordFor": "Définir un nouveau mot de passe pour {username}.",
+            "newPassword": "Nouveau mot de passe",
+            "resetting": "Réinitialisation...",
+            "deletePromptWithName": "Êtes-vous sûr de vouloir supprimer {username} ?",
+            "toasts": {
+                "uuidCopied": "UUID copié dans le presse-papiers"
+            },
+            "errors": {
+                "newPasswordRequired": "Veuillez saisir un nouveau mot de passe.",
+                "passwordLength": "Le mot de passe doit contenir au moins {min} caractères.",
+                "clipboardUnsupported": "Le presse-papiers n'est pas pris en charge par ce navigateur",
+                "copyUuidFailed": "Échec de copie de l'UUID"
+            }
+        },
+        "family": {
+            "title": "Famille",
+            "subtitle": "Gérez les paramètres de votre famille, les membres et les invitations",
+            "owner": "Propriétaire",
+            "admin": "Admin",
+            "member": "Membre",
+            "memberCount": "{n} membre | {n} membres",
+            "deleteThis": "Supprimer cette famille",
+            "leaveThis": "Quitter cette famille",
+            "deleteFamily": "Supprimer la famille",
+            "leaveFamily": "Quitter la famille",
+            "leave": "Quitter",
+            "deleteFamilyDescription": "Cette action supprimera définitivement la famille, retirera toutes les invitations et dissociera les membres. Elle est irréversible.",
+            "leaveFamilyDescription": "Êtes-vous sûr de vouloir quitter la famille ? Vous n'aurez plus accès aux données partagées.",
+            "unableToLoad": "Impossible de charger les détails de la famille.",
+            "info": "Informations famille",
+            "settings": "Paramètres famille",
+            "familyName": "Nom de la famille",
+            "currency": "Devise",
+            "selectCurrency": "Sélectionner une devise",
+            "adminOnly": "Seuls les admins de la famille peuvent modifier ces paramètres.",
+            "members": "Membres",
+            "remove": "Retirer",
+            "removing": "Retrait...",
+            "removeMember": "Retirer le membre",
+            "removeMemberDescription": "Êtes-vous sûr de vouloir retirer ce membre de la famille ? Il perdra l'accès aux données partagées.",
+            "invites": "Invitations",
+            "invite": "Inviter",
+            "inviting": "Invitation...",
+            "invitePlaceholder": "member{'@'}example.com",
+            "code": "Code",
+            "revoke": "Révoquer",
+            "notMember": "Vous ne faites partie d'aucune famille. Créez-en une ou demandez une invitation.",
+            "toasts": {
+                "inviteCodeCopied": "Code d'invitation copié"
+            },
+            "errors": {
+                "copyInviteFailed": "Échec de copie du code d'invitation",
+                "nameRequired": "Le nom de la famille est requis.",
+                "nameLength": "Le nom de la famille doit contenir entre 3 et 50 caractères.",
+                "currencyInvalid": "La devise doit être un code ISO à 3 lettres valide."
+            },
+            "aria": {
+                "saveFamilyName": "Enregistrer le nom de la famille",
+                "currency": "Devise",
+                "saveFamilyCurrency": "Enregistrer la devise",
+                "removeMember": "Retirer le membre",
+                "inviteEmail": "Email d'invitation",
+                "inviteMember": "Inviter un membre",
+                "copyInviteCode": "Copier le code d'invitation",
+                "revokeInvite": "Révoquer l'invitation"
+            }
+        },
+        "references": {
+            "title": "Références",
+            "subtitle": "Gérez vos catégories et marchands de transactions",
+            "addCategory": "Ajouter une catégorie",
+            "addMerchant": "Ajouter un marchand",
+            "categories": "Catégories",
+            "merchants": "Marchands",
+            "name": "Nom",
+            "color": "Couleur",
+            "icon": "Icône",
+            "iconLibrary": "Icônes (Iconoir)",
+            "deleteCategory": "Supprimer la catégorie",
+            "deleteMerchant": "Supprimer le marchand",
+            "deleteCategoryDescription": "Êtes-vous sûr de vouloir supprimer la catégorie \"{name}\" ? Les transactions utilisant cette catégorie perdront leur association.",
+            "deleteMerchantDescription": "Êtes-vous sûr de vouloir supprimer le marchand \"{name}\" ? Les transactions utilisant ce marchand perdront leur association.",
+            "noCategories": "Aucune catégorie trouvée. Créez-en une pour commencer.",
+            "noMerchants": "Aucun marchand trouvé. Créez-en un pour commencer.",
+            "editCategory": "Modifier la catégorie",
+            "createCategory": "Créer une catégorie",
+            "editCategoryDescription": "Apportez des modifications à votre catégorie.",
+            "createCategoryDescription": "Ajoutez une nouvelle catégorie pour vos transactions.",
+            "editMerchant": "Modifier le marchand",
+            "createMerchant": "Créer un marchand",
+            "editMerchantDescription": "Apportez des modifications à votre marchand.",
+            "createMerchantDescription": "Ajoutez un nouveau marchand pour vos transactions.",
+            "aria": {
+                "editCategory": "Modifier la catégorie",
+                "deleteCategory": "Supprimer la catégorie",
+                "editMerchant": "Modifier le marchand",
+                "deleteMerchant": "Supprimer le marchand",
+                "selectColor": "Sélectionner la couleur",
+                "selectIcon": "Sélectionner l'icône"
+            },
+            "findIconsAt": "Trouver des icônes sur",
+            "categoryPlaceholder": "ex : Courses",
+            "merchantPlaceholder": "ex : Walmart"
+        }
+    },
+    "user": {
+        "store": {
+            "info": {
+                "sessionExpired": "Session expirée. Veuillez vous reconnecter."
+            },
+            "success": {
+                "usernameUpdated": "Nom d'utilisateur mis à jour",
+                "emailUpdated": "Email mis à jour",
+                "passwordUpdated": "Mot de passe mis à jour",
+                "registrationUpdated": "Paramètre d'inscription mis à jour",
+                "instanceOwnerUpdated": "Propriétaire d'instance mis à jour",
+                "userDeleted": "Utilisateur supprimé"
+            },
+            "errors": {
+                "fetchProfile": "Échec du chargement du profil",
+                "updateUsername": "Échec de mise à jour du nom d'utilisateur",
+                "updateEmail": "Échec de mise à jour de l'email",
+                "updatePassword": "Échec de mise à jour du mot de passe",
+                "listUsers": "Échec du chargement des utilisateurs",
+                "fetchInstanceSettings": "Échec du chargement des paramètres d'instance",
+                "updateRegistration": "Échec de mise à jour du paramètre d'inscription",
+                "updateInstanceOwner": "Échec de mise à jour du propriétaire de l'instance",
+                "deleteUser": "Échec de suppression de l'utilisateur"
+            }
+        }
+    },
+    "family": {
+        "store": {
+            "success": {
+                "familyCreated": "Famille créée",
+                "inviteCreated": "Invitation créée",
+                "inviteRevoked": "Invitation révoquée",
+                "joinedFamily": "Famille rejointe",
+                "leftFamily": "Famille quittée",
+                "familyUpdated": "Famille mise à jour",
+                "memberRemoved": "Membre retiré",
+                "familyDeleted": "Famille supprimée"
+            },
+            "errors": {
+                "fetchFamily": "Échec du chargement de la famille",
+                "createFamily": "Échec de création de la famille",
+                "createInvite": "Échec de création de l'invitation",
+                "fetchInvites": "Échec du chargement des invitations",
+                "revokeInvite": "Échec de révocation de l'invitation",
+                "joinFamily": "Échec pour rejoindre la famille",
+                "leaveFamily": "Échec pour quitter la famille",
+                "updateFamily": "Échec de mise à jour de la famille",
+                "removeMember": "Échec de retrait du membre",
+                "removeMemberEndpointMissing": "Endpoint de retrait de membre introuvable sur le serveur",
+                "deleteFamily": "Échec de suppression de la famille",
+                "deleteFamilyEndpointMissing": "Endpoint de suppression de famille introuvable sur le serveur"
+            }
+        }
+    },
+    "transaction": {
+        "store": {
+            "success": {
+                "transactionCreated": "Transaction créée",
+                "transactionUpdated": "Transaction mise à jour",
+                "transactionDeleted": "Transaction supprimée"
+            },
+            "errors": {
+                "fetchTransactions": "Échec du chargement des transactions",
+                "fetchAccountTransactions": "Échec du chargement des transactions du compte",
+                "createTransaction": "Échec de création de la transaction",
+                "updateTransaction": "Échec de mise à jour de la transaction",
+                "deleteTransaction": "Échec de suppression de la transaction"
+            }
+        }
+    },
+    "reference": {
+        "store": {
+            "success": {
+                "categoryCreated": "Catégorie créée",
+                "categoryUpdated": "Catégorie mise à jour",
+                "categoryDeleted": "Catégorie supprimée",
+                "merchantCreated": "Marchand créé",
+                "merchantUpdated": "Marchand mis à jour",
+                "merchantDeleted": "Marchand supprimé"
+            },
+            "errors": {
+                "fetchReferences": "Échec du chargement des références",
+                "createCategory": "Échec de création de la catégorie",
+                "updateCategory": "Échec de mise à jour de la catégorie",
+                "deleteCategory": "Échec de suppression de la catégorie",
+                "createMerchant": "Échec de création du marchand",
+                "updateMerchant": "Échec de mise à jour du marchand",
+                "deleteMerchant": "Échec de suppression du marchand"
+            }
+        }
+    }
+}

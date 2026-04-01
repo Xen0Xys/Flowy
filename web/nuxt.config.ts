@@ -34,7 +34,30 @@ export default defineNuxtConfig({
             ],
         },
     },
-    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "shadcn-nuxt", "@pinia/nuxt", "nuxt-security"],
+    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "@nuxtjs/i18n", "shadcn-nuxt", "@pinia/nuxt", "nuxt-security"],
+    i18n: {
+        strategy: "no_prefix",
+        defaultLocale: "en",
+        langDir: "locales",
+        locales: [
+            {
+                code: "en",
+                name: "English",
+                file: "en.json",
+            },
+            {
+                code: "fr",
+                name: "Français",
+                file: "fr.json",
+            },
+        ],
+        detectBrowserLanguage: {
+            useCookie: true,
+            cookieKey: "i18n_redirected",
+            alwaysRedirect: true,
+            fallbackLocale: "en",
+        },
+    },
     // Make dark theme the default
     colorMode: {
         preference: "dark",

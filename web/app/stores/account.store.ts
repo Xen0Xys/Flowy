@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
+import {i18nT} from "~/utils/i18n";
 
 export type Account = {
     id: string;
@@ -48,7 +49,7 @@ export const useAccountStore = defineStore("account", {
                 this.accounts = accounts;
                 return accounts;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching accounts";
+                const message = err?.message ?? i18nT("account.store.errors.fetchAccounts");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -64,7 +65,7 @@ export const useAccountStore = defineStore("account", {
                 this.currentAccount = account;
                 return account;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching account";
+                const message = err?.message ?? i18nT("account.store.errors.fetchAccount");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -81,10 +82,10 @@ export const useAccountStore = defineStore("account", {
                     body: payload,
                 });
                 this.accounts.push(newAccount);
-                toast.success("Account created");
+                toast.success(i18nT("account.store.success.accountCreated"));
                 return newAccount;
             } catch (err: any) {
-                const message = err?.message ?? "Failed creating account";
+                const message = err?.message ?? i18nT("account.store.errors.createAccount");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -103,9 +104,9 @@ export const useAccountStore = defineStore("account", {
                 if (this.currentAccount?.id === id) {
                     this.currentAccount = null;
                 }
-                toast.success("Account deleted");
+                toast.success(i18nT("account.store.success.accountDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed deleting account";
+                const message = err?.message ?? i18nT("account.store.errors.deleteAccount");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -128,10 +129,10 @@ export const useAccountStore = defineStore("account", {
                     this.currentAccount = updated;
                 }
 
-                toast.success("Account updated");
+                toast.success(i18nT("account.store.success.accountUpdated"));
                 return updated;
             } catch (err: any) {
-                const message = err?.message ?? "Failed updating account";
+                const message = err?.message ?? i18nT("account.store.errors.updateAccount");
                 toast.error(message);
                 throw new Error(message);
             }
@@ -150,7 +151,7 @@ export const useAccountStore = defineStore("account", {
                 this.currentAccountEvolution = evolution;
                 return evolution;
             } catch (err: any) {
-                const message = err?.message ?? "Failed fetching account balance evolution";
+                const message = err?.message ?? i18nT("account.store.errors.fetchEvolution");
                 toast.error(message);
                 throw new Error(message);
             }
