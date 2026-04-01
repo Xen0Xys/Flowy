@@ -226,6 +226,10 @@ const onTransactionSaved = () => {
     fetchFirstPage();
     emit("saved");
 };
+
+defineExpose({
+    refreshTransactions: fetchFirstPage,
+});
 </script>
 
 <template>

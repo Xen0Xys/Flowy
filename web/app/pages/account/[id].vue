@@ -15,7 +15,14 @@ import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Badge} from "~/components/ui/badge";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "~/components/ui/dialog";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {
@@ -31,6 +38,8 @@ import {
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
+import type {Transaction} from "~/stores/transaction.store";
+import {useTransactionStore} from "~/stores/transaction.store";
 
 const route = useRoute();
 const router = useRouter();
@@ -49,6 +58,7 @@ const isSetBalanceDialogOpen = ref(false);
 const isSettingBalance = ref(false);
 const targetBalance = ref(0);
 const timeRange = ref<TimeRange>("1M");
+const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> | null>(null);
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
@@ -153,6 +163,7 @@ const submitSetBalance = async () => {
             balance: targetBalance.value,
         });
         isSetBalanceDialogOpen.value = false;
+        transactionListWidgetRef.value?.refreshTransactions();
         await loadData();
     } catch (err) {
         console.error(err);
@@ -237,8 +248,9 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                 <!-- Graph with KPI -->
                 <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
                     <div v-if="isLoading" class="flex flex-col gap-4">
+                        <Skeleton class="h-6 w-28" />
                         <Skeleton class="h-8 w-32" />
-                        <Skeleton class="h-[300px] w-full" />
+                        <Skeleton class="h-75 w-full" />
                     </div>
                     <template v-else-if="account">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -354,6 +366,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
 
                 <!-- Transactions -->
                 <TransactionListWidget
+                    ref="transactionListWidgetRef"
                     :account-id="accountId"
                     :show-view-all="true"
                     view-all-link="/transactions"
