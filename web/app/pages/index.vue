@@ -159,7 +159,7 @@ const formatCompactCurrency = (value: number) => {
 </script>
 
 <template>
-    <div class="w-full overflow-hidden">
+    <div class="w-full">
         <div class="mx-auto max-w-7xl">
             <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->

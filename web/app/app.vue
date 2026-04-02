@@ -42,7 +42,7 @@ useHead({
 </script>
 
 <template>
-    <div class="bg-background min-h-screen">
+    <div class="bg-background min-h-dvh">
         <NuxtLoadingIndicator />
         <Toaster close-button richColors />
         <NuxtLayout>
