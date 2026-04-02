@@ -324,7 +324,7 @@ async function handleTestDb() {
             };
         });
 
-        importState.value = updateTransactions(selectedAccountId.value, importState.value, nextTransactions);
+        importState.value = updateTransactions(selectedAccountId.value, importState.value, nextTransactions as any);
 
         toast.success(t("import.success.testComplete", {count: result.wouldInsertCount}));
     } catch (error: any) {
@@ -458,7 +458,8 @@ const stats = computed(() => {
                                 'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium',
                                 currentStep === step || (currentStep === 'result' && index <= 3)
                                     ? 'bg-primary text-primary-foreground'
-                                    : ['config', 'mapping', 'preview', 'result'].indexOf(currentStep) > index
+                                    : (['upload', 'config', 'mapping', 'preview'] as string[]).indexOf(currentStep) >
+                                        index
                                       ? 'bg-primary/20 text-primary'
                                       : 'bg-muted text-muted-foreground',
                             )
