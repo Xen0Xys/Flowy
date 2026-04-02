@@ -130,7 +130,7 @@ function handleClose(value: boolean) {
                         :placeholder="t('import.preview.categoryPlaceholder')" />
                 </div>
                 <div class="grid grid-cols-4 items-start gap-4">
-                    <Label class="mt-2 text-right text-sm font-medium">
+                    <Label class="mt-2 text-right text-sm font-medium" for="category-color">
                         {{ t("settings.references.color") }}
                     </Label>
                     <div class="col-span-3 flex flex-col gap-3">
@@ -145,27 +145,53 @@ function handleClose(value: boolean) {
                                 }"
                                 :style="{backgroundColor: color}"
                                 @click="form.hexColor = color"
-                                aria-label="Select color" />
+                                :aria-label="t('settings.references.aria.selectColor')" />
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Input
+                                id="category-color"
+                                v-model="form.hexColor"
+                                class="h-10 w-16 cursor-pointer p-1"
+                                type="color" />
+                            <Input v-model="form.hexColor" class="uppercase" placeholder="#000000" />
                         </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-4 items-start gap-4">
-                    <Label class="mt-2 text-right text-sm font-medium">
+                    <Label class="mt-2 text-right text-sm font-medium" for="category-icon">
                         {{ t("settings.references.icon") }}
                     </Label>
-                    <div class="col-span-3 flex flex-wrap gap-2">
-                        <button
-                            v-for="iconName in PRESET_ICONS"
-                            :key="iconName"
-                            type="button"
-                            class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
-                            :class="{
-                                'bg-primary text-primary-foreground hover:bg-primary': form.icon === iconName,
-                            }"
-                            @click="form.icon = iconName"
-                            aria-label="Select icon">
-                            <Icon :name="iconName" class="h-4 w-4" />
-                        </button>
+                    <div class="col-span-3 flex flex-col gap-3">
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                v-for="iconName in PRESET_ICONS"
+                                :key="iconName"
+                                type="button"
+                                class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+                                :class="{
+                                    'bg-primary text-primary-foreground hover:bg-primary': form.icon === iconName,
+                                }"
+                                @click="form.icon = iconName"
+                                :aria-label="t('settings.references.aria.selectIcon')">
+                                <Icon :name="iconName" class="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="border-input flex h-10 w-10 shrink-0 items-center justify-center rounded-md border">
+                                <Icon :name="form.icon" class="h-5 w-5" />
+                            </div>
+                            <Input id="category-icon" v-model="form.icon" placeholder="iconoir:label" />
+                        </div>
+                        <div class="text-muted-foreground text-xs">
+                            {{ t("settings.references.findIconsAt") }}
+                            <a
+                                class="hover:text-foreground underline"
+                                href="https://icones.js.org/collection/iconoir"
+                                target="_blank">
+                                {{ t("settings.references.iconLibrary") }}
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
