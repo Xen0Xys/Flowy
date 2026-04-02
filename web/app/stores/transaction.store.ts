@@ -53,6 +53,18 @@ export type UpdateTransactionPayload = {
     isRebalance?: boolean;
 };
 
+export type DeleteTransactionOptions = {
+    keepLinkedTransaction?: boolean;
+};
+
+export type CreateTransferPayload = {
+    debitAccountId: string;
+    creditAccountId: string;
+    description: string;
+    date: string;
+    amount: number;
+};
+
 export type BulkTransactionsTestResult = {
     wouldInsertCount: number;
     duplicates: CreateTransactionPayload[];
@@ -186,7 +198,7 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const newTransaction = await apiFetch<Transaction>(`/transaction/${accountId}`, {
+                const newTransaction = await apiFetch<Transaction>(`/transaction/account/${accountId}`, {
                     method: "POST",
                     body: payload,
                 });
@@ -206,7 +218,7 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                return await apiFetch<BulkTransactionsTestResult>(`/transaction/${accountId}/bulk/test`, {
+                return await apiFetch<BulkTransactionsTestResult>(`/transaction/account/${accountId}/bulk/test`, {
                     method: "POST",
                     body: payload,
                 });
@@ -223,7 +235,7 @@ export const useTransactionStore = defineStore("transaction", {
             const {apiFetch} = useApi();
 
             try {
-                const result = await apiFetch<BulkTransactionsCreateResult>(`/transaction/${accountId}/bulk`, {
+                const result = await apiFetch<BulkTransactionsCreateResult>(`/transaction/account/${accountId}/bulk`, {
                     method: "POST",
                     body: payload,
                 });
@@ -259,19 +271,91 @@ export const useTransactionStore = defineStore("transaction", {
             }
         },
 
-        async deleteTransaction(transactionId: string) {
+        async deleteTransaction(transactionId: string, options: DeleteTransactionOptions = {}) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
+            const params = new URLSearchParams();
+
+            if (typeof options.keepLinkedTransaction === "boolean") {
+                params.set("keepLinkedTransaction", String(options.keepLinkedTransaction));
+            }
+
+            const queryString = params.toString();
+            const endpoint = queryString
+                ? `/transaction/${transactionId}?${queryString}`
+                : `/transaction/${transactionId}`;
+
             try {
-                await apiFetch(`/transaction/${transactionId}`, {
+                await apiFetch(endpoint, {
                     method: "DELETE",
                 });
 
                 toast.success(i18nT("transaction.store.success.transactionDeleted"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.deleteTransaction");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async createTransfer(payload: CreateTransferPayload) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const transactions = await apiFetch<Transaction[]>("/transfer", {
+                    method: "POST",
+                    body: payload,
+                });
+
+                toast.success(i18nT("transaction.store.success.transferCreated"));
+                return transactions;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.createTransfer");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async unlinkTransfer(transactionId: string) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const transactions = await apiFetch<Transaction[]>(`/transfer/unlink/${transactionId}`, {
+                    method: "DELETE",
+                });
+
+                toast.success(i18nT("transaction.store.success.transferUnlinked"));
+                return transactions;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.unlinkTransfer");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async linkTransactions(transactionId1: string, transactionId2: string) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                const transactions = await apiFetch<Transaction[]>(
+                    `/transfer/link/${transactionId1}/${transactionId2}`,
+                    {
+                        method: "POST",
+                    },
+                );
+
+                toast.success(i18nT("transaction.store.success.transferLinked"));
+                return transactions;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.linkTransactions");
                 toast.error(message);
                 throw new Error(message);
             }

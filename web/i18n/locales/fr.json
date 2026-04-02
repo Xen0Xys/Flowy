@@ -562,6 +562,9 @@
                 "transactionCreated": "Transaction créée",
                 "transactionUpdated": "Transaction mise à jour",
                 "transactionDeleted": "Transaction supprimée",
+                "transferCreated": "Transfert créé",
+                "transferUnlinked": "Transfert dissocié",
+                "transferLinked": "Transactions liées",
                 "bulkTransactionsCreated": "{count} transactions importées"
             },
             "errors": {
@@ -570,6 +573,9 @@
                 "createTransaction": "Échec de création de la transaction",
                 "updateTransaction": "Échec de mise à jour de la transaction",
                 "deleteTransaction": "Échec de suppression de la transaction",
+                "createTransfer": "Échec de création du transfert",
+                "unlinkTransfer": "Échec de dissociation du transfert",
+                "linkTransactions": "Échec de liaison des transactions",
                 "testBulkTransactions": "Échec de validation de l'aperçu d'import",
                 "createBulkTransactions": "Échec de l'import des transactions"
             }

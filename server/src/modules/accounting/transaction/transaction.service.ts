@@ -52,6 +52,29 @@ export class TransactionService {
         return transactions.map((transaction) => this.toTransactionEntity(transaction));
     }
 
+    async getTransactionById(user: UserEntity, transactionId: string): Promise<TransactionEntity> {
+        const transaction = await this.prismaService.transactions.findUnique({
+            where: {id: transactionId},
+            include: {
+                account: true,
+                merchant: true,
+                category: true,
+                credit_transfer: true,
+                debit_transfer: true,
+            },
+        });
+
+        if (!transaction) {
+            throw new NotFoundException("Transaction not found");
+        }
+
+        if (transaction.account.user_id !== user.id) {
+            throw new ForbiddenException("You do not have permission to access this transaction");
+        }
+
+        return this.toTransactionEntity(transaction);
+    }
+
     async searchTransactions(user: UserEntity, query: SearchTransactionsDto): Promise<SearchTransactionsResultEntity> {
         const where: Prisma.TransactionsWhereInput = {
             account: {

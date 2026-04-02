@@ -39,7 +39,7 @@ export class TransactionController {
         return this.transactionService.searchTransactions(user, query);
     }
 
-    @Post(":accountId")
+    @Post("account/:accountId")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async addTransaction(
@@ -50,7 +50,7 @@ export class TransactionController {
         return this.transactionService.addTransactions(user, accountId, createTransactionDto);
     }
 
-    @Post(":accountId/bulk/test")
+    @Post("account/:accountId/bulk/test")
     @HttpCode(HttpStatus.OK)
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
@@ -65,7 +65,7 @@ export class TransactionController {
         return this.transactionService.testBulkTransactions(user, accountId, createTransactionDtos);
     }
 
-    @Post(":accountId/bulk")
+    @Post("account/:accountId/bulk")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async addBulkTransactions(
@@ -77,6 +77,16 @@ export class TransactionController {
         duplicates: CreateTransactionDto[];
     }> {
         return this.transactionService.addBulkTransactions(user, accountId, createTransactionDtos);
+    }
+
+    @Get(":transactionId")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getTransactionById(
+        @User() user: UserEntity,
+        @Param("transactionId", new ParseUUIDPipe({version: "7"})) transactionId: string,
+    ): Promise<TransactionEntity> {
+        return this.transactionService.getTransactionById(user, transactionId);
     }
 
     @Patch(":transactionId")

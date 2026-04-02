@@ -69,7 +69,7 @@ describe("TransactionController (e2e)", () => {
         expect(search.status).toBe(401);
         expect(search.body.message).toBe("Authorization token is missing");
 
-        const create = await agent.post("/transaction/account-id").send({
+        const create = await agent.post("/transaction/account/account-id").send({
             amount: 12.34,
             description: "Lunch",
             date: "2026-01-15T12:00:00.000Z",
@@ -77,13 +77,17 @@ describe("TransactionController (e2e)", () => {
         expect(create.status).toBe(401);
         expect(create.body.message).toBe("Authorization token is missing");
 
-        const bulkTest = await agent.post("/transaction/account-id/bulk/test").send([]);
+        const bulkTest = await agent.post("/transaction/account/account-id/bulk/test").send([]);
         expect(bulkTest.status).toBe(401);
         expect(bulkTest.body.message).toBe("Authorization token is missing");
 
-        const bulkCreate = await agent.post("/transaction/account-id/bulk").send([]);
+        const bulkCreate = await agent.post("/transaction/account/account-id/bulk").send([]);
         expect(bulkCreate.status).toBe(401);
         expect(bulkCreate.body.message).toBe("Authorization token is missing");
+
+        const byId = await agent.get("/transaction/transaction-id");
+        expect(byId.status).toBe(401);
+        expect(byId.body.message).toBe("Authorization token is missing");
 
         const update = await agent.patch("/transaction/transaction-id").send({description: "Updated"});
         expect(update.status).toBe(401);
@@ -104,7 +108,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -42.35,
@@ -133,7 +137,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -10,
@@ -166,13 +170,13 @@ describe("TransactionController (e2e)", () => {
         };
 
         const firstInsert = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send(existing);
         expect(firstInsert.status).toBe(201);
 
         const preview = await agent
-            .post(`/transaction/${account.body.id}/bulk/test`)
+            .post(`/transaction/account/${account.body.id}/bulk/test`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 existing,
@@ -206,13 +210,13 @@ describe("TransactionController (e2e)", () => {
         };
 
         const existingInsert = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send(duplicateInDb);
         expect(existingInsert.status).toBe(201);
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 duplicateInDb,
@@ -256,7 +260,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const existing = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -9.9,
@@ -266,7 +270,7 @@ describe("TransactionController (e2e)", () => {
         expect(existing.status).toBe(201);
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 {
@@ -304,7 +308,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const existing = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -42,
@@ -315,7 +319,7 @@ describe("TransactionController (e2e)", () => {
         expect(existing.status).toBe(201);
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 {
@@ -352,7 +356,7 @@ describe("TransactionController (e2e)", () => {
         };
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([sameTx, sameTx]);
 
@@ -385,13 +389,13 @@ describe("TransactionController (e2e)", () => {
         expect(accountA.status).toBe(201);
         expect(accountB.status).toBe(201);
 
-        await agent.post(`/transaction/${accountA.body.id}`).set("Authorization", `Bearer ${userA.token}`).send({
+        await agent.post(`/transaction/account/${accountA.body.id}`).set("Authorization", `Bearer ${userA.token}`).send({
             amount: 100,
             description: "Salary",
             date: "2026-01-01T08:00:00.000Z",
         });
 
-        await agent.post(`/transaction/${accountB.body.id}`).set("Authorization", `Bearer ${userB.token}`).send({
+        await agent.post(`/transaction/account/${accountB.body.id}`).set("Authorization", `Bearer ${userB.token}`).send({
             amount: 50,
             description: "Gift",
             date: "2026-01-02T08:00:00.000Z",
@@ -403,6 +407,63 @@ describe("TransactionController (e2e)", () => {
         expect(listA.body.total).toBe(1);
         expect(listA.body.items).toHaveLength(1);
         expect(listA.body.items[0].description).toBe("Salary");
+    });
+
+    test("retrieves a transaction by id for owner", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Lookup", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const created = await agent
+            .post(`/transaction/account/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -12.4,
+                description: "Book",
+                date: "2026-03-12T10:00:00.000Z",
+            });
+
+        expect(created.status).toBe(201);
+
+        const byId = await agent.get(`/transaction/${created.body.id}`).set("Authorization", `Bearer ${user.token}`);
+
+        expect(byId.status).toBe(200);
+        expect(byId.body.id).toBe(created.body.id);
+        expect(byId.body.accountId).toBe(account.body.id);
+        expect(byId.body.amount).toBe(-12.4);
+        expect(byId.body.description).toBe("Book");
+    });
+
+    test("forbids retrieving another user's transaction", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Owner Account", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const created = await agent
+            .post(`/transaction/account/${account.body.id}`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({
+                amount: 50,
+                description: "Private",
+                date: "2026-03-01T08:00:00.000Z",
+            });
+
+        expect(created.status).toBe(201);
+
+        const byId = await agent.get(`/transaction/${created.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
+
+        expect(byId.status).toBe(403);
+        expect(byId.body.message).toBe("You do not have permission to access this transaction");
     });
 
     test("searches transactions with frontend-like filters", async () => {
@@ -445,7 +506,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const expenseTx = await agent
-            .post(`/transaction/${accountA.body.id}`)
+            .post(`/transaction/account/${accountA.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -42.2,
@@ -458,7 +519,7 @@ describe("TransactionController (e2e)", () => {
         expect(expenseTx.status).toBe(201);
 
         const incomeTx = await agent
-            .post(`/transaction/${accountA.body.id}`)
+            .post(`/transaction/account/${accountA.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 2200,
@@ -470,7 +531,7 @@ describe("TransactionController (e2e)", () => {
         expect(incomeTx.status).toBe(201);
 
         const rebalanceTx = await agent
-            .post(`/transaction/${accountB.body.id}`)
+            .post(`/transaction/account/${accountB.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -100,
@@ -510,17 +571,17 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Pagination Account", type: "CHECKING"});
         expect(account.status).toBe(201);
 
-        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+        await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: 100,
             description: "Salary",
             date: "2026-02-01",
         });
-        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+        await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: -10,
             description: "Coffee",
             date: "2026-02-02",
         });
-        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+        await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: -20,
             description: "Lunch",
             date: "2026-02-03",
@@ -581,7 +642,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 20,
@@ -765,7 +826,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 10.999,
@@ -791,7 +852,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 0,
@@ -817,7 +878,7 @@ describe("TransactionController (e2e)", () => {
         expect(byAccount.body.items).toHaveLength(0);
 
         const create = await agent
-            .post(`/transaction/${missingAccountId}`)
+            .post(`/transaction/account/${missingAccountId}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 10,
@@ -850,11 +911,17 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(400);
 
-        const create = await agent.post("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`).send({
-            amount: 10,
-            description: "Bad id",
-            date: "2026-01-15T12:00:00.000Z",
-        });
+        const byId = await agent.get("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
+        expect(byId.status).toBe(400);
+
+        const create = await agent
+            .post("/transaction/account/not-a-uuid")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: 10,
+                description: "Bad id",
+                date: "2026-01-15T12:00:00.000Z",
+            });
         expect(create.status).toBe(400);
 
         const update = await agent
@@ -877,7 +944,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Owner Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({
                 amount: 35,
@@ -925,7 +992,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const create = await agent
-            .post(`/transaction/${ownerAccount.body.id}`)
+            .post(`/transaction/account/${ownerAccount.body.id}`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({
                 amount: 12,
@@ -962,7 +1029,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 25,

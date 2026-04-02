@@ -562,6 +562,9 @@
                 "transactionCreated": "Transaction created",
                 "transactionUpdated": "Transaction updated",
                 "transactionDeleted": "Transaction deleted",
+                "transferCreated": "Transfer created",
+                "transferUnlinked": "Transfer unlinked",
+                "transferLinked": "Transactions linked",
                 "bulkTransactionsCreated": "{count} transactions imported"
             },
             "errors": {
@@ -570,6 +573,9 @@
                 "createTransaction": "Failed creating transaction",
                 "updateTransaction": "Failed updating transaction",
                 "deleteTransaction": "Failed deleting transaction",
+                "createTransfer": "Failed creating transfer",
+                "unlinkTransfer": "Failed unlinking transfer",
+                "linkTransactions": "Failed linking transactions",
                 "testBulkTransactions": "Failed validating import preview",
                 "createBulkTransactions": "Failed importing transactions"
             }
