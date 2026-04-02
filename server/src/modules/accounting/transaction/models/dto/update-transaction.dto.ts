@@ -25,8 +25,4 @@ export class UpdateTransactionDto {
     @IsOptional()
     @IsBoolean()
     isRebalance?: boolean;
-
-    constructor(partial: Partial<UpdateTransactionDto>) {
-        Object.assign(this, partial);
-    }
 }
