@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
-import {useIntersectionObserver, useMediaQuery, watchDebounced} from "@vueuse/core";
+import {useIntersectionObserver, watchDebounced} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {
     type SearchTransactionsResult,
@@ -30,7 +30,6 @@ const emit = defineEmits<{
     (e: "saved"): void;
 }>();
 
-const isMobile = useMediaQuery("(max-width: 768px)");
 const {t} = useI18n();
 const transactionStore = useTransactionStore();
 

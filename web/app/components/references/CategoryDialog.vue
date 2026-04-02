@@ -153,7 +153,11 @@ function handleClose(value: boolean) {
                                 v-model="form.hexColor"
                                 class="h-10 w-16 cursor-pointer p-1"
                                 type="color" />
-                            <Input v-model="form.hexColor" class="uppercase" placeholder="#000000" />
+                            <Input
+                                v-model="form.hexColor"
+                                class="uppercase"
+                                placeholder="#000000"
+                                :aria-label="t('settings.references.aria.hexColorInput')" />
                         </div>
                     </div>
                 </div>
@@ -188,7 +192,8 @@ function handleClose(value: boolean) {
                             <a
                                 class="hover:text-foreground underline"
                                 href="https://icones.js.org/collection/iconoir"
-                                target="_blank">
+                                target="_blank"
+                                rel="noopener noreferrer">
                                 {{ t("settings.references.iconLibrary") }}
                             </a>
                         </div>

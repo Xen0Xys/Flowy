@@ -253,7 +253,7 @@ const executeDelete = async () => {
                     <Label class="text-right" for="account"> {{ t("transactions.table.account") }} </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.selectedAccountId" required>
-                            <SelectTrigger>
+                            <SelectTrigger id="account">
                                 <SelectValue :placeholder="t('transactions.form.selectAccount')" />
                             </SelectTrigger>
                             <SelectContent>
@@ -292,7 +292,7 @@ const executeDelete = async () => {
                     <div class="col-span-3">
                         <div class="flex items-center gap-2">
                             <Select v-model="formData.categoryId">
-                                <SelectTrigger>
+                                <SelectTrigger id="category">
                                     <SelectValue :placeholder="t('transactions.form.selectCategory')" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -325,7 +325,7 @@ const executeDelete = async () => {
                     <div class="col-span-3">
                         <div class="flex items-center gap-2">
                             <Select v-model="formData.merchantId">
-                                <SelectTrigger>
+                                <SelectTrigger id="merchant">
                                     <SelectValue :placeholder="t('transactions.form.selectMerchant')" />
                                 </SelectTrigger>
                                 <SelectContent>
