@@ -18,10 +18,7 @@ export class SearchTransactionsDto {
     @IsString()
     @Length(1, 255)
     @Transform(({value}) => {
-        if (typeof value !== "string") {
-            return value;
-        }
-
+        if (typeof value !== "string") return value;
         const normalized = value.trim();
         return normalized.length > 0 ? normalized : undefined;
     })

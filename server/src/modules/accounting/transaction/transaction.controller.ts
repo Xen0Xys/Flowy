@@ -23,6 +23,7 @@ import {ApiBearerAuth} from "@nestjs/swagger";
 import {TransactionEntity} from "./models/entities/transaction.entity";
 import {SearchTransactionsDto} from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
+import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
 
 @Controller("transaction")
 export class TransactionController {
@@ -96,7 +97,8 @@ export class TransactionController {
     async deleteTransaction(
         @User() user: UserEntity,
         @Param("transactionId", new ParseUUIDPipe({version: "7"})) transactionId: string,
+        @Query() query: DeleteTransactionQueryDto,
     ): Promise<void> {
-        await this.transactionService.deleteTransaction(user, transactionId);
+        await this.transactionService.deleteTransaction(user, transactionId, query);
     }
 }

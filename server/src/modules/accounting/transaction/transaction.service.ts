@@ -14,13 +14,14 @@ import {
     TransactionSearchType,
 } from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
+import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
         merchant: true;
         category: true;
-        creditTransfer: true;
-        debitTransfer: true;
+        credit_transfer: true;
+        debit_transfer: true;
     };
 }>;
 
@@ -40,8 +41,8 @@ export class TransactionService {
             include: {
                 merchant: true,
                 category: true,
-                creditTransfer: true,
-                debitTransfer: true,
+                credit_transfer: true,
+                debit_transfer: true,
             },
             orderBy: {
                 date: "desc",
@@ -119,8 +120,8 @@ export class TransactionService {
                 include: {
                     merchant: true,
                     category: true,
-                    creditTransfer: true,
-                    debitTransfer: true,
+                    credit_transfer: true,
+                    debit_transfer: true,
                 },
                 orderBy: [{date: "desc"}, {created_at: "desc"}],
             });
@@ -144,8 +145,8 @@ export class TransactionService {
                 include: {
                     merchant: true,
                     category: true,
-                    creditTransfer: true,
-                    debitTransfer: true,
+                    credit_transfer: true,
+                    debit_transfer: true,
                 },
                 orderBy: [{date: "desc"}, {created_at: "desc"}],
                 skip: (page - 1) * pageSize,
@@ -204,8 +205,8 @@ export class TransactionService {
             include: {
                 merchant: true,
                 category: true,
-                creditTransfer: true,
-                debitTransfer: true,
+                credit_transfer: true,
+                debit_transfer: true,
             },
         });
 
@@ -345,25 +346,30 @@ export class TransactionService {
             include: {
                 merchant: true,
                 category: true,
-                creditTransfer: true,
-                debitTransfer: true,
+                credit_transfer: true,
+                debit_transfer: true,
             },
         });
 
         return this.toTransactionEntity(hydratedTransaction);
     }
 
-    async deleteTransaction(user: UserEntity, transactionId: string): Promise<void> {
+    async deleteTransaction(user: UserEntity, transactionId: string, query: DeleteTransactionQueryDto): Promise<void> {
         const transaction = await this.prismaService.transactions.findUnique({
             where: {id: transactionId},
             include: {
                 account: true,
+                debit_transfer: true,
+                credit_transfer: true,
             },
         });
 
         if (!transaction) throw new NotFoundException("Transaction not found");
         if (transaction.account.user_id !== user.id)
             throw new ForbiddenException("You do not have permission to delete this transaction");
+
+        const transfer = transaction.debit_transfer ?? transaction.credit_transfer;
+        const shouldDeleteLinkedTransaction = query.keepLinkedTransaction === "false";
 
         await this.prismaService.$transaction(async (tx) => {
             await tx.transactions.delete({
@@ -378,42 +384,50 @@ export class TransactionService {
                     balance: this.toDecimal(transaction.account.balance - transaction.amount),
                 },
             });
+
+            if (!transfer || !shouldDeleteLinkedTransaction) {
+                return;
+            }
+
+            const linkedTransactionId =
+                transfer.debit_transaction_id === transactionId
+                    ? transfer.credit_transaction_id
+                    : transfer.debit_transaction_id;
+
+            const linkedTransaction = await tx.transactions.findUnique({
+                where: {id: linkedTransactionId},
+                include: {
+                    account: true,
+                },
+            });
+
+            if (!linkedTransaction) {
+                throw new NotFoundException("Transaction not found");
+            }
+
+            if (linkedTransaction.account.user_id !== user.id) {
+                throw new ForbiddenException("You do not have permission to delete this transaction");
+            }
+
+            await tx.transactions.delete({
+                where: {id: linkedTransactionId},
+            });
+
+            await tx.accounts.update({
+                where: {
+                    id: linkedTransaction.account_id,
+                },
+                data: {
+                    balance: this.toDecimal(linkedTransaction.account.balance - linkedTransaction.amount),
+                },
+            });
         });
     }
 
-    private normalizeTransactionDate(date: string | Date): Date {
-        const parsedDate = date instanceof Date ? date : new Date(date);
-
-        if (Number.isNaN(parsedDate.getTime()))
-            throw new BadRequestException("Invalid transaction date. Expected ISO-8601 date or datetime");
-
-        return parsedDate;
-    }
-
-    private toDecimal(nb: number): number {
-        return Math.round(nb * 100) / 100;
-    }
-
-    private normalizeDateForRangeStart(date: string): Date {
-        const parsedDate = this.normalizeTransactionDate(date);
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) parsedDate.setUTCHours(0, 0, 0, 0);
-
-        return parsedDate;
-    }
-
-    private normalizeDateForRangeEnd(date: string): Date {
-        const parsedDate = this.normalizeTransactionDate(date);
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) parsedDate.setUTCHours(23, 59, 59, 999);
-
-        return parsedDate;
-    }
-
-    private toTransactionEntity(transaction: TransactionWithRelations): TransactionEntity {
+    toTransactionEntity(transaction: TransactionWithRelations): TransactionEntity {
         let linkedTransactionId: string | undefined;
-        if (transaction.debitTransfer) linkedTransactionId = transaction.debitTransfer.creditTransactionId;
-        else if (transaction.creditTransfer) linkedTransactionId = transaction.creditTransfer.debitTransactionId;
+        if (transaction.debit_transfer) linkedTransactionId = transaction.debit_transfer.credit_transaction_id;
+        else if (transaction.credit_transfer) linkedTransactionId = transaction.credit_transfer.debit_transaction_id;
         return new TransactionEntity({
             id: transaction.id,
             accountId: transaction.account_id,
@@ -449,6 +463,35 @@ export class TransactionService {
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,
         });
+    }
+
+    private normalizeTransactionDate(date: string | Date): Date {
+        const parsedDate = date instanceof Date ? date : new Date(date);
+
+        if (Number.isNaN(parsedDate.getTime()))
+            throw new BadRequestException("Invalid transaction date. Expected ISO-8601 date or datetime");
+
+        return parsedDate;
+    }
+
+    private toDecimal(nb: number): number {
+        return Math.round(nb * 100) / 100;
+    }
+
+    private normalizeDateForRangeStart(date: string): Date {
+        const parsedDate = this.normalizeTransactionDate(date);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) parsedDate.setUTCHours(0, 0, 0, 0);
+
+        return parsedDate;
+    }
+
+    private normalizeDateForRangeEnd(date: string): Date {
+        const parsedDate = this.normalizeTransactionDate(date);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) parsedDate.setUTCHours(23, 59, 59, 999);
+
+        return parsedDate;
     }
 
     private async getOwnedAccountOrThrow(user: UserEntity, accountId: string, tx?: TxClient) {

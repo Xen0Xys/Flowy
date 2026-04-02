@@ -1,5 +1,5 @@
 import {TransferService} from "./transfer.service";
-import {Controller, Delete, Param, Post, UseGuards} from "@nestjs/common";
+import {Body, Controller, Delete, Param, ParseUUIDPipe, Post, UseGuards} from "@nestjs/common";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {User} from "../../../common/decorators/user.decorator";
@@ -14,8 +14,11 @@ export class TransferController {
     @Post("")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async createTransfer(@User() user: UserEntity, createTransferDto: CreateTransferDto): Promise<TransactionEntity[]> {
-        return null;
+    async createTransfer(
+        @User() user: UserEntity,
+        @Body() createTransferDto: CreateTransferDto,
+    ): Promise<TransactionEntity[]> {
+        return this.transferService.createTransfer(user, createTransferDto);
     }
 
     @Delete("unlink/:transactionId")
@@ -23,9 +26,9 @@ export class TransferController {
     @ApiBearerAuth()
     async unlinkTransfer(
         @User() user: UserEntity,
-        @Param("transactionId") transactionId: string,
+        @Param("transactionId", new ParseUUIDPipe({version: "7"})) transactionId: string,
     ): Promise<TransactionEntity[]> {
-        return null;
+        return this.transferService.unlinkTransfer(user, transactionId);
     }
 
     @Post("link/:transactionId1/:transactionId2")
@@ -33,10 +36,9 @@ export class TransferController {
     @ApiBearerAuth()
     async linkTransactions(
         @User() user: UserEntity,
-        @Param("transactionId1") transactionId1: string,
-        @Param("transactionId2") transactionId2: string,
+        @Param("transactionId1", new ParseUUIDPipe({version: "7"})) transactionId1: string,
+        @Param("transactionId2", new ParseUUIDPipe({version: "7"})) transactionId2: string,
     ): Promise<TransactionEntity[]> {
-        // If amount are differents, throw error;
-        return null;
+        return this.transferService.linkTransactions(user, transactionId1, transactionId2);
     }
 }

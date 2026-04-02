@@ -632,6 +632,137 @@ describe("TransactionController (e2e)", () => {
         expect(storedAccount?.balance).toBe(0);
     });
 
+    test("deletes transfer transaction and keeps linked transaction by default", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent
+            .post("/transfer")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                debitAccountId: debitAccount.body.id,
+                creditAccountId: creditAccount.body.id,
+                amount: 30,
+                description: "Monthly transfer",
+                date: "2026-02-10T10:00:00.000Z",
+            });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const remove = await agent
+            .delete(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(remove.status).toBe(204);
+
+        const remainingTransactions = await prisma.transactions.findMany({
+            where: {
+                id: {in: [debitTransaction.id, creditTransaction.id]},
+            },
+        });
+        expect(remainingTransactions).toHaveLength(1);
+        expect(remainingTransactions[0]?.id).toBe(creditTransaction.id);
+
+        const transferCount = await prisma.transfers.count();
+        expect(transferCount).toBe(0);
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+        expect(storedDebitAccount?.balance).toBe(200);
+        expect(storedCreditAccount?.balance).toBe(130);
+    });
+
+    test("deletes transfer transaction and linked transaction when keepLinkedTransaction=false", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent
+            .post("/transfer")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                debitAccountId: debitAccount.body.id,
+                creditAccountId: creditAccount.body.id,
+                amount: 30,
+                description: "Monthly transfer",
+                date: "2026-02-10T10:00:00.000Z",
+            });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const remove = await agent
+            .delete(`/transaction/${debitTransaction.id}`)
+            .query({keepLinkedTransaction: "false"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(remove.status).toBe(204);
+
+        const remainingTransactions = await prisma.transactions.findMany({
+            where: {
+                id: {in: [debitTransaction.id, creditTransaction.id]},
+            },
+        });
+        expect(remainingTransactions).toHaveLength(0);
+
+        const transferCount = await prisma.transfers.count();
+        expect(transferCount).toBe(0);
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+        expect(storedDebitAccount?.balance).toBe(200);
+        expect(storedCreditAccount?.balance).toBe(100);
+    });
+
+    test("rejects invalid keepLinkedTransaction query value", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Main", type: "CHECKING", balance: 100});
+
+        const tx = await prisma.transactions.findFirst({
+            where: {
+                account_id: account.body.id,
+                is_rebalance: true,
+            },
+        });
+
+        expect(tx).not.toBeNull();
+
+        const remove = await agent
+            .delete(`/transaction/${tx!.id}`)
+            .query({keepLinkedTransaction: "not-a-boolean"})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(remove.status).toBe(400);
+        expect(remove.body.message).toEqual(
+            expect.arrayContaining([expect.objectContaining({property: "keepLinkedTransaction"})]),
+        );
+    });
+
     test("rejects invalid create payload", async () => {
         const user = await registerUser(server);
         const account = await agent
