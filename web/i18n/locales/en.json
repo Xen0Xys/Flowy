@@ -307,6 +307,7 @@
             "viewLinked": "View linked transaction",
             "unlinkTransfer": "Unlink",
             "unlinking": "Unlinking...",
+            "linkTransfer": "Link as Transfer",
             "errors": {
                 "loadData": "Failed to load required data",
                 "accountRequired": "Account is required to create a transaction"
@@ -320,7 +321,16 @@
             "amount": "Amount",
             "descriptionPlaceholder": "Transfer",
             "create": "Create Transfer",
-            "sameAccountError": "Source and destination accounts must be different"
+            "sameAccountError": "Source and destination accounts must be different",
+            "linkTitle": "Link as Transfer",
+            "linkDescription": "Link this transaction with another to create a transfer between accounts.",
+            "selectAccount": "Select account",
+            "selectTransaction": "Select transaction",
+            "noEligibleTransactions": "No eligible transactions found",
+            "eligibilityHint": "Showing transactions with amount {amount} and date {date}",
+            "linkButton": "Link",
+            "linkingButton": "Linking...",
+            "loadingTransactions": "Loading transactions..."
         }
     },
     "profile": {

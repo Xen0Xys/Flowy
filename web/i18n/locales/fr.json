@@ -307,6 +307,7 @@
             "viewLinked": "Voir la transaction liée",
             "unlinkTransfer": "Dissocier",
             "unlinking": "Dissociation...",
+            "linkTransfer": "Lier comme transfert",
             "errors": {
                 "loadData": "Impossible de charger les données requises",
                 "accountRequired": "Un compte est requis pour créer une transaction"
@@ -320,7 +321,16 @@
             "amount": "Montant",
             "descriptionPlaceholder": "Transfert",
             "create": "Créer le transfert",
-            "sameAccountError": "Les comptes source et destination doivent être différents"
+            "sameAccountError": "Les comptes source et destination doivent être différents",
+            "linkTitle": "Lier comme transfert",
+            "linkDescription": "Liez cette transaction avec une autre pour créer un transfert entre comptes.",
+            "selectAccount": "Sélectionner le compte",
+            "selectTransaction": "Sélectionner la transaction",
+            "noEligibleTransactions": "Aucune transaction éligible trouvée",
+            "eligibilityHint": "Transactions avec le montant {amount} et la date {date}",
+            "linkButton": "Lier",
+            "linkingButton": "Liaison...",
+            "loadingTransactions": "Chargement des transactions..."
         }
     },
     "profile": {
