@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
-import {useIntersectionObserver, useMediaQuery, watchDebounced} from "@vueuse/core";
+import {useIntersectionObserver, watchDebounced} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {
     type SearchTransactionsResult,
@@ -13,7 +13,6 @@ import TransactionFormModal from "~/components/transactions/TransactionFormModal
 import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
 import {Button} from "~/components/ui/button";
 import {ScrollArea} from "~/components/ui/scroll-area";
-import {cn} from "~/lib/utils";
 import {NuxtLink} from "#components";
 
 const PAGE_SIZE = 25;
@@ -31,7 +30,6 @@ const emit = defineEmits<{
     (e: "saved"): void;
 }>();
 
-const isMobile = useMediaQuery("(max-width: 768px)");
 const {t} = useI18n();
 const transactionStore = useTransactionStore();
 
@@ -236,7 +234,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="bg-card text-card-foreground flex flex-col rounded-xl border shadow-sm md:mb-6 md:min-h-0 md:flex-1">
+    <div class="bg-card text-card-foreground flex min-h-0 flex-1 flex-col rounded-xl border shadow-sm md:mb-6">
         <div class="p-6 pb-4">
             <div class="mb-4 flex shrink-0 items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -264,10 +262,7 @@ defineExpose({
                 :show-account-filter="props.showAccountFilter" />
         </div>
 
-        <component
-            :is="!isMobile ? ScrollArea : 'div'"
-            :class="cn('overflow-hidden rounded-b-md border-t', !isMobile && 'md:min-h-0 md:flex-1')"
-            :scrollbar-class="!isMobile ? 'pt-[41px]' : ''">
+        <ScrollArea class="min-h-0 flex-1 overflow-hidden rounded-b-md border-t" scrollbar-class="pt-[41px]">
             <TransactionTable
                 :account-name-by-id="accountNameById"
                 :is-filtered="hasActiveFilters"
@@ -276,7 +271,7 @@ defineExpose({
                 :transactions="transactions"
                 @row-click="handleTransactionClick" />
             <div v-if="hasMorePages" ref="loadMoreTrigger" aria-hidden="true" class="h-1 w-full" />
-        </component>
+        </ScrollArea>
 
         <TransactionFormModal
             v-model:open="isTransactionModalOpen"

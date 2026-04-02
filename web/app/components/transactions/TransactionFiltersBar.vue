@@ -197,7 +197,7 @@ const resetFilters = () => {
                         </Badge>
                     </Button>
                 </SheetTrigger>
-                <SheetContent class="h-[85vh] rounded-t-xl" side="bottom">
+                <SheetContent class="h-[85vh] rounded-t-xl px-4" side="bottom">
                     <SheetHeader class="mb-6 text-left">
                         <div class="flex items-center justify-between">
                             <SheetTitle>{{ t("transactions.filters.title") }}</SheetTitle>

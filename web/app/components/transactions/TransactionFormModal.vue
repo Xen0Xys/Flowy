@@ -28,6 +28,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
+import CategoryDialog from "~/components/references/CategoryDialog.vue";
+import MerchantDialog from "~/components/references/MerchantDialog.vue";
 import {Icon} from "#components";
 
 const props = defineProps<{
@@ -50,6 +52,8 @@ const {t} = useI18n();
 const isSubmitting = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isDeleting = ref(false);
+const isCreateCategoryDialogOpen = ref(false);
+const isCreateMerchantDialogOpen = ref(false);
 
 const loadData = async () => {
     try {
@@ -189,6 +193,14 @@ const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
 };
 
+const handleCategoryCreated = (category: {id: string}) => {
+    formData.value.categoryId = category.id;
+};
+
+const handleMerchantCreated = (merchant: {id: string}) => {
+    formData.value.merchantId = merchant.id;
+};
+
 const executeDelete = async () => {
     if (!props.transaction) return;
 
@@ -241,7 +253,7 @@ const executeDelete = async () => {
                     <Label class="text-right" for="account"> {{ t("transactions.table.account") }} </Label>
                     <div class="col-span-3">
                         <Select v-model="formData.selectedAccountId" required>
-                            <SelectTrigger>
+                            <SelectTrigger id="account">
                                 <SelectValue :placeholder="t('transactions.form.selectAccount')" />
                             </SelectTrigger>
                             <SelectContent>
@@ -278,44 +290,66 @@ const executeDelete = async () => {
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="category"> {{ t("transactions.table.category") }} </Label>
                     <div class="col-span-3">
-                        <Select v-model="formData.categoryId">
-                            <SelectTrigger>
-                                <SelectValue :placeholder="t('transactions.form.selectCategory')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="none">{{ t("common.none") }}</SelectItem>
-                                    <SelectItem v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
-                                        <div class="flex items-center gap-2">
-                                            <Icon :name="cat.icon" :style="{color: cat.hexColor}" class="h-4 w-4" />
-                                            <span>{{ cat.name }}</span>
-                                        </div>
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                        <div class="flex items-center gap-2">
+                            <Select v-model="formData.categoryId">
+                                <SelectTrigger id="category">
+                                    <SelectValue :placeholder="t('transactions.form.selectCategory')" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value="none">{{ t("common.none") }}</SelectItem>
+                                        <SelectItem v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
+                                            <div class="flex items-center gap-2">
+                                                <Icon :name="cat.icon" :style="{color: cat.hexColor}" class="h-4 w-4" />
+                                                <span>{{ cat.name }}</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                :aria-label="t('settings.references.addCategory')"
+                                :title="t('settings.references.addCategory')"
+                                size="icon-sm"
+                                type="button"
+                                variant="ghost"
+                                @click="isCreateCategoryDialogOpen = true">
+                                <Icon class="h-4 w-4" name="iconoir:plus" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="merchant"> {{ t("transactions.filters.merchant") }} </Label>
                     <div class="col-span-3">
-                        <Select v-model="formData.merchantId">
-                            <SelectTrigger>
-                                <SelectValue :placeholder="t('transactions.form.selectMerchant')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="none">{{ t("common.none") }}</SelectItem>
-                                    <SelectItem
-                                        v-for="merchant in availableMerchants"
-                                        :key="merchant.id"
-                                        :value="merchant.id">
-                                        {{ merchant.name }}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                        <div class="flex items-center gap-2">
+                            <Select v-model="formData.merchantId">
+                                <SelectTrigger id="merchant">
+                                    <SelectValue :placeholder="t('transactions.form.selectMerchant')" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value="none">{{ t("common.none") }}</SelectItem>
+                                        <SelectItem
+                                            v-for="merchant in availableMerchants"
+                                            :key="merchant.id"
+                                            :value="merchant.id">
+                                            {{ merchant.name }}
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                :aria-label="t('settings.references.addMerchant')"
+                                :title="t('settings.references.addMerchant')"
+                                size="icon-sm"
+                                type="button"
+                                variant="ghost"
+                                @click="isCreateMerchantDialogOpen = true">
+                                <Icon class="h-4 w-4" name="iconoir:plus" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -362,4 +396,14 @@ const executeDelete = async () => {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+
+    <CategoryDialog
+        :open="isCreateCategoryDialogOpen"
+        @saved="handleCategoryCreated"
+        @update:open="isCreateCategoryDialogOpen = $event" />
+
+    <MerchantDialog
+        :open="isCreateMerchantDialogOpen"
+        @saved="handleMerchantCreated"
+        @update:open="isCreateMerchantDialogOpen = $event" />
 </template>

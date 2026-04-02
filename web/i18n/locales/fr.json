@@ -494,7 +494,8 @@
                 "editMerchant": "Modifier le marchand",
                 "deleteMerchant": "Supprimer le marchand",
                 "selectColor": "Sélectionner la couleur",
-                "selectIcon": "Sélectionner l'icône"
+                "selectIcon": "Sélectionner l'icône",
+                "hexColorInput": "Code couleur hexadécimal"
             },
             "findIconsAt": "Trouver des icônes sur",
             "categoryPlaceholder": "ex : Courses",

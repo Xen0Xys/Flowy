@@ -15,7 +15,7 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
 </script>
 
 <template>
-    <main v-if="showSidebar" class="flex h-dvh max-h-dvh min-h-dvh w-full grow flex-col">
+    <main v-if="showSidebar" class="flex h-dvh w-full grow flex-col">
         <SidebarProvider :defaultOpen="defaultOpen">
             <SidebarWatcher />
             <FlowySidebar />
@@ -33,7 +33,7 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
             </SidebarInset>
         </SidebarProvider>
     </main>
-    <main v-else class="flex h-dvh max-h-dvh min-h-dvh w-full grow flex-col">
+    <main v-else class="flex h-dvh w-full grow flex-col">
         <slot></slot>
     </main>
 </template>
