@@ -1,11 +1,8 @@
 {
-    "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/config/schema.json",
-    "rules": {
-        "correctness": "error",
-        "suspicious": "error",
-        "perf": "warn",
-        "style": "allow",
-        "restriction": "allow"
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "error"
     },
+    "rules": {},
     "ignorePatterns": ["node_modules", "web/.nuxt", "server/prisma/generated"]
 }

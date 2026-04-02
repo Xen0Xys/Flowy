@@ -58,7 +58,7 @@ export class FamilyService {
 
         // Do not check if email exists
         // Create invite code
-        const inviteCode = crypto.randomBytes(8).toString("hex").toUpperCase();
+        const inviteCode = crypto.randomBytes(4).toString("hex").toUpperCase();
 
         // Store invite code in database
         await this.prismaService.familyInvites.create({
