@@ -2,16 +2,19 @@
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
+import {useTransactionStore, type Transaction} from "~/stores/transaction.store";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Button} from "~/components/ui/button";
 
 const accountStore = useAccountStore();
+const transactionStore = useTransactionStore();
 const {t} = useI18n();
 const isLoading = ref(true);
 
 const isTransactionModalOpen = ref(false);
+const selectedTransaction = ref<Transaction | null>(null);
 
 const availableAccounts = computed(() =>
     accountStore.accounts.map((account) => ({
@@ -32,6 +35,18 @@ const loadData = async () => {
 };
 
 onMounted(loadData);
+
+const handleViewLinked = async (transactionId: string) => {
+    try {
+        const transaction = await transactionStore.fetchTransactionById(transactionId);
+        if (transaction) {
+            selectedTransaction.value = transaction;
+            isTransactionModalOpen.value = true;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
 
 const onTransactionSaved = () => {
     loadData();
@@ -80,8 +95,9 @@ const onTransactionSaved = () => {
 
                 <TransactionFormModal
                     v-model:open="isTransactionModalOpen"
-                    :transaction="null"
-                    @saved="onTransactionSaved" />
+                    :transaction="selectedTransaction"
+                    @saved="onTransactionSaved"
+                    @view-linked="handleViewLinked" />
             </div>
         </div>
     </div>

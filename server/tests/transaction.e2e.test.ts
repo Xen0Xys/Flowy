@@ -667,6 +667,110 @@ describe("TransactionController (e2e)", () => {
         expect(storedAccount?.balance).toBe(45.2);
     });
 
+    test("updates linked transfer transaction amount when edited", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const update = await agent
+            .patch(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: -50});
+
+        expect(update.status).toBe(200);
+        expect(update.body.amount).toBe(-50);
+
+        const storedDebitTransaction = await prisma.transactions.findUnique({
+            where: {id: debitTransaction.id},
+        });
+        const storedCreditTransaction = await prisma.transactions.findUnique({
+            where: {id: creditTransaction.id},
+        });
+
+        expect(storedDebitTransaction?.amount).toBe(-50);
+        expect(storedCreditTransaction?.amount).toBe(50);
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+
+        expect(storedDebitAccount?.balance).toBe(150);
+        expect(storedCreditAccount?.balance).toBe(150);
+    });
+
+    test("updates linked transfer transaction date when edited", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const update = await agent
+            .patch(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({date: "2026-03-12T15:30:00.000Z"});
+
+        expect(update.status).toBe(200);
+        expect(update.body.date).toBe("2026-03-12T15:30:00.000Z");
+
+        const storedDebitTransaction = await prisma.transactions.findUnique({
+            where: {id: debitTransaction.id},
+        });
+        const storedCreditTransaction = await prisma.transactions.findUnique({
+            where: {id: creditTransaction.id},
+        });
+
+        expect(storedDebitTransaction?.date.toISOString()).toBe("2026-03-12T15:30:00.000Z");
+        expect(storedCreditTransaction?.date.toISOString()).toBe("2026-03-12T15:30:00.000Z");
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+
+        expect(storedDebitAccount?.balance).toBe(170);
+        expect(storedCreditAccount?.balance).toBe(130);
+    });
+
     test("deletes a transaction and reverts account balance", async () => {
         const user = await registerUser(server);
         const account = await agent

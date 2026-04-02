@@ -298,10 +298,29 @@
             "saveChanges": "Save changes",
             "deleteTitle": "Delete transaction",
             "deleteDescription": "Are you sure you want to delete this transaction? This action cannot be undone.",
+            "deleteTransferTitle": "Delete Transfer",
+            "deleteTransferDescription": "This transaction is linked to a transfer. Delete both transactions?",
+            "keepLinked": "Keep linked transaction",
+            "deleteBoth": "Delete Both",
+            "linkedTransaction": "Linked Transaction",
+            "linkedTransactionDescription": "This transaction is linked to a transfer between accounts.",
+            "viewLinked": "View linked transaction",
+            "unlinkTransfer": "Unlink",
+            "unlinking": "Unlinking...",
             "errors": {
                 "loadData": "Failed to load required data",
                 "accountRequired": "Account is required to create a transaction"
             }
+        },
+        "transfer": {
+            "tab": "Transfer",
+            "badge": "Transfer",
+            "sourceAccount": "Source Account",
+            "destinationAccount": "Destination Account",
+            "amount": "Amount",
+            "descriptionPlaceholder": "Transfer",
+            "create": "Create Transfer",
+            "sameAccountError": "Source and destination accounts must be different"
         }
     },
     "profile": {

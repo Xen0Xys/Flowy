@@ -202,7 +202,14 @@ const table = useVueTable({
                                 v-if="row.original.isRebalance"
                                 :title="String(cell.getValue())"
                                 class="text-muted-foreground flex min-w-0 items-center gap-1.5 font-medium italic">
-                                <Icon name="iconoir:system-restart" class="h-4 w-4" />
+                                <Icon class="h-4 w-4" name="iconoir:system-restart" />
+                                <span class="block truncate">{{ cell.getValue() }}</span>
+                            </span>
+                            <span
+                                v-else-if="row.original.linkedTransactionId"
+                                :title="String(cell.getValue())"
+                                class="flex min-w-0 items-center gap-1.5 font-medium">
+                                <Icon class="h-4 w-4 text-blue-500" name="iconoir:data-transfer-both" />
                                 <span class="block truncate">{{ cell.getValue() }}</span>
                             </span>
                             <span v-else :class="cn('block truncate font-medium')" :title="String(cell.getValue())">

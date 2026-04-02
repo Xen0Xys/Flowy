@@ -223,6 +223,18 @@ const handleTransactionClick = (transaction: Transaction) => {
     isTransactionModalOpen.value = true;
 };
 
+const handleViewLinked = async (transactionId: string) => {
+    try {
+        const transaction = await transactionStore.fetchTransactionById(transactionId);
+        if (transaction) {
+            selectedTransaction.value = transaction;
+            isTransactionModalOpen.value = true;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
 const onTransactionSaved = () => {
     fetchFirstPage();
     emit("saved");
@@ -277,6 +289,7 @@ defineExpose({
             v-model:open="isTransactionModalOpen"
             :account-id="accountId"
             :transaction="selectedTransaction"
-            @saved="onTransactionSaved" />
+            @saved="onTransactionSaved"
+            @view-linked="handleViewLinked" />
     </div>
 </template>

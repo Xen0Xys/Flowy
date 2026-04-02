@@ -298,10 +298,29 @@
             "saveChanges": "Enregistrer les modifications",
             "deleteTitle": "Supprimer la transaction",
             "deleteDescription": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.",
+            "deleteTransferTitle": "Supprimer le transfert",
+            "deleteTransferDescription": "Cette transaction est liée à un transfert. Voulez-vous supprimer les deux transactions ?",
+            "keepLinked": "Garder la transaction liée",
+            "deleteBoth": "Supprimer les deux",
+            "linkedTransaction": "Transaction liée",
+            "linkedTransactionDescription": "Cette transaction est liée à un transfert entre comptes.",
+            "viewLinked": "Voir la transaction liée",
+            "unlinkTransfer": "Dissocier",
+            "unlinking": "Dissociation...",
             "errors": {
                 "loadData": "Impossible de charger les données requises",
                 "accountRequired": "Un compte est requis pour créer une transaction"
             }
+        },
+        "transfer": {
+            "tab": "Transfert",
+            "badge": "Transfert",
+            "sourceAccount": "Compte source",
+            "destinationAccount": "Compte destination",
+            "amount": "Montant",
+            "descriptionPlaceholder": "Transfert",
+            "create": "Créer le transfert",
+            "sameAccountError": "Les comptes source et destination doivent être différents"
         }
     },
     "profile": {

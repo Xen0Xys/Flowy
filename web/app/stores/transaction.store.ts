@@ -31,6 +31,7 @@ export type Transaction = {
     merchant?: TransactionMerchant;
     category?: TransactionCategory;
     isRebalance: boolean;
+    linkedTransactionId?: string;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -128,6 +129,20 @@ export const useTransactionStore = defineStore("transaction", {
                 return result.items;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
+                toast.error(message);
+                throw new Error(message);
+            }
+        },
+
+        async fetchTransactionById(transactionId: string) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            try {
+                return await apiFetch<Transaction>(`/transaction/${transactionId}`);
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
                 throw new Error(message);
             }

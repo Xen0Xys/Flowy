@@ -317,6 +317,8 @@ export class TransactionService {
                 account: true,
                 merchant: true,
                 category: true,
+                credit_transfer: true,
+                debit_transfer: true,
             },
         });
 
@@ -330,10 +332,59 @@ export class TransactionService {
 
         await this.validateReferencesOwnership(user, updateTransactionDto.merchantId, updateTransactionDto.categoryId);
 
+        const transfer = transaction.debit_transfer ?? transaction.credit_transfer;
         const nextAmount = updateTransactionDto.amount !== undefined ? updateTransactionDto.amount : transaction.amount;
         const delta = this.toDecimal(nextAmount - transaction.amount);
+        const nextDate =
+            updateTransactionDto.date !== undefined
+                ? this.normalizeTransactionDate(updateTransactionDto.date)
+                : transaction.date;
 
         const updatedTransaction = await this.prismaService.$transaction(async (tx) => {
+            if (transfer && (updateTransactionDto.amount !== undefined || updateTransactionDto.date !== undefined)) {
+                const linkedTransactionId =
+                    transfer.debit_transaction_id === transactionId
+                        ? transfer.credit_transaction_id
+                        : transfer.debit_transaction_id;
+
+                const linkedTransaction = await tx.transactions.findUnique({
+                    where: {id: linkedTransactionId},
+                    include: {
+                        account: true,
+                    },
+                });
+
+                if (!linkedTransaction) {
+                    throw new NotFoundException("Linked transfer transaction not found");
+                }
+
+                if (linkedTransaction.account.user_id !== user.id) {
+                    throw new ForbiddenException("You do not have permission to update this transaction");
+                }
+
+                const linkedUpdateData: Prisma.TransactionsUpdateInput =
+                    updateTransactionDto.date !== undefined ? {date: nextDate} : {};
+
+                if (updateTransactionDto.amount !== undefined) {
+                    const linkedNextAmount = this.toDecimal(-nextAmount);
+                    const linkedDelta = this.toDecimal(linkedNextAmount - linkedTransaction.amount);
+
+                    await tx.accounts.update({
+                        where: {id: linkedTransaction.account_id},
+                        data: {
+                            balance: this.toDecimal(linkedTransaction.account.balance + linkedDelta),
+                        },
+                    });
+
+                    linkedUpdateData.amount = linkedNextAmount;
+                }
+
+                await tx.transactions.update({
+                    where: {id: linkedTransactionId},
+                    data: linkedUpdateData,
+                });
+            }
+
             await tx.accounts.update({
                 where: {id: transaction.account_id},
                 data: {
@@ -348,9 +399,7 @@ export class TransactionService {
                     ...(updateTransactionDto.description !== undefined
                         ? {description: updateTransactionDto.description}
                         : {}),
-                    ...(updateTransactionDto.date !== undefined
-                        ? {date: this.normalizeTransactionDate(updateTransactionDto.date)}
-                        : {}),
+                    ...(updateTransactionDto.date !== undefined ? {date: nextDate} : {}),
                     ...(updateTransactionDto.merchantId !== undefined
                         ? {merchant_id: updateTransactionDto.merchantId}
                         : {}),
