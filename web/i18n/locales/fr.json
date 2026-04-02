@@ -431,6 +431,7 @@
             "selectCurrency": "Sélectionner une devise",
             "adminOnly": "Seuls les admins de la famille peuvent modifier ces paramètres.",
             "members": "Membres",
+            "noMembers": "Aucun membre dans la famille pour le moment.",
             "remove": "Retirer",
             "removing": "Retrait...",
             "removeMember": "Retirer le membre",

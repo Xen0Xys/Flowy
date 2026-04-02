@@ -269,7 +269,7 @@ async function removeMember(id: string) {
                                         {{ family.name }}
                                     </div>
                                     <div class="text-muted-foreground text-sm">
-                                        {{ t("settings.family.memberCount", family.members?.length ?? 0) }}
+                                        {{ t("settings.family.memberCount", (family.members?.length ?? 0) + 1) }}
                                     </div>
                                 </div>
 
@@ -383,13 +383,13 @@ async function removeMember(id: string) {
                                         <div class="flex gap-3">
                                             <Input
                                                 v-model="editFamilyName"
-                                                :disabled="!userStore.isFamilyAdmin"
                                                 :aria-label="t('settings.family.familyName')"
-                                                class="flex-1"
-                                                :placeholder="t('settings.family.familyName')" />
+                                                :disabled="!userStore.isFamilyAdmin"
+                                                :placeholder="t('settings.family.familyName')"
+                                                class="flex-1" />
                                             <Button
-                                                :disabled="savingFamilyName || !canSaveFamilyName"
                                                 :aria-label="t('settings.family.aria.saveFamilyName')"
+                                                :disabled="savingFamilyName || !canSaveFamilyName"
                                                 size="sm"
                                                 variant="default"
                                                 @click="saveFamilyNameOnly">
@@ -419,8 +419,8 @@ async function removeMember(id: string) {
                                                 </SelectContent>
                                             </Select>
                                             <Button
-                                                :disabled="savingFamilyCurrency || !canSaveFamilyCurrency"
                                                 :aria-label="t('settings.family.aria.saveFamilyCurrency')"
+                                                :disabled="savingFamilyCurrency || !canSaveFamilyCurrency"
                                                 size="sm"
                                                 variant="default"
                                                 @click="saveFamilyCurrencyOnly">
@@ -438,9 +438,14 @@ async function removeMember(id: string) {
                                 <hr class="border-border my-4" />
 
                                 <h4 class="font-medium">{{ t("settings.family.members") }}</h4>
-                                <ul class="mb-4">
+                                <p
+                                    v-if="!family.members || family.members.length === 0"
+                                    class="text-muted-foreground mb-4 text-sm">
+                                    {{ t("settings.family.noMembers") }}
+                                </p>
+                                <ul v-else class="mb-4">
                                     <li
-                                        v-for="member in family.members || []"
+                                        v-for="member in family.members"
                                         :key="member.id"
                                         class="flex items-center justify-between py-2">
                                         <div>
@@ -458,8 +463,8 @@ async function removeMember(id: string) {
                                                         v-if="
                                                             userStore.isFamilyAdmin && member.id !== userStore.user?.id
                                                         "
-                                                        :disabled="removingMemberId === member.id || familyActionLoading"
                                                         :aria-label="t('settings.family.aria.removeMember')"
+                                                        :disabled="removingMemberId === member.id || familyActionLoading"
                                                         size="sm"
                                                         variant="destructive">
                                                         <span v-if="removingMemberId !== member.id">
@@ -500,8 +505,8 @@ async function removeMember(id: string) {
                                         :aria-label="t('settings.family.aria.inviteEmail')"
                                         :placeholder="t('settings.family.invitePlaceholder')" />
                                     <Button
-                                        :disabled="!inviteEmail || inviting"
                                         :aria-label="t('settings.family.aria.inviteMember')"
+                                        :disabled="!inviteEmail || inviting"
                                         @click="handleInvite">
                                         <span v-if="!inviting">{{ t("settings.family.invite") }}</span>
                                         <span v-else>{{ t("settings.family.inviting") }}</span>

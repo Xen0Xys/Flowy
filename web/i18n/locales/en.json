@@ -431,6 +431,7 @@
             "selectCurrency": "Select currency",
             "adminOnly": "Only family admins can update family settings.",
             "members": "Members",
+            "noMembers": "No members in the family yet.",
             "remove": "Remove",
             "removing": "Removing...",
             "removeMember": "Remove member",
