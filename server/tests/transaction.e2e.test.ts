@@ -644,16 +644,13 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Savings", type: "SAVINGS", balance: 100});
 
-        const transfer = await agent
-            .post("/transfer")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                debitAccountId: debitAccount.body.id,
-                creditAccountId: creditAccount.body.id,
-                amount: 30,
-                description: "Monthly transfer",
-                date: "2026-02-10T10:00:00.000Z",
-            });
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
 
         expect(transfer.status).toBe(201);
 
@@ -696,16 +693,13 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Savings", type: "SAVINGS", balance: 100});
 
-        const transfer = await agent
-            .post("/transfer")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                debitAccountId: debitAccount.body.id,
-                creditAccountId: creditAccount.body.id,
-                amount: 30,
-                description: "Monthly transfer",
-                date: "2026-02-10T10:00:00.000Z",
-            });
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
 
         expect(transfer.status).toBe(201);
 

@@ -76,7 +76,9 @@ describe("TransferController (e2e)", () => {
         expect(unlink.status).toBe(401);
         expect(unlink.body.message).toBe("Authorization token is missing");
 
-        const link = await agent.post("/transfer/link/0195c8dd-c263-7569-99f6-9fc20aca3050/0195c8dd-c263-7569-99f6-9fc20aca3051");
+        const link = await agent.post(
+            "/transfer/link/0195c8dd-c263-7569-99f6-9fc20aca3050/0195c8dd-c263-7569-99f6-9fc20aca3051",
+        );
         expect(link.status).toBe(401);
         expect(link.body.message).toBe("Authorization token is missing");
     });
@@ -93,16 +95,13 @@ describe("TransferController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Savings", type: "SAVINGS", balance: 50});
 
-        const response = await agent
-            .post("/transfer")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                debitAccountId: debitAccount.body.id,
-                creditAccountId: creditAccount.body.id,
-                amount: 125.35,
-                description: "Monthly move",
-                date: "2026-01-20T09:00:00.000Z",
-            });
+        const response = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 125.35,
+            description: "Monthly move",
+            date: "2026-01-20T09:00:00.000Z",
+        });
 
         expect(response.status).toBe(201);
         expect(response.body).toHaveLength(2);
@@ -176,16 +175,13 @@ describe("TransferController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Emergency", type: "SAVINGS", balance: 100});
 
-        const created = await agent
-            .post("/transfer")
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({
-                debitAccountId: debitAccount.body.id,
-                creditAccountId: creditAccount.body.id,
-                amount: 30,
-                description: "Split",
-                date: "2026-01-22T12:00:00.000Z",
-            });
+        const created = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Split",
+            date: "2026-01-22T12:00:00.000Z",
+        });
 
         const firstTransactionId = created.body[0].id;
         const unlink = await agent
@@ -252,16 +248,13 @@ describe("TransferController (e2e)", () => {
             .set("Authorization", `Bearer ${outsider.token}`)
             .send({name: "Outsider", type: "SAVINGS"});
 
-        const create = await agent
-            .post("/transfer")
-            .set("Authorization", `Bearer ${outsider.token}`)
-            .send({
-                debitAccountId: ownerAccount.body.id,
-                creditAccountId: outsiderAccount.body.id,
-                amount: 15,
-                description: "Not allowed",
-                date: "2026-01-23T12:00:00.000Z",
-            });
+        const create = await agent.post("/transfer").set("Authorization", `Bearer ${outsider.token}`).send({
+            debitAccountId: ownerAccount.body.id,
+            creditAccountId: outsiderAccount.body.id,
+            amount: 15,
+            description: "Not allowed",
+            date: "2026-01-23T12:00:00.000Z",
+        });
 
         expect(create.status).toBe(403);
         expect(create.body.message).toBe("You do not have permission to access this account");
@@ -273,9 +266,7 @@ describe("TransferController (e2e)", () => {
         const unlink = await agent.delete("/transfer/unlink/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
         expect(unlink.status).toBe(400);
 
-        const link = await agent
-            .post("/transfer/link/not-a-uuid/also-bad")
-            .set("Authorization", `Bearer ${user.token}`);
+        const link = await agent.post("/transfer/link/not-a-uuid/also-bad").set("Authorization", `Bearer ${user.token}`);
         expect(link.status).toBe(400);
     });
 });
