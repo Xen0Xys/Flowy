@@ -293,6 +293,8 @@
             "selectAccount": "Sélectionner un compte",
             "selectCategory": "Sélectionner une catégorie",
             "selectMerchant": "Sélectionner un marchand",
+            "incomeDescriptionPlaceholder": "Revenu",
+            "expenseDescriptionPlaceholder": "Dépense",
             "systemTransaction": "Transaction système",
             "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. La modifier peut désynchroniser le solde de votre compte.",
             "saveChanges": "Enregistrer les modifications",

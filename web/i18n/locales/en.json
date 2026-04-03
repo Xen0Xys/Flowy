@@ -293,6 +293,8 @@
             "selectAccount": "Select an account",
             "selectCategory": "Select a category",
             "selectMerchant": "Select a merchant",
+            "incomeDescriptionPlaceholder": "Income",
+            "expenseDescriptionPlaceholder": "Expense",
             "systemTransaction": "System Transaction",
             "systemTransactionDescription": "This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of sync.",
             "saveChanges": "Save changes",

@@ -407,7 +407,7 @@ const executeLinkTransfer = async () => {
                 </DialogDescription>
             </DialogHeader>
 
-            <Tabs v-model="transactionType" class="mt-4 w-full">
+            <Tabs v-model="transactionType" class="w-full">
                 <TabsList :class="props.transaction ? 'grid w-full grid-cols-2' : 'grid w-full grid-cols-3'">
                     <TabsTrigger value="expense">{{ t("transactions.filters.expense") }}</TabsTrigger>
                     <TabsTrigger value="income">{{ t("transactions.filters.income") }}</TabsTrigger>
@@ -424,10 +424,7 @@ const executeLinkTransfer = async () => {
                 </AlertDescription>
             </Alert>
 
-            <Alert
-                v-if="props.transaction?.linkedTransactionId && transactionType !== 'transfer'"
-                class="mt-4"
-                variant="default">
+            <Alert v-if="props.transaction?.linkedTransactionId && transactionType !== 'transfer'" variant="default">
                 <AlertTitle class="flex items-center gap-2">
                     <Icon class="h-4 w-4" name="iconoir:link" />
                     {{ t("transactions.form.linkedTransaction") }}
@@ -460,7 +457,7 @@ const executeLinkTransfer = async () => {
             </Alert>
 
             <!-- Transfer Form -->
-            <form v-if="transactionType === 'transfer'" class="grid gap-4 py-4" @submit.prevent="save">
+            <form v-if="transactionType === 'transfer'" class="grid gap-4" @submit.prevent="save">
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="sourceAccount">
                         {{ t("transactions.transfer.sourceAccount") }}
@@ -508,6 +505,17 @@ const executeLinkTransfer = async () => {
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="transferDescription">
+                        {{ t("transactions.table.description") }}
+                    </Label>
+                    <Input
+                        id="transferDescription"
+                        v-model="transferFormData.description"
+                        :placeholder="t('transactions.transfer.descriptionPlaceholder')"
+                        class="col-span-3" />
+                </div>
+
+                <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="transferAmount">
                         {{ t("transactions.transfer.amount") }}
                     </Label>
@@ -520,17 +528,6 @@ const executeLinkTransfer = async () => {
                             step="0.01"
                             type="number" />
                     </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="transferDescription">
-                        {{ t("transactions.table.description") }}
-                    </Label>
-                    <Input
-                        id="transferDescription"
-                        v-model="transferFormData.description"
-                        :placeholder="t('transactions.transfer.descriptionPlaceholder')"
-                        class="col-span-3" />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
@@ -549,7 +546,7 @@ const executeLinkTransfer = async () => {
             </form>
 
             <!-- Standard Transaction Form -->
-            <form v-else class="grid gap-4 py-4" @submit.prevent="save">
+            <form v-else class="grid gap-4" @submit.prevent="save">
                 <div v-if="!props.accountId && !props.transaction" class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="account"> {{ t("transactions.table.account") }} </Label>
                     <div class="col-span-3">
@@ -573,7 +570,16 @@ const executeLinkTransfer = async () => {
 
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right" for="description"> {{ t("transactions.table.description") }} </Label>
-                    <Input id="description" v-model="formData.description" class="col-span-3" required />
+                    <Input
+                        id="description"
+                        v-model="formData.description"
+                        :placeholder="
+                            transactionType === 'income'
+                                ? t('transactions.form.incomeDescriptionPlaceholder')
+                                : t('transactions.form.expenseDescriptionPlaceholder')
+                        "
+                        class="col-span-3"
+                        required />
                 </div>
 
                 <div class="grid grid-cols-4 items-center gap-4">
@@ -753,7 +759,7 @@ const executeLinkTransfer = async () => {
                 </DialogDescription>
             </DialogHeader>
 
-            <div class="grid gap-4 py-4">
+            <div class="grid gap-4">
                 <!-- Current transaction info -->
                 <Alert class="bg-muted/50">
                     <AlertTitle class="flex items-center gap-2">
@@ -789,11 +795,11 @@ const executeLinkTransfer = async () => {
                 </Alert>
 
                 <!-- Account selection -->
-                <div class="grid grid-cols-4 items-center gap-4">
+                <div class="flex items-center gap-4">
                     <Label class="text-right" for="linkAccount">
                         {{ t("transactions.transfer.selectAccount") }}
                     </Label>
-                    <div class="col-span-3">
+                    <div class="">
                         <Select :model-value="selectedLinkAccountId" @update:model-value="handleLinkAccountChange">
                             <SelectTrigger id="linkAccount">
                                 <SelectValue :placeholder="t('transactions.form.selectAccount')" />
