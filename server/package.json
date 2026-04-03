@@ -1,6 +1,6 @@
 {
     "name": "flowy-server",
-    "version": "1.0.0-beta.1",
+    "version": "1.0.0",
     "scripts": {
         "build": "bun build.ts",
         "start": "bun --bun nest start",

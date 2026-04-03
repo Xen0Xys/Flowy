@@ -1,6 +1,6 @@
 {
     "name": "flowy-web",
-    "version": "1.0.0-beta.1",
+    "version": "1.0.0",
     "type": "module",
     "scripts": {
         "build": "nuxt build",
