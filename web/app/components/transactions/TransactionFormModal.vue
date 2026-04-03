@@ -16,6 +16,7 @@ import {Button} from "~/components/ui/button";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
+import {Switch} from "~/components/ui/switch";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {Alert, AlertDescription, AlertTitle} from "~/components/ui/alert";
@@ -57,7 +58,7 @@ const isDeleteDialogOpen = ref(false);
 const isDeleting = ref(false);
 const isCreateCategoryDialogOpen = ref(false);
 const isCreateMerchantDialogOpen = ref(false);
-const keepLinkedTransaction = ref(false);
+const keepLinkedTransaction = ref(true);
 const isUnlinking = ref(false);
 
 // Link transfer state
@@ -100,11 +101,6 @@ const formattedTransactionAmount = computed(() => {
 const formattedTransactionDate = computed(() => {
     if (!props.transaction?.date) return "";
     return new Date(props.transaction.date).toLocaleDateString();
-});
-
-const selectedAccountName = computed(() => {
-    const account = availableAccounts.value.find((acc) => acc.id === selectedLinkAccountId.value);
-    return account?.name || "";
 });
 
 watch(
@@ -716,7 +712,10 @@ const executeLinkTransfer = async () => {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <div v-if="props.transaction?.linkedTransactionId" class="mb-4 flex items-center gap-2">
-                <input id="keepLinked" v-model="keepLinkedTransaction" type="checkbox" />
+                <Switch
+                    id="keepLinked"
+                    v-model="keepLinkedTransaction"
+                    :aria-label="t('transactions.form.keepLinked')" />
                 <Label class="cursor-pointer" for="keepLinked">
                     {{ t("transactions.form.keepLinked") }}
                 </Label>

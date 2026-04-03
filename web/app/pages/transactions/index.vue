@@ -48,6 +48,11 @@ const handleViewLinked = async (transactionId: string) => {
     }
 };
 
+const handleNewTransaction = () => {
+    selectedTransaction.value = null;
+    isTransactionModalOpen.value = true;
+};
+
 const onTransactionSaved = () => {
     loadData();
 };
@@ -71,7 +76,7 @@ const onTransactionSaved = () => {
                             </div>
                         </div>
                     </div>
-                    <Button class="w-full md:w-auto" @click="isTransactionModalOpen = true">
+                    <Button class="w-full md:w-auto" @click="handleNewTransaction">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
                         {{ t("transactions.list.newTransaction") }}
                     </Button>

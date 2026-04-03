@@ -771,6 +771,45 @@ describe("TransactionController (e2e)", () => {
         expect(storedCreditAccount?.balance).toBe(130);
     });
 
+    test("rejects sign flip when updating a linked transfer transaction", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item) => item.amount < 0);
+        expect(debitTransaction).toBeTruthy();
+
+        const update = await agent
+            .patch(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: 50});
+
+        expect(update.status).toBe(400);
+        expect(update.body.message).toBe("Cannot change sign of a transfer-linked transaction");
+
+        const storedDebitTransaction = await prisma.transactions.findUnique({
+            where: {id: debitTransaction.id},
+        });
+        expect(storedDebitTransaction?.amount).toBe(-30);
+    });
+
     test("deletes a transaction and reverts account balance", async () => {
         const user = await registerUser(server);
         const account = await agent

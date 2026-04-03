@@ -340,6 +340,15 @@ export class TransactionService {
                 ? this.normalizeTransactionDate(updateTransactionDto.date)
                 : transaction.date;
 
+        if (transfer && updateTransactionDto.amount !== undefined) {
+            const currentAmountSign = Math.sign(transaction.amount);
+            const nextAmountSign = Math.sign(updateTransactionDto.amount);
+
+            if (currentAmountSign !== nextAmountSign) {
+                throw new BadRequestException("Cannot change sign of a transfer-linked transaction");
+            }
+        }
+
         const updatedTransaction = await this.prismaService.$transaction(async (tx) => {
             if (transfer && (updateTransactionDto.amount !== undefined || updateTransactionDto.date !== undefined)) {
                 const linkedTransactionId =
