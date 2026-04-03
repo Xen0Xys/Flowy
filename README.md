@@ -10,18 +10,6 @@ One place. All your accounts. Everyone in the loop.
 
 ---
 
-## Who it's for
-
-**Couples and families** who want a shared view of spending without emailing each other CSV exports.
-
-**People leaving spreadsheets** who need structure without sacrificing flexibility.
-
-**Self-hosters** who want financial tooling without handing their data to a third party.
-
-**Households with multiple accounts** that need consistent categorization month after month.
-
----
-
 ## What Flowy gives you
 
 ### 🏠 A shared household workspace
@@ -42,7 +30,19 @@ Flowy is self-hosted. You control the deployment, the database, and who has acce
 
 ---
 
-## How it works
+## Why Flowy
+
+### Who it's for
+
+**Couples and families** who want a shared view of spending without emailing each other CSV exports.
+
+**People leaving spreadsheets** who need structure without sacrificing flexibility.
+
+**Self-hosters** who want financial tooling without handing their data to a third party.
+
+**Households with multiple accounts** that need consistent categorization month after month.
+
+### How it works
 
 **Get started fast** — register, sign in, pick your onboarding path, and start tracking in minutes.
 
@@ -54,9 +54,7 @@ Flowy is self-hosted. You control the deployment, the database, and who has acce
 
 **Manage everything from settings** — update your profile, family details, and references. Admins can configure instance-level behavior.
 
----
-
-## Flowy vs spreadsheet
+### Flowy vs spreadsheet
 
 |                   | Flowy                                                | Spreadsheet                      |
 | ----------------- | ---------------------------------------------------- | -------------------------------- |
@@ -65,6 +63,24 @@ Flowy is self-hosted. You control the deployment, the database, and who has acce
 | **Structure**     | Accounts, categories, merchants, transactions        | Free-form cells                  |
 | **Consistency**   | Reusable references, standardized entries            | Ad hoc naming                    |
 | **Scale**         | Built for long-term history and multi-user workflows | Fragile growth                   |
+
+---
+
+## Roadmap
+
+Features currently planned or in progress. Scope and order may evolve.
+
+### 💰 Category budgets
+
+Set monthly or periodic budgets per category with a dedicated page — track what you planned vs. what you actually spent, at a glance.
+
+### 🔁 Recurring transactions
+
+Define recurring income and expenses, visualized on a calendar view so you always know what's coming and when.
+
+### 🎨 Theming
+
+A reworked visual layer with multiple themes to choose from — because a tool you use daily should feel like yours.
 
 ---
 

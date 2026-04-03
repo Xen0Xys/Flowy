@@ -104,21 +104,35 @@ model Accounts {
 }
 
 model Transactions {
-  id           String          @id @default(uuid(7)) @db.Uuid
-  account_id   String          @db.Uuid
-  account      Accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade)
-  amount       Float
-  description  String          @db.VarChar(255)
-  date         DateTime        @default(now())
-  merchant_id  String?         @db.Uuid
-  merchant     UserMerchants?  @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
-  category_id  String?         @db.Uuid
-  category     UserCategories? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  is_rebalance Boolean         @default(false)
-  created_at   DateTime        @default(now())
-  updated_at   DateTime        @updatedAt
+  id              String          @id @default(uuid(7)) @db.Uuid
+  account_id      String          @db.Uuid
+  account         Accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  amount          Float
+  description     String          @db.VarChar(255)
+  date            DateTime        @default(now())
+  merchant_id     String?         @db.Uuid
+  merchant        UserMerchants?  @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
+  category_id     String?         @db.Uuid
+  category        UserCategories? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  debit_transfer  Transfers?      @relation("TransferDebitTransaction")
+  credit_transfer Transfers?      @relation("TransferCreditTransaction")
+  is_rebalance    Boolean         @default(false)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
 
   @@map("transactions")
+}
+
+model Transfers {
+  id                    String       @id @default(uuid(7)) @db.Uuid
+  debit_transaction_id  String       @unique @db.Uuid
+  credit_transaction_id String       @unique @db.Uuid
+  debit_transaction     Transactions @relation("TransferDebitTransaction", fields: [debit_transaction_id], references: [id], onDelete: Cascade)
+  credit_transaction    Transactions @relation("TransferCreditTransaction", fields: [credit_transaction_id], references: [id], onDelete: Cascade)
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
+
+  @@map("transfers")
 }
 
 model UserMerchants {

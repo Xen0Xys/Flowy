@@ -293,15 +293,46 @@
             "selectAccount": "Select an account",
             "selectCategory": "Select a category",
             "selectMerchant": "Select a merchant",
+            "incomeDescriptionPlaceholder": "Income",
+            "expenseDescriptionPlaceholder": "Expense",
             "systemTransaction": "System Transaction",
             "systemTransactionDescription": "This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of sync.",
             "saveChanges": "Save changes",
             "deleteTitle": "Delete transaction",
             "deleteDescription": "Are you sure you want to delete this transaction? This action cannot be undone.",
+            "deleteTransferTitle": "Delete Transfer",
+            "deleteTransferDescription": "This transaction is linked to a transfer. Delete both transactions?",
+            "keepLinked": "Keep linked transaction",
+            "deleteBoth": "Delete Both",
+            "linkedTransaction": "Linked Transaction",
+            "linkedTransactionDescription": "This transaction is linked to a transfer between accounts.",
+            "viewLinked": "View linked transaction",
+            "unlinkTransfer": "Unlink",
+            "unlinking": "Unlinking...",
+            "linkTransfer": "Link as Transfer",
             "errors": {
                 "loadData": "Failed to load required data",
                 "accountRequired": "Account is required to create a transaction"
             }
+        },
+        "transfer": {
+            "tab": "Transfer",
+            "badge": "Transfer",
+            "sourceAccount": "Source Account",
+            "destinationAccount": "Destination Account",
+            "amount": "Amount",
+            "descriptionPlaceholder": "Transfer",
+            "create": "Create Transfer",
+            "sameAccountError": "Source and destination accounts must be different",
+            "linkTitle": "Link as Transfer",
+            "linkDescription": "Link this transaction with another to create a transfer between accounts.",
+            "selectAccount": "Select account",
+            "selectTransaction": "Select transaction",
+            "noEligibleTransactions": "No eligible transactions found",
+            "eligibilityHint": "Showing transactions with amount {amount} and date {date}",
+            "linkButton": "Link",
+            "linkingButton": "Linking...",
+            "loadingTransactions": "Loading transactions..."
         }
     },
     "profile": {
@@ -562,6 +593,9 @@
                 "transactionCreated": "Transaction created",
                 "transactionUpdated": "Transaction updated",
                 "transactionDeleted": "Transaction deleted",
+                "transferCreated": "Transfer created",
+                "transferUnlinked": "Transfer unlinked",
+                "transferLinked": "Transactions linked",
                 "bulkTransactionsCreated": "{count} transactions imported"
             },
             "errors": {
@@ -570,6 +604,9 @@
                 "createTransaction": "Failed creating transaction",
                 "updateTransaction": "Failed updating transaction",
                 "deleteTransaction": "Failed deleting transaction",
+                "createTransfer": "Failed creating transfer",
+                "unlinkTransfer": "Failed unlinking transfer",
+                "linkTransactions": "Failed linking transactions",
                 "testBulkTransactions": "Failed validating import preview",
                 "createBulkTransactions": "Failed importing transactions"
             }

@@ -293,15 +293,46 @@
             "selectAccount": "Sélectionner un compte",
             "selectCategory": "Sélectionner une catégorie",
             "selectMerchant": "Sélectionner un marchand",
+            "incomeDescriptionPlaceholder": "Revenu",
+            "expenseDescriptionPlaceholder": "Dépense",
             "systemTransaction": "Transaction système",
             "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. La modifier peut désynchroniser le solde de votre compte.",
             "saveChanges": "Enregistrer les modifications",
             "deleteTitle": "Supprimer la transaction",
             "deleteDescription": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.",
+            "deleteTransferTitle": "Supprimer le transfert",
+            "deleteTransferDescription": "Cette transaction est liée à un transfert. Voulez-vous supprimer les deux transactions ?",
+            "keepLinked": "Garder la transaction liée",
+            "deleteBoth": "Supprimer les deux",
+            "linkedTransaction": "Transaction liée",
+            "linkedTransactionDescription": "Cette transaction est liée à un transfert entre comptes.",
+            "viewLinked": "Voir la transaction liée",
+            "unlinkTransfer": "Dissocier",
+            "unlinking": "Dissociation...",
+            "linkTransfer": "Lier comme transfert",
             "errors": {
                 "loadData": "Impossible de charger les données requises",
                 "accountRequired": "Un compte est requis pour créer une transaction"
             }
+        },
+        "transfer": {
+            "tab": "Transfert",
+            "badge": "Transfert",
+            "sourceAccount": "Compte source",
+            "destinationAccount": "Compte destination",
+            "amount": "Montant",
+            "descriptionPlaceholder": "Transfert",
+            "create": "Créer le transfert",
+            "sameAccountError": "Les comptes source et destination doivent être différents",
+            "linkTitle": "Lier comme transfert",
+            "linkDescription": "Liez cette transaction avec une autre pour créer un transfert entre comptes.",
+            "selectAccount": "Sélectionner le compte",
+            "selectTransaction": "Sélectionner la transaction",
+            "noEligibleTransactions": "Aucune transaction éligible trouvée",
+            "eligibilityHint": "Transactions avec le montant {amount} et la date {date}",
+            "linkButton": "Lier",
+            "linkingButton": "Liaison...",
+            "loadingTransactions": "Chargement des transactions..."
         }
     },
     "profile": {
@@ -562,6 +593,9 @@
                 "transactionCreated": "Transaction créée",
                 "transactionUpdated": "Transaction mise à jour",
                 "transactionDeleted": "Transaction supprimée",
+                "transferCreated": "Transfert créé",
+                "transferUnlinked": "Transfert dissocié",
+                "transferLinked": "Transactions liées",
                 "bulkTransactionsCreated": "{count} transactions importées"
             },
             "errors": {
@@ -570,6 +604,9 @@
                 "createTransaction": "Échec de création de la transaction",
                 "updateTransaction": "Échec de mise à jour de la transaction",
                 "deleteTransaction": "Échec de suppression de la transaction",
+                "createTransfer": "Échec de création du transfert",
+                "unlinkTransfer": "Échec de dissociation du transfert",
+                "linkTransactions": "Échec de liaison des transactions",
                 "testBulkTransactions": "Échec de validation de l'aperçu d'import",
                 "createBulkTransactions": "Échec de l'import des transactions"
             }

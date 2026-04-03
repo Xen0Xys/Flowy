@@ -69,7 +69,7 @@ describe("TransactionController (e2e)", () => {
         expect(search.status).toBe(401);
         expect(search.body.message).toBe("Authorization token is missing");
 
-        const create = await agent.post("/transaction/account-id").send({
+        const create = await agent.post("/transaction/account/account-id").send({
             amount: 12.34,
             description: "Lunch",
             date: "2026-01-15T12:00:00.000Z",
@@ -77,13 +77,17 @@ describe("TransactionController (e2e)", () => {
         expect(create.status).toBe(401);
         expect(create.body.message).toBe("Authorization token is missing");
 
-        const bulkTest = await agent.post("/transaction/account-id/bulk/test").send([]);
+        const bulkTest = await agent.post("/transaction/account/account-id/bulk/test").send([]);
         expect(bulkTest.status).toBe(401);
         expect(bulkTest.body.message).toBe("Authorization token is missing");
 
-        const bulkCreate = await agent.post("/transaction/account-id/bulk").send([]);
+        const bulkCreate = await agent.post("/transaction/account/account-id/bulk").send([]);
         expect(bulkCreate.status).toBe(401);
         expect(bulkCreate.body.message).toBe("Authorization token is missing");
+
+        const byId = await agent.get("/transaction/transaction-id");
+        expect(byId.status).toBe(401);
+        expect(byId.body.message).toBe("Authorization token is missing");
 
         const update = await agent.patch("/transaction/transaction-id").send({description: "Updated"});
         expect(update.status).toBe(401);
@@ -104,7 +108,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -42.35,
@@ -133,7 +137,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -10,
@@ -166,13 +170,13 @@ describe("TransactionController (e2e)", () => {
         };
 
         const firstInsert = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send(existing);
         expect(firstInsert.status).toBe(201);
 
         const preview = await agent
-            .post(`/transaction/${account.body.id}/bulk/test`)
+            .post(`/transaction/account/${account.body.id}/bulk/test`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 existing,
@@ -206,13 +210,13 @@ describe("TransactionController (e2e)", () => {
         };
 
         const existingInsert = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send(duplicateInDb);
         expect(existingInsert.status).toBe(201);
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 duplicateInDb,
@@ -256,7 +260,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const existing = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -9.9,
@@ -266,7 +270,7 @@ describe("TransactionController (e2e)", () => {
         expect(existing.status).toBe(201);
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 {
@@ -304,7 +308,7 @@ describe("TransactionController (e2e)", () => {
         expect(account.status).toBe(201);
 
         const existing = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -42,
@@ -315,7 +319,7 @@ describe("TransactionController (e2e)", () => {
         expect(existing.status).toBe(201);
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([
                 {
@@ -352,7 +356,7 @@ describe("TransactionController (e2e)", () => {
         };
 
         const bulk = await agent
-            .post(`/transaction/${account.body.id}/bulk`)
+            .post(`/transaction/account/${account.body.id}/bulk`)
             .set("Authorization", `Bearer ${user.token}`)
             .send([sameTx, sameTx]);
 
@@ -385,13 +389,13 @@ describe("TransactionController (e2e)", () => {
         expect(accountA.status).toBe(201);
         expect(accountB.status).toBe(201);
 
-        await agent.post(`/transaction/${accountA.body.id}`).set("Authorization", `Bearer ${userA.token}`).send({
+        await agent.post(`/transaction/account/${accountA.body.id}`).set("Authorization", `Bearer ${userA.token}`).send({
             amount: 100,
             description: "Salary",
             date: "2026-01-01T08:00:00.000Z",
         });
 
-        await agent.post(`/transaction/${accountB.body.id}`).set("Authorization", `Bearer ${userB.token}`).send({
+        await agent.post(`/transaction/account/${accountB.body.id}`).set("Authorization", `Bearer ${userB.token}`).send({
             amount: 50,
             description: "Gift",
             date: "2026-01-02T08:00:00.000Z",
@@ -403,6 +407,63 @@ describe("TransactionController (e2e)", () => {
         expect(listA.body.total).toBe(1);
         expect(listA.body.items).toHaveLength(1);
         expect(listA.body.items[0].description).toBe("Salary");
+    });
+
+    test("retrieves a transaction by id for owner", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Lookup", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const created = await agent
+            .post(`/transaction/account/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: -12.4,
+                description: "Book",
+                date: "2026-03-12T10:00:00.000Z",
+            });
+
+        expect(created.status).toBe(201);
+
+        const byId = await agent.get(`/transaction/${created.body.id}`).set("Authorization", `Bearer ${user.token}`);
+
+        expect(byId.status).toBe(200);
+        expect(byId.body.id).toBe(created.body.id);
+        expect(byId.body.accountId).toBe(account.body.id);
+        expect(byId.body.amount).toBe(-12.4);
+        expect(byId.body.description).toBe("Book");
+    });
+
+    test("forbids retrieving another user's transaction", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Owner Account", type: "CHECKING"});
+
+        expect(account.status).toBe(201);
+
+        const created = await agent
+            .post(`/transaction/account/${account.body.id}`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({
+                amount: 50,
+                description: "Private",
+                date: "2026-03-01T08:00:00.000Z",
+            });
+
+        expect(created.status).toBe(201);
+
+        const byId = await agent.get(`/transaction/${created.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
+
+        expect(byId.status).toBe(403);
+        expect(byId.body.message).toBe("You do not have permission to access this transaction");
     });
 
     test("searches transactions with frontend-like filters", async () => {
@@ -445,7 +506,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const expenseTx = await agent
-            .post(`/transaction/${accountA.body.id}`)
+            .post(`/transaction/account/${accountA.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -42.2,
@@ -458,7 +519,7 @@ describe("TransactionController (e2e)", () => {
         expect(expenseTx.status).toBe(201);
 
         const incomeTx = await agent
-            .post(`/transaction/${accountA.body.id}`)
+            .post(`/transaction/account/${accountA.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 2200,
@@ -470,7 +531,7 @@ describe("TransactionController (e2e)", () => {
         expect(incomeTx.status).toBe(201);
 
         const rebalanceTx = await agent
-            .post(`/transaction/${accountB.body.id}`)
+            .post(`/transaction/account/${accountB.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: -100,
@@ -510,17 +571,17 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Pagination Account", type: "CHECKING"});
         expect(account.status).toBe(201);
 
-        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+        await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: 100,
             description: "Salary",
             date: "2026-02-01",
         });
-        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+        await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: -10,
             description: "Coffee",
             date: "2026-02-02",
         });
-        await agent.post(`/transaction/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
+        await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: -20,
             description: "Lunch",
             date: "2026-02-03",
@@ -581,7 +642,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 20,
@@ -604,6 +665,149 @@ describe("TransactionController (e2e)", () => {
             where: {id: account.body.id},
         });
         expect(storedAccount?.balance).toBe(45.2);
+    });
+
+    test("updates linked transfer transaction amount when edited", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const update = await agent
+            .patch(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: -50});
+
+        expect(update.status).toBe(200);
+        expect(update.body.amount).toBe(-50);
+
+        const storedDebitTransaction = await prisma.transactions.findUnique({
+            where: {id: debitTransaction.id},
+        });
+        const storedCreditTransaction = await prisma.transactions.findUnique({
+            where: {id: creditTransaction.id},
+        });
+
+        expect(storedDebitTransaction?.amount).toBe(-50);
+        expect(storedCreditTransaction?.amount).toBe(50);
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+
+        expect(storedDebitAccount?.balance).toBe(150);
+        expect(storedCreditAccount?.balance).toBe(150);
+    });
+
+    test("updates linked transfer transaction date when edited", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const update = await agent
+            .patch(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({date: "2026-03-12T15:30:00.000Z"});
+
+        expect(update.status).toBe(200);
+        expect(update.body.date).toBe("2026-03-12T15:30:00.000Z");
+
+        const storedDebitTransaction = await prisma.transactions.findUnique({
+            where: {id: debitTransaction.id},
+        });
+        const storedCreditTransaction = await prisma.transactions.findUnique({
+            where: {id: creditTransaction.id},
+        });
+
+        expect(storedDebitTransaction?.date.toISOString()).toBe("2026-03-12T15:30:00.000Z");
+        expect(storedCreditTransaction?.date.toISOString()).toBe("2026-03-12T15:30:00.000Z");
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+
+        expect(storedDebitAccount?.balance).toBe(170);
+        expect(storedCreditAccount?.balance).toBe(130);
+    });
+
+    test("rejects sign flip when updating a linked transfer transaction", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item) => item.amount < 0);
+        expect(debitTransaction).toBeTruthy();
+
+        const update = await agent
+            .patch(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: 50});
+
+        expect(update.status).toBe(400);
+        expect(update.body.message).toBe("Cannot change sign of a transfer-linked transaction");
+
+        const storedDebitTransaction = await prisma.transactions.findUnique({
+            where: {id: debitTransaction.id},
+        });
+        expect(storedDebitTransaction?.amount).toBe(-30);
     });
 
     test("deletes a transaction and reverts account balance", async () => {
@@ -632,6 +836,131 @@ describe("TransactionController (e2e)", () => {
         expect(storedAccount?.balance).toBe(0);
     });
 
+    test("deletes transfer transaction and keeps linked transaction by default", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const remove = await agent
+            .delete(`/transaction/${debitTransaction.id}`)
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(remove.status).toBe(204);
+
+        const remainingTransactions = await prisma.transactions.findMany({
+            where: {
+                id: {in: [debitTransaction.id, creditTransaction.id]},
+            },
+        });
+        expect(remainingTransactions).toHaveLength(1);
+        expect(remainingTransactions[0]?.id).toBe(creditTransaction.id);
+
+        const transferCount = await prisma.transfers.count();
+        expect(transferCount).toBe(0);
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+        expect(storedDebitAccount?.balance).toBe(200);
+        expect(storedCreditAccount?.balance).toBe(130);
+    });
+
+    test("deletes transfer transaction and linked transaction when keepLinkedTransaction=false", async () => {
+        const user = await registerUser(server);
+
+        const debitAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Checking", type: "CHECKING", balance: 200});
+        const creditAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Savings", type: "SAVINGS", balance: 100});
+
+        const transfer = await agent.post("/transfer").set("Authorization", `Bearer ${user.token}`).send({
+            debitAccountId: debitAccount.body.id,
+            creditAccountId: creditAccount.body.id,
+            amount: 30,
+            description: "Monthly transfer",
+            date: "2026-02-10T10:00:00.000Z",
+        });
+
+        expect(transfer.status).toBe(201);
+
+        const debitTransaction = transfer.body.find((item: {amount: number}) => item.amount < 0);
+        const creditTransaction = transfer.body.find((item: {amount: number}) => item.amount > 0);
+        expect(debitTransaction).toBeTruthy();
+        expect(creditTransaction).toBeTruthy();
+
+        const remove = await agent
+            .delete(`/transaction/${debitTransaction.id}`)
+            .query({keepLinkedTransaction: "false"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(remove.status).toBe(204);
+
+        const remainingTransactions = await prisma.transactions.findMany({
+            where: {
+                id: {in: [debitTransaction.id, creditTransaction.id]},
+            },
+        });
+        expect(remainingTransactions).toHaveLength(0);
+
+        const transferCount = await prisma.transfers.count();
+        expect(transferCount).toBe(0);
+
+        const storedDebitAccount = await prisma.accounts.findUnique({where: {id: debitAccount.body.id}});
+        const storedCreditAccount = await prisma.accounts.findUnique({where: {id: creditAccount.body.id}});
+        expect(storedDebitAccount?.balance).toBe(200);
+        expect(storedCreditAccount?.balance).toBe(100);
+    });
+
+    test("rejects invalid keepLinkedTransaction query value", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Main", type: "CHECKING", balance: 100});
+
+        const tx = await prisma.transactions.findFirst({
+            where: {
+                account_id: account.body.id,
+                is_rebalance: true,
+            },
+        });
+
+        expect(tx).not.toBeNull();
+
+        const remove = await agent
+            .delete(`/transaction/${tx!.id}`)
+            .query({keepLinkedTransaction: "not-a-boolean"})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(remove.status).toBe(400);
+        expect(remove.body.message).toEqual(
+            expect.arrayContaining([expect.objectContaining({property: "keepLinkedTransaction"})]),
+        );
+    });
+
     test("rejects invalid create payload", async () => {
         const user = await registerUser(server);
         const account = await agent
@@ -640,7 +969,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 10.999,
@@ -666,7 +995,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 0,
@@ -692,7 +1021,7 @@ describe("TransactionController (e2e)", () => {
         expect(byAccount.body.items).toHaveLength(0);
 
         const create = await agent
-            .post(`/transaction/${missingAccountId}`)
+            .post(`/transaction/account/${missingAccountId}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 10,
@@ -725,11 +1054,17 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(400);
 
-        const create = await agent.post("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`).send({
-            amount: 10,
-            description: "Bad id",
-            date: "2026-01-15T12:00:00.000Z",
-        });
+        const byId = await agent.get("/transaction/not-a-uuid").set("Authorization", `Bearer ${user.token}`);
+        expect(byId.status).toBe(400);
+
+        const create = await agent
+            .post("/transaction/account/not-a-uuid")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                amount: 10,
+                description: "Bad id",
+                date: "2026-01-15T12:00:00.000Z",
+            });
         expect(create.status).toBe(400);
 
         const update = await agent
@@ -752,7 +1087,7 @@ describe("TransactionController (e2e)", () => {
             .send({name: "Owner Main", type: "CHECKING"});
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({
                 amount: 35,
@@ -800,7 +1135,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const create = await agent
-            .post(`/transaction/${ownerAccount.body.id}`)
+            .post(`/transaction/account/${ownerAccount.body.id}`)
             .set("Authorization", `Bearer ${owner.token}`)
             .send({
                 amount: 12,
@@ -837,7 +1172,7 @@ describe("TransactionController (e2e)", () => {
         });
 
         const create = await agent
-            .post(`/transaction/${account.body.id}`)
+            .post(`/transaction/account/${account.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({
                 amount: 25,

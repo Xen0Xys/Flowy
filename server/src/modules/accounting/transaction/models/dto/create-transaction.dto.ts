@@ -14,16 +14,16 @@ export class CreateTransactionDto {
     @IsNotEmpty()
     @IsNumber({allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2})
     @NotEquals(0)
-    amount: number;
+    amount!: number;
 
     @IsNotEmpty()
     @IsString()
     @Length(1, 255)
-    description: string;
+    description!: string;
 
     @IsNotEmpty()
     @IsDateString()
-    date: string;
+    date!: string;
 
     @IsOptional()
     @IsUUID("7")
@@ -36,8 +36,4 @@ export class CreateTransactionDto {
     @IsOptional()
     @IsBoolean()
     isRebalance?: boolean;
-
-    constructor(partial: Partial<CreateTransactionDto>) {
-        Object.assign(this, partial);
-    }
 }

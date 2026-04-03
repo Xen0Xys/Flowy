@@ -67,4 +67,4 @@ jobs:
               uses: tluijken/code-coverage-threshold@v1
               with:
                   coverage-file: server/coverage/lcov.info
-                  minimum-coverage: 90
+                  minimum-coverage: 95

@@ -15,6 +15,7 @@ import {TransactionModule} from "./modules/accounting/transaction/transaction.mo
 import {ReferenceModule} from "./modules/accounting/reference/reference.module";
 import {CsrfGuard} from "./common/guards/csrf.guard";
 import Joi from "joi";
+import {TransferModule} from "./modules/accounting/transfer/transfer.module";
 
 @Module({
     imports: [
@@ -57,6 +58,7 @@ import Joi from "joi";
         FamilyModule,
         AccountModule,
         TransactionModule,
+        TransferModule,
         ReferenceModule,
     ],
     controllers: [AppController],
