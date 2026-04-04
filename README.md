@@ -70,10 +70,6 @@ Flowy is self-hosted. You control the deployment, the database, and who has acce
 
 Features currently planned or in progress. Scope and order may evolve.
 
-### 💰 Category budgets
-
-Set monthly or periodic budgets per category with a dedicated page — track what you planned vs. what you actually spent, at a glance.
-
 ### 🔁 Recurring transactions
 
 Define recurring income and expenses, visualized on a calendar view so you always know what's coming and when.
