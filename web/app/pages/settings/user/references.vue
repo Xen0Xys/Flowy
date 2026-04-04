@@ -177,10 +177,13 @@ async function deleteMerchant(id: string) {
 <template>
     <div class="w-full">
         <div class="mx-auto w-full max-w-6xl py-6">
-            <div class="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-semibold">{{ t("settings.references.title") }}</h1>
-                    <p class="text-muted-foreground text-sm">{{ t("settings.references.subtitle") }}</p>
+            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                    <Icon class="icon-lg text-primary shrink-0" name="iconoir:book" />
+                    <div>
+                        <h1 class="text-2xl font-semibold">{{ t("settings.references.title") }}</h1>
+                        <p class="text-muted-foreground text-sm">{{ t("settings.references.subtitle") }}</p>
+                    </div>
                 </div>
                 <div>
                     <Button v-if="activeTab === 'categories'" @click="openCategoryDialog()">

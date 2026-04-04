@@ -151,6 +151,7 @@
     },
     "breadcrumbs": {
         "transactions": "Transactions",
+        "budget": "Budget",
         "accounts": "Comptes",
         "account": "Compte",
         "settings": "Paramètres",
@@ -652,6 +653,7 @@
         },
         "page": {
             "title": "Budget",
+            "subtitle": "Suivez vos objectifs mensuels et vos dépenses par catégorie.",
             "createBudget": "Créer le budget",
             "renewBudget": "Reconduire",
             "editBudget": "Modifier",

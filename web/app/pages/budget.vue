@@ -364,10 +364,15 @@ watch([selectedMonth, selectedYear], async () => {
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
-                        <Icon class="icon-lg text-blue-500" name="iconoir:piggy-bank" />
-                        <h1 class="text-2xl font-bold tracking-tight">
-                            {{ t("budget.page.title") }}
-                        </h1>
+                        <Icon class="icon-lg text-primary shrink-0" name="iconoir:piggy-bank" />
+                        <div>
+                            <h1 class="text-2xl font-bold tracking-tight">
+                                {{ t("budget.page.title") }}
+                            </h1>
+                            <p class="text-muted-foreground text-sm">
+                                {{ t("budget.page.subtitle") }}
+                            </p>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <template v-if="!budgetExists">

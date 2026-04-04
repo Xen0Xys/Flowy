@@ -103,9 +103,12 @@ async function saveOwner() {
 <template>
     <div class="w-full">
         <div class="mx-auto w-full max-w-6xl py-6">
-            <div class="mb-6">
-                <h1 class="text-2xl font-semibold">{{ t("settings.instance.title") }}</h1>
-                <p class="text-muted-foreground text-sm">{{ t("settings.instance.subtitle") }}</p>
+            <div class="mb-6 flex items-center gap-3">
+                <Icon class="icon-lg text-primary shrink-0" name="iconoir:server" />
+                <div>
+                    <h1 class="text-2xl font-semibold">{{ t("settings.instance.title") }}</h1>
+                    <p class="text-muted-foreground text-sm">{{ t("settings.instance.subtitle") }}</p>
+                </div>
             </div>
 
             <Card>

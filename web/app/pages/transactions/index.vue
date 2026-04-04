@@ -64,16 +64,15 @@ const onTransactionSaved = () => {
             <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div class="flex items-start gap-4 md:items-center">
-                        <div class="flex-1">
-                            <h1 class="text-2xl font-bold tracking-tight md:text-3xl">
+                    <div class="flex items-center gap-3">
+                        <Icon class="icon-lg text-primary shrink-0" name="iconoir:credit-card" />
+                        <div class="min-w-0">
+                            <h1 class="text-2xl font-bold tracking-tight">
                                 {{ t("transactions.page.title") }}
                             </h1>
-                            <div class="mt-1 flex flex-wrap items-center gap-2">
-                                <span class="text-muted-foreground text-sm">
-                                    {{ t("transactions.page.subtitle") }}
-                                </span>
-                            </div>
+                            <p class="text-muted-foreground text-sm">
+                                {{ t("transactions.page.subtitle") }}
+                            </p>
                         </div>
                     </div>
                     <Button class="w-full md:w-auto" @click="handleNewTransaction">

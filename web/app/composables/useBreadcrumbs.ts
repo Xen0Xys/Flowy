@@ -35,11 +35,16 @@ export function useBreadcrumbs() {
             return items;
         }
 
+        if (path.startsWith("/budget")) {
+            items.push({label: t("breadcrumbs.budget"), href: "/budget", icon: "iconoir:piggy-bank"});
+            return items;
+        }
+
         if (path.startsWith("/account/")) {
             const accountId = segments[1];
             const account = accountStore.accounts.find((a) => a.id === accountId);
             items.push({label: t("breadcrumbs.accounts"), href: "/", icon: "iconoir:wallet"});
-            items.push({label: account?.name ?? t("breadcrumbs.account")});
+            items.push({label: account?.name ?? t("breadcrumbs.account"), icon: "iconoir:wallet"});
             return items;
         }
 
@@ -47,9 +52,9 @@ export function useBreadcrumbs() {
             items.push({label: t("breadcrumbs.settings"), href: "/settings/user/profile", icon: "iconoir:settings"});
             const subSegment = segments[2];
             if (subSegment === "instance") {
-                items.push({label: t("breadcrumbs.instance")});
+                items.push({label: t("breadcrumbs.instance"), icon: "iconoir:server"});
             } else if (subSegment === "users") {
-                items.push({label: t("breadcrumbs.users")});
+                items.push({label: t("breadcrumbs.users"), icon: "iconoir:user-crown"});
             }
             return items;
         }
@@ -58,11 +63,11 @@ export function useBreadcrumbs() {
             items.push({label: t("breadcrumbs.settings"), href: "/settings/user/profile", icon: "iconoir:settings"});
             const subSegment = segments[2];
             if (subSegment === "profile") {
-                items.push({label: t("breadcrumbs.profile")});
+                items.push({label: t("breadcrumbs.profile"), icon: "iconoir:user"});
             } else if (subSegment === "family") {
-                items.push({label: t("breadcrumbs.family")});
+                items.push({label: t("breadcrumbs.family"), icon: "iconoir:community"});
             } else if (subSegment === "references") {
-                items.push({label: t("breadcrumbs.references")});
+                items.push({label: t("breadcrumbs.references"), icon: "iconoir:book"});
             }
             return items;
         }

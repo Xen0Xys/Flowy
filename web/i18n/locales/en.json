@@ -151,6 +151,7 @@
     },
     "breadcrumbs": {
         "transactions": "Transactions",
+        "budget": "Budget",
         "accounts": "Accounts",
         "account": "Account",
         "settings": "Settings",
@@ -652,6 +653,7 @@
         },
         "page": {
             "title": "Budget",
+            "subtitle": "Track your monthly goals and spending by category.",
             "createBudget": "Create budget",
             "renewBudget": "Renew",
             "editBudget": "Edit",

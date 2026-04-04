@@ -165,7 +165,7 @@ const formatCompactCurrency = (value: number) => {
                 <!-- Header -->
                 <div class="flex shrink-0 items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <Icon class="icon-lg text-amber-500" name="iconoir:bank" />
+                        <Icon class="icon-lg text-primary" name="iconoir:bank" />
                         <div>
                             <h1 class="text-2xl font-bold tracking-tight">
                                 {{ t("dashboard.welcome", {name: userStore.user?.username ?? t("common.user")}) }}
