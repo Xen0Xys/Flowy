@@ -263,8 +263,13 @@ async function copyUserId(id: string) {
     <div class="w-full">
         <div class="mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
             <div class="mb-6 shrink-0">
-                <h1 class="text-2xl font-semibold">{{ t("settings.users.title") }}</h1>
-                <p class="text-muted-foreground text-sm">{{ t("settings.users.subtitle") }}</p>
+                <div class="flex items-center gap-3">
+                    <Icon class="icon-lg text-primary shrink-0" name="iconoir:user-crown" />
+                    <div>
+                        <h1 class="text-2xl font-semibold">{{ t("settings.users.title") }}</h1>
+                        <p class="text-muted-foreground text-sm">{{ t("settings.users.subtitle") }}</p>
+                    </div>
+                </div>
             </div>
 
             <div class="flex min-h-0 flex-1 flex-col space-y-4">

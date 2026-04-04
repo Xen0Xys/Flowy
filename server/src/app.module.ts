@@ -1,21 +1,22 @@
+import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
+import {ReferenceModule} from "./modules/accounting/reference/reference.module";
+import {TransferModule} from "./modules/accounting/transfer/transfer.module";
+import {AccountModule} from "./modules/accounting/account/account.module";
+import {BudgetModule} from "./modules/accounting/budget/budget.module";
 import {ClassSerializerInterceptor, Module} from "@nestjs/common";
 import {FamilyModule} from "./modules/users/family/family.module";
+import {UserModule} from "./modules/users/user/user.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import HelperModule from "./modules/helper/helper.module";
 import {AdminModule} from "./modules/admin/admin.module";
-import {UserModule} from "./modules/users/user/user.module";
+import {APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthModule} from "./modules/auth/auth.module";
+import {CsrfGuard} from "./common/guards/csrf.guard";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
-import {APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {JwtModule} from "@nestjs/jwt";
-import {AccountModule} from "./modules/accounting/account/account.module";
-import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
-import {ReferenceModule} from "./modules/accounting/reference/reference.module";
-import {CsrfGuard} from "./common/guards/csrf.guard";
 import Joi from "joi";
-import {TransferModule} from "./modules/accounting/transfer/transfer.module";
 
 @Module({
     imports: [
@@ -60,6 +61,7 @@ import {TransferModule} from "./modules/accounting/transfer/transfer.module";
         TransactionModule,
         TransferModule,
         ReferenceModule,
+        BudgetModule,
     ],
     controllers: [AppController],
     providers: [

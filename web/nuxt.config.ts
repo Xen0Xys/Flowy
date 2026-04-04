@@ -57,6 +57,7 @@ export default defineNuxtConfig({
                 "@unovis/ts",
                 "@tanstack/vue-table",
                 "@internationalized/date",
+                "d3-shape",
             ],
         },
     },

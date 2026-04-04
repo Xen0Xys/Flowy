@@ -46,11 +46,12 @@ model Users {
   family_role   UserRoles?
   family_id     String?          @db.Uuid
   family        Family?          @relation(fields: [family_id], references: [id], onDelete: SetNull)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
   accounts      Accounts[]
   merchants     UserMerchants[]
   categories    UserCategories[]
-  created_at    DateTime         @default(now())
-  updated_at    DateTime         @updatedAt
+  budgets       Budgets[]
 
   @@map("users")
 }
@@ -149,16 +150,45 @@ model UserMerchants {
 }
 
 model UserCategories {
-  id           String         @id @default(uuid(7)) @db.Uuid
-  user_id      String         @db.Uuid
-  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name         String         @db.VarChar(50)
-  hex_color    String         @db.VarChar(7)
-  icon         String         @db.VarChar(50)
-  transactions Transactions[]
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
+  id                  String               @id @default(uuid(7)) @db.Uuid
+  user_id             String               @db.Uuid
+  user                Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                String               @db.VarChar(50)
+  hex_color           String               @db.VarChar(7)
+  icon                String               @db.VarChar(50)
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
+  transactions        Transactions[]
+  budgeted_categories BudgetedCategories[]
 
   @@unique([user_id, name])
   @@map("user_categories")
+}
+
+model Budgets {
+  id                  String               @id @default(uuid(7)) @db.Uuid
+  user_id             String               @db.Uuid
+  user                Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  month               Int
+  year                Int
+  budgeted_income     Float
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
+  budgeted_categories BudgetedCategories[]
+
+  @@unique([user_id, month, year])
+  @@map("budgets")
+}
+
+model BudgetedCategories {
+  budget_id   String         @db.Uuid
+  category_id String         @db.Uuid
+  amount      Float
+  budget      Budgets        @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+  category    UserCategories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  @@id([budget_id, category_id])
+  @@map("budgeted_categories")
 }

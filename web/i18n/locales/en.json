@@ -151,6 +151,7 @@
     },
     "breadcrumbs": {
         "transactions": "Transactions",
+        "budget": "Budget",
         "accounts": "Accounts",
         "account": "Account",
         "settings": "Settings",
@@ -166,6 +167,7 @@
         "dashboard": "Dashboard",
         "transactions": "Transactions",
         "import": "Import",
+        "budget": "Budget",
         "accounts": "Accounts",
         "settings": "Settings",
         "backToDashboard": "Back to Dashboard",
@@ -631,6 +633,86 @@
                 "updateMerchant": "Failed updating merchant",
                 "deleteMerchant": "Failed deleting merchant"
             }
+        }
+    },
+    "budget": {
+        "store": {
+            "success": {
+                "budgetCreated": "Budget created",
+                "budgetUpdated": "Budget updated",
+                "budgetDeleted": "Budget deleted"
+            },
+            "errors": {
+                "fetchBudget": "Failed fetching budget",
+                "createBudget": "Failed creating budget",
+                "updateBudget": "Failed updating budget",
+                "deleteBudget": "Failed deleting budget",
+                "fetchSpending": "Failed fetching spending",
+                "fetchAvailableMonths": "Failed fetching available months"
+            }
+        },
+        "page": {
+            "title": "Budget",
+            "subtitle": "Track your monthly goals and spending by category.",
+            "createBudget": "Create budget",
+            "renewBudget": "Renew",
+            "editBudget": "Edit",
+            "deleteBudget": "Delete",
+            "noPreviousBudget": "No budget to renew",
+            "noSpending": "No spending this month",
+            "noSpendingDescription": "Spent categories will appear here.",
+            "months": {
+                "january": "January",
+                "february": "February",
+                "march": "March",
+                "april": "April",
+                "may": "May",
+                "june": "June",
+                "july": "July",
+                "august": "August",
+                "september": "September",
+                "october": "October",
+                "november": "November",
+                "december": "December"
+            },
+            "periodPicker": {
+                "title": "Select period",
+                "calendarHint": "Pick any day in the target month and year.",
+                "apply": "Apply"
+            }
+        },
+        "donut": {
+            "centerSpent": "spent",
+            "centerBudgeted": "budgeted",
+            "noBudgetForMonth": "No budget for this month",
+            "centerOver": "Over budget",
+            "incomeProgress": "Income",
+            "extraIncome": "Extra income"
+        },
+        "renewDialog": {
+            "title": "Renew budget",
+            "description": "Select a previous budget to renew for the current period.",
+            "selectPlaceholder": "Select a budget…",
+            "continue": "Continue"
+        },
+        "dialog": {
+            "deleteDescription": "Are you sure you want to delete this budget? Budgeted categories will also be deleted.",
+            "createTitle": "Create a budget",
+            "renewTitle": "Renew budget",
+            "editTitle": "Edit budget",
+            "createDescription": "Set your income and allocate an amount per category.",
+            "renewDescription": "Adjust the amounts renewed from the selected budget.",
+            "editDescription": "Modify your budget amounts.",
+            "budgetedIncome": "Budgeted income",
+            "budgetedIncomePlaceholder": "e.g. 3000",
+            "categories": "Categories",
+            "amountPlaceholder": "Amount",
+            "totalCategories": "Total categories"
+        },
+        "category": {
+            "uncategorized": "Uncategorized",
+            "left": "left",
+            "over": "over"
         }
     },
     "import": {

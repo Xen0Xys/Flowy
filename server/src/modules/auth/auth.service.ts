@@ -65,14 +65,11 @@ export class AuthService {
             },
         });
 
-        const existingOwner = await this.prismaService.config.findUnique({
+        await this.prismaService.config.upsert({
             where: {key: "INSTANCE_OWNER" as any},
+            update: {},
+            create: {key: "INSTANCE_OWNER" as any, value: user.id},
         });
-        if (!existingOwner) {
-            await this.prismaService.config.create({
-                data: {key: "INSTANCE_OWNER" as any, value: user.id},
-            });
-        }
 
         const userEntity: UserEntity = this.toUserEntity(user);
         return new LoginUserEntity({

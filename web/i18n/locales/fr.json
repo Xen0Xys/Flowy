@@ -151,6 +151,7 @@
     },
     "breadcrumbs": {
         "transactions": "Transactions",
+        "budget": "Budget",
         "accounts": "Comptes",
         "account": "Compte",
         "settings": "Paramètres",
@@ -166,6 +167,7 @@
         "dashboard": "Tableau de bord",
         "transactions": "Transactions",
         "import": "Importer",
+        "budget": "Budget",
         "accounts": "Comptes",
         "settings": "Paramètres",
         "backToDashboard": "Retour au tableau de bord",
@@ -631,6 +633,86 @@
                 "updateMerchant": "Échec de mise à jour du marchand",
                 "deleteMerchant": "Échec de suppression du marchand"
             }
+        }
+    },
+    "budget": {
+        "store": {
+            "success": {
+                "budgetCreated": "Budget créé",
+                "budgetUpdated": "Budget mis à jour",
+                "budgetDeleted": "Budget supprimé"
+            },
+            "errors": {
+                "fetchBudget": "Échec du chargement du budget",
+                "createBudget": "Échec de création du budget",
+                "updateBudget": "Échec de mise à jour du budget",
+                "deleteBudget": "Échec de suppression du budget",
+                "fetchSpending": "Échec du chargement des dépenses",
+                "fetchAvailableMonths": "Échec du chargement des mois disponibles"
+            }
+        },
+        "page": {
+            "title": "Budget",
+            "subtitle": "Suivez vos objectifs mensuels et vos dépenses par catégorie.",
+            "createBudget": "Créer le budget",
+            "renewBudget": "Reconduire",
+            "editBudget": "Modifier",
+            "deleteBudget": "Supprimer",
+            "noPreviousBudget": "Aucun budget à reconduire",
+            "noSpending": "Aucune dépense ce mois-ci",
+            "noSpendingDescription": "Les catégories dépensées apparaîtront ici.",
+            "months": {
+                "january": "Janvier",
+                "february": "Février",
+                "march": "Mars",
+                "april": "Avril",
+                "may": "Mai",
+                "june": "Juin",
+                "july": "Juillet",
+                "august": "Août",
+                "september": "Septembre",
+                "october": "Octobre",
+                "november": "Novembre",
+                "december": "Décembre"
+            },
+            "periodPicker": {
+                "title": "Sélectionner une période",
+                "calendarHint": "Choisissez n'importe quel jour du mois et de l'année ciblés.",
+                "apply": "Appliquer"
+            }
+        },
+        "donut": {
+            "centerSpent": "dépensé",
+            "centerBudgeted": "budgété",
+            "noBudgetForMonth": "Aucun budget pour ce mois",
+            "centerOver": "Dépassement",
+            "incomeProgress": "Revenus",
+            "extraIncome": "Revenus supplémentaires"
+        },
+        "renewDialog": {
+            "title": "Reconduire le budget",
+            "description": "Sélectionnez un budget précédent à reconduire pour la période actuelle.",
+            "selectPlaceholder": "Sélectionner un budget…",
+            "continue": "Continuer"
+        },
+        "dialog": {
+            "deleteDescription": "Êtes-vous sûr de vouloir supprimer ce budget ? Les catégories budgétisées seront également supprimées.",
+            "createTitle": "Créer un budget",
+            "renewTitle": "Reconduire le budget",
+            "editTitle": "Modifier le budget",
+            "createDescription": "Définissez vos revenus et allouez un montant par catégorie.",
+            "renewDescription": "Ajustez les montants reconduits depuis le budget sélectionné.",
+            "editDescription": "Modifiez les montants de votre budget.",
+            "budgetedIncome": "Revenus budgétés",
+            "budgetedIncomePlaceholder": "Ex: 3000",
+            "categories": "Catégories",
+            "amountPlaceholder": "Montant",
+            "totalCategories": "Total catégories"
+        },
+        "category": {
+            "uncategorized": "Non catégorisé",
+            "left": "restant",
+            "over": "en trop"
         }
     },
     "import": {

@@ -13,7 +13,6 @@ import TransactionListWidget from "~/components/transactions/TransactionListWidg
 
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
-import {Badge} from "~/components/ui/badge";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {Input} from "~/components/ui/input";
@@ -201,26 +200,30 @@ const transactionKey = (transaction: Transaction) => transaction.id;
             <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div class="flex items-start gap-4 md:items-center">
-                        <Button class="mt-1 shrink-0 md:mt-0" size="icon" variant="outline" @click="goBack">
+                    <div class="flex items-start gap-3">
+                        <Button class="mt-1 shrink-0 self-center md:mt-0" size="icon" variant="outline" @click="goBack">
                             <Icon class="h-4 w-4" name="iconoir:arrow-left" />
                         </Button>
 
-                        <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <Icon class="icon-lg text-primary shrink-0" name="iconoir:wallet" />
                             <div v-if="isLoading" class="flex flex-col gap-2">
                                 <Skeleton class="h-8 w-48" />
                                 <Skeleton class="h-4 w-24" />
                             </div>
-                            <div v-else-if="account">
-                                <h1 class="text-2xl font-bold tracking-tight md:text-3xl">
+                            <div v-else-if="account" class="min-w-0">
+                                <h1 class="truncate text-2xl font-bold tracking-tight">
                                     {{ account.name }}
                                 </h1>
-                                <div class="mt-1 flex flex-wrap items-center gap-2">
-                                    <Badge variant="secondary">{{ accountTypeLabel }}</Badge>
-                                    <span v-if="account.updatedAt" class="text-muted-foreground text-xs">
+                                <p class="text-muted-foreground text-sm">
+                                    <template v-if="account.updatedAt">
+                                        {{ accountTypeLabel }} •
                                         {{ t("account.updatedOn", {date: formatDate(account.updatedAt)}) }}
-                                    </span>
-                                </div>
+                                    </template>
+                                    <template v-else>
+                                        {{ accountTypeLabel }}
+                                    </template>
+                                </p>
                             </div>
                         </div>
                     </div>
