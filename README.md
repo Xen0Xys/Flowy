@@ -78,6 +78,30 @@ Set monthly or periodic budgets per category with a dedicated page — track wha
 
 Define recurring income and expenses, visualized on a calendar view so you always know what's coming and when.
 
+### 📤 Data export & RGPD compliance
+
+Export your financial data at any time in open formats — CSV and PDF. Every account, transaction, category, and merchant you've created can be downloaded from your profile settings. Flowy also includes a full account deletion flow: remove your data from the instance completely, with no residual records left behind.
+
+### 🔗 Shared account access
+
+Allow multiple family members to access and manage the same account collaboratively — with explicit permission levels (read-only or read+write) and an activity feed that logs every change. Designed for couples and households where expenses are genuinely shared.
+
+### 🏦 Bank aggregator integration _(optional)_
+
+Connect your bank accounts through a supported third-party aggregator. Transactions are automatically imported and matched against your existing categories and merchants — reducing manual entry without compromising your self-hosted setup. Flowy never handles your banking credentials directly.
+
+### 🏦 Loan management
+
+Track active loans — personal, mortgage, or other — with repayment schedules, remaining balances, and interest visibility. Integrate them into the overall household financial picture.
+
+### 📈 Investment tracking
+
+Monitor investment portfolios alongside everyday accounts. Track asset performance, contributions, and allocation — without leaving Flowy.
+
+### 🤖 MCP server & LLM assistant _(optional)_
+
+An optional Model Context Protocol server that exposes your Flowy data to a compatible LLM. When enabled, your assistant can answer questions about your finances, surface spending patterns, and help you understand where your budget stands — using your actual data. Nothing is sent to any external model unless you explicitly configure and activate it.
+
 ### 🎨 Theming
 
 A reworked visual layer with multiple themes to choose from — because a tool you use daily should feel like yours.
@@ -218,4 +242,4 @@ bunx prisma db seed
 
 ## License
 
-Licensed under `CC-BY-NC-ND`. See [LICENSE.md](./LICENSE.md) for details.
+Licensed under `CC-BY-NC-ND`. See [LICENSE.md](./LICENSE) for details.
