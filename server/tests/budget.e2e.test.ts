@@ -69,6 +69,14 @@ describe("BudgetController (e2e)", () => {
         expect(getResponse.status).toBe(401);
         expect(getResponse.body.message).toBe("Authorization token is missing");
 
+        const spendingResponse = await agent.get("/budget/2026/3/spending");
+        expect(spendingResponse.status).toBe(401);
+        expect(spendingResponse.body.message).toBe("Authorization token is missing");
+
+        const availableMonthsResponse = await agent.get("/budget/available-months");
+        expect(availableMonthsResponse.status).toBe(401);
+        expect(availableMonthsResponse.body.message).toBe("Authorization token is missing");
+
         const postResponse = await agent.post("/budget").send({
             month: 3,
             year: 2026,
@@ -93,6 +101,14 @@ describe("BudgetController (e2e)", () => {
         const getResponse = await agent.get("/budget/2026/3").set("Authorization", token);
         expect(getResponse.status).toBe(401);
         expect(getResponse.body.message).toBe("Invalid or expired token");
+
+        const spendingResponse = await agent.get("/budget/2026/3/spending").set("Authorization", token);
+        expect(spendingResponse.status).toBe(401);
+        expect(spendingResponse.body.message).toBe("Invalid or expired token");
+
+        const availableMonthsResponse = await agent.get("/budget/available-months").set("Authorization", token);
+        expect(availableMonthsResponse.status).toBe(401);
+        expect(availableMonthsResponse.body.message).toBe("Invalid or expired token");
 
         const postResponse = await agent.post("/budget").set("Authorization", token).send({
             month: 3,
@@ -197,6 +213,168 @@ describe("BudgetController (e2e)", () => {
         const response = await agent.get("/budget/2026/5").set("Authorization", `Bearer ${userB.token}`);
         expect(response.status).toBe(200);
         expect(response.body).toBeNull();
+    });
+
+    // ─── GET /budget/:year/:month/spending ───────────────────────────
+
+    test("returns 400 for invalid params on spending route", async () => {
+        const user = await registerUser(server);
+
+        const invalidYear = await agent
+            .get("/budget/not-a-number/3/spending")
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(invalidYear.status).toBe(400);
+
+        const invalidMonth = await agent
+            .get("/budget/2026/not-a-number/spending")
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(invalidMonth.status).toBe(400);
+
+        const outOfRangeMonth = await agent.get("/budget/2026/13/spending").set("Authorization", `Bearer ${user.token}`);
+        expect(outOfRangeMonth.status).toBe(400);
+    });
+
+    test("returns zero spending when user has no accounts", async () => {
+        const user = await registerUser(server);
+
+        const response = await agent.get("/budget/2026/3/spending").set("Authorization", `Bearer ${user.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+            totalSpent: 0,
+            actualIncome: 0,
+            byCategory: [],
+        });
+    });
+
+    test("returns aggregated spending and income by category for the requested month", async () => {
+        const user = await registerUser(server);
+        const otherUser = await registerUser(server);
+
+        const account = await prisma.accounts.create({
+            data: {
+                user_id: user.user.id,
+                type: "CHECKING",
+                name: "Main account",
+            },
+        });
+
+        const otherAccount = await prisma.accounts.create({
+            data: {
+                user_id: otherUser.user.id,
+                type: "CHECKING",
+                name: "Other account",
+            },
+        });
+
+        const foodCategory = await prisma.userCategories.create({
+            data: {
+                user_id: user.user.id,
+                name: "Food",
+                hex_color: "#22C55E",
+                icon: "utensils",
+            },
+        });
+
+        await prisma.transactions.createMany({
+            data: [
+                {
+                    account_id: account.id,
+                    amount: -50,
+                    description: "Groceries",
+                    date: new Date("2026-03-10T10:00:00.000Z"),
+                    category_id: foodCategory.id,
+                },
+                {
+                    account_id: account.id,
+                    amount: -20,
+                    description: "Lunch",
+                    date: new Date("2026-03-11T12:00:00.000Z"),
+                    category_id: foodCategory.id,
+                },
+                {
+                    account_id: account.id,
+                    amount: -30,
+                    description: "Cash withdraw",
+                    date: new Date("2026-03-12T08:00:00.000Z"),
+                    category_id: null,
+                },
+                {
+                    account_id: account.id,
+                    amount: 2000,
+                    description: "Salary",
+                    date: new Date("2026-03-02T08:00:00.000Z"),
+                    category_id: null,
+                },
+                {
+                    account_id: account.id,
+                    amount: -999,
+                    description: "Outside month",
+                    date: new Date("2026-04-01T08:00:00.000Z"),
+                    category_id: foodCategory.id,
+                },
+                {
+                    account_id: otherAccount.id,
+                    amount: -500,
+                    description: "Other user expense",
+                    date: new Date("2026-03-15T08:00:00.000Z"),
+                    category_id: null,
+                },
+            ],
+        });
+
+        const response = await agent.get("/budget/2026/3/spending").set("Authorization", `Bearer ${user.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body.totalSpent).toBe(100);
+        expect(response.body.actualIncome).toBe(2000);
+        expect(response.body.byCategory).toHaveLength(2);
+
+        expect(response.body.byCategory[0]).toEqual({
+            categoryId: foodCategory.id,
+            name: "Food",
+            hexColor: "#22C55E",
+            icon: "utensils",
+            spent: 70,
+        });
+
+        expect(response.body.byCategory[1]).toEqual({
+            categoryId: null,
+            name: "Non catégorisé",
+            hexColor: "#94a3b8",
+            icon: "iconoir:question-mark",
+            spent: 30,
+        });
+    });
+
+    // ─── GET /budget/available-months ────────────────────────────────
+
+    test("returns an empty list of available months when user has no budgets", async () => {
+        const user = await registerUser(server);
+
+        const response = await agent.get("/budget/available-months").set("Authorization", `Bearer ${user.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([]);
+    });
+
+    test("returns available months sorted descending and scoped to authenticated user", async () => {
+        const user = await registerUser(server);
+        const otherUser = await registerUser(server);
+
+        await prisma.budgets.createMany({
+            data: [
+                {user_id: user.user.id, month: 3, year: 2026, budgeted_income: 3000},
+                {user_id: user.user.id, month: 1, year: 2025, budgeted_income: 2000},
+                {user_id: user.user.id, month: 12, year: 2026, budgeted_income: 3500},
+                {user_id: otherUser.user.id, month: 7, year: 2030, budgeted_income: 9000},
+            ],
+        });
+
+        const response = await agent.get("/budget/available-months").set("Authorization", `Bearer ${user.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([
+            {year: 2026, month: 12},
+            {year: 2026, month: 3},
+            {year: 2025, month: 1},
+        ]);
     });
 
     // ─── POST /budget ─────────────────────────────────────────────────

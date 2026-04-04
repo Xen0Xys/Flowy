@@ -55,6 +55,10 @@ async function main() {
         const {seedUserMerchants} = await import("./seeds/user-merchants.js");
         // @ts-ignore
         const {seedUserCategories} = await import("./seeds/user-categories.js");
+        // @ts-ignore
+        const {seedTransfersForUser} = await import("./seeds/transfers.js");
+        // @ts-ignore
+        const {seedBudgetsForUser} = await import("./seeds/budgets.js");
 
         // Families
         start = Date.now();
@@ -74,7 +78,10 @@ async function main() {
         // Accounts / Transactions / Merchants / Categories
         start = Date.now();
         console.log("🧹  Cleaning accounting tables...");
+        await prisma.transfers.deleteMany({});
         await prisma.transactions.deleteMany({});
+        await prisma.budgetedCategories.deleteMany({});
+        await prisma.budgets.deleteMany({});
         await prisma.accounts.deleteMany({});
         await prisma.userMerchants.deleteMany({});
         await prisma.userCategories.deleteMany({});
@@ -91,6 +98,9 @@ async function main() {
         let transactionsCount = 0;
         let merchantsCount = 0;
         let categoriesCount = 0;
+        let transfersCount = 0;
+        let budgetsCount = 0;
+        let budgetedCategoriesCount = 0;
 
         for (let i = 0; i < users.length; i++) {
             const user = users[i];
@@ -113,6 +123,12 @@ async function main() {
                 );
             }
 
+            transfersCount += await (seedTransfersForUser as any)(prisma, accounts, faker);
+
+            const budgetsSeed = await (seedBudgetsForUser as any)(prisma, user.id, categories, faker);
+            budgetsCount += budgetsSeed.budgetsCount;
+            budgetedCategoriesCount += budgetsSeed.budgetedCategoriesCount;
+
             console.log(
                 `   • User ${i + 1}/${users.length}: accounts=${accounts.length}, merchants=${merchants.length}, categories=${categories.length}`,
             );
@@ -123,9 +139,12 @@ async function main() {
             transactions: transactionsCount,
             merchants: merchantsCount,
             categories: categoriesCount,
+            transfers: transfersCount,
+            budgets: budgetsCount,
+            budgetedCategories: budgetedCategoriesCount,
         };
         console.log(
-            `✅  Accounts seeded (${accountingSeed.accounts}), transactions (${accountingSeed.transactions}), merchants (${accountingSeed.merchants}), categories (${accountingSeed.categories}) (${Date.now() - start}ms)`,
+            `✅  Accounts seeded (${accountingSeed.accounts}), transactions (${accountingSeed.transactions}), transfers (${accountingSeed.transfers}), budgets (${accountingSeed.budgets}), budget categories (${accountingSeed.budgetedCategories}), merchants (${accountingSeed.merchants}), categories (${accountingSeed.categories}) (${Date.now() - start}ms)`,
         );
     }
 

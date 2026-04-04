@@ -10,6 +10,8 @@ import {PrismaService} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {BudgetEntity} from "./models/entities/budget.entity";
 import {BudgetedCategoryEntity} from "./models/entities/budgeted-category.entity";
+import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
+import type {AvailableMonth} from "./models/entities/budget-spending.entity";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {BudgetedCategories, Budgets} from "../../../../prisma/generated/client";
@@ -138,6 +140,111 @@ export class BudgetService {
         await this.prismaService.budgets.delete({
             where: {id: budgetId},
         });
+    }
+
+    async getSpending(user: UserEntity, year: number, month: number): Promise<BudgetSpendingEntity> {
+        this.validateMonthAndYear(year, month);
+
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+        const userAccountIds = await this.prismaService.accounts
+            .findMany({
+                where: {user_id: user.id},
+                select: {id: true},
+            })
+            .then((accounts) => accounts.map((a) => a.id));
+
+        if (userAccountIds.length === 0) {
+            return new BudgetSpendingEntity({totalSpent: 0, actualIncome: 0, byCategory: []});
+        }
+
+        const expenseTransactions = await this.prismaService.transactions.findMany({
+            where: {
+                account_id: {in: userAccountIds},
+                amount: {lt: 0},
+                date: {gte: startDate, lte: endDate},
+            },
+            select: {
+                category_id: true,
+                amount: true,
+            },
+        });
+
+        const incomeTransactions = await this.prismaService.transactions.findMany({
+            where: {
+                account_id: {in: userAccountIds},
+                amount: {gt: 0},
+                date: {gte: startDate, lte: endDate},
+            },
+            select: {
+                amount: true,
+            },
+        });
+
+        const categorySpending = new Map<string | null, number>();
+        for (const tx of expenseTransactions) {
+            const key = tx.category_id;
+            categorySpending.set(key, (categorySpending.get(key) ?? 0) + Math.abs(tx.amount));
+        }
+
+        const categoryIds = [...new Set([...categorySpending.keys()].filter((id): id is string => id !== null))];
+        const categories =
+            categoryIds.length > 0
+                ? await this.prismaService.userCategories.findMany({
+                      where: {id: {in: categoryIds}},
+                      select: {id: true, name: true, hex_color: true, icon: true},
+                  })
+                : [];
+
+        const categoryMap = new Map(categories.map((c) => [c.id, {name: c.name, hexColor: c.hex_color, icon: c.icon}]));
+
+        const byCategory: BudgetSpendingCategoryEntity[] = [];
+
+        for (const [catId, spent] of categorySpending.entries()) {
+            if (catId === null) {
+                byCategory.push(
+                    new BudgetSpendingCategoryEntity({
+                        categoryId: null,
+                        name: "Non catégorisé",
+                        hexColor: "#94a3b8",
+                        icon: "iconoir:question-mark",
+                        spent: Math.round(spent * 100) / 100,
+                    }),
+                );
+            } else {
+                const cat = categoryMap.get(catId);
+                if (cat) {
+                    byCategory.push(
+                        new BudgetSpendingCategoryEntity({
+                            categoryId: catId,
+                            name: cat.name,
+                            hexColor: cat.hexColor,
+                            icon: cat.icon,
+                            spent: Math.round(spent * 100) / 100,
+                        }),
+                    );
+                }
+            }
+        }
+
+        byCategory.sort((a, b) => b.spent - a.spent);
+
+        const totalSpent = Math.round(byCategory.reduce((sum, c) => sum + c.spent, 0) * 100) / 100;
+        const actualIncome = Math.round(incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
+
+        return new BudgetSpendingEntity({totalSpent, actualIncome, byCategory});
+    }
+
+    async getAvailableMonths(user: UserEntity): Promise<AvailableMonth[]> {
+        const months = await this.prismaService.budgets.findMany({
+            where: {user_id: user.id},
+            select: {month: true, year: true},
+            distinct: ["month", "year"],
+            orderBy: [{year: "desc"}, {month: "desc"}],
+        });
+
+        return months.map((m) => ({month: m.month, year: m.year}));
     }
 
     private toBudgetEntity(budget: BudgetWithCategories): BudgetEntity {

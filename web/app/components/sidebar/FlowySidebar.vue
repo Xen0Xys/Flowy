@@ -55,7 +55,8 @@ const userInitials = computed(() => {
     const trimmed = source.trim();
     if (!trimmed) return "U";
     const parts = trimmed.split(/\s+/).filter(Boolean);
-    const initials = parts.length >= 2 ? `${parts[0][0] ?? ""}${parts[1][0] ?? ""}` : `${trimmed[0] ?? "U"}`;
+    const initials =
+        parts.length >= 2 ? `${(parts[0] || [""])[0] ?? ""}${(parts[1] || [""])[0] ?? ""}` : `${trimmed[0] ?? "U"}`;
     return initials.toUpperCase();
 });
 
@@ -141,6 +142,14 @@ async function handleLogout() {
                                 <NuxtLink to="/transactions">
                                     <Icon name="iconoir:credit-card"></Icon>
                                     <span>{{ t("sidebar.transactions") }}</span>
+                                </NuxtLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton :is-active="isActiveFunction('/budget')" as-child>
+                                <NuxtLink to="/budget">
+                                    <Icon name="iconoir:piggy-bank"></Icon>
+                                    <span>{{ t("sidebar.budget") }}</span>
                                 </NuxtLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
