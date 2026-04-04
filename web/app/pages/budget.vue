@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import {getLocalTimeZone, today} from "@internationalized/date";
+import type {DateValue} from "reka-ui";
 import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useFamilyStore} from "~/stores/family.store";
@@ -9,6 +11,8 @@ import BudgetCategoryRow from "~/components/budget/BudgetCategoryRow.vue";
 import BudgetFormDialog from "~/components/budget/BudgetFormDialog.vue";
 import BudgetRenewDialog from "~/components/budget/BudgetRenewDialog.vue";
 import {Button} from "~/components/ui/button";
+import {Calendar} from "~/components/ui/calendar";
+import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
 import {Skeleton} from "~/components/ui/skeleton";
 import {
     AlertDialog,
@@ -43,12 +47,17 @@ const isDeleteDialogOpen = ref(false);
 const isRenewDialogOpen = ref(false);
 const dialogMode = ref<"create" | "edit" | "renew">("create");
 const renewSourceBudget = ref<Budget | null>(null);
+const isPeriodPickerOpen = ref(false);
+const draftPeriodDate = ref<DateValue>();
+const draftPeriodPlaceholder = ref<DateValue>();
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
 
 const budgetExists = computed(() => !!budget.value);
 
 const donutSegments = computed(() => {
+    // Product decision: when no budget exists for the selected period,
+    // keep the donut empty instead of showing spending-only breakdown.
     if (!budget.value) {
         return [];
     }
@@ -106,6 +115,8 @@ const donutActualIncome = computed(() => {
 });
 
 const categoryRows = computed(() => {
+    // Product decision: when no budget exists, hide the category list entirely
+    // (no spending-only rows in the right panel for that state).
     if (!budget.value) {
         return [];
     }
@@ -197,15 +208,57 @@ const categoryRows = computed(() => {
     return rows;
 });
 
-const monthNames = computed(() => {
-    const formatter = new Intl.DateTimeFormat(locale.value ?? "en-US", {month: "long"});
-    return Array.from({length: 12}, (_, i) => {
-        return formatter.format(new Date(2026, i, 1));
-    });
+const monthOptions = computed(() => {
+    return [
+        {value: 1, label: t("budget.page.months.january")},
+        {value: 2, label: t("budget.page.months.february")},
+        {value: 3, label: t("budget.page.months.march")},
+        {value: 4, label: t("budget.page.months.april")},
+        {value: 5, label: t("budget.page.months.may")},
+        {value: 6, label: t("budget.page.months.june")},
+        {value: 7, label: t("budget.page.months.july")},
+        {value: 8, label: t("budget.page.months.august")},
+        {value: 9, label: t("budget.page.months.september")},
+        {value: 10, label: t("budget.page.months.october")},
+        {value: 11, label: t("budget.page.months.november")},
+        {value: 12, label: t("budget.page.months.december")},
+    ];
+});
+
+const availableYears = computed(() => {
+    const years = new Set<number>([selectedYear.value, now.getFullYear()]);
+    for (const month of availableMonths.value) {
+        years.add(month.year);
+    }
+
+    const sortedYears = [...years].sort((a, b) => a - b);
+    const minYear = sortedYears.at(0) ?? now.getFullYear();
+    const maxYear = sortedYears.at(-1) ?? now.getFullYear();
+
+    for (let year = minYear - 2; year <= maxYear + 2; year++) {
+        years.add(year);
+    }
+
+    return [...years].sort((a, b) => a - b);
+});
+
+const calendarYearRange = computed<DateValue[]>(() => {
+    const seedDate = today(getLocalTimeZone()).set({month: 1, day: 1});
+    return availableYears.value.map((year) => seedDate.set({year}));
+});
+
+const canApplyPeriod = computed(() => {
+    const month = draftPeriodPlaceholder.value?.month;
+    const year = draftPeriodPlaceholder.value?.year;
+    if (!month || !year) {
+        return false;
+    }
+    return month !== selectedMonth.value || year !== selectedYear.value;
 });
 
 const periodLabel = computed(() => {
-    return `${monthNames.value[selectedMonth.value - 1]} ${selectedYear.value}`;
+    const monthLabel = monthOptions.value.find((month) => month.value === selectedMonth.value)?.label ?? "";
+    return `${monthLabel} ${selectedYear.value}`;
 });
 
 const existingBudgetForDialog = computed(() => {
@@ -288,6 +341,29 @@ async function navigateMonth(direction: -1 | 1) {
     }
     selectedMonth.value = m;
     selectedYear.value = y;
+}
+
+function handlePeriodPickerOpenChange(open: boolean) {
+    isPeriodPickerOpen.value = open;
+    if (open) {
+        const currentPeriodDate = today(getLocalTimeZone()).set({
+            year: selectedYear.value,
+            month: selectedMonth.value,
+            day: 1,
+        });
+        draftPeriodDate.value = currentPeriodDate;
+        draftPeriodPlaceholder.value = currentPeriodDate;
+    }
+}
+
+function applySelectedPeriod() {
+    if (!draftPeriodPlaceholder.value) {
+        return;
+    }
+
+    selectedMonth.value = draftPeriodPlaceholder.value.month;
+    selectedYear.value = draftPeriodPlaceholder.value.year;
+    isPeriodPickerOpen.value = false;
 }
 
 function openCreateDialog() {
@@ -377,24 +453,24 @@ watch([selectedMonth, selectedYear], async () => {
                     <div class="flex items-center gap-2">
                         <template v-if="!budgetExists">
                             <Button variant="outline" @click="openRenewDialog">
-                                <Icon class="mr-2 h-4 w-4" name="iconoir:data-transfer-both" />
+                                <Icon class="h-4 w-4" name="iconoir:data-transfer-both" />
                                 {{ t("budget.page.renewBudget") }}
                             </Button>
                             <Button @click="openCreateDialog">
-                                <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
+                                <Icon class="h-4 w-4" name="iconoir:plus" />
                                 {{ t("budget.page.createBudget") }}
                             </Button>
                         </template>
                         <template v-else>
                             <Button variant="outline" @click="openEditDialog">
-                                <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
+                                <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
                                 {{ t("budget.page.editBudget") }}
                             </Button>
                             <Button
                                 class="text-destructive hover:bg-destructive/10"
                                 variant="outline"
                                 @click="isDeleteDialogOpen = true">
-                                <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
+                                <Icon class="h-4 w-4" name="iconoir:trash" />
                                 {{ t("budget.page.deleteBudget") }}
                             </Button>
                         </template>
@@ -421,9 +497,35 @@ watch([selectedMonth, selectedYear], async () => {
                                 <Button size="icon" variant="ghost" @click="navigateMonth(-1)">
                                     <Icon class="h-4 w-4" name="iconoir:nav-arrow-left" />
                                 </Button>
-                                <span class="min-w-36 text-center text-lg font-semibold">
-                                    {{ periodLabel }}
-                                </span>
+                                <Popover :open="isPeriodPickerOpen" @update:open="handlePeriodPickerOpenChange">
+                                    <PopoverTrigger as-child>
+                                        <Button class="justify-between text-lg font-semibold" variant="ghost">
+                                            <span>{{ periodLabel }}</span>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent class="w-80">
+                                        <div class="grid gap-3">
+                                            <p class="text-sm font-medium">{{ t("budget.page.periodPicker.title") }}</p>
+                                            <p class="text-muted-foreground text-xs">
+                                                {{ t("budget.page.periodPicker.calendarHint") }}
+                                            </p>
+                                            <Calendar
+                                                v-model="draftPeriodDate"
+                                                v-model:placeholder="draftPeriodPlaceholder"
+                                                :year-range="calendarYearRange"
+                                                class="rounded-md border"
+                                                layout="month-and-year" />
+                                            <div class="flex justify-end gap-2 pt-1">
+                                                <Button variant="outline" @click="isPeriodPickerOpen = false">
+                                                    {{ t("common.cancel") }}
+                                                </Button>
+                                                <Button :disabled="!canApplyPeriod" @click="applySelectedPeriod">
+                                                    {{ t("budget.page.periodPicker.apply") }}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                                 <Button size="icon" variant="ghost" @click="navigateMonth(1)">
                                     <Icon class="h-4 w-4" name="iconoir:nav-arrow-right" />
                                 </Button>

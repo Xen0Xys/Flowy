@@ -14,8 +14,8 @@ const props = defineProps<{
     open: boolean;
     mode: "create" | "edit" | "renew";
     budgetId?: string;
-    targetMonth?: number;
-    targetYear?: number;
+    targetMonth: number;
+    targetYear: number;
     existingBudget?: {
         month: number;
         year: number;
@@ -73,6 +73,22 @@ const totalCategoryBudget = computed(() => {
     return Object.values(categoryAmounts.value).reduce((sum, v) => sum + v, 0);
 });
 
+const hasAtLeastOneCategory = computed(() => {
+    return Object.values(categoryAmounts.value).some((v) => v >= 0.01);
+});
+
+const canSave = computed(() => {
+    if (budgetedIncome.value < 0.01) {
+        return false;
+    }
+
+    if (props.mode === "edit") {
+        return true;
+    }
+
+    return hasAtLeastOneCategory.value;
+});
+
 const availableCategories = computed(() => {
     const all = [...referenceStore.categories];
     if (props.spendingCategories) {
@@ -116,11 +132,11 @@ function handleSave() {
         .filter(([, amount]) => amount >= 0.01)
         .map(([categoryId, amount]) => ({categoryId, amount}));
 
-    if (categories.length === 0) return;
+    if (props.mode !== "edit" && categories.length === 0) return;
 
     emit("save", {
-        month: props.targetMonth ?? 1,
-        year: props.targetYear ?? 2026,
+        month: props.targetMonth,
+        year: props.targetYear,
         budgetedIncome: budgetedIncome.value,
         categories,
     });
@@ -195,11 +211,7 @@ function setCategoryAmount(categoryId: string, amount: number) {
 
             <DialogFooter>
                 <Button variant="outline" @click="emit('update:open', false)">{{ t("common.cancel") }}</Button>
-                <Button
-                    :disabled="
-                        budgetedIncome < 0.01 || Object.values(categoryAmounts).filter((v) => v >= 0.01).length === 0
-                    "
-                    @click="handleSave">
+                <Button :disabled="!canSave" @click="handleSave">
                     {{ t("common.save") }}
                 </Button>
             </DialogFooter>

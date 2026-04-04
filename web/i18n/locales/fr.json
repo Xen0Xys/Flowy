@@ -660,7 +660,26 @@
             "deleteBudget": "Supprimer",
             "noPreviousBudget": "Aucun budget à reconduire",
             "noSpending": "Aucune dépense ce mois-ci",
-            "noSpendingDescription": "Les catégories dépensées apparaîtront ici."
+            "noSpendingDescription": "Les catégories dépensées apparaîtront ici.",
+            "months": {
+                "january": "Janvier",
+                "february": "Février",
+                "march": "Mars",
+                "april": "Avril",
+                "may": "Mai",
+                "june": "Juin",
+                "july": "Juillet",
+                "august": "Août",
+                "september": "Septembre",
+                "october": "Octobre",
+                "november": "Novembre",
+                "december": "Décembre"
+            },
+            "periodPicker": {
+                "title": "Sélectionner une période",
+                "calendarHint": "Choisissez n'importe quel jour du mois et de l'année ciblés.",
+                "apply": "Appliquer"
+            }
         },
         "donut": {
             "centerSpent": "dépensé",

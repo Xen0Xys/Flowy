@@ -446,6 +446,30 @@ describe("BudgetController (e2e)", () => {
         expect(stored).toHaveLength(2);
     });
 
+    test("rejects creation when categories contain duplicate categoryId", async () => {
+        const user = await registerUser(server);
+
+        const category = await prisma.userCategories.create({
+            data: {user_id: user.user.id, name: "Food", hex_color: "#22C55E", icon: "utensils"},
+        });
+
+        const response = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                month: 6,
+                year: 2026,
+                budgetedIncome: 3500,
+                categories: [
+                    {categoryId: category.id, amount: 400},
+                    {categoryId: category.id, amount: 200},
+                ],
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe("Each category can only be used once per budget");
+    });
+
     test("rejects creation with missing required fields", async () => {
         const user = await registerUser(server);
 
@@ -996,6 +1020,36 @@ describe("BudgetController (e2e)", () => {
             .send({month: 2, year: 2026});
 
         expect(response.status).toBe(409);
+    });
+
+    test("rejects update when categories contain duplicate categoryId", async () => {
+        const user = await registerUser(server);
+
+        const category = await prisma.userCategories.create({
+            data: {user_id: user.user.id, name: "Food", hex_color: "#22C55E", icon: "utensils"},
+        });
+
+        const budget = await prisma.budgets.create({
+            data: {
+                user_id: user.user.id,
+                month: 7,
+                year: 2026,
+                budgeted_income: 1000,
+            },
+        });
+
+        const response = await agent
+            .put(`/budget/${budget.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                categories: [
+                    {categoryId: category.id, amount: 100},
+                    {categoryId: category.id, amount: 200},
+                ],
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe("Each category can only be used once per budget");
     });
 
     // ─── DELETE /budget/:budgetId ─────────────────────────────────────

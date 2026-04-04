@@ -50,6 +50,7 @@ export class BudgetService {
 
     async createBudget(user: UserEntity, dto: CreateBudgetDto): Promise<BudgetEntity> {
         const categoryIds = dto.categories.map((c) => c.categoryId);
+        this.validateUniqueCategoryIds(categoryIds);
         await this.validateCategoriesBelongToUser(user, categoryIds);
 
         try {
@@ -85,6 +86,7 @@ export class BudgetService {
 
         const categoryIds = dto.categories?.map((c) => c.categoryId) ?? [];
         if (categoryIds.length > 0) {
+            this.validateUniqueCategoryIds(categoryIds);
             await this.validateCategoriesBelongToUser(user, categoryIds);
         }
 
@@ -307,6 +309,13 @@ export class BudgetService {
 
         if (missing.length > 0) {
             throw new BadRequestException("One or more categories do not belong to the user or do not exist");
+        }
+    }
+
+    private validateUniqueCategoryIds(categoryIds: string[]): void {
+        const uniqueCategoryIds = new Set(categoryIds);
+        if (uniqueCategoryIds.size !== categoryIds.length) {
+            throw new BadRequestException("Each category can only be used once per budget");
         }
     }
 
