@@ -17,31 +17,20 @@ const emit = defineEmits<{
     renew: [budget: Budget];
 }>();
 
-const {t} = useI18n();
+const {t, locale} = useI18n();
 const budgetStore = useBudgetStore();
-
-const monthNames = [
-    "Janvier",
-    "Février",
-    "Mars",
-    "Avril",
-    "Mai",
-    "Juin",
-    "Juillet",
-    "Août",
-    "Septembre",
-    "Octobre",
-    "Novembre",
-    "Décembre",
-];
 
 const selectedPeriod = ref<string>("");
 const isLoading = ref(false);
 
+const monthFormatter = computed(() => {
+    return new Intl.DateTimeFormat(locale.value ?? "en-US", {month: "long"});
+});
+
 const formattedMonths = computed(() => {
     return props.availableMonths.map((m) => ({
         ...m,
-        label: `${monthNames[m.month - 1]} ${m.year}`,
+        label: `${monthFormatter.value.format(new Date(m.year, m.month - 1, 1))} ${m.year}`,
         value: `${m.year}-${m.month}`,
     }));
 });

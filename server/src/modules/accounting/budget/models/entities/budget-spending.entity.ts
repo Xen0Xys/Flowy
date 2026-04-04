@@ -1,6 +1,6 @@
 export class BudgetSpendingCategoryEntity {
     categoryId!: string | null;
-    name!: string;
+    name?: string;
     hexColor!: string;
     icon!: string;
     spent!: number;

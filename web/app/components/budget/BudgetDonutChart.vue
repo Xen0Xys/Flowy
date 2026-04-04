@@ -137,7 +137,12 @@ const formatCurrency = (value: number) => {
             </g>
 
             <!-- Center text -->
-            <text class="fill-foreground text-3xl font-bold" text-anchor="middle" x="140" y="120">
+            <text
+                v-if="hasBudget !== false"
+                class="fill-foreground text-3xl font-bold"
+                text-anchor="middle"
+                x="140"
+                y="120">
                 {{ formatCurrency(totalSpent) }}
             </text>
             <template v-if="hasBudget !== false">
@@ -168,7 +173,9 @@ const formatCurrency = (value: number) => {
         </div>
 
         <!-- Over budget warning -->
-        <div v-if="isOverBudget" class="text-destructive mt-2 flex items-center gap-1 text-sm font-medium">
+        <div
+            v-if="hasBudget !== false && isOverBudget"
+            class="text-destructive mt-2 flex items-center gap-1 text-sm font-medium">
             <Icon class="h-4 w-4" name="iconoir:warning-triangle" />
             {{ $t("budget.donut.centerOver") }}: +{{ formatCurrency(overAmount) }}
         </div>

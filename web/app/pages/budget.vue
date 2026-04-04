@@ -34,6 +34,7 @@ const budget = ref<Budget | null>(null);
 const spending = ref<BudgetSpending | null>(null);
 const availableMonths = ref<AvailableMonth[]>([]);
 const isLoading = ref(true);
+const latestLoadRequestId = ref(0);
 
 // Dialog states
 const isCreateDialogOpen = ref(false);
@@ -97,18 +98,10 @@ const donutSegments = computed(() => {
 });
 
 const donutTotalSpent = computed(() => {
-    if (!budgetExists.value) {
-        return 0;
-    }
-
     return spending.value?.totalSpent ?? 0;
 });
 
 const donutActualIncome = computed(() => {
-    if (!budgetExists.value) {
-        return 0;
-    }
-
     return spending.value?.actualIncome ?? 0;
 });
 
@@ -136,7 +129,7 @@ const categoryRows = computed(() => {
         spent: number;
         budgeted: number;
     }> = [];
-    if (budget.value.budgetedCategories) {
+    if (budget.value?.budgetedCategories) {
         for (const bc of budget.value.budgetedCategories) {
             if (!bc.categoryId) continue;
             const spendingCat = spendingMap.get(bc.categoryId);
@@ -162,9 +155,10 @@ const categoryRows = computed(() => {
         budgeted: number;
     }> = [];
     if (spending.value?.byCategory) {
-        const budgetedCategoryIds = new Set(budget.value.budgetedCategories?.map((bc) => bc.categoryId) ?? []);
+        const budgetedCategoryIds = new Set(budget.value?.budgetedCategories?.map((bc) => bc.categoryId) ?? []);
         for (const cat of spending.value.byCategory) {
-            if (!cat.categoryId || budgetedCategoryIds.has(cat.categoryId)) continue;
+            if (!cat.categoryId) continue;
+            if (budget.value && budgetedCategoryIds.has(cat.categoryId)) continue;
             spendingOnlyCategories.push({
                 id: cat.categoryId ?? `spending-${cat.name}`,
                 name: cat.name,
@@ -185,8 +179,8 @@ const categoryRows = computed(() => {
     rows.push(...budgetedCategories, ...spendingOnlyCategories);
 
     // Add "Uncategorized" row at the end with unallocated budget amount + uncategorized spending
-    const totalBudgeted = budget.value.budgetedCategories?.reduce((sum, bc) => sum + bc.amount, 0) ?? 0;
-    const unallocated = budget.value.budgetedIncome - totalBudgeted;
+    const totalBudgeted = budget.value?.budgetedCategories?.reduce((sum, bc) => sum + bc.amount, 0) ?? 0;
+    const unallocated = budget.value ? budget.value.budgetedIncome - totalBudgeted : 0;
     const uncategorizedSpent =
         spending.value?.byCategory?.filter((cat) => !cat.categoryId).reduce((sum, cat) => sum + cat.spent, 0) ?? 0;
     if (unallocated > 0.005 || uncategorizedSpent > 0.005) {
@@ -235,29 +229,42 @@ const existingBudgetForDialog = computed(() => {
 });
 
 async function loadData() {
+    const requestId = ++latestLoadRequestId.value;
+    const year = selectedYear.value;
+    const month = selectedMonth.value;
+
     isLoading.value = true;
     try {
-        await Promise.all([loadBudget(), loadSpending()]);
+        const [loadedBudget, loadedSpending] = await Promise.all([loadBudget(year, month), loadSpending(year, month)]);
+
+        if (requestId !== latestLoadRequestId.value) {
+            return;
+        }
+
+        budget.value = loadedBudget;
+        spending.value = loadedSpending;
     } catch (err) {
         console.error(err);
     } finally {
-        isLoading.value = false;
+        if (requestId === latestLoadRequestId.value) {
+            isLoading.value = false;
+        }
     }
 }
 
-async function loadBudget() {
+async function loadBudget(year: number, month: number) {
     try {
-        budget.value = await budgetStore.getBudgetByPeriod(selectedYear.value, selectedMonth.value);
+        return await budgetStore.getBudgetByPeriod(year, month);
     } catch {
-        budget.value = null;
+        return null;
     }
 }
 
-async function loadSpending() {
+async function loadSpending(year: number, month: number) {
     try {
-        spending.value = await budgetStore.getSpending(selectedYear.value, selectedMonth.value);
+        return await budgetStore.getSpending(year, month);
     } catch {
-        spending.value = null;
+        return null;
     }
 }
 
@@ -345,8 +352,8 @@ onMounted(async () => {
     await loadAvailableMonths();
 });
 
-watch([selectedMonth, selectedYear], () => {
-    loadData();
+watch([selectedMonth, selectedYear], async () => {
+    await loadData();
 });
 </script>
 
@@ -457,12 +464,6 @@ watch([selectedMonth, selectedYear], () => {
                 </template>
             </div>
         </div>
-
-        <!-- Renew Dialog -->
-        <BudgetRenewDialog
-            v-model:open="isRenewDialogOpen"
-            :available-months="availableMonths"
-            @renew="handleRenewBudget" />
 
         <!-- Renew Dialog -->
         <BudgetRenewDialog

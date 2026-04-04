@@ -35,7 +35,7 @@ ALTER TABLE "budgeted_categories" ADD CONSTRAINT "budgeted_categories_budget_id_
 ALTER TABLE "budgeted_categories" ADD CONSTRAINT "budgeted_categories_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "user_categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddCheck
-ALTER TABLE budgets ADD CONSTRAINT budgets_month_check CHECK (month >= 1 AND month <= 12), ADD CONSTRAINT budgets_year_check CHECK (year >= 0 AND year <= 9999), ADD CONSTRAINT budgets_budgeted_income_check CHECK (budgeted_income >= 0);
+ALTER TABLE budgets ADD CONSTRAINT budgets_month_check CHECK (month >= 1 AND month <= 12), ADD CONSTRAINT budgets_year_check CHECK (year >= 1 AND year <= 9999), ADD CONSTRAINT budgets_budgeted_income_check CHECK (budgeted_income >= 0.01);
 
 -- AddCheck
-ALTER TABLE budgeted_categories ADD CONSTRAINT budgeted_categories_amount_check CHECK (amount >= 0);
+ALTER TABLE budgeted_categories ADD CONSTRAINT budgeted_categories_amount_check CHECK (amount >= 0.01);

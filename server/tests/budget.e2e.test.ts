@@ -338,7 +338,6 @@ describe("BudgetController (e2e)", () => {
 
         expect(response.body.byCategory[1]).toEqual({
             categoryId: null,
-            name: "Non catégorisé",
             hexColor: "#94a3b8",
             icon: "iconoir:question-mark",
             spent: 30,
@@ -968,6 +967,35 @@ describe("BudgetController (e2e)", () => {
             budgetedIncome: 0,
         });
         expect(badIncome.status).toBe(400);
+    });
+
+    test("returns 409 when update would collide with an existing period", async () => {
+        const user = await registerUser(server);
+
+        const firstBudget = await prisma.budgets.create({
+            data: {
+                user_id: user.user.id,
+                month: 1,
+                year: 2026,
+                budgeted_income: 1000,
+            },
+        });
+
+        await prisma.budgets.create({
+            data: {
+                user_id: user.user.id,
+                month: 2,
+                year: 2026,
+                budgeted_income: 1500,
+            },
+        });
+
+        const response = await agent
+            .put(`/budget/${firstBudget.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({month: 2, year: 2026});
+
+        expect(response.status).toBe(409);
     });
 
     // ─── DELETE /budget/:budgetId ─────────────────────────────────────

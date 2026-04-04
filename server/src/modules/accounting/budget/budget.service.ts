@@ -14,7 +14,7 @@ import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entit
 import type {AvailableMonth} from "./models/entities/budget-spending.entity";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
-import {BudgetedCategories, Budgets} from "../../../../prisma/generated/client";
+import {BudgetedCategories, Budgets, Prisma} from "../../../../prisma/generated/client";
 
 type BudgetWithCategories = Budgets & {
     budgeted_categories: BudgetedCategories[];
@@ -88,50 +88,57 @@ export class BudgetService {
             await this.validateCategoriesBelongToUser(user, categoryIds);
         }
 
-        const budget = await this.prismaService.$transaction(async (tx) => {
-            const prisma = this.prismaService.withTx(tx);
+        try {
+            const budget = await this.prismaService.$transaction(async (tx) => {
+                const prisma = this.prismaService.withTx(tx);
 
-            const updatedBudget = await prisma.budgets.update({
-                where: {id: budgetId},
-                data: {
-                    ...(dto.month !== undefined ? {month: dto.month} : {}),
-                    ...(dto.year !== undefined ? {year: dto.year} : {}),
-                    ...(dto.budgetedIncome !== undefined ? {budgeted_income: dto.budgetedIncome} : {}),
-                },
-                include: {
-                    budgeted_categories: true,
-                },
-            });
-
-            if (dto.categories !== undefined) {
-                await prisma.budgetedCategories.deleteMany({
-                    where: {budget_id: budgetId},
-                });
-
-                if (dto.categories.length > 0) {
-                    await prisma.budgetedCategories.createMany({
-                        data: dto.categories.map((c) => ({
-                            budget_id: budgetId,
-                            category_id: c.categoryId,
-                            amount: c.amount,
-                        })),
-                    });
-                }
-
-                const refreshed = await prisma.budgets.findUnique({
+                const updatedBudget = await prisma.budgets.update({
                     where: {id: budgetId},
+                    data: {
+                        ...(dto.month !== undefined ? {month: dto.month} : {}),
+                        ...(dto.year !== undefined ? {year: dto.year} : {}),
+                        ...(dto.budgetedIncome !== undefined ? {budgeted_income: dto.budgetedIncome} : {}),
+                    },
                     include: {
                         budgeted_categories: true,
                     },
                 });
 
-                return refreshed!;
+                if (dto.categories !== undefined) {
+                    await prisma.budgetedCategories.deleteMany({
+                        where: {budget_id: budgetId},
+                    });
+
+                    if (dto.categories.length > 0) {
+                        await prisma.budgetedCategories.createMany({
+                            data: dto.categories.map((c) => ({
+                                budget_id: budgetId,
+                                category_id: c.categoryId,
+                                amount: c.amount,
+                            })),
+                        });
+                    }
+
+                    const refreshed = await prisma.budgets.findUnique({
+                        where: {id: budgetId},
+                        include: {
+                            budgeted_categories: true,
+                        },
+                    });
+
+                    return refreshed!;
+                }
+
+                return updatedBudget;
+            });
+
+            return this.toBudgetEntity(budget);
+        } catch (error: unknown) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+                throw new ConflictException("Budget already exists for this month and year");
             }
-
-            return updatedBudget;
-        });
-
-        return this.toBudgetEntity(budget);
+            throw error;
+        }
     }
 
     async deleteBudget(user: UserEntity, budgetId: string): Promise<void> {
@@ -206,7 +213,6 @@ export class BudgetService {
                 byCategory.push(
                     new BudgetSpendingCategoryEntity({
                         categoryId: null,
-                        name: "Non catégorisé",
                         hexColor: "#94a3b8",
                         icon: "iconoir:question-mark",
                         spent: Math.round(spent * 100) / 100,
