@@ -183,26 +183,30 @@ async function handleLogout() {
                 </SidebarGroupContent>
                 <SidebarGroupLabel v-if="groupedUserAccounts.length">{{ t("sidebar.accounts") }}</SidebarGroupLabel>
                 <SidebarGroupContent v-if="groupedUserAccounts.length">
-                    <div :aria-label="t('sidebar.accounts')" class="flex flex-col" role="list">
-                        <section
-                            v-for="accountGroup in groupedUserAccounts"
-                            :key="accountGroup.type"
-                            :aria-label="getAccountTypeLabel(accountGroup.type)">
-                            <p class="text-muted-foreground pl-4 text-[0.75rem] font-medium tracking-wide">
-                                {{ getAccountTypeLabel(accountGroup.type) }}
-                            </p>
-                            <SidebarMenu>
-                                <SidebarMenuItem v-for="account in accountGroup.accounts" :key="account.id" class="pl-4">
-                                    <SidebarMenuButton :is-active="isActiveFunction(`/account/${account.id}`)" as-child>
-                                        <NuxtLink :to="`/account/${account.id}`">
-                                            <Icon name="iconoir:wallet"></Icon>
-                                            <span>{{ account.name }}</span>
-                                        </NuxtLink>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </section>
-                    </div>
+                    <ul :aria-label="t('sidebar.accounts')" class="flex flex-col">
+                        <li v-for="accountGroup in groupedUserAccounts" :key="accountGroup.type">
+                            <section :aria-label="getAccountTypeLabel(accountGroup.type)">
+                                <p class="text-muted-foreground pl-4 text-[0.75rem] font-medium tracking-wide">
+                                    {{ getAccountTypeLabel(accountGroup.type) }}
+                                </p>
+                                <SidebarMenu>
+                                    <SidebarMenuItem
+                                        v-for="account in accountGroup.accounts"
+                                        :key="account.id"
+                                        class="pl-4">
+                                        <SidebarMenuButton
+                                            :is-active="isActiveFunction(`/account/${account.id}`)"
+                                            as-child>
+                                            <NuxtLink :to="`/account/${account.id}`">
+                                                <Icon name="iconoir:wallet"></Icon>
+                                                <span>{{ account.name }}</span>
+                                            </NuxtLink>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                </SidebarMenu>
+                            </section>
+                        </li>
+                    </ul>
                 </SidebarGroupContent>
             </SidebarGroup>
             <SidebarGroup :aria-hidden="!inSettings" :class="{hidden: !inSettings}">
