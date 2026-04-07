@@ -10,8 +10,8 @@ import {PrismaService} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {BudgetEntity} from "./models/entities/budget.entity";
 import {BudgetedCategoryEntity} from "./models/entities/budgeted-category.entity";
-import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
 import type {AvailableMonth} from "./models/entities/budget-spending.entity";
+import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {BudgetedCategories, Budgets, Prisma} from "../../../../prisma/generated/client";
@@ -173,6 +173,8 @@ export class BudgetService {
                 account_id: {in: userAccountIds},
                 amount: {lt: 0},
                 date: {gte: startDate, lte: endDate},
+                credit_transfer: null,
+                debit_transfer: null,
             },
             select: {
                 category_id: true,
@@ -185,6 +187,8 @@ export class BudgetService {
                 account_id: {in: userAccountIds},
                 amount: {gt: 0},
                 date: {gte: startDate, lte: endDate},
+                credit_transfer: null,
+                debit_transfer: null,
             },
             select: {
                 amount: true,
