@@ -478,12 +478,66 @@ watch([selectedMonth, selectedYear], async () => {
                 </div>
 
                 <!-- Loading -->
-                <div v-if="isLoading" class="flex flex-col gap-6 md:min-h-0 md:flex-1">
-                    <Skeleton class="h-80 w-full shrink-0 md:w-96" />
-                    <div class="space-y-3">
-                        <Skeleton class="h-16 w-full" />
-                        <Skeleton class="h-16 w-full" />
-                        <Skeleton class="h-16 w-full" />
+                <div v-if="isLoading" class="flex flex-col gap-6 md:min-h-0 md:flex-1 md:flex-row">
+                    <div class="flex shrink-0 flex-col items-center gap-4 md:w-96">
+                        <div class="flex items-center gap-3">
+                            <Button size="icon" variant="ghost" @click="navigateMonth(-1)">
+                                <Icon class="h-4 w-4" name="iconoir:nav-arrow-left" />
+                            </Button>
+                            <Popover :open="isPeriodPickerOpen" @update:open="handlePeriodPickerOpenChange">
+                                <PopoverTrigger as-child>
+                                    <Button class="justify-between text-lg font-semibold" variant="ghost">
+                                        <span>{{ periodLabel }}</span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent class="w-80">
+                                    <div class="grid gap-3">
+                                        <p class="text-sm font-medium">{{ t("budget.page.periodPicker.title") }}</p>
+                                        <p class="text-muted-foreground text-xs">
+                                            {{ t("budget.page.periodPicker.calendarHint") }}
+                                        </p>
+                                        <Calendar
+                                            v-model="draftPeriodDate"
+                                            v-model:placeholder="draftPeriodPlaceholder"
+                                            :year-range="calendarYearRange"
+                                            class="rounded-md border"
+                                            layout="month-and-year" />
+                                        <div class="flex justify-end gap-2 pt-1">
+                                            <Button variant="outline" @click="isPeriodPickerOpen = false">
+                                                {{ t("common.cancel") }}
+                                            </Button>
+                                            <Button :disabled="!canApplyPeriod" @click="applySelectedPeriod">
+                                                {{ t("budget.page.periodPicker.apply") }}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            <Button size="icon" variant="ghost" @click="navigateMonth(1)">
+                                <Icon class="h-4 w-4" name="iconoir:nav-arrow-right" />
+                            </Button>
+                        </div>
+
+                        <div class="relative flex h-72 w-72 items-center justify-center" aria-hidden="true">
+                            <svg class="h-72 w-72" viewBox="0 0 280 280">
+                                <circle class="stroke-muted" cx="140" cy="140" fill="none" r="120" stroke-width="40" />
+                            </svg>
+                            <div class="absolute flex flex-col items-center gap-2">
+                                <Skeleton class="h-8 w-28" />
+                                <Skeleton class="h-4 w-20" />
+                                <Skeleton class="h-4 w-36" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
+                        <div class="space-y-2">
+                            <Skeleton class="h-16 w-full rounded-lg" />
+                            <Skeleton class="h-16 w-full rounded-lg" />
+                            <Skeleton class="h-16 w-full rounded-lg" />
+                            <Skeleton class="h-16 w-full rounded-lg" />
+                            <Skeleton class="h-16 w-full rounded-lg" />
+                        </div>
                     </div>
                 </div>
 
