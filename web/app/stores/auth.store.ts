@@ -1,6 +1,11 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
+import {useAccountStore} from "~/stores/account.store";
+import {useBudgetStore} from "~/stores/budget.store";
+import {useFamilyStore} from "~/stores/family.store";
+import {useReferenceStore} from "~/stores/reference.store";
+import {useTransactionStore} from "~/stores/transaction.store";
 import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
@@ -47,8 +52,20 @@ export const useAuthStore = defineStore("auth", {
 
         logout() {
             this.token = null;
+
             const userStore = useUserStore();
-            userStore.user = null;
+            const accountStore = useAccountStore();
+            const budgetStore = useBudgetStore();
+            const familyStore = useFamilyStore();
+            const referenceStore = useReferenceStore();
+            const transactionStore = useTransactionStore();
+
+            userStore.$reset();
+            accountStore.$reset();
+            budgetStore.$reset();
+            familyStore.$reset();
+            referenceStore.$reset();
+            transactionStore.$reset();
 
             try {
                 const cookie = useCookie(COOKIE_TOKEN_KEY);
