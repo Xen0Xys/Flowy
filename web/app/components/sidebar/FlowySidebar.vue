@@ -28,6 +28,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Badge} from "~/components/ui/badge";
+import {CATEGORY_ORDER, groupAccountsByType} from "~/utils/accounts";
 
 const route = useRoute();
 const {t} = useI18n();
@@ -46,6 +47,23 @@ const accountStore = useAccountStore();
 const showAdminLinks = ref(false);
 const {isMobile} = useSidebar();
 const userAccounts = computed(() => accountStore.accounts);
+
+const groupedUserAccounts = computed(() => {
+    const groups = groupAccountsByType(userAccounts.value);
+
+    return Object.entries(groups)
+        .map(([type, accounts]) => ({
+            type,
+            accounts: [...accounts].sort((a, b) => b.balance - a.balance),
+        }))
+        .sort((a, b) => (CATEGORY_ORDER[a.type] ?? 99) - (CATEGORY_ORDER[b.type] ?? 99));
+});
+
+function getAccountTypeLabel(type: string) {
+    const key = `accounts.types.${type.toLowerCase()}`;
+    const translated = t(key);
+    return translated === key ? type : translated;
+}
 
 const userName = computed(() => userStore.user?.username || t("common.user"));
 const userEmail = computed(() => userStore.user?.email || "");
@@ -163,18 +181,28 @@ async function handleLogout() {
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
-                <SidebarGroupLabel v-if="userAccounts.length">{{ t("sidebar.accounts") }}</SidebarGroupLabel>
-                <SidebarGroupContent v-if="userAccounts.length">
-                    <SidebarMenu>
-                        <SidebarMenuItem v-for="account in userAccounts" :key="account.id">
-                            <SidebarMenuButton :is-active="isActiveFunction(`/account/${account.id}`)" as-child>
-                                <NuxtLink :to="`/account/${account.id}`">
-                                    <Icon name="iconoir:wallet"></Icon>
-                                    <span>{{ account.name }}</span>
-                                </NuxtLink>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
+                <SidebarGroupLabel v-if="groupedUserAccounts.length">{{ t("sidebar.accounts") }}</SidebarGroupLabel>
+                <SidebarGroupContent v-if="groupedUserAccounts.length">
+                    <div :aria-label="t('sidebar.accounts')" class="flex flex-col" role="list">
+                        <section
+                            v-for="accountGroup in groupedUserAccounts"
+                            :key="accountGroup.type"
+                            :aria-label="getAccountTypeLabel(accountGroup.type)">
+                            <p class="text-muted-foreground pl-4 text-[0.75rem] font-medium tracking-wide">
+                                {{ getAccountTypeLabel(accountGroup.type) }}
+                            </p>
+                            <SidebarMenu>
+                                <SidebarMenuItem v-for="account in accountGroup.accounts" :key="account.id" class="pl-4">
+                                    <SidebarMenuButton :is-active="isActiveFunction(`/account/${account.id}`)" as-child>
+                                        <NuxtLink :to="`/account/${account.id}`">
+                                            <Icon name="iconoir:wallet"></Icon>
+                                            <span>{{ account.name }}</span>
+                                        </NuxtLink>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </section>
+                    </div>
                 </SidebarGroupContent>
             </SidebarGroup>
             <SidebarGroup :aria-hidden="!inSettings" :class="{hidden: !inSettings}">
