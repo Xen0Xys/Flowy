@@ -36,6 +36,7 @@ const emit = defineEmits<{
 
 const familyStore = useFamilyStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
+const isCompactHeight = useMediaQuery("(max-height: 1080px)");
 const {locale, t} = useI18n();
 
 const sorting = ref<SortingState>([{id: "date", desc: true}]);
@@ -186,6 +187,7 @@ const table = useVueTable({
                         v-for="cell in row.getVisibleCells()"
                         :key="cell.id"
                         :class="[
+                            isMobile || isCompactHeight ? 'h-[2.3125rem] py-0' : 'h-[2.6875rem] py-0',
                             cell.column.id === 'amount' ? 'text-right' : '',
                             cell.column.id === 'date' ? (isMobile ? 'w-[115px]' : 'w-[150px]') : '',
                             cell.column.id === 'account' ? 'w-[180px]' : '',

@@ -93,6 +93,21 @@ const resetFilters = () => {
 
 const toggleDesktopFilters = () => {
     areDesktopFiltersVisible.value = !areDesktopFiltersVisible.value;
+
+    hasStoredDesktopFiltersPreference.value = true;
+
+    if (!process.client) {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(
+            DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY,
+            areDesktopFiltersVisible.value ? "true" : "false",
+        );
+    } catch {
+        // Ignore storage failures (e.g. disabled storage / private mode)
+    }
 };
 
 onMounted(() => {
@@ -100,22 +115,18 @@ onMounted(() => {
         return;
     }
 
-    const persistedVisibility = window.localStorage.getItem(DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY);
-    if (persistedVisibility === "true" || persistedVisibility === "false") {
-        hasStoredDesktopFiltersPreference.value = true;
-        areDesktopFiltersVisible.value = persistedVisibility === "true";
-        return;
+    try {
+        const persistedVisibility = window.localStorage.getItem(DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY);
+        if (persistedVisibility === "true" || persistedVisibility === "false") {
+            hasStoredDesktopFiltersPreference.value = true;
+            areDesktopFiltersVisible.value = persistedVisibility === "true";
+            return;
+        }
+    } catch {
+        // Ignore storage failures (e.g. disabled storage / private mode)
     }
 
     areDesktopFiltersVisible.value = !isReducedHeight.value;
-});
-
-watch(areDesktopFiltersVisible, (isVisible) => {
-    if (!process.client) {
-        return;
-    }
-
-    window.localStorage.setItem(DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY, isVisible ? "true" : "false");
 });
 
 watch(isReducedHeight, (isCompact) => {
