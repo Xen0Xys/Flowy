@@ -1,6 +1,6 @@
 {
     "name": "flowy-web",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "type": "module",
     "scripts": {
         "build": "nuxt build",
@@ -29,13 +29,13 @@
         "nuxt": "^4.4.2",
         "nuxt-security": "2.5.1",
         "pinia": "^3.0.4",
-        "reka-ui": "^2.9.4",
+        "reka-ui": "^2.9.5",
         "shadcn-nuxt": "2.5.3",
         "tailwind-merge": "^3.5.0",
         "tailwindcss": "^4.2.2",
         "vee-validate": "^4.15.1",
         "vue": "^3.5.32",
-        "vue-i18n": "^11.3.1",
+        "vue-i18n": "^11.3.2",
         "vue-router": "^5.0.4",
         "vue-sonner": "^2.0.9",
         "zod": "4.3.6"

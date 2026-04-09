@@ -2,7 +2,7 @@
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
-import {useTransactionStore, type Transaction} from "~/stores/transaction.store";
+import {type Transaction, useTransactionStore} from "~/stores/transaction.store";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import {Skeleton} from "~/components/ui/skeleton";

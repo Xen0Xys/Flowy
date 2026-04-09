@@ -58,6 +58,7 @@ export default defineNuxtConfig({
                 "@tanstack/vue-table",
                 "@internationalized/date",
                 "d3-shape",
+                "reka-ui/date",
             ],
         },
     },

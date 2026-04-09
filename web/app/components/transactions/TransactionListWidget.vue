@@ -260,10 +260,19 @@ defineExpose({
                         {{ t("transactions.list.viewAll") }}
                     </NuxtLink>
                 </div>
-                <Button v-if="accountId" size="sm" @click="handleNewTransactionClick">
-                    <Icon class="h-4 w-4" name="iconoir:plus" />
-                    {{ t("transactions.list.newTransaction") }}
-                </Button>
+                <template v-if="accountId">
+                    <Button
+                        :aria-label="t('transactions.list.newTransaction')"
+                        class="shrink-0 md:hidden"
+                        size="icon"
+                        @click="handleNewTransactionClick">
+                        <Icon class="h-4 w-4" name="iconoir:plus" />
+                    </Button>
+                    <Button class="hidden md:inline-flex" size="sm" @click="handleNewTransactionClick">
+                        <Icon class="h-4 w-4" name="iconoir:plus" />
+                        {{ t("transactions.list.newTransaction") }}
+                    </Button>
+                </template>
             </div>
 
             <TransactionFiltersBar

@@ -32,6 +32,7 @@ import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue
 import {CurveType} from "@unovis/ts";
 import type {Transaction} from "~/stores/transaction.store";
 import {useTransactionStore} from "~/stores/transaction.store";
+import {cn} from "~/lib/utils";
 
 const route = useRoute();
 const router = useRouter();
@@ -39,6 +40,8 @@ const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
 const transactionStore = useTransactionStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
+const isCompactHeight = useMediaQuery("(max-height: 1080px)");
+const isVeryCompactHeight = useMediaQuery("(max-height: 920px)");
 const {locale, t, te} = useI18n();
 
 const accountId = route.params.id as string;
@@ -192,14 +195,49 @@ const amountClass = (value: number) => {
 };
 
 const transactionKey = (transaction: Transaction) => transaction.id;
+
+const pageStackClass = computed(() =>
+    cn(
+        "flex min-h-0 flex-col md:h-[calc(100dvh-4rem-1.5rem)]",
+        isVeryCompactHeight.value ? "gap-2 md:gap-3" : isCompactHeight.value ? "gap-3 md:gap-4" : "gap-4 md:gap-6",
+    ),
+);
+
+const headerClass = computed(() =>
+    cn(
+        "flex shrink-0 flex-col md:flex-row md:items-center md:justify-between",
+        isVeryCompactHeight.value ? "gap-2 md:gap-3" : "gap-4",
+    ),
+);
+
+const graphCardClass = computed(() =>
+    cn(
+        "bg-card text-card-foreground shrink-0 rounded-xl border shadow-sm",
+        isVeryCompactHeight.value ? "p-3 md:p-4" : isCompactHeight.value ? "p-4 md:p-5" : "p-6",
+    ),
+);
+
+const graphHeaderClass = computed(() =>
+    cn("flex flex-col md:flex-row md:items-start md:justify-between", isVeryCompactHeight.value ? "gap-3" : "gap-4"),
+);
+
+const graphAmountClass = computed(() => cn("mt-1 font-bold", isVeryCompactHeight.value ? "text-2xl" : "text-3xl"));
+
+const graphHeightClass = computed(() =>
+    cn("md:mx-0", {
+        "-mx-3 mt-2 h-[150px] md:h-[170px]": isVeryCompactHeight.value,
+        "-mx-4 mt-3 h-[180px] md:h-[210px]": !isVeryCompactHeight.value && isCompactHeight.value,
+        "-mx-6 mt-6 h-[260px] md:h-[300px]": !isVeryCompactHeight.value && !isCompactHeight.value,
+    }),
+);
 </script>
 
 <template>
     <div class="w-full">
         <div class="mx-auto max-w-7xl">
-            <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
+            <div :class="pageStackClass">
                 <!-- Header -->
-                <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div :class="headerClass">
                     <div class="flex items-start gap-3">
                         <Button class="mt-1 shrink-0 self-center md:mt-0" size="icon" variant="outline" @click="goBack">
                             <Icon class="h-4 w-4" name="iconoir:arrow-left" />
@@ -245,19 +283,19 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                 </div>
 
                 <!-- Graph with KPI -->
-                <div class="bg-card text-card-foreground shrink-0 rounded-xl border p-6 shadow-sm">
+                <div :class="graphCardClass">
                     <div v-if="isLoading" class="flex flex-col gap-4">
                         <Skeleton class="h-6 w-28" />
                         <Skeleton class="h-8 w-32" />
                         <Skeleton class="h-75 w-full" />
                     </div>
                     <template v-else-if="account">
-                        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div :class="graphHeaderClass">
                             <div>
                                 <h3 class="text-muted-foreground text-sm font-medium">
                                     {{ t("account.currentBalance") }}
                                 </h3>
-                                <div class="mt-1 text-3xl font-bold">
+                                <div :class="graphAmountClass">
                                     {{ formatCurrency(account.balance) }}
                                 </div>
                             </div>
@@ -273,7 +311,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                             </Tabs>
                         </div>
                         <div>
-                            <div class="-mx-6 mt-6 h-[300px] md:mx-0">
+                            <div :class="graphHeightClass">
                                 <ClientOnly>
                                     <div
                                         v-if="evolutionSeries.length === 0"
@@ -369,6 +407,7 @@ const transactionKey = (transaction: Transaction) => transaction.id;
                     :account-id="accountId"
                     :show-view-all="true"
                     view-all-link="/transactions"
+                    class="min-h-0 flex-1"
                     @saved="onTransactionSaved" />
 
                 <!-- Modals -->

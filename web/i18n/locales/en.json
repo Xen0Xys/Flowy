@@ -256,6 +256,8 @@
         "filters": {
             "title": "Filters",
             "clear": "Clear filters",
+            "showAdvanced": "Show filters",
+            "hideAdvanced": "Hide filters",
             "apply": "Apply Filters",
             "search": "Search description, category, merchant...",
             "searchWithAccount": "Search description, category, merchant, account...",

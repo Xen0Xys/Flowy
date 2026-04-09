@@ -163,7 +163,7 @@ const formatCompactCurrency = (value: number) => {
         <div class="mx-auto max-w-7xl">
             <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->
-                <div class="flex shrink-0 items-center justify-between">
+                <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex items-center gap-3">
                         <Icon class="icon-lg text-primary" name="iconoir:bank" />
                         <div>
@@ -173,7 +173,7 @@ const formatCompactCurrency = (value: number) => {
                             <p class="text-muted-foreground text-sm">{{ t("dashboard.subtitle") }}</p>
                         </div>
                     </div>
-                    <Button @click="openCreateModal">
+                    <Button class="w-full md:w-auto" @click="openCreateModal">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
                         {{ t("dashboard.addAccount") }}
                     </Button>

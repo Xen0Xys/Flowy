@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import type {DateRange} from "reka-ui";
 import {useMediaQuery} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
@@ -34,7 +34,9 @@ const emit = defineEmits<{
 }>();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
+const isReducedHeight = useMediaQuery("(max-height: 1080px)");
 const {t} = useI18n();
+const DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY = "flowy:transactions:desktop-filters-visible";
 
 // Local state to avoid mutating props directly
 const filters = ref<TransactionFilters>({...props.modelValue});
@@ -58,6 +60,9 @@ watch(
 );
 
 const isSheetOpen = ref(false);
+const areDesktopFiltersVisible = ref(true);
+const hasStoredDesktopFiltersPreference = ref(false);
+const desktopFiltersContentId = "transactions-desktop-filters-content";
 
 const activeFilterCount = computed(() => {
     let count = 0;
@@ -85,6 +90,52 @@ const resetFilters = () => {
         dateRange: {start: undefined, end: undefined},
     };
 };
+
+const toggleDesktopFilters = () => {
+    areDesktopFiltersVisible.value = !areDesktopFiltersVisible.value;
+
+    hasStoredDesktopFiltersPreference.value = true;
+
+    if (!process.client) {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(
+            DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY,
+            areDesktopFiltersVisible.value ? "true" : "false",
+        );
+    } catch {
+        // Ignore storage failures (e.g. disabled storage / private mode)
+    }
+};
+
+onMounted(() => {
+    if (!process.client) {
+        return;
+    }
+
+    try {
+        const persistedVisibility = window.localStorage.getItem(DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY);
+        if (persistedVisibility === "true" || persistedVisibility === "false") {
+            hasStoredDesktopFiltersPreference.value = true;
+            areDesktopFiltersVisible.value = persistedVisibility === "true";
+            return;
+        }
+    } catch {
+        // Ignore storage failures (e.g. disabled storage / private mode)
+    }
+
+    areDesktopFiltersVisible.value = !isReducedHeight.value;
+});
+
+watch(isReducedHeight, (isCompact) => {
+    if (hasStoredDesktopFiltersPreference.value || isMobile.value) {
+        return;
+    }
+
+    areDesktopFiltersVisible.value = !isCompact;
+});
 </script>
 
 <template>
@@ -92,7 +143,7 @@ const resetFilters = () => {
         <!-- Desktop Layout -->
         <div class="hidden md:flex md:flex-col md:gap-4">
             <!-- Search & Actions Row -->
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-2">
                 <div class="flex flex-1 items-center gap-2">
                     <div class="relative max-w-sm flex-1">
                         <Icon class="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" name="iconoir:search" />
@@ -110,10 +161,27 @@ const resetFilters = () => {
                         {{ t("transactions.filters.clear") }}
                     </Button>
                 </div>
+                <Button
+                    :aria-controls="desktopFiltersContentId"
+                    :aria-expanded="areDesktopFiltersVisible"
+                    class="h-9 shrink-0 px-3"
+                    size="sm"
+                    variant="outline"
+                    @click="toggleDesktopFilters">
+                    <Icon class="h-4 w-4" name="iconoir:filter" />
+                    {{
+                        areDesktopFiltersVisible
+                            ? t("transactions.filters.hideAdvanced")
+                            : t("transactions.filters.showAdvanced")
+                    }}
+                </Button>
             </div>
 
             <!-- Filters Row -->
-            <div class="flex flex-wrap items-center gap-2">
+            <div
+                v-show="areDesktopFiltersVisible"
+                :id="desktopFiltersContentId"
+                class="flex flex-wrap items-center gap-2">
                 <Select v-model="filters.type">
                     <SelectTrigger class="w-35">
                         <SelectValue :placeholder="t('transactions.filters.type')" />
