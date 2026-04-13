@@ -14,7 +14,7 @@ One place. All your accounts. Everyone in the loop.
 
 ### 🏠 A shared household workspace
 
-Create a family space and work on the same financial picture together. Invite your partner or family members — everyone sees the same data, in real time.
+Create a family space and work on the same financial picture together. Invite your partner or family members — everyone sees what you share with them.
 
 ### 🏦 All your accounts in one place
 
@@ -238,4 +238,4 @@ bunx prisma db seed
 
 ## License
 
-Licensed under `CC-BY-NC-ND`. See [LICENSE.md](./LICENSE) for details.
+Licensed under `CC-BY-NC-SA`. See [LICENSE.md](./LICENSE) for details.
