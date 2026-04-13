@@ -1,5 +1,6 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type {ColumnMapping} from "~/composables/useImportState";
+import type {DateFormat} from "~/composables/useCsvParser";
 
 const props = defineProps<{
     rows: string[][];
@@ -68,9 +69,35 @@ watch(isDualAmount, (isDual) => {
     }
 });
 
-function handleMappingUpdate(field: keyof ColumnMapping, value: number | null) {
+function handleMappingUpdate<K extends keyof ColumnMapping>(field: K, value: ColumnMapping[K]) {
     emit("update:mapping", {...props.mapping, [field]: value});
 }
+
+const dateFormatOptions = computed<{value: DateFormat | "none"; label: string}[]>(() => [
+    {value: "none", label: t("import.mapping.dateFormats.none")},
+    {value: "yyyymmdd", label: t("import.mapping.dateFormats.yyyymmdd")},
+    {value: "ddmmyyyy", label: t("import.mapping.dateFormats.ddmmyyyy")},
+    {value: "mmddyyyy", label: t("import.mapping.dateFormats.mmddyyyy")},
+    {value: "yymmdd", label: t("import.mapping.dateFormats.yymmdd")},
+    {value: "dd.mm.yy", label: t("import.mapping.dateFormats.ddMmYy")},
+    {value: "mm.dd.yy", label: t("import.mapping.dateFormats.mmDdYyDot")},
+    {value: "dd.mm.yyyy", label: t("import.mapping.dateFormats.ddMmYyyy")},
+    {value: "mm.dd.yyyy", label: t("import.mapping.dateFormats.mmDdYyyyDot")},
+    {value: "dd/mm/yyyy", label: t("import.mapping.dateFormats.ddMmYyyySlash")},
+    {value: "dd/mm/yy", label: t("import.mapping.dateFormats.ddMmYySlash")},
+    {value: "mm/dd/yyyy", label: t("import.mapping.dateFormats.mmDdYyyy")},
+    {value: "mm/dd/yy", label: t("import.mapping.dateFormats.mmDdYySlash")},
+    {value: "dd-mm-yyyy", label: t("import.mapping.dateFormats.ddMmYyyyDash")},
+    {value: "mm-dd-yyyy", label: t("import.mapping.dateFormats.mmDdYyyyDash")},
+    {value: "dd-mm-yy", label: t("import.mapping.dateFormats.ddMmYyDash")},
+    {value: "mm-dd-yy", label: t("import.mapping.dateFormats.mmDdYyDash")},
+    {value: "yyyy-mm-dd", label: t("import.mapping.dateFormats.yyyyMmDd")},
+    {value: "yyyy/mm/dd", label: t("import.mapping.dateFormats.yyyyMmDdSlash")},
+    {value: "yyyy.mm.dd", label: t("import.mapping.dateFormats.yyyyMmDdDot")},
+    {value: "yy-mm-dd", label: t("import.mapping.dateFormats.yyMmDdDash")},
+    {value: "yy/mm/dd", label: t("import.mapping.dateFormats.yyMmDdSlash")},
+    {value: "yy.mm.dd", label: t("import.mapping.dateFormats.yyMmDdDot")},
+]);
 
 const canProceed = computed(() => {
     const {date, description, amount, credit, debit} = props.mapping;
@@ -100,7 +127,7 @@ const canProceed = computed(() => {
                 <div class="grid gap-4 md:grid-cols-3">
                     <div class="space-y-2">
                         <Label class="flex items-center gap-2">
-                            <Icon name="iconoir:calendar" class="h-4 w-4" />
+                            <Icon class="h-4 w-4" name="iconoir:calendar" />
                             {{ t("import.mapping.fields.date") }}
                         </Label>
                         <Select
@@ -115,11 +142,39 @@ const canProceed = computed(() => {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+
+                        <div class="space-y-2">
+                            <Label class="text-muted-foreground text-xs">{{ t("import.mapping.dateFormat") }}</Label>
+                            <Select
+                                :model-value="mapping.dateFormat ?? 'none'"
+                                @update:model-value="
+                                    handleMappingUpdate(
+                                        'dateFormat',
+                                        $event && $event !== 'none' ? ($event as DateFormat) : null,
+                                    )
+                                ">
+                                <SelectTrigger class="**:data-[slot=select-value]:tracking-wider">
+                                    <SelectValue :placeholder="t('import.mapping.selectDateFormat')" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="opt in dateFormatOptions"
+                                        :key="opt.value"
+                                        :value="opt.value"
+                                        class="tracking-wider">
+                                        {{ opt.label }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p class="text-muted-foreground text-xs">
+                                {{ t("import.mapping.dateFormatHint") }}
+                            </p>
+                        </div>
                     </div>
 
                     <div class="space-y-2">
                         <Label class="flex items-center gap-2">
-                            <Icon name="iconoir:text" class="h-4 w-4" />
+                            <Icon class="h-4 w-4" name="iconoir:text" />
                             {{ t("import.mapping.fields.description") }}
                         </Label>
                         <Select
@@ -141,7 +196,7 @@ const canProceed = computed(() => {
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
                         <Label class="flex items-center gap-2">
-                            <Icon name="iconoir:dollar" class="h-4 w-4" />
+                            <Icon class="h-4 w-4" name="iconoir:dollar" />
                             {{ t("import.mapping.fields.amount") }}
                         </Label>
                         <div class="flex items-center gap-2">
@@ -272,7 +327,7 @@ const canProceed = computed(() => {
             <div class="flex justify-end">
                 <Button :disabled="!canProceed" @click="emit('parse')">
                     {{ t("import.mapping.parseAndPreview") }}
-                    <Icon name="iconoir:arrow-right" class="ml-2 h-4 w-4" />
+                    <Icon class="ml-2 h-4 w-4" name="iconoir:arrow-right" />
                 </Button>
             </div>
         </div>

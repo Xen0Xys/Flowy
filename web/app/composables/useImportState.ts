@@ -1,9 +1,10 @@
-import type {Delimiter, ParsedTransaction} from "./useCsvParser";
+import type {DateFormat, Delimiter, ParsedTransaction} from "./useCsvParser";
 
 export type ImportStep = "upload" | "config" | "mapping" | "preview" | "result";
 
 export interface ColumnMapping {
     date: number | null;
+    dateFormat: DateFormat | null;
     description: number | null;
     amount: number | null; // For single-column amount mode
     credit: number | null; // For dual-column amount mode
@@ -37,6 +38,26 @@ type StoredImportState = {
     accountId: string | null;
     state: ImportState;
 };
+
+function normalizeStoredState(stored: StoredImportState): StoredImportState {
+    const storedDateFormat = stored.state.mapping?.dateFormat;
+    const normalizedDateFormat = storedDateFormat && storedDateFormat !== "auto" ? storedDateFormat : null;
+
+    return {
+        ...stored,
+        state: {
+            ...stored.state,
+            mapping: {
+                date: stored.state.mapping?.date ?? null,
+                dateFormat: normalizedDateFormat,
+                description: stored.state.mapping?.description ?? null,
+                amount: stored.state.mapping?.amount ?? null,
+                credit: stored.state.mapping?.credit ?? null,
+                debit: stored.state.mapping?.debit ?? null,
+            },
+        },
+    };
+}
 
 export function useImportState() {
     const userStore = useUserStore();
@@ -108,7 +129,7 @@ export function useImportState() {
             const stored = localStorage.getItem(key);
             if (!stored) return null;
 
-            return JSON.parse(stored) as StoredImportState;
+            return normalizeStoredState(JSON.parse(stored) as StoredImportState);
         } catch (error) {
             console.error("Failed to load stored import state:", error);
             return null;
@@ -198,6 +219,7 @@ export function useImportState() {
             },
             mapping: {
                 date: null,
+                dateFormat: null,
                 description: null,
                 amount: null,
                 credit: null,
