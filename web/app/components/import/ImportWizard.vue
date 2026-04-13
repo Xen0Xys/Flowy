@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type {CsvParseResult, Delimiter, ParsedTransaction} from "~/composables/useCsvParser";
+import type {CsvParseResult, DateFormat, Delimiter, ParsedTransaction} from "~/composables/useCsvParser";
 import type {ColumnMapping, ImportState, ImportStep} from "~/composables/useImportState";
 import type {CreateTransactionPayload} from "~/stores/transaction.store";
 import {toast} from "vue-sonner";
@@ -13,7 +13,7 @@ const {t} = useI18n();
 const accountStore = useAccountStore();
 const referenceStore = useReferenceStore();
 const transactionStore = useTransactionStore();
-const {parseFile, parseDate, parseAmount, generateId, detectInternalDuplicates} = useCsvParser();
+const {parseFile, parseDate, parseAmount, generateId, detectInternalDuplicates, detectDateFormat} = useCsvParser();
 const {
     loadState,
     clearState,
@@ -163,7 +163,27 @@ function updateHasHeaders(hasHeaders: boolean) {
 
 // Mapping step handlers
 function handleMappingUpdate(mapping: ColumnMapping) {
-    importState.value = updateMapping(selectedAccountId.value, importState.value, mapping);
+    let nextMapping = mapping;
+
+    const dateColumnChanged = mapping.date !== importState.value.mapping.date;
+    const dateFormatIsUnset = !mapping.dateFormat;
+
+    if ((dateColumnChanged || dateFormatIsUnset) && mapping.date !== null) {
+        const hasHeaders = importState.value.fileConfig.hasHeaders;
+        const rows = hasHeaders ? importState.value.rawRows.slice(1) : importState.value.rawRows;
+
+        const detectedFormat = rows
+            .map((row) => row?.[mapping.date!] ?? "")
+            .map((value) => detectDateFormat(value))
+            .find((format): format is DateFormat => format !== null);
+
+        nextMapping = {
+            ...mapping,
+            dateFormat: detectedFormat,
+        };
+    }
+
+    importState.value = updateMapping(selectedAccountId.value, importState.value, nextMapping);
 }
 
 function applyMappingAndParse() {
@@ -182,7 +202,7 @@ function applyMappingAndParse() {
 
         // Parse date
         const dateValue = mapping.date !== null ? (row[mapping.date] ?? "") : "";
-        const date = parseDate(dateValue);
+        const date = parseDate(dateValue, mapping.dateFormat ?? undefined);
         if (!date) {
             errors.push({row: rowIndex, error: t("import.errors.invalidDate")});
             continue;

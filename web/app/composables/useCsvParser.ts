@@ -1,5 +1,29 @@
 export type Delimiter = "," | ";" | "\t" | "|";
 
+export type DateFormat =
+    | "yyyymmdd"
+    | "ddmmyyyy"
+    | "mmddyyyy"
+    | "yymmdd"
+    | "yyyy-mm-dd"
+    | "yyyy/mm/dd"
+    | "yyyy.mm.dd"
+    | "yy-mm-dd"
+    | "yy/mm/dd"
+    | "yy.mm.dd"
+    | "dd/mm/yyyy"
+    | "mm/dd/yyyy"
+    | "dd/mm/yy"
+    | "mm/dd/yy"
+    | "dd-mm-yyyy"
+    | "mm-dd-yyyy"
+    | "dd-mm-yy"
+    | "mm-dd-yy"
+    | "dd.mm.yyyy"
+    | "mm.dd.yyyy"
+    | "dd.mm.yy"
+    | "mm.dd.yy";
+
 export interface CsvParseResult {
     rows: string[][];
     headers: string[] | null;
@@ -65,20 +89,109 @@ export function useCsvParser() {
         return isNegative ? -amount : amount;
     }
 
-    /**
-     * Parse date from various formats
-     * Supports: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, MM/DD/YYYY, D/M/YYYY
-     * Returns ISO-8601 DateTime format for Prisma compatibility
-     */
-    function parseDate(value: string): string | null {
+    function normalizeTwoDigitYear(value: number): number {
+        return value <= 69 ? 2000 + value : 1900 + value;
+    }
+
+    function detectDateFormat(value: string): DateFormat | null {
         if (!value || value.trim() === "") return null;
 
         const cleaned = value.trim();
 
-        const isValidDateParts = (year: string, month: string, day: string): boolean => {
-            const y = Number.parseInt(year, 10);
-            const m = Number.parseInt(month, 10);
-            const d = Number.parseInt(day, 10);
+        if (/^\d{8}$/.test(cleaned)) {
+            const yearFirst = Number.parseInt(cleaned.slice(0, 4), 10);
+            const yearLast = Number.parseInt(cleaned.slice(4), 10);
+            const first = Number.parseInt(cleaned.slice(0, 2), 10);
+            const second = Number.parseInt(cleaned.slice(2, 4), 10);
+
+            if (yearFirst >= 1900 && yearFirst <= 2100) return "yyyymmdd";
+
+            if (yearLast >= 1900 && yearLast <= 2100) {
+                if (first > 12) return "ddmmyyyy";
+                if (second > 12) return "mmddyyyy";
+            }
+
+            return null;
+        }
+
+        if (/^\d{6}$/.test(cleaned)) return "yymmdd";
+
+        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(cleaned)) return "yyyy-mm-dd";
+        if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(cleaned)) return "yyyy/mm/dd";
+        if (/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(cleaned)) return "yyyy.mm.dd";
+        if (/^\d{2}-\d{1,2}-\d{1,2}$/.test(cleaned)) return "yy-mm-dd";
+        if (/^\d{2}\/\d{1,2}\/\d{1,2}$/.test(cleaned)) return "yy/mm/dd";
+        if (/^\d{2}\.\d{1,2}\.\d{1,2}$/.test(cleaned)) return "yy.mm.dd";
+
+        const detectDayMonthOrder = (
+            first: number,
+            second: number,
+            dayFirst: DateFormat,
+            monthFirst: DateFormat,
+        ): DateFormat | null => {
+            if (first > 12) return dayFirst;
+            if (second > 12) return monthFirst;
+            return null;
+        };
+
+        const slash4 = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (slash4) {
+            const first = Number.parseInt(slash4[1]!, 10);
+            const second = Number.parseInt(slash4[2]!, 10);
+            return detectDayMonthOrder(first, second, "dd/mm/yyyy", "mm/dd/yyyy");
+        }
+
+        const slash2 = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+        if (slash2) {
+            const first = Number.parseInt(slash2[1]!, 10);
+            const second = Number.parseInt(slash2[2]!, 10);
+            return detectDayMonthOrder(first, second, "dd/mm/yy", "mm/dd/yy");
+        }
+
+        const dash4 = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+        if (dash4) {
+            const first = Number.parseInt(dash4[1]!, 10);
+            const second = Number.parseInt(dash4[2]!, 10);
+            return detectDayMonthOrder(first, second, "dd-mm-yyyy", "mm-dd-yyyy");
+        }
+
+        const dash2 = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+        if (dash2) {
+            const first = Number.parseInt(dash2[1]!, 10);
+            const second = Number.parseInt(dash2[2]!, 10);
+            return detectDayMonthOrder(first, second, "dd-mm-yy", "mm-dd-yy");
+        }
+
+        const dot4 = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (dot4) {
+            const first = Number.parseInt(dot4[1]!, 10);
+            const second = Number.parseInt(dot4[2]!, 10);
+            return detectDayMonthOrder(first, second, "dd.mm.yyyy", "mm.dd.yyyy");
+        }
+
+        const dot2 = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+        if (dot2) {
+            const first = Number.parseInt(dot2[1]!, 10);
+            const second = Number.parseInt(dot2[2]!, 10);
+            return detectDayMonthOrder(first, second, "dd.mm.yy", "mm.dd.yy");
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse date from common bank-export formats
+     * Returns ISO-8601 DateTime format for Prisma compatibility
+     */
+    function parseDate(value: string, preferredFormat?: DateFormat): string | null {
+        if (!value || value.trim() === "") return null;
+
+        const cleaned = value.trim();
+
+        const isValidDateParts = (year: number, month: number, day: number): boolean => {
+            const y = year;
+            const m = month;
+            const d = day;
 
             if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
                 return false;
@@ -94,55 +207,235 @@ export function useCsvParser() {
         };
 
         // Helper to format as ISO-8601 DateTime
-        const toISOString = (year: string, month: string, day: string): string => {
+        const toISOString = (year: number, month: number, day: number): string => {
             if (!isValidDateParts(year, month, day)) {
                 return "";
             }
 
-            return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00.000Z`;
+            return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}T00:00:00.000Z`;
         };
 
-        // Try compact ISO format: YYYYMMDD
-        const compactIsoMatch = cleaned.match(/^(\d{4})(\d{2})(\d{2})$/);
-        if (compactIsoMatch) {
-            const parsed = toISOString(compactIsoMatch[1]!, compactIsoMatch[2]!, compactIsoMatch[3]!);
-            return parsed || null;
-        }
-
-        // Try ISO format first: YYYY-MM-DD
-        const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-        if (isoMatch) {
-            const parsed = toISOString(isoMatch[1]!, isoMatch[2]!, isoMatch[3]!);
-            return parsed || null;
-        }
-
-        // Try DD/MM/YYYY or MM/DD/YYYY (ambiguous format)
-        // Disambiguate based on values: if first > 12 → EU (DD/MM), if second > 12 → US (MM/DD)
-        const ambiguousMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-        if (ambiguousMatch) {
-            const first = parseInt(ambiguousMatch[1]!);
-            const second = parseInt(ambiguousMatch[2]!);
-            const year = ambiguousMatch[3]!;
-
-            let day: number;
-            let month: number;
-
-            if (first > 12) {
-                // First number > 12 → must be day (EU format: DD/MM/YYYY)
-                day = first;
-                month = second;
-            } else if (second > 12) {
-                // Second number > 12 → must be day (US format: MM/DD/YYYY)
-                day = second;
-                month = first;
-            } else {
-                // Ambiguous: both numbers ≤ 12 → assume EU format (DD/MM/YYYY)
-                day = first;
-                month = second;
+        const parseByFormat = (format: DateFormat): string | null => {
+            if (format === "yyyymmdd") {
+                const match = cleaned.match(/^(\d{4})(\d{2})(\d{2})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[3]!, 10),
+                    ) || null
+                );
             }
 
-            const parsed = toISOString(year, month.toString(), day.toString());
-            return parsed || null;
+            if (format === "ddmmyyyy") {
+                const match = cleaned.match(/^(\d{2})(\d{2})(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "mmddyyyy") {
+                const match = cleaned.match(/^(\d{2})(\d{2})(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "yymmdd") {
+                const match = cleaned.match(/^(\d{2})(\d{2})(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[1]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[3]!, 10)) || null;
+            }
+
+            if (format === "yyyy-mm-dd") {
+                const match = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[3]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "yyyy/mm/dd") {
+                const match = cleaned.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[3]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "yyyy.mm.dd") {
+                const match = cleaned.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[3]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "yy-mm-dd") {
+                const match = cleaned.match(/^(\d{2})-(\d{1,2})-(\d{1,2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[1]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[3]!, 10)) || null;
+            }
+
+            if (format === "yy/mm/dd") {
+                const match = cleaned.match(/^(\d{2})\/(\d{1,2})\/(\d{1,2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[1]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[3]!, 10)) || null;
+            }
+
+            if (format === "yy.mm.dd") {
+                const match = cleaned.match(/^(\d{2})\.(\d{1,2})\.(\d{1,2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[1]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[3]!, 10)) || null;
+            }
+
+            if (format === "dd/mm/yyyy") {
+                const match = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "dd/mm/yy") {
+                const match = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[1]!, 10)) || null;
+            }
+
+            if (format === "mm/dd/yyyy") {
+                const match = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "mm/dd/yy") {
+                const match = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+                return toISOString(year, Number.parseInt(match[1]!, 10), Number.parseInt(match[2]!, 10)) || null;
+            }
+
+            if (format === "dd-mm-yyyy") {
+                const match = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "mm-dd-yyyy") {
+                const match = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "dd-mm-yy") {
+                const match = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[1]!, 10)) || null;
+            }
+
+            if (format === "mm-dd-yy") {
+                const match = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+                return toISOString(year, Number.parseInt(match[1]!, 10), Number.parseInt(match[2]!, 10)) || null;
+            }
+
+            if (format === "dd.mm.yyyy") {
+                const match = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "mm.dd.yyyy") {
+                const match = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+                if (!match) return null;
+                return (
+                    toISOString(
+                        Number.parseInt(match[3]!, 10),
+                        Number.parseInt(match[1]!, 10),
+                        Number.parseInt(match[2]!, 10),
+                    ) || null
+                );
+            }
+
+            if (format === "dd.mm.yy") {
+                const match = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+                return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[1]!, 10)) || null;
+            }
+
+            const match = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+            if (!match) return null;
+            const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+            return toISOString(year, Number.parseInt(match[1]!, 10), Number.parseInt(match[2]!, 10)) || null;
+        };
+
+        if (preferredFormat) {
+            return parseByFormat(preferredFormat);
+        }
+
+        const autoDetected = detectDateFormat(cleaned);
+        if (autoDetected) {
+            return parseByFormat(autoDetected);
         }
 
         return null;
@@ -329,6 +622,7 @@ export function useCsvParser() {
         parseFile,
         parseAmount,
         parseDate,
+        detectDateFormat,
         detectDelimiter,
         parseCsv,
         buildTransactionSignature,
