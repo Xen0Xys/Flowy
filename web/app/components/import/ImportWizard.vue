@@ -163,19 +163,25 @@ function updateHasHeaders(hasHeaders: boolean) {
 
 // Mapping step handlers
 function handleMappingUpdate(mapping: ColumnMapping) {
+    const previousMapping = importState.value.mapping;
     let nextMapping = mapping;
 
-    const dateColumnChanged = mapping.date !== importState.value.mapping.date;
-    const dateFormatIsUnset = !mapping.dateFormat;
+    const dateColumnChanged = mapping.date !== previousMapping.date;
+    const shouldAutoDetectDateFormat = dateColumnChanged && mapping.date !== null && mapping.dateFormat === null;
 
-    if ((dateColumnChanged || dateFormatIsUnset) && mapping.date !== null) {
+    if (shouldAutoDetectDateFormat) {
         const hasHeaders = importState.value.fileConfig.hasHeaders;
         const rows = hasHeaders ? importState.value.rawRows.slice(1) : importState.value.rawRows;
 
-        const detectedFormat = rows
-            .map((row) => row?.[mapping.date!] ?? "")
-            .map((value) => detectDateFormat(value))
-            .find((format): format is DateFormat => format !== null);
+        let detectedFormat: DateFormat | null = null;
+        for (const row of rows) {
+            const value = row?.[mapping.date] ?? "";
+            const format = detectDateFormat(value);
+            if (format) {
+                detectedFormat = format;
+                break;
+            }
+        }
 
         nextMapping = {
             ...mapping,

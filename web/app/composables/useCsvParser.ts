@@ -93,6 +93,10 @@ export function useCsvParser() {
         return value <= 69 ? 2000 + value : 1900 + value;
     }
 
+    function isMonthDayInRange(month: number, day: number): boolean {
+        return month >= 1 && month <= 12 && day >= 1 && day <= 31;
+    }
+
     function detectDateFormat(value: string): DateFormat | null {
         if (!value || value.trim() === "") return null;
 
@@ -100,11 +104,15 @@ export function useCsvParser() {
 
         if (/^\d{8}$/.test(cleaned)) {
             const yearFirst = Number.parseInt(cleaned.slice(0, 4), 10);
+            const yearFirstMonth = Number.parseInt(cleaned.slice(4, 6), 10);
+            const yearFirstDay = Number.parseInt(cleaned.slice(6, 8), 10);
             const yearLast = Number.parseInt(cleaned.slice(4), 10);
             const first = Number.parseInt(cleaned.slice(0, 2), 10);
             const second = Number.parseInt(cleaned.slice(2, 4), 10);
 
-            if (yearFirst >= 1900 && yearFirst <= 2100) return "yyyymmdd";
+            if (yearFirst >= 1900 && yearFirst <= 2100 && isMonthDayInRange(yearFirstMonth, yearFirstDay)) {
+                return "yyyymmdd";
+            }
 
             if (yearLast >= 1900 && yearLast <= 2100) {
                 if (first > 12) return "ddmmyyyy";
@@ -423,10 +431,14 @@ export function useCsvParser() {
                 return toISOString(year, Number.parseInt(match[2]!, 10), Number.parseInt(match[1]!, 10)) || null;
             }
 
-            const match = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
-            if (!match) return null;
-            const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
-            return toISOString(year, Number.parseInt(match[1]!, 10), Number.parseInt(match[2]!, 10)) || null;
+            if (format === "mm.dd.yy") {
+                const match = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+                if (!match) return null;
+                const year = normalizeTwoDigitYear(Number.parseInt(match[3]!, 10));
+                return toISOString(year, Number.parseInt(match[1]!, 10), Number.parseInt(match[2]!, 10)) || null;
+            }
+
+            return null;
         };
 
         if (preferredFormat) {
