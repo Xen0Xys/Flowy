@@ -1,4 +1,5 @@
 import "reflect-metadata";
+// @ts-ignore
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
@@ -200,6 +201,46 @@ describe("AdminController (e2e)", () => {
         expect(response.body.currency).toBe("EUR");
         expect(response.body.owner.id).toBe(familyAdmin.user.id);
         expect(response.body.members).toEqual(expect.arrayContaining([expect.objectContaining({id: member.user.id})]));
+    });
+
+    test("owner-only admin routes require authentication", async () => {
+        const settings = await agent.get("/admin/instance/settings");
+        expect(settings.status).toBe(401);
+        expect(settings.body.message).toBe("Authorization token is missing");
+
+        const users = await agent.get("/admin/users");
+        expect(users.status).toBe(401);
+        expect(users.body.message).toBe("Authorization token is missing");
+
+        const family = await agent.get("/admin/family/019d2f14-e490-732f-8732-cdcbac41f0ab");
+        expect(family.status).toBe(401);
+        expect(family.body.message).toBe("Authorization token is missing");
+
+        const registrationFlag = await agent
+            .patch("/admin/instance/registration_enabled")
+            .send({registrationEnabled: false});
+        expect(registrationFlag.status).toBe(401);
+        expect(registrationFlag.body.message).toBe("Authorization token is missing");
+
+        const changeOwner = await agent
+            .patch("/admin/instance/owner")
+            .send({ownerId: "019d2f14-e490-732f-8732-cdcbac41f0ab"});
+        expect(changeOwner.status).toBe(401);
+        expect(changeOwner.body.message).toBe("Authorization token is missing");
+
+        const deleteUser = await agent.delete("/admin/users/019d2f14-e490-732f-8732-cdcbac41f0ab");
+        expect(deleteUser.status).toBe(401);
+        expect(deleteUser.body.message).toBe("Authorization token is missing");
+
+        const resetPassword = await agent
+            .patch("/admin/users/019d2f14-e490-732f-8732-cdcbac41f0ab/password")
+            .send({password: "AdminSetuP$awLKjChrA#8N5xop!"});
+        expect(resetPassword.status).toBe(401);
+        expect(resetPassword.body.message).toBe("Authorization token is missing");
+
+        const integrity = await agent.post("/admin/integrity/account");
+        expect(integrity.status).toBe(401);
+        expect(integrity.body.message).toBe("Authorization token is missing");
     });
 
     test("non-owner cannot access admin family details route", async () => {

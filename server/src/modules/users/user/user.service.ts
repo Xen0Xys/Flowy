@@ -13,6 +13,8 @@ import argon2 from "argon2";
 
 @Injectable()
 export class UserService {
+    private readonly logger: Logger = new Logger(UserService.name);
+
     constructor(private readonly prismaService: PrismaService) {}
 
     static toUserEntity(user: Users): UserEntity {
@@ -111,12 +113,23 @@ export class UserService {
 
     // internal helper: hash + persist new password (do NOT rotate jwt_id)
     private async persistPassword(userId: string, password: string): Promise<UserEntity> {
-        const hashed = await argon2.hash(password, {
-            type: argon2.argon2id,
-            memoryCost: 2 ** 18, // 128 MiB
-            timeCost: 10,
-            parallelism: 4,
-        });
+        let hashed: string;
+        if (process.env.NODE_ENV !== "production") {
+            hashed = await argon2.hash(password, {
+                type: argon2.argon2id,
+                memoryCost: 2 ** 16,
+                timeCost: 2,
+                parallelism: 4,
+            });
+            this.logger.warn("Using weaker password hashing parameters in non-production environment");
+        } else {
+            hashed = await argon2.hash(password, {
+                type: argon2.argon2id,
+                memoryCost: 2 ** 18,
+                timeCost: 10,
+                parallelism: 4,
+            });
+        }
         const updated = await this.prismaService.users.update({
             where: {id: userId},
             data: {
