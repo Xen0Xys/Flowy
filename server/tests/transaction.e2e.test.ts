@@ -1,4 +1,5 @@
 import "reflect-metadata";
+// @ts-ignore
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
@@ -1108,6 +1109,54 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(remove.status).toBe(403);
         expect(remove.body.message).toBe("You do not have permission to delete this transaction");
+    });
+
+    test("forbids creating and bulk importing transactions into another user's account", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const ownerAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Owner only", type: "CHECKING"});
+        expect(ownerAccount.status).toBe(201);
+
+        const create = await agent
+            .post(`/transaction/account/${ownerAccount.body.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({
+                amount: 19.5,
+                description: "forbidden create",
+                date: "2026-05-01T10:00:00.000Z",
+            });
+        expect(create.status).toBe(403);
+        expect(create.body.message).toBe("You do not have permission to access this account");
+
+        const bulkPreview = await agent
+            .post(`/transaction/account/${ownerAccount.body.id}/bulk/test`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send([
+                {
+                    amount: -10,
+                    description: "forbidden bulk test",
+                    date: "2026-05-02T10:00:00.000Z",
+                },
+            ]);
+        expect(bulkPreview.status).toBe(403);
+        expect(bulkPreview.body.message).toBe("You do not have permission to access this account");
+
+        const bulkCreate = await agent
+            .post(`/transaction/account/${ownerAccount.body.id}/bulk`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send([
+                {
+                    amount: -15,
+                    description: "forbidden bulk create",
+                    date: "2026-05-03T10:00:00.000Z",
+                },
+            ]);
+        expect(bulkCreate.status).toBe(403);
+        expect(bulkCreate.body.message).toBe("You do not have permission to access this account");
     });
 
     test("rejects merchant/category from another user", async () => {

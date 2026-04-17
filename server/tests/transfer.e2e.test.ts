@@ -1,4 +1,5 @@
 import "reflect-metadata";
+// @ts-ignore
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
@@ -258,6 +259,78 @@ describe("TransferController (e2e)", () => {
 
         expect(create.status).toBe(403);
         expect(create.body.message).toBe("You do not have permission to access this account");
+    });
+
+    test("forbids linking and unlinking transfers using another user's transactions", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const ownerDebit = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Owner debit", type: "CHECKING"});
+        const ownerCredit = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({name: "Owner credit", type: "SAVINGS"});
+
+        expect(ownerDebit.status).toBe(201);
+        expect(ownerCredit.status).toBe(201);
+
+        const ownerCreateTransfer = await agent.post("/transfer").set("Authorization", `Bearer ${owner.token}`).send({
+            debitAccountId: ownerDebit.body.id,
+            creditAccountId: ownerCredit.body.id,
+            amount: 22,
+            description: "Owner transfer",
+            date: "2026-06-01T10:00:00.000Z",
+        });
+        expect(ownerCreateTransfer.status).toBe(201);
+
+        const ownerExistingTransferTxId = ownerCreateTransfer.body[0].id as string;
+
+        const outsiderDebit = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({name: "Outsider debit", type: "CHECKING"});
+        const outsiderCredit = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({name: "Outsider credit", type: "SAVINGS"});
+
+        expect(outsiderDebit.status).toBe(201);
+        expect(outsiderCredit.status).toBe(201);
+
+        const outsiderTx1 = await prisma.transactions.create({
+            data: {
+                account_id: outsiderDebit.body.id,
+                amount: -11,
+                description: "Outsider tx 1",
+                date: new Date("2026-06-02T10:00:00.000Z"),
+            },
+        });
+        const outsiderTx2 = await prisma.transactions.create({
+            data: {
+                account_id: outsiderCredit.body.id,
+                amount: 11,
+                description: "Outsider tx 2",
+                date: new Date("2026-06-02T10:00:00.000Z"),
+            },
+        });
+
+        const outsiderLinkOwnerData = await agent
+            .post(`/transfer/link/${ownerExistingTransferTxId}/${outsiderTx1.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`);
+        expect(outsiderLinkOwnerData.status).toBe(403);
+
+        const outsiderUnlinkOwnerTransfer = await agent
+            .delete(`/transfer/unlink/${ownerExistingTransferTxId}`)
+            .set("Authorization", `Bearer ${outsider.token}`);
+        expect(outsiderUnlinkOwnerTransfer.status).toBe(403);
+
+        const ownerLinkOutsiderData = await agent
+            .post(`/transfer/link/${outsiderTx1.id}/${outsiderTx2.id}`)
+            .set("Authorization", `Bearer ${owner.token}`);
+        expect(ownerLinkOutsiderData.status).toBe(403);
     });
 
     test("rejects invalid UUID route params on link and unlink", async () => {
