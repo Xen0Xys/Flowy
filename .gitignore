@@ -37,6 +37,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 web/.nuxt
 web/.output
 web/dist
+web/test-results
 
 # Backend
 server/prisma/generated
