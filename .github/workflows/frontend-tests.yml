@@ -62,7 +62,7 @@ jobs:
             - name: Wait for backend to be ready
               run: |
                   echo "Waiting for backend on port 4000..."
-                  npx wait-on tcp:4000 -t 60000
+                  bunx wait-on tcp:4000 -t 60000
 
             - name: Install Playwright browsers
               working-directory: web
