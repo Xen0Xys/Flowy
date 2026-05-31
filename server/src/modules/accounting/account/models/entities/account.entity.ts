@@ -5,6 +5,7 @@ export class AccountEntity {
     ownerId: string;
     name: string;
     balance: number;
+    inBudget: boolean;
     type: AccountTypes;
     createdAt: Date;
     updatedAt: Date;

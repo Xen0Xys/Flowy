@@ -34,7 +34,7 @@ export class AccountController {
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async createAccount(@User() user: UserEntity, @Body() body: CreateAccountDto): Promise<AccountEntity> {
-        return this.accountService.createAccount(user, body.name, body.type, body.balance);
+        return this.accountService.createAccount(user, body.name, body.type, body.balance, body.inBudget);
     }
 
     @Patch(":id")

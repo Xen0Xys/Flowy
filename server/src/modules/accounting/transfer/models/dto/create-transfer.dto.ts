@@ -1,4 +1,4 @@
-import {IsDateString, IsNotEmpty, IsNumber, IsString, IsUUID, Length, NotEquals} from "class-validator";
+import {IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsString, IsUUID, Length, NotEquals} from "class-validator";
 
 export class CreateTransferDto {
     @IsNotEmpty()
@@ -24,4 +24,8 @@ export class CreateTransferDto {
     @IsNumber({allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2})
     @NotEquals(0)
     amount!: number;
+
+    @IsNotEmpty()
+    @IsBoolean()
+    inBudget!: boolean;
 }

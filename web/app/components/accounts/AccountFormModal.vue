@@ -1,13 +1,14 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
-import {useAccountStore} from "~/stores/account.store";
 import type {Account} from "~/stores/account.store";
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter} from "~/components/ui/dialog";
+import {useAccountStore} from "~/stores/account.store";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
+import {Switch} from "~/components/ui/switch";
 
 const props = defineProps<{
     open: boolean;
@@ -27,6 +28,7 @@ const formData = ref({
     name: "",
     type: "CHECKING",
     balance: 0,
+    inBudget: true,
 });
 
 watch(
@@ -38,12 +40,14 @@ watch(
                     name: props.account.name,
                     type: props.account.type,
                     balance: props.account.balance,
+                    inBudget: props.account.inBudget ?? true,
                 };
             } else {
                 formData.value = {
                     name: "",
                     type: "CHECKING",
                     balance: 0,
+                    inBudget: true,
                 };
             }
         }
@@ -72,13 +76,13 @@ const submitForm = async () => {
 
 <template>
     <Dialog :open="open" @update:open="$emit('update:open', $event)">
-        <DialogContent class="sm:max-w-[425px]">
+        <DialogContent class="sm:max-w-106.25">
             <DialogHeader>
                 <DialogTitle>{{ account ? t("accounts.form.editTitle") : t("accounts.form.addTitle") }}</DialogTitle>
                 <DialogDescription>{{ t("accounts.form.description") }}</DialogDescription>
             </DialogHeader>
 
-            <form @submit.prevent="submitForm" class="space-y-4 py-4">
+            <form class="space-y-4 py-4" @submit.prevent="submitForm">
                 <div class="space-y-2">
                     <Label for="name">{{ t("accounts.form.name") }}</Label>
                     <Input
@@ -111,14 +115,19 @@ const submitForm = async () => {
                             account ? t("accounts.form.current") : t("accounts.form.initial")
                         }})
                     </Label>
-                    <Input id="balance" type="number" step="0.01" v-model.number="formData.balance" required />
+                    <Input id="balance" v-model.number="formData.balance" required step="0.01" type="number" />
+                </div>
+
+                <div class="flex items-center gap-2 space-y-0">
+                    <Switch id="inBudget" v-model="formData.inBudget" />
+                    <Label for="inBudget">{{ t("accounts.form.inBudget") }}</Label>
                 </div>
 
                 <DialogFooter>
                     <Button type="button" variant="outline" @click="$emit('update:open', false)">
                         {{ t("common.cancel") }}
                     </Button>
-                    <Button type="submit" :disabled="isLoading">
+                    <Button :disabled="isLoading" type="submit">
                         {{ isLoading ? t("common.saving") : t("common.save") }}
                     </Button>
                 </DialogFooter>

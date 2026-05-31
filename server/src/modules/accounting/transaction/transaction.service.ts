@@ -219,6 +219,7 @@ export class TransactionService {
                     merchant_id: createTransactionDto.merchantId,
                     category_id: createTransactionDto.categoryId,
                     is_rebalance: createTransactionDto.isRebalance ?? false,
+                    in_budget: createTransactionDto.inBudget ?? true,
                 },
             });
         });
@@ -289,6 +290,7 @@ export class TransactionService {
                     merchant_id: transaction.merchantId,
                     category_id: transaction.categoryId,
                     is_rebalance: transaction.isRebalance ?? false,
+                    in_budget: transaction.inBudget ?? true,
                 })),
             });
 
@@ -418,6 +420,7 @@ export class TransactionService {
                     ...(updateTransactionDto.isRebalance !== undefined
                         ? {is_rebalance: updateTransactionDto.isRebalance}
                         : {}),
+                    ...(updateTransactionDto.inBudget !== undefined ? {in_budget: updateTransactionDto.inBudget} : {}),
                 },
             });
         });
@@ -540,6 +543,7 @@ export class TransactionService {
                   }
                 : {}),
             isRebalance: transaction.is_rebalance,
+            inBudget: transaction.in_budget,
             linkedTransactionId,
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,

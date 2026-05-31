@@ -115,12 +115,14 @@ describe("TransactionController (e2e)", () => {
                 amount: -42.35,
                 description: "Groceries",
                 date: "2026-01-15T12:00:00.000Z",
+                inBudget: false,
             });
 
         expect(create.status).toBe(201);
         expect(create.body.amount).toBe(-42.35);
         expect(create.body.description).toBe("Groceries");
         expect(create.body.accountId).toBe(account.body.id);
+        expect(create.body.inBudget).toBe(false);
 
         const storedAccount = await prisma.accounts.findUnique({
             where: {id: account.body.id},
@@ -652,15 +654,17 @@ describe("TransactionController (e2e)", () => {
             });
 
         expect(create.status).toBe(201);
+        expect(create.body.inBudget).toBe(true);
 
         const update = await agent
             .patch(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
-            .send({amount: 45.2, description: "Updated"});
+            .send({amount: 45.2, description: "Updated", inBudget: false});
 
         expect(update.status).toBe(200);
         expect(update.body.amount).toBe(45.2);
         expect(update.body.description).toBe("Updated");
+        expect(update.body.inBudget).toBe(false);
 
         const storedAccount = await prisma.accounts.findUnique({
             where: {id: account.body.id},

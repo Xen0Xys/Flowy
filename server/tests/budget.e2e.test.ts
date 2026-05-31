@@ -345,6 +345,73 @@ describe("BudgetController (e2e)", () => {
         });
     });
 
+    test("ignores accounts and transactions where inBudget is false when aggregating spending", async () => {
+        const user = await registerUser(server);
+
+        const accountA = await prisma.accounts.create({
+            data: {
+                user_id: user.user.id,
+                type: "CHECKING",
+                name: "Account A",
+                in_budget: true,
+            },
+        });
+
+        const accountB = await prisma.accounts.create({
+            data: {
+                user_id: user.user.id,
+                type: "SAVINGS",
+                name: "Account B",
+                in_budget: false,
+            },
+        });
+
+        await prisma.transactions.createMany({
+            data: [
+                {
+                    account_id: accountA.id,
+                    amount: -50,
+                    description: "Tx 1",
+                    date: new Date("2026-03-10T10:00:00.000Z"),
+                    in_budget: true,
+                },
+                {
+                    account_id: accountA.id,
+                    amount: -30,
+                    description: "Tx 2",
+                    date: new Date("2026-03-11T12:00:00.000Z"),
+                    in_budget: false,
+                },
+                {
+                    account_id: accountB.id,
+                    amount: -100,
+                    description: "Tx 3",
+                    date: new Date("2026-03-12T08:00:00.000Z"),
+                    in_budget: true,
+                },
+                {
+                    account_id: accountA.id,
+                    amount: 2000,
+                    description: "Income 1",
+                    date: new Date("2026-03-02T08:00:00.000Z"),
+                    in_budget: true,
+                },
+                {
+                    account_id: accountA.id,
+                    amount: 500,
+                    description: "Income 2",
+                    date: new Date("2026-03-05T08:00:00.000Z"),
+                    in_budget: false,
+                },
+            ],
+        });
+
+        const response = await agent.get("/budget/2026/3/spending").set("Authorization", `Bearer ${user.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body.totalSpent).toBe(50);
+        expect(response.body.actualIncome).toBe(2000);
+    });
+
     // ─── GET /budget/available-months ────────────────────────────────
 
     test("returns an empty list of available months when user has no budgets", async () => {

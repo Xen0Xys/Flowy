@@ -106,12 +106,13 @@ describe("AccountController (e2e)", () => {
         const create = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
-            .send({name: "Main checking", type: "CHECKING", balance: 1523.45});
+            .send({name: "Main checking", type: "CHECKING", balance: 1523.45, inBudget: false});
 
         expect(create.status).toBe(201);
         expect(create.body.name).toBe("Main checking");
         expect(create.body.type).toBe("CHECKING");
         expect(create.body.balance).toBe(1523.45);
+        expect(create.body.inBudget).toBe(false);
 
         const transactions = await prisma.transactions.findMany({
             where: {account_id: create.body.id},
@@ -229,17 +230,26 @@ describe("AccountController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Starter", type: "CHECKING", balance: 120});
         expect(create.status).toBe(201);
+        expect(create.body.inBudget).toBe(true);
 
         const update = await agent
             .patch(`/account/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
-            .send({name: "Primary", type: "SAVINGS"});
+            .send({name: "Primary", type: "SAVINGS", inBudget: false});
 
         expect(update.status).toBe(200);
         expect(update.body.id).toBe(create.body.id);
         expect(update.body.name).toBe("Primary");
         expect(update.body.type).toBe("SAVINGS");
         expect(update.body.balance).toBe(120);
+        expect(update.body.inBudget).toBe(false);
+
+        const updateBack = await agent
+            .patch(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({inBudget: true});
+        expect(updateBack.status).toBe(200);
+        expect(updateBack.body.inBudget).toBe(true);
     });
 
     test("updates account balance and creates rebalance transaction", async () => {

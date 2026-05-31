@@ -35,6 +35,7 @@ export class AccountService implements OnModuleInit {
             name: account.name,
             balance: account.balance,
             type: account.type,
+            inBudget: account.in_budget,
             createdAt: account.created_at,
             updatedAt: account.updated_at,
         });
@@ -103,6 +104,7 @@ export class AccountService implements OnModuleInit {
         name: string,
         accountType: AccountTypes,
         balance?: number,
+        inBudget?: boolean,
     ): Promise<AccountEntity> {
         const account: Accounts = await this.prismaService.accounts.create({
             data: {
@@ -110,6 +112,7 @@ export class AccountService implements OnModuleInit {
                 name,
                 balance: this.toDecimal(balance || 0),
                 type: accountType,
+                in_budget: inBudget ?? true,
             },
         });
         if (balance)
@@ -119,6 +122,7 @@ export class AccountService implements OnModuleInit {
                     amount: balance,
                     description: "Account rebalance adjustment",
                     is_rebalance: true,
+                    in_budget: false,
                 },
             });
         return this.toAccountEntity(account);
@@ -173,9 +177,10 @@ export class AccountService implements OnModuleInit {
         if (account.user_id !== user.id)
             throw new ForbiddenException("You do not have permission to update this account");
 
-        const data: Partial<Pick<Accounts, "name" | "type" | "balance">> = {};
+        const data: Partial<Pick<Accounts, "name" | "type" | "balance" | "in_budget">> = {};
         if (body.name !== undefined) data.name = body.name;
         if (body.type !== undefined) data.type = body.type;
+        if (body.inBudget !== undefined) data.in_budget = body.inBudget;
 
         const hasBalanceUpdate = body.balance !== undefined;
         const targetBalance = hasBalanceUpdate ? this.toDecimal(body.balance as number) : account.balance;
@@ -198,6 +203,7 @@ export class AccountService implements OnModuleInit {
                         amount: rebalanceAmount,
                         description: "Account rebalance adjustment",
                         is_rebalance: true,
+                        in_budget: false,
                     },
                 });
             }

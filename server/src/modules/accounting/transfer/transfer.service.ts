@@ -70,6 +70,7 @@ export class TransferService {
                     description: createTransferDto.description,
                     date: parsedDate,
                     is_rebalance: false,
+                    in_budget: createTransferDto.inBudget,
                 },
             });
 
@@ -80,6 +81,7 @@ export class TransferService {
                     description: createTransferDto.description,
                     date: parsedDate,
                     is_rebalance: false,
+                    in_budget: createTransferDto.inBudget,
                 },
             });
 

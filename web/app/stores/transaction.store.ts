@@ -31,6 +31,7 @@ export type Transaction = {
     merchant?: TransactionMerchant;
     category?: TransactionCategory;
     isRebalance: boolean;
+    inBudget?: boolean;
     linkedTransactionId?: string;
     createdAt?: string;
     updatedAt?: string;
@@ -43,6 +44,7 @@ export type CreateTransactionPayload = {
     merchantId?: string;
     categoryId?: string;
     isRebalance?: boolean;
+    inBudget?: boolean;
 };
 
 export type UpdateTransactionPayload = {
@@ -52,6 +54,7 @@ export type UpdateTransactionPayload = {
     merchantId?: string | null;
     categoryId?: string | null;
     isRebalance?: boolean;
+    inBudget?: boolean;
 };
 
 export type DeleteTransactionOptions = {
@@ -64,6 +67,7 @@ export type CreateTransferPayload = {
     description: string;
     date: string;
     amount: number;
+    inBudget?: boolean;
 };
 
 export type BulkTransactionsTestResult = {

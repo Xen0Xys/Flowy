@@ -10,6 +10,7 @@ export class TransactionEntity {
     merchant!: MerchantEntity;
     category!: CategoryEntity;
     isRebalance!: boolean;
+    inBudget!: boolean;
     linkedTransactionId?: string;
     createdAt!: Date;
     updatedAt!: Date;
