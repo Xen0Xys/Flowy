@@ -31,6 +31,7 @@ export async function seedTransactionsForAccount(
         merchant_id: string | null;
         category_id: string | null;
         is_rebalance: boolean;
+        in_budget: boolean;
     }> = [];
 
     for (let txIndex = 0; txIndex < txCount; txIndex++) {
@@ -58,6 +59,7 @@ export async function seedTransactionsForAccount(
             merchant_id: merchantId,
             category_id: categoryId,
             is_rebalance: txIndex === 0,
+            in_budget: true,
         });
     }
 

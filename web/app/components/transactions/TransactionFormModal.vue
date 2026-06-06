@@ -202,6 +202,7 @@ watch(
                 amount: 0,
                 description: "",
                 date: new Date().toISOString().split("T")[0] || "",
+                inBudget: false,
             };
         }
     },

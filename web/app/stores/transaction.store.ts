@@ -44,7 +44,7 @@ export type CreateTransactionPayload = {
     merchantId?: string;
     categoryId?: string;
     isRebalance?: boolean;
-    inBudget?: boolean;
+    inBudget: boolean;
 };
 
 export type UpdateTransactionPayload = {
@@ -67,7 +67,7 @@ export type CreateTransferPayload = {
     description: string;
     date: string;
     amount: number;
-    inBudget?: boolean;
+    inBudget: boolean;
 };
 
 export type BulkTransactionsTestResult = {

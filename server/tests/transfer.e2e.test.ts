@@ -102,6 +102,7 @@ describe("TransferController (e2e)", () => {
             amount: 125.35,
             description: "Monthly move",
             date: "2026-01-20T09:00:00.000Z",
+            inBudget: false,
         });
 
         expect(response.status).toBe(201);
@@ -182,6 +183,7 @@ describe("TransferController (e2e)", () => {
             amount: 30,
             description: "Split",
             date: "2026-01-22T12:00:00.000Z",
+            inBudget: false,
         });
 
         const firstTransactionId = created.body[0].id;
@@ -255,6 +257,7 @@ describe("TransferController (e2e)", () => {
             amount: 15,
             description: "Not allowed",
             date: "2026-01-23T12:00:00.000Z",
+            inBudget: false,
         });
 
         expect(create.status).toBe(403);
@@ -283,6 +286,7 @@ describe("TransferController (e2e)", () => {
             amount: 22,
             description: "Owner transfer",
             date: "2026-06-01T10:00:00.000Z",
+            inBudget: false,
         });
         expect(ownerCreateTransfer.status).toBe(201);
 

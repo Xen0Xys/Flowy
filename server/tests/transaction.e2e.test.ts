@@ -146,6 +146,7 @@ describe("TransactionController (e2e)", () => {
                 amount: -10,
                 description: "CSV row",
                 date: "2026-01-15",
+                inBudget: true,
             });
 
         expect(create.status).toBe(201);
@@ -170,6 +171,7 @@ describe("TransactionController (e2e)", () => {
             description: "Rent",
             date: "2026-02-01T09:00:00.000Z",
             isRebalance: false,
+            inBudget: true,
         };
 
         const firstInsert = await agent
@@ -187,6 +189,7 @@ describe("TransactionController (e2e)", () => {
                     amount: 2000,
                     description: "Salary",
                     date: "2026-02-02T08:00:00.000Z",
+                    inBudget: true,
                 },
             ]);
 
@@ -210,6 +213,7 @@ describe("TransactionController (e2e)", () => {
             description: "Streaming",
             date: "2026-02-10T10:00:00.000Z",
             isRebalance: false,
+            inBudget: true,
         };
 
         const existingInsert = await agent
@@ -227,11 +231,13 @@ describe("TransactionController (e2e)", () => {
                     amount: 1500,
                     description: "Freelance",
                     date: "2026-02-11T10:00:00.000Z",
+                    inBudget: true,
                 },
                 {
                     amount: -25,
                     description: "Dinner",
                     date: "2026-02-11T19:00:00.000Z",
+                    inBudget: true,
                 },
             ]);
 
@@ -269,6 +275,7 @@ describe("TransactionController (e2e)", () => {
                 amount: -9.9,
                 description: "Coffee",
                 date: "2026-04-02",
+                inBudget: true,
             });
         expect(existing.status).toBe(201);
 
@@ -280,11 +287,13 @@ describe("TransactionController (e2e)", () => {
                     amount: -9.9,
                     description: "Coffee",
                     date: "2026-04-02",
+                    inBudget: true,
                 },
                 {
                     amount: 1200,
                     description: "Salary",
                     date: "2026-04-03",
+                    inBudget: true,
                 },
             ]);
 
@@ -318,6 +327,7 @@ describe("TransactionController (e2e)", () => {
                 description: "Internal transfer",
                 date: "2026-04-10T08:30:00.000Z",
                 isRebalance: false,
+                inBudget: true,
             });
         expect(existing.status).toBe(201);
 
@@ -330,6 +340,7 @@ describe("TransactionController (e2e)", () => {
                     description: "Internal transfer",
                     date: "2026-04-10T08:30:00.000Z",
                     isRebalance: true,
+                    inBudget: true,
                 },
             ]);
 
@@ -356,6 +367,7 @@ describe("TransactionController (e2e)", () => {
             amount: -12.5,
             description: "Transfer",
             date: "2026-03-01T10:30:00.000Z",
+            inBudget: true,
         };
 
         const bulk = await agent
@@ -396,12 +408,14 @@ describe("TransactionController (e2e)", () => {
             amount: 100,
             description: "Salary",
             date: "2026-01-01T08:00:00.000Z",
+            inBudget: true,
         });
 
         await agent.post(`/transaction/account/${accountB.body.id}`).set("Authorization", `Bearer ${userB.token}`).send({
             amount: 50,
             description: "Gift",
             date: "2026-01-02T08:00:00.000Z",
+            inBudget: true,
         });
 
         const listA = await agent.get("/transaction").set("Authorization", `Bearer ${userA.token}`);
@@ -428,6 +442,7 @@ describe("TransactionController (e2e)", () => {
                 amount: -12.4,
                 description: "Book",
                 date: "2026-03-12T10:00:00.000Z",
+                inBudget: true,
             });
 
         expect(created.status).toBe(201);
@@ -459,6 +474,7 @@ describe("TransactionController (e2e)", () => {
                 amount: 50,
                 description: "Private",
                 date: "2026-03-01T08:00:00.000Z",
+                inBudget: true,
             });
 
         expect(created.status).toBe(201);
@@ -518,6 +534,7 @@ describe("TransactionController (e2e)", () => {
                 categoryId: groceriesCategory.id,
                 merchantId: marketMerchant.id,
                 isRebalance: false,
+                inBudget: true,
             });
         expect(expenseTx.status).toBe(201);
 
@@ -530,6 +547,7 @@ describe("TransactionController (e2e)", () => {
                 date: "2026-02-01",
                 categoryId: salaryCategory.id,
                 isRebalance: false,
+                inBudget: true,
             });
         expect(incomeTx.status).toBe(201);
 
@@ -541,6 +559,7 @@ describe("TransactionController (e2e)", () => {
                 description: "Transfer to savings",
                 date: "2026-02-18",
                 isRebalance: true,
+                inBudget: true,
             });
         expect(rebalanceTx.status).toBe(201);
 
@@ -578,16 +597,19 @@ describe("TransactionController (e2e)", () => {
             amount: 100,
             description: "Salary",
             date: "2026-02-01",
+            inBudget: true,
         });
         await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: -10,
             description: "Coffee",
             date: "2026-02-02",
+            inBudget: true,
         });
         await agent.post(`/transaction/account/${account.body.id}`).set("Authorization", `Bearer ${user.token}`).send({
             amount: -20,
             description: "Lunch",
             date: "2026-02-03",
+            inBudget: true,
         });
 
         const response = await agent
@@ -651,6 +673,7 @@ describe("TransactionController (e2e)", () => {
                 amount: 20,
                 description: "Initial",
                 date: "2026-01-10T12:00:00.000Z",
+                inBudget: true,
             });
 
         expect(create.status).toBe(201);
@@ -690,6 +713,7 @@ describe("TransactionController (e2e)", () => {
             amount: 30,
             description: "Monthly transfer",
             date: "2026-02-10T10:00:00.000Z",
+            inBudget: false,
         });
 
         expect(transfer.status).toBe(201);
@@ -742,6 +766,7 @@ describe("TransactionController (e2e)", () => {
             amount: 30,
             description: "Monthly transfer",
             date: "2026-02-10T10:00:00.000Z",
+            inBudget: false,
         });
 
         expect(transfer.status).toBe(201);
@@ -794,6 +819,7 @@ describe("TransactionController (e2e)", () => {
             amount: 30,
             description: "Monthly transfer",
             date: "2026-02-10T10:00:00.000Z",
+            inBudget: false,
         });
 
         expect(transfer.status).toBe(201);
@@ -859,6 +885,7 @@ describe("TransactionController (e2e)", () => {
             amount: 30,
             description: "Monthly transfer",
             date: "2026-02-10T10:00:00.000Z",
+            inBudget: false,
         });
 
         expect(transfer.status).toBe(201);
@@ -908,6 +935,7 @@ describe("TransactionController (e2e)", () => {
             amount: 30,
             description: "Monthly transfer",
             date: "2026-02-10T10:00:00.000Z",
+            inBudget: false,
         });
 
         expect(transfer.status).toBe(201);
@@ -1032,6 +1060,7 @@ describe("TransactionController (e2e)", () => {
                 amount: 10,
                 description: "Ghost account",
                 date: "2026-01-15T12:00:00.000Z",
+                inBudget: true,
             });
         expect(create.status).toBe(404);
         expect(create.body.message).toBe("Account not found");
@@ -1098,6 +1127,7 @@ describe("TransactionController (e2e)", () => {
                 amount: 35,
                 description: "Owner transaction",
                 date: "2026-01-15T12:00:00.000Z",
+                inBudget: true,
             });
         expect(create.status).toBe(201);
 
@@ -1132,6 +1162,7 @@ describe("TransactionController (e2e)", () => {
                 amount: 19.5,
                 description: "forbidden create",
                 date: "2026-05-01T10:00:00.000Z",
+                inBudget: true,
             });
         expect(create.status).toBe(403);
         expect(create.body.message).toBe("You do not have permission to access this account");
@@ -1144,6 +1175,7 @@ describe("TransactionController (e2e)", () => {
                     amount: -10,
                     description: "forbidden bulk test",
                     date: "2026-05-02T10:00:00.000Z",
+                    inBudget: true,
                 },
             ]);
         expect(bulkPreview.status).toBe(403);
@@ -1157,6 +1189,7 @@ describe("TransactionController (e2e)", () => {
                     amount: -15,
                     description: "forbidden bulk create",
                     date: "2026-05-03T10:00:00.000Z",
+                    inBudget: true,
                 },
             ]);
         expect(bulkCreate.status).toBe(403);
@@ -1196,6 +1229,7 @@ describe("TransactionController (e2e)", () => {
                 date: "2026-01-15T12:00:00.000Z",
                 merchantId: outsiderMerchant.id,
                 categoryId: outsiderCategory.id,
+                inBudget: true,
             });
 
         expect(create.status).toBe(404);
@@ -1233,6 +1267,7 @@ describe("TransactionController (e2e)", () => {
                 date: "2026-01-20T20:00:00.000Z",
                 merchantId: merchant.id,
                 categoryId: category.id,
+                inBudget: true,
             });
         expect(create.status).toBe(201);
         expect(create.body.merchant?.id).toBe(merchant.id);

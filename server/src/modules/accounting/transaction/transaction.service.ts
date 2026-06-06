@@ -219,7 +219,7 @@ export class TransactionService {
                     merchant_id: createTransactionDto.merchantId,
                     category_id: createTransactionDto.categoryId,
                     is_rebalance: createTransactionDto.isRebalance ?? false,
-                    in_budget: createTransactionDto.inBudget ?? true,
+                    in_budget: createTransactionDto.inBudget,
                 },
             });
         });
@@ -290,7 +290,7 @@ export class TransactionService {
                     merchant_id: transaction.merchantId,
                     category_id: transaction.categoryId,
                     is_rebalance: transaction.isRebalance ?? false,
-                    in_budget: transaction.inBudget ?? true,
+                    in_budget: transaction.inBudget,
                 })),
             });
 
