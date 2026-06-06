@@ -373,6 +373,11 @@ export class TransactionService {
                     throw new ForbiddenException("You do not have permission to update this transaction");
                 }
 
+                // IMPORTANT: When updating a transfer-linked transaction, ONLY `amount` (mirrored as
+                // its exact opposite) and `date` are synchronized with the linked counterpart.
+                // It is intentional NOT to synchronize `description`, `in_budget`, `category_id`,
+                // `merchant_id`, or `is_rebalance`. Each side of the transfer can have its own
+                // independent description, categorization, and budget behavior.
                 const linkedUpdateData: Prisma.TransactionsUpdateInput =
                     updateTransactionDto.date !== undefined ? {date: nextDate} : {};
 
