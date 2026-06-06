@@ -219,6 +219,7 @@ export class TransactionService {
                     merchant_id: createTransactionDto.merchantId,
                     category_id: createTransactionDto.categoryId,
                     is_rebalance: createTransactionDto.isRebalance ?? false,
+                    in_budget: createTransactionDto.inBudget,
                 },
             });
         });
@@ -289,6 +290,7 @@ export class TransactionService {
                     merchant_id: transaction.merchantId,
                     category_id: transaction.categoryId,
                     is_rebalance: transaction.isRebalance ?? false,
+                    in_budget: transaction.inBudget,
                 })),
             });
 
@@ -371,6 +373,11 @@ export class TransactionService {
                     throw new ForbiddenException("You do not have permission to update this transaction");
                 }
 
+                // IMPORTANT: When updating a transfer-linked transaction, ONLY `amount` (mirrored as
+                // its exact opposite) and `date` are synchronized with the linked counterpart.
+                // It is intentional NOT to synchronize `description`, `in_budget`, `category_id`,
+                // `merchant_id`, or `is_rebalance`. Each side of the transfer can have its own
+                // independent description, categorization, and budget behavior.
                 const linkedUpdateData: Prisma.TransactionsUpdateInput =
                     updateTransactionDto.date !== undefined ? {date: nextDate} : {};
 
@@ -418,6 +425,7 @@ export class TransactionService {
                     ...(updateTransactionDto.isRebalance !== undefined
                         ? {is_rebalance: updateTransactionDto.isRebalance}
                         : {}),
+                    ...(updateTransactionDto.inBudget !== undefined ? {in_budget: updateTransactionDto.inBudget} : {}),
                 },
             });
         });
@@ -540,6 +548,7 @@ export class TransactionService {
                   }
                 : {}),
             isRebalance: transaction.is_rebalance,
+            inBudget: transaction.in_budget,
             linkedTransactionId,
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,

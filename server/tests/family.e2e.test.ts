@@ -1,4 +1,5 @@
 import "reflect-metadata";
+// @ts-ignore
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient, UserRoles} from "../prisma/generated/client";
@@ -564,6 +565,33 @@ describe("FamilyController (e2e)", () => {
 
         expect(resp.status).toBe(401);
         expect(resp.body.message).toBe("Member is not part of your family");
+    });
+
+    test("forbids removing a member from another family (IDOR)", async () => {
+        const familyAAdmin = await registerUser(server);
+        await createFamily(familyAAdmin.token, {name: "FamilyA"});
+
+        const familyBAdmin = await registerUser(server);
+        await createFamily(familyBAdmin.token, {name: "FamilyB"});
+
+        const familyBMember = await registerUser(server);
+        const inviteToFamilyB = await agent
+            .post("/family/invite")
+            .set("Authorization", `Bearer ${familyBAdmin.token}`)
+            .send({email: familyBMember.user.email});
+        expect(inviteToFamilyB.status).toBe(201);
+
+        const joinFamilyB = await agent
+            .post(`/family/join/${inviteToFamilyB.body.code}`)
+            .set("Authorization", `Bearer ${familyBMember.token}`);
+        expect(joinFamilyB.status).toBe(204);
+
+        const unauthorizedRemoval = await agent
+            .delete(`/family/members/${familyBMember.user.id}`)
+            .set("Authorization", `Bearer ${familyAAdmin.token}`);
+
+        expect(unauthorizedRemoval.status).toBe(401);
+        expect(unauthorizedRemoval.body.message).toBe("Member is not part of your family");
     });
 
     test("returns 404 when member does not exist", async () => {

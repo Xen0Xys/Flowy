@@ -70,6 +70,7 @@ export class TransferService {
                     description: createTransferDto.description,
                     date: parsedDate,
                     is_rebalance: false,
+                    in_budget: createTransferDto.inBudget,
                 },
             });
 
@@ -80,6 +81,7 @@ export class TransferService {
                     description: createTransferDto.description,
                     date: parsedDate,
                     is_rebalance: false,
+                    in_budget: createTransferDto.inBudget,
                 },
             });
 
@@ -168,6 +170,11 @@ export class TransferService {
             throw new ConflictException("One of the transactions is already linked to another transfer");
         }
 
+        // IMPORTANT: When linking two existing transactions to form a transfer, we only enforce
+        // that their amounts are opposite and equal. We intentionally DO NOT check or synchronize
+        // any other fields: `date`, `description`, `in_budget`, `category_id`, etc. are left as-is.
+        // This is expected: a real-world transfer may have different execution dates due to bank
+        // processing times, and each account side can keep its own independent properties.
         const debitTransactionId = transaction1.amount < 0 ? transaction1.id : transaction2.id;
         const creditTransactionId = transaction1.amount > 0 ? transaction1.id : transaction2.id;
 

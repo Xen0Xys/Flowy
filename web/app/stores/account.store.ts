@@ -9,6 +9,7 @@ export type Account = {
     name: string;
     type: string;
     balance: number;
+    inBudget?: boolean;
     ownerId: string;
     createdAt?: string;
     updatedAt?: string;
@@ -18,12 +19,14 @@ export type CreateAccountPayload = {
     name: string;
     type: string;
     balance: number;
+    inBudget?: boolean;
 };
 
 export type UpdateAccountPayload = {
     name?: string;
     type?: string;
     balance?: number;
+    inBudget?: boolean;
 };
 
 export type AccountBalanceEvolutionPoint = {

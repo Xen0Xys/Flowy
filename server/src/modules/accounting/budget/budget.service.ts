@@ -14,7 +14,7 @@ import type {AvailableMonth} from "./models/entities/budget-spending.entity";
 import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
-import {BudgetedCategories, Budgets, Prisma} from "../../../../prisma/generated/client";
+import {BudgetedCategories, Budgets, Prisma, UserCategories} from "../../../../prisma/generated/client";
 
 type BudgetWithCategories = Budgets & {
     budgeted_categories: BudgetedCategories[];
@@ -159,7 +159,10 @@ export class BudgetService {
 
         const userAccountIds = await this.prismaService.accounts
             .findMany({
-                where: {user_id: user.id},
+                where: {
+                    user_id: user.id,
+                    in_budget: true,
+                },
                 select: {id: true},
             })
             .then((accounts) => accounts.map((a) => a.id));
@@ -173,8 +176,7 @@ export class BudgetService {
                 account_id: {in: userAccountIds},
                 amount: {lt: 0},
                 date: {gte: startDate, lte: endDate},
-                credit_transfer: null,
-                debit_transfer: null,
+                in_budget: true,
             },
             select: {
                 category_id: true,
@@ -187,8 +189,7 @@ export class BudgetService {
                 account_id: {in: userAccountIds},
                 amount: {gt: 0},
                 date: {gte: startDate, lte: endDate},
-                credit_transfer: null,
-                debit_transfer: null,
+                in_budget: true,
             },
             select: {
                 amount: true,
@@ -283,25 +284,18 @@ export class BudgetService {
     }
 
     private async getBudgetOrThrow(user: UserEntity, budgetId: string): Promise<Budgets> {
-        const budget = await this.prismaService.budgets.findUnique({
+        const budget: Budgets | null = await this.prismaService.budgets.findUnique({
             where: {id: budgetId},
         });
-
-        if (!budget) {
-            throw new NotFoundException("Budget not found");
-        }
-
-        if (budget.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to access this budget");
-        }
-
+        if (!budget) throw new NotFoundException("Budget not found");
+        if (budget.user_id !== user.id) throw new ForbiddenException("You do not have permission to access this budget");
         return budget;
     }
 
     private async validateCategoriesBelongToUser(user: UserEntity, categoryIds: string[]): Promise<void> {
         if (categoryIds.length === 0) return;
 
-        const categories = await this.prismaService.userCategories.findMany({
+        const categories: UserCategories[] | null = await this.prismaService.userCategories.findMany({
             where: {
                 id: {in: categoryIds},
                 user_id: user.id,

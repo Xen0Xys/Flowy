@@ -1,4 +1,4 @@
-import {IsEnum, IsNumber, IsOptional, IsString, Length} from "class-validator";
+import {IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Length} from "class-validator";
 import {AccountTypes} from "../../../../../../prisma/generated/enums";
 
 export class UpdateAccountDto {
@@ -10,6 +10,10 @@ export class UpdateAccountDto {
     @IsOptional()
     @IsNumber({allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2})
     balance?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    inBudget?: boolean;
 
     @IsOptional()
     @IsEnum(AccountTypes)

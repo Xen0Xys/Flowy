@@ -215,7 +215,8 @@
             "selectType": "Sélectionner un type",
             "balance": "Solde",
             "current": "actuel",
-            "initial": "initial"
+            "initial": "initial",
+            "inBudget": "Inclure dans le budget"
         }
     },
     "account": {
@@ -314,6 +315,7 @@
             "unlinkTransfer": "Dissocier",
             "unlinking": "Dissociation...",
             "linkTransfer": "Lier comme transfert",
+            "inBudget": "Inclure dans le budget",
             "errors": {
                 "loadData": "Impossible de charger les données requises",
                 "accountRequired": "Un compte est requis pour créer une transaction"

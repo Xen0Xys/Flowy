@@ -53,6 +53,7 @@ export async function seedTransfersForUser(
                     description: `Transfer ${transferIndex + 1}`,
                     date,
                     is_rebalance: false,
+                    in_budget: false,
                 },
                 select: {
                     id: true,
@@ -66,6 +67,7 @@ export async function seedTransfersForUser(
                     description: `Transfer ${transferIndex + 1}`,
                     date,
                     is_rebalance: false,
+                    in_budget: false,
                 },
                 select: {
                     id: true,

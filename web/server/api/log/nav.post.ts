@@ -4,6 +4,10 @@ const logger = consola.withTag("Router");
 
 const MAX_PATH_LENGTH = 1024;
 const MAX_DURATION_MS = 86_400_000; // 24 hours in milliseconds
+const FR_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "medium",
+});
 
 function sanitizeForLog(value: string, maxLength = MAX_PATH_LENGTH): string {
     const sanitized = value
@@ -33,9 +37,10 @@ export default defineEventHandler(async (event) => {
         event.node.res.on("finish", () => {
             const statusCode = event.node.res.statusCode;
             const resSize = event.node.res.getHeader("content-length") || "0";
+            const frDate = FR_DATE_TIME_FORMATTER.format(new Date());
 
-            // Format: HTTP NAV /path 200 15ms 16 - 127.0.0.1
-            logger.log(`HTTP NAV ${path} ${statusCode} ${duration}ms ${resSize} - ${ip}`);
+            // Format: [17/04/2026 14:23:10] HTTP NAV /path 200 15ms 16 - 127.0.0.1
+            logger.log(`[${frDate}] HTTP NAV ${path} ${statusCode} ${duration}ms ${resSize} - ${ip}`);
         });
 
         return {success: true};

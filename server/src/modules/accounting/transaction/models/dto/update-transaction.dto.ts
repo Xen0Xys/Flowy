@@ -25,4 +25,8 @@ export class UpdateTransactionDto {
     @IsOptional()
     @IsBoolean()
     isRebalance?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    inBudget?: boolean;
 }

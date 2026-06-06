@@ -97,6 +97,7 @@ model Accounts {
   type         AccountTypes
   name         String         @db.VarChar(50)
   balance      Float          @default(0)
+  in_budget    Boolean        @default(true)
   transactions Transactions[]
   created_at   DateTime       @default(now())
   updated_at   DateTime       @updatedAt
@@ -118,6 +119,7 @@ model Transactions {
   debit_transfer  Transfers?      @relation("TransferDebitTransaction")
   credit_transfer Transfers?      @relation("TransferCreditTransaction")
   is_rebalance    Boolean         @default(false)
+  in_budget       Boolean         @default(true)
   created_at      DateTime        @default(now())
   updated_at      DateTime        @updatedAt
 

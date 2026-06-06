@@ -125,6 +125,7 @@ const resetForm = () => {
             categoryId: props.transaction.category?.id || "none",
             merchantId: props.transaction.merchant?.id || "none",
             selectedAccountId: props.transaction.accountId || props.accountId || "",
+            inBudget: props.transaction.inBudget ?? true,
         };
     } else {
         transactionType.value = "expense";
@@ -135,6 +136,7 @@ const resetForm = () => {
             categoryId: "none",
             merchantId: "none",
             selectedAccountId: props.accountId || "",
+            inBudget: true,
         };
         transferFormData.value = {
             sourceAccountId: props.accountId || "",
@@ -142,6 +144,7 @@ const resetForm = () => {
             amount: 0,
             description: "",
             date: new Date().toISOString().split("T")[0] || "",
+            inBudget: false,
         };
     }
 };
@@ -153,6 +156,7 @@ const formData = ref({
     categoryId: "none",
     merchantId: "none",
     selectedAccountId: "",
+    inBudget: true,
 });
 
 const transferFormData = ref({
@@ -161,6 +165,7 @@ const transferFormData = ref({
     amount: 0,
     description: "",
     date: "",
+    inBudget: false,
 });
 
 const transactionType = ref<"expense" | "income" | "transfer">("expense");
@@ -178,6 +183,7 @@ watch(
                 categoryId: newTransaction.category?.id || "none",
                 merchantId: newTransaction.merchant?.id || "none",
                 selectedAccountId: newTransaction.accountId || props.accountId || "",
+                inBudget: newTransaction.inBudget ?? true,
             };
         } else {
             transactionType.value = "expense";
@@ -188,6 +194,7 @@ watch(
                 categoryId: "none",
                 merchantId: "none",
                 selectedAccountId: props.accountId || "",
+                inBudget: true,
             };
             transferFormData.value = {
                 sourceAccountId: props.accountId || "",
@@ -195,6 +202,7 @@ watch(
                 amount: 0,
                 description: "",
                 date: new Date().toISOString().split("T")[0] || "",
+                inBudget: false,
             };
         }
     },
@@ -224,6 +232,7 @@ const save = async () => {
                 amount: Math.abs(Number(transferFormData.value.amount)),
                 description: transferFormData.value.description || t("transactions.transfer.badge"),
                 date: new Date(transferFormData.value.date).toISOString(),
+                inBudget: transferFormData.value.inBudget,
             };
             await transactionStore.createTransfer(payload);
         } else {
@@ -239,6 +248,7 @@ const save = async () => {
                     date: new Date(formData.value.date).toISOString(),
                     categoryId: formData.value.categoryId === "none" ? null : formData.value.categoryId,
                     merchantId: formData.value.merchantId === "none" ? null : formData.value.merchantId,
+                    inBudget: formData.value.inBudget,
                 };
                 await transactionStore.updateTransaction(props.transaction.id, payload);
             } else {
@@ -248,6 +258,7 @@ const save = async () => {
                     date: new Date(formData.value.date).toISOString(),
                     categoryId: formData.value.categoryId === "none" ? undefined : formData.value.categoryId,
                     merchantId: formData.value.merchantId === "none" ? undefined : formData.value.merchantId,
+                    inBudget: formData.value.inBudget,
                 };
                 const targetAccountId = props.accountId || formData.value.selectedAccountId;
                 if (!targetAccountId) {
@@ -531,6 +542,13 @@ const executeLinkTransfer = async () => {
                     <Input id="transferDate" v-model="transferFormData.date" class="col-span-3" required type="date" />
                 </div>
 
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="transferInBudget">{{ t("transactions.form.inBudget") }}</Label>
+                    <div class="col-span-3 flex items-center">
+                        <Switch id="transferInBudget" v-model="transferFormData.inBudget" />
+                    </div>
+                </div>
+
                 <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
                     <Button type="button" variant="outline" @click="emit('update:open', false)">
                         {{ t("common.cancel") }}
@@ -653,6 +671,13 @@ const executeLinkTransfer = async () => {
                                 <Icon class="h-4 w-4" name="iconoir:plus" />
                             </Button>
                         </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right" for="txInBudget">{{ t("transactions.form.inBudget") }}</Label>
+                    <div class="col-span-3 flex items-center">
+                        <Switch id="txInBudget" v-model="formData.inBudget" />
                     </div>
                 </div>
 

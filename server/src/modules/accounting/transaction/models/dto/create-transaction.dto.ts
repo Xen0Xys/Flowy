@@ -36,4 +36,8 @@ export class CreateTransactionDto {
     @IsOptional()
     @IsBoolean()
     isRebalance?: boolean;
+
+    @IsNotEmpty()
+    @IsBoolean()
+    inBudget!: boolean;
 }
