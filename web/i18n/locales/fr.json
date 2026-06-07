@@ -689,7 +689,10 @@
             "centerSpent": "dépensé",
             "centerBudgeted": "budgété",
             "noBudgetForMonth": "Aucun budget pour ce mois",
-            "centerOver": "Dépassement",
+            "planningOver": "Budget > revenus",
+            "planningOverTooltip": "La somme des catégories budgétisées dépasse vos revenus. Rééquilibrez vos catégories ou augmentez le revenu budgété.",
+            "forecastOver": "Projection fin de mois",
+            "forecastOverTooltip": "Si chaque catégorie consomme son budget intégral (ou son réel s'il est supérieur), vos dépenses de fin de mois dépasseront vos revenus de ce montant.",
             "incomeProgress": "Revenus",
             "extraIncome": "Revenus supplémentaires"
         },
