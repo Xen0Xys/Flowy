@@ -7,7 +7,7 @@ import {useUserStore} from "@/stores/user.store";
 import {useApi} from "@/composables/useApi";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {Card} from "@/components/ui/card";
+import {Card, CardContent} from "@/components/ui/card";
 import {
     Stepper,
     StepperDescription,
@@ -72,66 +72,72 @@ async function joinFamily() {
 
 <template>
     <div :class="cn('flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <Card innerClass="p-3">
-            <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
-                <template v-for="(s, i) in steps" :key="i">
-                    <StepperItem
-                        :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
-                        :step="i"
-                        class="flex">
-                        <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
-                            <div class="flex items-center gap-3">
-                                <StepperIndicator>
-                                    <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
-                                </StepperIndicator>
-                                <div class="text-left">
-                                    <StepperTitle>{{ s.title }}</StepperTitle>
-                                    <StepperDescription>{{ s.description }}</StepperDescription>
+        <Card class="py-0">
+            <CardContent class="p-3">
+                <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
+                    <template v-for="(s, i) in steps" :key="i">
+                        <StepperItem
+                            :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
+                            :step="i"
+                            class="flex">
+                            <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
+                                <div class="flex items-center gap-3">
+                                    <StepperIndicator>
+                                        <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
+                                    </StepperIndicator>
+                                    <div class="text-left">
+                                        <StepperTitle>{{ s.title }}</StepperTitle>
+                                        <StepperDescription>{{ s.description }}</StepperDescription>
+                                    </div>
                                 </div>
-                            </div>
-                        </StepperTrigger>
-                    </StepperItem>
-                </template>
-            </Stepper>
+                            </StepperTrigger>
+                        </StepperItem>
+                    </template>
+                </Stepper>
+            </CardContent>
         </Card>
 
         <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-            <Card :innerClass="cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')">
-                <div class="flex flex-col gap-1">
-                    <h2 class="text-lg font-medium">{{ t("onboarding.select.create.title") }}</h2>
-                    <p class="text-muted-foreground text-sm">
-                        {{ t("onboarding.select.create.description") }}
-                    </p>
-                </div>
-                <div class="flex justify-end">
-                    <Button :as="'button'" @click="goCreate">{{ t("onboarding.select.create.button") }}</Button>
-                </div>
-            </Card>
-
-            <Card :innerClass="cn('flex flex-col justify-between', 'h-auto sm:h-72', 'p-4')">
-                <div class="flex flex-col gap-2">
-                    <div>
-                        <h2 class="text-lg font-medium">{{ t("onboarding.select.join.title") }}</h2>
+            <Card class="py-0">
+                <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
+                    <div class="flex flex-col gap-1">
+                        <h2 class="text-lg font-medium">{{ t("onboarding.select.create.title") }}</h2>
                         <p class="text-muted-foreground text-sm">
-                            {{ t("onboarding.select.join.description") }}
+                            {{ t("onboarding.select.create.description") }}
                         </p>
                     </div>
-                    <div>
-                        <Input v-model="code" :placeholder="t('onboarding.select.join.inviteCode')" autofocus />
+                    <div class="flex justify-end">
+                        <Button :as="'button'" @click="goCreate">{{ t("onboarding.select.create.button") }}</Button>
                     </div>
-                </div>
+                </CardContent>
+            </Card>
 
-                <form class="flex flex-col" @submit.prevent="joinFamily">
-                    <div class="flex items-center justify-end">
-                        <Button :as="'button'" :disabled="loading" type="submit">{{
-                            loading ? t("onboarding.select.join.loading") : t("onboarding.select.join.button")
-                        }}</Button>
+            <Card class="py-0">
+                <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
+                    <div class="flex flex-col gap-2">
+                        <div>
+                            <h2 class="text-lg font-medium">{{ t("onboarding.select.join.title") }}</h2>
+                            <p class="text-muted-foreground text-sm">
+                                {{ t("onboarding.select.join.description") }}
+                            </p>
+                        </div>
+                        <div>
+                            <Input v-model="code" :placeholder="t('onboarding.select.join.inviteCode')" autofocus />
+                        </div>
                     </div>
 
-                    <div v-if="error" class="text-destructive text-sm" role="alert">
-                        {{ error }}
-                    </div>
-                </form>
+                    <form class="flex flex-col" @submit.prevent="joinFamily">
+                        <div class="flex items-center justify-end">
+                            <Button :as="'button'" :disabled="loading" type="submit">{{
+                                loading ? t("onboarding.select.join.loading") : t("onboarding.select.join.button")
+                            }}</Button>
+                        </div>
+
+                        <div v-if="error" class="text-destructive text-sm" role="alert">
+                            {{ error }}
+                        </div>
+                    </form>
+                </CardContent>
             </Card>
         </div>
     </div>

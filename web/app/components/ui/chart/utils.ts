@@ -33,12 +33,7 @@ export function componentToString<P>(config: ChartConfig, component: Constructor
         const cachedContent = cache.get(serializedKey);
         if (cachedContent) return cachedContent;
 
-        const vnode = h<unknown>(component, {
-            ...props,
-            payload: data,
-            config,
-            x,
-        });
+        const vnode = h<unknown>(component, {...props, payload: data, config, x});
         const div = document.createElement("div");
         render(vnode, div);
         cache.set(serializedKey, div.innerHTML);

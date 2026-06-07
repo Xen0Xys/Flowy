@@ -180,7 +180,8 @@ const formatCurrency = (value: number) => {
                         {{ $t("budget.donut.planningOver") }}: +{{ formatCurrency(planningOverAmount ?? 0) }}
                     </div>
                 </TooltipTrigger>
-                <TooltipContent class="bg-popover text-popover-foreground max-w-56 border text-center text-xs shadow-md">
+                <TooltipContent
+                    class="bg-popover text-popover-foreground max-w-56 border text-center text-xs shadow-md [&>span]:hidden">
                     {{ $t("budget.donut.planningOverTooltip") }}
                 </TooltipContent>
             </Tooltip>
@@ -195,7 +196,8 @@ const formatCurrency = (value: number) => {
                         {{ $t("budget.donut.forecastOver") }}: +{{ formatCurrency(forecastOverAmount ?? 0) }}
                     </div>
                 </TooltipTrigger>
-                <TooltipContent class="bg-popover text-popover-foreground max-w-56 border text-center text-xs shadow-md">
+                <TooltipContent
+                    class="bg-popover text-popover-foreground max-w-56 border text-center text-xs shadow-md [&>span]:hidden">
                     {{ $t("budget.donut.forecastOverTooltip") }}
                 </TooltipContent>
             </Tooltip>

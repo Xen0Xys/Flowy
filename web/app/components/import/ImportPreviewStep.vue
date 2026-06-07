@@ -292,8 +292,8 @@ async function submitMerchant() {
         </div>
 
         <!-- Transactions table -->
-        <ScrollArea class="min-h-0 flex-1 overflow-hidden" scrollbar-class="pt-[41px]">
-            <Table wrapperClass="overflow-visible pr-3">
+        <ScrollArea class="min-h-0 flex-1 overflow-hidden">
+            <Table>
                 <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                     <TableRow>
                         <TableHead class="w-12">#</TableHead>
@@ -607,3 +607,13 @@ async function submitMerchant() {
         </Dialog>
     </div>
 </template>
+
+<style scoped>
+:deep([data-slot="table-container"]) {
+    overflow: visible;
+    padding-right: 0.75rem;
+}
+:deep([data-slot="scroll-area-scrollbar"][data-orientation="vertical"]) {
+    padding-top: 41px;
+}
+</style>

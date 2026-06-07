@@ -282,8 +282,8 @@ async function copyUserId(id: string) {
 
                 <div v-if="loading" class="text-muted-foreground text-sm">{{ t("common.loading") }}</div>
 
-                <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border" scrollbar-class="pt-[41px]">
-                    <Table wrapperClass="overflow-visible pr-3">
+                <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden rounded-md border">
+                    <Table>
                         <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                             <TableRow
                                 v-for="headerGroup in table.getHeaderGroups()"
@@ -535,3 +535,13 @@ async function copyUserId(id: string) {
         </AlertDialogContent>
     </AlertDialog>
 </template>
+
+<style scoped>
+:deep([data-slot="table-container"]) {
+    overflow: visible;
+    padding-right: 0.75rem;
+}
+:deep([data-slot="scroll-area-scrollbar"][data-orientation="vertical"]) {
+    padding-top: 41px;
+}
+</style>

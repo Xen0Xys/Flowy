@@ -4,7 +4,7 @@ import {useI18n} from "vue-i18n";
 import {useUserStore} from "~/stores/user.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {toast} from "vue-sonner";
-import {Card} from "@/components/ui/card";
+import {Card, CardContent} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {Skeleton} from "@/components/ui/skeleton";
@@ -259,299 +259,315 @@ async function removeMember(id: string) {
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <aside class="md:col-span-1">
-                    <Card class="h-full" innerClass="p-6">
-                        <div class="flex flex-col items-center gap-4 text-center">
-                            <div v-if="!familyLoaded || loading" class="w-full space-y-4">
-                                <Skeleton class="mx-auto h-5 w-32" />
-                                <Skeleton class="mx-auto h-4 w-24" />
-                            </div>
-
-                            <template v-else-if="family">
-                                <div>
-                                    <div class="text-lg font-medium">
-                                        {{ family.name }}
-                                    </div>
-                                    <div class="text-muted-foreground text-sm">
-                                        {{ t("settings.family.memberCount", (family.members?.length ?? 0) + 1) }}
-                                    </div>
+                    <Card>
+                        <CardContent>
+                            <div class="flex flex-col items-center gap-4 text-center">
+                                <div v-if="!familyLoaded || loading" class="w-full space-y-4">
+                                    <Skeleton class="mx-auto h-5 w-32" />
+                                    <Skeleton class="mx-auto h-4 w-24" />
                                 </div>
 
-                                <p class="text-muted-foreground text-xs">
-                                    {{ familyRoleLabel }}
-                                </p>
-
-                                <hr class="border-border w-full" />
-
-                                <AlertDialog>
-                                    <div class="flex w-full items-center justify-between">
-                                        <div class="text-left">
-                                            <p class="text-sm font-medium">{{ t("profile.dangerZone") }}</p>
-                                            <p class="text-muted-foreground text-xs">
-                                                {{
-                                                    userStore.isFamilyAdmin
-                                                        ? t("settings.family.deleteThis")
-                                                        : t("settings.family.leaveThis")
-                                                }}
-                                            </p>
+                                <template v-else-if="family">
+                                    <div>
+                                        <div class="text-lg font-medium">
+                                            {{ family.name }}
                                         </div>
-                                        <AlertDialogTrigger asChild>
-                                            <Button size="sm" variant="destructive">
-                                                {{
-                                                    userStore.isFamilyAdmin
-                                                        ? t("common.delete")
-                                                        : t("settings.family.leave")
-                                                }}
-                                            </Button>
-                                        </AlertDialogTrigger>
+                                        <div class="text-muted-foreground text-sm">
+                                            {{ t("settings.family.memberCount", (family.members?.length ?? 0) + 1) }}
+                                        </div>
                                     </div>
 
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                                {{
-                                                    userStore.isFamilyAdmin
-                                                        ? t("settings.family.deleteFamily")
-                                                        : t("settings.family.leaveFamily")
-                                                }}
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                <template v-if="userStore.isFamilyAdmin">
-                                                    {{ t("settings.family.deleteFamilyDescription") }}
-                                                </template>
-                                                <template v-else>
-                                                    {{ t("settings.family.leaveFamilyDescription") }}
-                                                </template>
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                :disabled="familyActionLoading"
-                                                @click="
-                                                    userStore.isFamilyAdmin ? handleDeleteFamily() : handleLeaveFamily()
-                                                ">
-                                                <span v-if="!familyActionLoading">
+                                    <p class="text-muted-foreground text-xs">
+                                        {{ familyRoleLabel }}
+                                    </p>
+
+                                    <hr class="border-border w-full" />
+
+                                    <AlertDialog>
+                                        <div class="flex w-full items-center justify-between">
+                                            <div class="text-left">
+                                                <p class="text-sm font-medium">{{ t("profile.dangerZone") }}</p>
+                                                <p class="text-muted-foreground text-xs">
+                                                    {{
+                                                        userStore.isFamilyAdmin
+                                                            ? t("settings.family.deleteThis")
+                                                            : t("settings.family.leaveThis")
+                                                    }}
+                                                </p>
+                                            </div>
+                                            <AlertDialogTrigger asChild>
+                                                <Button size="sm" variant="destructive">
                                                     {{
                                                         userStore.isFamilyAdmin
                                                             ? t("common.delete")
                                                             : t("settings.family.leave")
                                                     }}
-                                                </span>
-                                                <span v-else>{{ t("common.processing") }}</span>
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </template>
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                        </div>
 
-                            <p v-else class="text-muted-foreground text-sm">{{ t("settings.family.unableToLoad") }}</p>
-                        </div>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                    {{
+                                                        userStore.isFamilyAdmin
+                                                            ? t("settings.family.deleteFamily")
+                                                            : t("settings.family.leaveFamily")
+                                                    }}
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    <template v-if="userStore.isFamilyAdmin">
+                                                        {{ t("settings.family.deleteFamilyDescription") }}
+                                                    </template>
+                                                    <template v-else>
+                                                        {{ t("settings.family.leaveFamilyDescription") }}
+                                                    </template>
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    :disabled="familyActionLoading"
+                                                    @click="
+                                                        userStore.isFamilyAdmin
+                                                            ? handleDeleteFamily()
+                                                            : handleLeaveFamily()
+                                                    ">
+                                                    <span v-if="!familyActionLoading">
+                                                        {{
+                                                            userStore.isFamilyAdmin
+                                                                ? t("common.delete")
+                                                                : t("settings.family.leave")
+                                                        }}
+                                                    </span>
+                                                    <span v-else>{{ t("common.processing") }}</span>
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </template>
+
+                                <p v-else class="text-muted-foreground text-sm">
+                                    {{ t("settings.family.unableToLoad") }}
+                                </p>
+                            </div>
+                        </CardContent>
                     </Card>
                 </aside>
 
                 <main class="md:col-span-2">
-                    <Card class="h-full" innerClass="p-6">
-                        <div v-if="!familyLoaded || loading">
-                            <div class="space-y-4">
-                                <Skeleton class="h-6 w-40" />
-                                <Skeleton class="h-4 w-64" />
-                                <div class="space-y-2">
-                                    <Skeleton class="h-4 w-28" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                </div>
-                                <div class="space-y-2">
-                                    <Skeleton class="h-4 w-32" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
+                    <Card class="h-full">
+                        <CardContent>
+                            <div v-if="!familyLoaded || loading">
+                                <div class="space-y-4">
+                                    <Skeleton class="h-6 w-40" />
+                                    <Skeleton class="h-4 w-64" />
+                                    <div class="space-y-2">
+                                        <Skeleton class="h-4 w-28" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <Skeleton class="h-4 w-32" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div v-else>
-                            <section v-if="family">
-                                <h3 class="mb-2 text-lg font-medium">{{ t("settings.family.info") }}</h3>
-                                <div class="text-muted-foreground mb-4 text-sm">
-                                    {{ t("settings.family.owner") }}: {{ family.owner?.username }} ({{
-                                        family.owner?.email
-                                    }})
-                                </div>
+                            <div v-else>
+                                <section v-if="family">
+                                    <h3 class="mb-2 text-lg font-medium">{{ t("settings.family.info") }}</h3>
+                                    <div class="text-muted-foreground mb-4 text-sm">
+                                        {{ t("settings.family.owner") }}: {{ family.owner?.username }} ({{
+                                            family.owner?.email
+                                        }})
+                                    </div>
 
-                                <h4 class="mb-2 font-medium">{{ t("settings.family.settings") }}</h4>
-                                <div class="mb-6 space-y-4">
-                                    <div>
-                                        <label class="mb-2 block text-sm font-medium">{{
-                                            t("settings.family.familyName")
-                                        }}</label>
-                                        <div class="flex gap-3">
-                                            <Input
-                                                v-model="editFamilyName"
-                                                :aria-label="t('settings.family.familyName')"
-                                                :disabled="!userStore.isFamilyAdmin"
-                                                :placeholder="t('settings.family.familyName')"
-                                                class="flex-1" />
-                                            <Button
-                                                :aria-label="t('settings.family.aria.saveFamilyName')"
-                                                :disabled="savingFamilyName || !canSaveFamilyName"
-                                                size="sm"
-                                                variant="default"
-                                                @click="saveFamilyNameOnly">
-                                                <span v-if="!savingFamilyName">{{ t("common.save") }}</span>
-                                                <span v-else>{{ t("common.saving") }}</span>
-                                            </Button>
+                                    <h4 class="mb-2 font-medium">{{ t("settings.family.settings") }}</h4>
+                                    <div class="mb-6 space-y-4">
+                                        <div>
+                                            <label class="mb-2 block text-sm font-medium">{{
+                                                t("settings.family.familyName")
+                                            }}</label>
+                                            <div class="flex gap-3">
+                                                <Input
+                                                    v-model="editFamilyName"
+                                                    :aria-label="t('settings.family.familyName')"
+                                                    :disabled="!userStore.isFamilyAdmin"
+                                                    :placeholder="t('settings.family.familyName')"
+                                                    class="flex-1" />
+                                                <Button
+                                                    :aria-label="t('settings.family.aria.saveFamilyName')"
+                                                    :disabled="savingFamilyName || !canSaveFamilyName"
+                                                    size="sm"
+                                                    variant="default"
+                                                    @click="saveFamilyNameOnly">
+                                                    <span v-if="!savingFamilyName">{{ t("common.save") }}</span>
+                                                    <span v-else>{{ t("common.saving") }}</span>
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="mb-2 block text-sm font-medium">{{
+                                                t("settings.family.currency")
+                                            }}</label>
+                                            <div class="flex gap-3">
+                                                <Select
+                                                    v-model="editFamilyCurrency"
+                                                    :disabled="!userStore.isFamilyAdmin">
+                                                    <SelectTrigger
+                                                        :aria-label="t('settings.family.aria.currency')"
+                                                        class="flex-1">
+                                                        <SelectValue
+                                                            :placeholder="t('settings.family.selectCurrency')" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            <template v-for="code in currencyOptions" :key="code">
+                                                                <SelectItem :value="code">{{ code }}</SelectItem>
+                                                            </template>
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Button
+                                                    :aria-label="t('settings.family.aria.saveFamilyCurrency')"
+                                                    :disabled="savingFamilyCurrency || !canSaveFamilyCurrency"
+                                                    size="sm"
+                                                    variant="default"
+                                                    @click="saveFamilyCurrencyOnly">
+                                                    <span v-if="!savingFamilyCurrency">{{ t("common.save") }}</span>
+                                                    <span v-else>{{ t("common.saving") }}</span>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label class="mb-2 block text-sm font-medium">{{
-                                            t("settings.family.currency")
-                                        }}</label>
-                                        <div class="flex gap-3">
-                                            <Select v-model="editFamilyCurrency" :disabled="!userStore.isFamilyAdmin">
-                                                <SelectTrigger
-                                                    :aria-label="t('settings.family.aria.currency')"
-                                                    class="flex-1">
-                                                    <SelectValue :placeholder="t('settings.family.selectCurrency')" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        <template v-for="code in currencyOptions" :key="code">
-                                                            <SelectItem :value="code">{{ code }}</SelectItem>
-                                                        </template>
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <Button
-                                                :aria-label="t('settings.family.aria.saveFamilyCurrency')"
-                                                :disabled="savingFamilyCurrency || !canSaveFamilyCurrency"
-                                                size="sm"
-                                                variant="default"
-                                                @click="saveFamilyCurrencyOnly">
-                                                <span v-if="!savingFamilyCurrency">{{ t("common.save") }}</span>
-                                                <span v-else>{{ t("common.saving") }}</span>
-                                            </Button>
-                                        </div>
+                                    <p v-if="!userStore.isFamilyAdmin" class="text-muted-foreground mb-6 text-sm">
+                                        {{ t("settings.family.adminOnly") }}
+                                    </p>
+
+                                    <hr class="border-border my-4" />
+
+                                    <h4 class="font-medium">{{ t("settings.family.members") }}</h4>
+                                    <p
+                                        v-if="!family.members || family.members.length === 0"
+                                        class="text-muted-foreground mb-4 text-sm">
+                                        {{ t("settings.family.noMembers") }}
+                                    </p>
+                                    <ul v-else class="mb-4">
+                                        <li
+                                            v-for="member in family.members"
+                                            :key="member.id"
+                                            class="flex items-center justify-between py-2">
+                                            <div>
+                                                <div class="text-sm font-medium">
+                                                    {{ member.username }}
+                                                </div>
+                                                <div class="text-muted-foreground text-xs">
+                                                    {{ member.email }}
+                                                </div>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            v-if="
+                                                                userStore.isFamilyAdmin &&
+                                                                member.id !== userStore.user?.id
+                                                            "
+                                                            :aria-label="t('settings.family.aria.removeMember')"
+                                                            :disabled="
+                                                                removingMemberId === member.id || familyActionLoading
+                                                            "
+                                                            size="sm"
+                                                            variant="destructive">
+                                                            <span v-if="removingMemberId !== member.id">
+                                                                {{ t("settings.family.remove") }}
+                                                            </span>
+                                                            <span v-else>{{ t("settings.family.removing") }}</span>
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>{{
+                                                                t("settings.family.removeMember")
+                                                            }}</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                {{ t("settings.family.removeMemberDescription") }}
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>{{
+                                                                t("common.cancel")
+                                                            }}</AlertDialogCancel>
+                                                            <AlertDialogAction @click="() => removeMember(member.id)">{{
+                                                                t("settings.family.remove")
+                                                            }}</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <hr v-if="userStore.isFamilyAdmin" class="border-border my-4" />
+
+                                    <h4 v-if="userStore.isFamilyAdmin" class="mb-2 font-medium">
+                                        {{ t("settings.family.invites") }}
+                                    </h4>
+                                    <div v-if="userStore.isFamilyAdmin" class="mb-3 flex gap-2">
+                                        <Input
+                                            v-model="inviteEmail"
+                                            :aria-label="t('settings.family.aria.inviteEmail')"
+                                            :placeholder="t('settings.family.invitePlaceholder')" />
+                                        <Button
+                                            :aria-label="t('settings.family.aria.inviteMember')"
+                                            :disabled="!inviteEmail || inviting"
+                                            @click="handleInvite">
+                                            <span v-if="!inviting">{{ t("settings.family.invite") }}</span>
+                                            <span v-else>{{ t("settings.family.inviting") }}</span>
+                                        </Button>
                                     </div>
-                                </div>
 
-                                <p v-if="!userStore.isFamilyAdmin" class="text-muted-foreground mb-6 text-sm">
-                                    {{ t("settings.family.adminOnly") }}
-                                </p>
-
-                                <hr class="border-border my-4" />
-
-                                <h4 class="font-medium">{{ t("settings.family.members") }}</h4>
-                                <p
-                                    v-if="!family.members || family.members.length === 0"
-                                    class="text-muted-foreground mb-4 text-sm">
-                                    {{ t("settings.family.noMembers") }}
-                                </p>
-                                <ul v-else class="mb-4">
-                                    <li
-                                        v-for="member in family.members"
-                                        :key="member.id"
-                                        class="flex items-center justify-between py-2">
-                                        <div>
-                                            <div class="text-sm font-medium">
-                                                {{ member.username }}
+                                    <ul>
+                                        <li
+                                            v-for="inv in invites"
+                                            :key="inv.code"
+                                            class="flex items-center justify-between py-2">
+                                            <div>
+                                                <div class="text-sm">
+                                                    {{ inv.email }}
+                                                </div>
+                                                <div class="text-muted-foreground text-xs">
+                                                    {{ t("settings.family.code") }}: {{ inv.code }}
+                                                </div>
                                             </div>
-                                            <div class="text-muted-foreground text-xs">
-                                                {{ member.email }}
+                                            <div class="flex gap-2">
+                                                <Button
+                                                    :aria-label="t('settings.family.aria.copyInviteCode')"
+                                                    size="sm"
+                                                    @click="copyInviteCode(inv.code)"
+                                                    >{{ t("common.copy") }}</Button
+                                                >
+                                                <Button
+                                                    :aria-label="t('settings.family.aria.revokeInvite')"
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    @click="handleRevoke(inv.code)"
+                                                    >{{ t("settings.family.revoke") }}</Button
+                                                >
                                             </div>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button
-                                                        v-if="
-                                                            userStore.isFamilyAdmin && member.id !== userStore.user?.id
-                                                        "
-                                                        :aria-label="t('settings.family.aria.removeMember')"
-                                                        :disabled="removingMemberId === member.id || familyActionLoading"
-                                                        size="sm"
-                                                        variant="destructive">
-                                                        <span v-if="removingMemberId !== member.id">
-                                                            {{ t("settings.family.remove") }}
-                                                        </span>
-                                                        <span v-else>{{ t("settings.family.removing") }}</span>
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>{{
-                                                            t("settings.family.removeMember")
-                                                        }}</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            {{ t("settings.family.removeMemberDescription") }}
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                                                        <AlertDialogAction @click="() => removeMember(member.id)">{{
-                                                            t("settings.family.remove")
-                                                        }}</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </div>
-                                    </li>
-                                </ul>
+                                        </li>
+                                    </ul>
+                                </section>
 
-                                <hr v-if="userStore.isFamilyAdmin" class="border-border my-4" />
-
-                                <h4 v-if="userStore.isFamilyAdmin" class="mb-2 font-medium">
-                                    {{ t("settings.family.invites") }}
-                                </h4>
-                                <div v-if="userStore.isFamilyAdmin" class="mb-3 flex gap-2">
-                                    <Input
-                                        v-model="inviteEmail"
-                                        :aria-label="t('settings.family.aria.inviteEmail')"
-                                        :placeholder="t('settings.family.invitePlaceholder')" />
-                                    <Button
-                                        :aria-label="t('settings.family.aria.inviteMember')"
-                                        :disabled="!inviteEmail || inviting"
-                                        @click="handleInvite">
-                                        <span v-if="!inviting">{{ t("settings.family.invite") }}</span>
-                                        <span v-else>{{ t("settings.family.inviting") }}</span>
-                                    </Button>
-                                </div>
-
-                                <ul>
-                                    <li
-                                        v-for="inv in invites"
-                                        :key="inv.code"
-                                        class="flex items-center justify-between py-2">
-                                        <div>
-                                            <div class="text-sm">
-                                                {{ inv.email }}
-                                            </div>
-                                            <div class="text-muted-foreground text-xs">
-                                                {{ t("settings.family.code") }}: {{ inv.code }}
-                                            </div>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <Button
-                                                :aria-label="t('settings.family.aria.copyInviteCode')"
-                                                size="sm"
-                                                @click="copyInviteCode(inv.code)"
-                                                >{{ t("common.copy") }}</Button
-                                            >
-                                            <Button
-                                                :aria-label="t('settings.family.aria.revokeInvite')"
-                                                size="sm"
-                                                variant="destructive"
-                                                @click="handleRevoke(inv.code)"
-                                                >{{ t("settings.family.revoke") }}</Button
-                                            >
-                                        </div>
-                                    </li>
-                                </ul>
-                            </section>
-
-                            <section v-else class="text-muted-foreground text-sm">
-                                <div>{{ t("settings.family.notMember") }}</div>
-                            </section>
-                        </div>
+                                <section v-else class="text-muted-foreground text-sm">
+                                    <div>{{ t("settings.family.notMember") }}</div>
+                                </section>
+                            </div>
+                        </CardContent>
                     </Card>
                 </main>
             </div>
