@@ -3,7 +3,7 @@ import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {useUserStore} from "~/stores/user.store";
 import {useApi} from "~/composables/useApi";
-import {Card} from "@/components/ui/card";
+import {Card, CardContent} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {Switch} from "@/components/ui/switch";
@@ -112,106 +112,112 @@ async function saveOwner() {
             </div>
 
             <Card>
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm font-medium">{{ t("settings.instance.versions") }}</div>
-                            <div class="text-muted-foreground text-xs">
-                                {{ t("settings.instance.versionsDescription") }}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 text-sm">
-                            <div class="flex flex-col items-end gap-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-muted-foreground text-xs">{{ t("settings.instance.web") }}</span>
-                                    <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
-                                        frontendVersion
-                                    }}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-muted-foreground text-xs">{{
-                                        t("settings.instance.server")
-                                    }}</span>
-                                    <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
-                                        backendVersion
-                                    }}</span>
+                <CardContent>
+                    <div class="flex flex-col gap-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium">{{ t("settings.instance.versions") }}</div>
+                                <div class="text-muted-foreground text-xs">
+                                    {{ t("settings.instance.versionsDescription") }}
                                 </div>
                             </div>
-                            <Button
-                                :title="t('settings.instance.copyVersions')"
-                                size="icon"
-                                variant="ghost"
-                                @click="copyVersions">
-                                <Icon class="size-4" name="iconoir:copy" />
-                            </Button>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm font-medium">{{ t("settings.instance.registration") }}</div>
-                            <div class="text-muted-foreground text-xs">
-                                {{ t("settings.instance.registrationDescription") }}
+                            <div class="flex items-center gap-4 text-sm">
+                                <div class="flex flex-col items-end gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-muted-foreground text-xs">{{
+                                            t("settings.instance.web")
+                                        }}</span>
+                                        <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
+                                            frontendVersion
+                                        }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-muted-foreground text-xs">{{
+                                            t("settings.instance.server")
+                                        }}</span>
+                                        <span class="bg-muted rounded-md px-2 py-0.5 font-mono text-xs">{{
+                                            backendVersion
+                                        }}</span>
+                                    </div>
+                                </div>
+                                <Button
+                                    :title="t('settings.instance.copyVersions')"
+                                    size="icon"
+                                    variant="ghost"
+                                    @click="copyVersions">
+                                    <Icon class="size-4" name="iconoir:copy" />
+                                </Button>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Switch
-                                v-model="registrationEnabled"
-                                :aria-label="t('settings.instance.registrationEnabled')" />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button :disabled="savingRegistration" size="sm">{{ t("common.save") }}</Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>{{
-                                            t("settings.instance.saveRegistrationTitle")
-                                        }}</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            {{ t("settings.instance.saveRegistrationDescription") }}
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                                        <AlertDialogAction @click="saveRegistration">{{
-                                            t("common.save")
-                                        }}</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium">{{ t("settings.instance.registration") }}</div>
+                                <div class="text-muted-foreground text-xs">
+                                    {{ t("settings.instance.registrationDescription") }}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Switch
+                                    v-model="registrationEnabled"
+                                    :aria-label="t('settings.instance.registrationEnabled')" />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button :disabled="savingRegistration" size="sm">{{ t("common.save") }}</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>{{
+                                                t("settings.instance.saveRegistrationTitle")
+                                            }}</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                {{ t("settings.instance.saveRegistrationDescription") }}
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                            <AlertDialogAction @click="saveRegistration">{{
+                                                t("common.save")
+                                            }}</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm font-medium">{{ t("settings.instance.owner") }}</div>
-                            <div class="text-muted-foreground text-xs">
-                                {{ t("settings.instance.ownerDescription") }}
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium">{{ t("settings.instance.owner") }}</div>
+                                <div class="text-muted-foreground text-xs">
+                                    {{ t("settings.instance.ownerDescription") }}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Input v-model="ownerId" :placeholder="t('settings.instance.ownerPlaceholder')" />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button :disabled="savingOwner" size="sm">{{ t("common.save") }}</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>{{
+                                                t("settings.instance.changeOwnerTitle")
+                                            }}</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                {{ t("settings.instance.changeOwnerDescription") }}
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                                            <AlertDialogAction @click="saveOwner">{{
+                                                t("common.save")
+                                            }}</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Input v-model="ownerId" :placeholder="t('settings.instance.ownerPlaceholder')" />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button :disabled="savingOwner" size="sm">{{ t("common.save") }}</Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>{{
-                                            t("settings.instance.changeOwnerTitle")
-                                        }}</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            {{ t("settings.instance.changeOwnerDescription") }}
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                                        <AlertDialogAction @click="saveOwner">{{ t("common.save") }}</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
                     </div>
-                </div>
+                </CardContent>
             </Card>
         </div>
     </div>

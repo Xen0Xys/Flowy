@@ -1,4 +1,4 @@
-import {IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min} from "class-validator";
+import {IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min, ValidateIf} from "class-validator";
 import {Transform, Type} from "class-transformer";
 
 export enum TransactionSearchType {
@@ -33,6 +33,8 @@ export class SearchTransactionsDto {
     accountId?: string;
 
     @IsOptional()
+    @IsString()
+    @ValidateIf((o) => o.categoryId !== "none")
     @IsUUID("7")
     categoryId?: string;
 

@@ -13,7 +13,20 @@ const props = defineProps<{
     budgeted: number;
     spent: number;
     currency: string;
+    month: number;
+    year: number;
 }>();
+
+function navigateToTransactions() {
+    const categoryId = props.id === "__uncategorized__" ? "none" : props.id;
+    const lastDay = new Date(props.year, props.month, 0).getDate();
+    const mm = String(props.month).padStart(2, "0");
+    const startDate = `${props.year}-${mm}-01`;
+    const endDate = `${props.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
+    const query: Record<string, string> = {startDate, endDate};
+    if (categoryId) query.categoryId = categoryId;
+    navigateTo({path: "/transactions", query});
+}
 
 const remaining = computed(() => Math.max(0, props.budgeted - props.spent));
 const absoluteRemaining = computed(() => props.budgeted - props.spent);
@@ -32,7 +45,9 @@ const formatCurrency = (value: number) => {
 </script>
 
 <template>
-    <div class="hover:bg-muted/50 flex items-center gap-3 rounded-lg border p-3 transition-colors">
+    <div
+        class="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors"
+        @click="navigateToTransactions">
         <!-- Icon with donut ring -->
         <div class="relative flex h-11 w-11 shrink-0 items-center justify-center">
             <svg class="h-11 w-11" viewBox="0 0 44 44">

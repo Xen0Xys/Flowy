@@ -15,7 +15,7 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
-import {Card} from "@/components/ui/card";
+import {Card, CardContent} from "@/components/ui/card";
 import {cn} from "@/lib/utils";
 import {
     FAMILY_NAME_MAX_LENGTH,
@@ -107,78 +107,82 @@ async function submit() {
 
 <template>
     <div :class="cn('flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <Card innerClass="p-3">
-            <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
-                <template v-for="(s, i) in steps" :key="i">
-                    <StepperItem
-                        :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
-                        :step="i"
-                        class="flex">
-                        <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
-                            <div class="flex items-center gap-3">
-                                <StepperIndicator>
-                                    <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
-                                </StepperIndicator>
-                                <div class="text-left">
-                                    <StepperTitle>{{ s.title }}</StepperTitle>
-                                    <StepperDescription>{{ s.description }}</StepperDescription>
+        <Card class="py-0">
+            <CardContent class="p-3">
+                <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
+                    <template v-for="(s, i) in steps" :key="i">
+                        <StepperItem
+                            :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
+                            :step="i"
+                            class="flex">
+                            <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
+                                <div class="flex items-center gap-3">
+                                    <StepperIndicator>
+                                        <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
+                                    </StepperIndicator>
+                                    <div class="text-left">
+                                        <StepperTitle>{{ s.title }}</StepperTitle>
+                                        <StepperDescription>{{ s.description }}</StepperDescription>
+                                    </div>
                                 </div>
-                            </div>
-                        </StepperTrigger>
-                    </StepperItem>
-                </template>
-            </Stepper>
+                            </StepperTrigger>
+                        </StepperItem>
+                    </template>
+                </Stepper>
+            </CardContent>
         </Card>
 
-        <Card :class="cn('w-full self-center', 'max-w-md')" :innerClass="cn('p-6')">
-            <header class="text-center">
-                <h1 class="text-2xl font-semibold">{{ t("onboarding.create.title") }}</h1>
-            </header>
-            <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-                <FormItem>
-                    <FormField name="name">
-                        <FormLabel for="name">{{ t("onboarding.create.familyName") }}</FormLabel>
-                        <FormControl>
-                            <Input id="name" v-model="form.name" autofocus required />
-                        </FormControl>
-                        <FormMessage />
-                    </FormField>
-                </FormItem>
+        <Card :class="cn('w-full self-center', 'max-w-md')">
+            <CardContent>
+                <header class="text-center">
+                    <h1 class="text-2xl font-semibold">{{ t("onboarding.create.title") }}</h1>
+                </header>
+                <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
+                    <FormItem>
+                        <FormField name="name">
+                            <FormLabel for="name">{{ t("onboarding.create.familyName") }}</FormLabel>
+                            <FormControl>
+                                <Input id="name" v-model="form.name" autofocus required />
+                            </FormControl>
+                            <FormMessage />
+                        </FormField>
+                    </FormItem>
 
-                <FormItem>
-                    <FormField name="currency">
-                        <FormLabel for="currency">{{ t("onboarding.create.currency") }}</FormLabel>
-                        <FormControl>
-                            <Select v-model="form.currency">
-                                <SelectTrigger id="currency">
-                                    <SelectValue :placeholder="t('onboarding.create.selectCurrency')" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <template v-for="code in Object.keys(CURRENCY_LOCALES_MAP)" :key="code">
-                                            <SelectItem :value="code">{{ code }}</SelectItem>
-                                        </template>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </FormControl>
-                        <FormMessage />
-                    </FormField>
-                </FormItem>
+                    <FormItem>
+                        <FormField name="currency">
+                            <FormLabel for="currency">{{ t("onboarding.create.currency") }}</FormLabel>
+                            <FormControl>
+                                <Select v-model="form.currency">
+                                    <SelectTrigger id="currency">
+                                        <SelectValue :placeholder="t('onboarding.create.selectCurrency')" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <template v-for="code in Object.keys(CURRENCY_LOCALES_MAP)" :key="code">
+                                                <SelectItem :value="code">{{ code }}</SelectItem>
+                                            </template>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </FormControl>
+                            <FormMessage />
+                        </FormField>
+                    </FormItem>
 
-                <div v-if="error" class="text-destructive text-sm" role="alert">
-                    {{ error }}
-                </div>
+                    <div v-if="error" class="text-destructive text-sm" role="alert">
+                        {{ error }}
+                    </div>
 
-                <div class="flex justify-between">
-                    <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">
-                        {{ t("common.back") }}
-                    </Button>
-                    <Button :as="'button'" :disabled="loading" type="submit">{{
-                        loading ? t("onboarding.create.loading") : t("onboarding.create.create")
-                    }}</Button>
-                </div>
-            </form>
+                    <div class="flex justify-between">
+                        <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">
+                            {{ t("common.back") }}
+                        </Button>
+                        <Button :as="'button'" :disabled="loading" type="submit">{{
+                            loading ? t("onboarding.create.loading") : t("onboarding.create.create")
+                        }}</Button>
+                    </div>
+                </form>
+            </CardContent>
         </Card>
     </div>
 </template>

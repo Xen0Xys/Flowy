@@ -1,7 +1,7 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import type {HTMLAttributes} from "vue";
-import {computed} from "vue";
 import type {ChartConfig} from ".";
+import {computed} from "vue";
 import {cn} from "@/lib/utils";
 
 const props = withDefaults(
@@ -24,6 +24,9 @@ const props = withDefaults(
         indicator: "dot",
     },
 );
+
+// TODO: currently we use `createElement` and `render` to render the
+// const chartContext = useChart(null)
 
 const payload = computed(() => {
     return Object.entries(props.payload)
@@ -73,7 +76,7 @@ const tooltipLabel = computed(() => {
                     <template v-else-if="!hideIndicator">
                         <div
                             :class="
-                                cn('shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)', {
+                                cn('shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)', {
                                     'h-2.5 w-2.5': indicator === 'dot',
                                     'w-1': indicator === 'line',
                                     'w-0 border-[1.5px] border-dashed bg-transparent': indicator === 'dashed',

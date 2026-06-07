@@ -134,7 +134,7 @@ const table = useVueTable({
 
 <template>
     <div class="w-full">
-        <Table wrapperClass="overflow-visible pr-3">
+        <Table>
             <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                 <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-b">
                     <TableHead
@@ -294,3 +294,10 @@ const table = useVueTable({
         </Table>
     </div>
 </template>
+
+<style scoped>
+:deep([data-slot="table-container"]) {
+    overflow: visible;
+    padding-right: 0.75rem;
+}
+</style>

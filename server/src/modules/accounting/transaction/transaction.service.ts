@@ -83,7 +83,8 @@ export class TransactionService {
         };
 
         if (query.accountId) where.account_id = query.accountId;
-        if (query.categoryId) where.category_id = query.categoryId;
+        if (query.categoryId === "none") where.category_id = null;
+        else if (query.categoryId) where.category_id = query.categoryId;
         if (query.merchantId) where.merchant_id = query.merchantId;
         if (query.type === TransactionSearchType.INCOME) where.amount = {gt: 0};
         if (query.type === TransactionSearchType.EXPENSE) where.amount = {lt: 0};

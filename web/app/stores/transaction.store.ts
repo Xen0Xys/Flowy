@@ -84,7 +84,7 @@ export type TransactionSearchFilters = {
     search?: string;
     type?: "all" | "income" | "expense";
     accountId?: string | "all";
-    categoryId?: string | "all";
+    categoryId?: string | "all" | "none";
     merchantId?: string | "all";
     rebalance?: "all" | "only" | "exclude";
     startDate?: string;

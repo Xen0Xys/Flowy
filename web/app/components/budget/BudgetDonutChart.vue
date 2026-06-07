@@ -19,10 +19,9 @@ const props = defineProps<{
     actualIncome: number;
     currency: string;
     hasBudget?: boolean;
+    planningOverAmount?: number;
+    forecastOverAmount?: number;
 }>();
-
-const isOverBudget = computed(() => props.totalSpent > props.totalBudgeted);
-const overAmount = computed(() => Math.round((props.totalSpent - props.totalBudgeted) * 100) / 100);
 
 const fillRatio = computed(() => {
     if (props.totalBudgeted === 0) return 1;
@@ -172,13 +171,37 @@ const formatCurrency = (value: number) => {
             </div>
         </div>
 
-        <!-- Over budget warning -->
-        <div
-            v-if="hasBudget !== false && isOverBudget"
-            class="text-destructive mt-2 flex items-center gap-1 text-sm font-medium">
-            <Icon class="h-4 w-4" name="iconoir:warning-triangle" />
-            {{ $t("budget.donut.centerOver") }}: +{{ formatCurrency(overAmount) }}
-        </div>
+        <!-- Planning over (amber) : Σ budgets > revenus -->
+        <TooltipProvider v-if="hasBudget !== false && (planningOverAmount ?? 0) > 0.005">
+            <Tooltip>
+                <TooltipTrigger as-child>
+                    <div class="mt-2 flex cursor-help items-center gap-1 text-sm font-medium text-amber-500">
+                        <Icon class="h-4 w-4" name="iconoir:warning-triangle" />
+                        {{ $t("budget.donut.planningOver") }}: +{{ formatCurrency(planningOverAmount ?? 0) }}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent
+                    class="bg-popover text-popover-foreground max-w-56 border text-center text-xs shadow-md [&>span]:hidden">
+                    {{ $t("budget.donut.planningOverTooltip") }}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+
+        <!-- Forecast over (red) : projection fin de mois > revenus -->
+        <TooltipProvider v-if="hasBudget !== false && (forecastOverAmount ?? 0) > 0.005">
+            <Tooltip>
+                <TooltipTrigger as-child>
+                    <div class="text-destructive mt-2 flex cursor-help items-center gap-1 text-sm font-medium">
+                        <Icon class="h-4 w-4" name="iconoir:warning-triangle" />
+                        {{ $t("budget.donut.forecastOver") }}: +{{ formatCurrency(forecastOverAmount ?? 0) }}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent
+                    class="bg-popover text-popover-foreground max-w-56 border text-center text-xs shadow-md [&>span]:hidden">
+                    {{ $t("budget.donut.forecastOverTooltip") }}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
 
         <!-- Income progress bar -->
         <div v-if="totalBudgeted > 0" class="mt-4 w-full max-w-xs">

@@ -15,7 +15,7 @@ export type TransactionFilters = {
     search: string;
     type: "all" | "income" | "expense";
     accountId: string | "all";
-    categoryId: string | "all";
+    categoryId: string | "all" | "none";
     merchantId: string | "all";
     rebalance: "all" | "only" | "exclude";
     dateRange: DateRange;
@@ -214,6 +214,7 @@ watch(isReducedHeight, (isCompact) => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">{{ t("transactions.filters.allCategories") }}</SelectItem>
+                        <SelectItem value="none">{{ t("transactions.filters.noCategory") }}</SelectItem>
                         <SelectItem v-for="category in availableCategories" :key="category.id" :value="category.id">
                             {{ category.name }}
                         </SelectItem>
@@ -339,6 +340,7 @@ watch(isReducedHeight, (isCompact) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">{{ t("transactions.filters.allCategories") }}</SelectItem>
+                                    <SelectItem value="none">{{ t("transactions.filters.noCategory") }}</SelectItem>
                                     <SelectItem
                                         v-for="category in availableCategories"
                                         :key="category.id"

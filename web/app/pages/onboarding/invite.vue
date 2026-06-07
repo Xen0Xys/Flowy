@@ -13,7 +13,7 @@ import {
     StepperTitle,
     StepperTrigger,
 } from "@/components/ui/stepper";
-import {Card} from "~/components/ui/card";
+import {Card, CardContent} from "~/components/ui/card";
 import {cn} from "@/lib/utils";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "~/components/ui/form";
 import {isValidEmail} from "@/lib/validation";
@@ -84,64 +84,68 @@ function skip() {
 
 <template>
     <div :class="cn('flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <Card innerClass="p-3">
-            <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
-                <template v-for="(s, i) in steps" :key="i">
-                    <StepperItem
-                        :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
-                        :step="i"
-                        class="flex">
-                        <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
-                            <div class="flex items-center gap-3">
-                                <StepperIndicator>
-                                    <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
-                                </StepperIndicator>
-                                <div class="text-left">
-                                    <StepperTitle>{{ s.title }}</StepperTitle>
-                                    <StepperDescription>{{ s.description }}</StepperDescription>
+        <Card class="py-0">
+            <CardContent class="p-3">
+                <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
+                    <template v-for="(s, i) in steps" :key="i">
+                        <StepperItem
+                            :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
+                            :step="i"
+                            class="flex">
+                            <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
+                                <div class="flex items-center gap-3">
+                                    <StepperIndicator>
+                                        <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
+                                    </StepperIndicator>
+                                    <div class="text-left">
+                                        <StepperTitle>{{ s.title }}</StepperTitle>
+                                        <StepperDescription>{{ s.description }}</StepperDescription>
+                                    </div>
                                 </div>
-                            </div>
-                        </StepperTrigger>
-                    </StepperItem>
-                </template>
-            </Stepper>
+                            </StepperTrigger>
+                        </StepperItem>
+                    </template>
+                </Stepper>
+            </CardContent>
         </Card>
 
-        <Card :class="cn('w-full self-center', 'max-w-md')" :innerClass="cn('p-6')">
-            <header class="text-center">
-                <h1 class="text-2xl font-semibold">{{ t("onboarding.invite.title") }}</h1>
-            </header>
+        <Card :class="cn('w-full self-center', 'max-w-md')">
+            <CardContent>
+                <header class="text-center">
+                    <h1 class="text-2xl font-semibold">{{ t("onboarding.invite.title") }}</h1>
+                </header>
 
-            <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-                <FormItem>
-                    <FormField name="email">
-                        <FormLabel for="email">{{ t("onboarding.invite.memberEmail") }}</FormLabel>
-                        <FormControl>
-                            <Input
-                                id="email"
-                                v-model="form.email"
-                                autofocus
-                                :placeholder="t('onboarding.invite.memberEmailPlaceholder')"
-                                required
-                                type="email" />
-                        </FormControl>
-                        <FormMessage />
-                    </FormField>
-                </FormItem>
+                <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
+                    <FormItem>
+                        <FormField name="email">
+                            <FormLabel for="email">{{ t("onboarding.invite.memberEmail") }}</FormLabel>
+                            <FormControl>
+                                <Input
+                                    id="email"
+                                    v-model="form.email"
+                                    autofocus
+                                    :placeholder="t('onboarding.invite.memberEmailPlaceholder')"
+                                    required
+                                    type="email" />
+                            </FormControl>
+                            <FormMessage />
+                        </FormField>
+                    </FormItem>
 
-                <div v-if="error" class="text-destructive text-sm" role="alert">
-                    {{ error }}
-                </div>
+                    <div v-if="error" class="text-destructive text-sm" role="alert">
+                        {{ error }}
+                    </div>
 
-                <div class="flex items-center justify-end gap-2">
-                    <Button :as="'button'" :disabled="loading" type="submit">{{
-                        loading ? t("onboarding.invite.sending") : t("onboarding.invite.send")
-                    }}</Button>
-                    <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">{{
-                        invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip")
-                    }}</Button>
-                </div>
-            </form>
+                    <div class="flex items-center justify-end gap-2">
+                        <Button :as="'button'" :disabled="loading" type="submit">{{
+                            loading ? t("onboarding.invite.sending") : t("onboarding.invite.send")
+                        }}</Button>
+                        <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">{{
+                            invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip")
+                        }}</Button>
+                    </div>
+                </form>
+            </CardContent>
         </Card>
     </div>
 </template>
