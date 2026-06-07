@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useIntersectionObserver, watchDebounced} from "@vueuse/core";
+import {CalendarDate} from "@internationalized/date";
 import {useI18n} from "vue-i18n";
 import {
     type SearchTransactionsResult,
@@ -32,6 +33,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n();
 const transactionStore = useTransactionStore();
+const route = useRoute();
 
 const isTransactionModalOpen = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
@@ -192,6 +194,19 @@ watchDebounced(
 );
 
 onMounted(() => {
+    const q = route.query;
+    if (q.categoryId && typeof q.categoryId === "string") {
+        filters.value.categoryId = q.categoryId;
+    }
+    if (q.startDate && q.endDate && typeof q.startDate === "string" && typeof q.endDate === "string") {
+        const [startYear, startMonth, startDay] = q.startDate.split("-").map(Number);
+        const [endYear, endMonth, endDay] = q.endDate.split("-").map(Number);
+        filters.value.dateRange = {
+            start: new CalendarDate(startYear, startMonth, startDay),
+            end: new CalendarDate(endYear, endMonth, endDay),
+        };
+    }
+
     fetchFirstPage();
 
     if (!process.client) {

@@ -632,8 +632,10 @@ watch([selectedMonth, selectedYear], async () => {
                                     :currency="currency"
                                     :hex-color="cat.hexColor"
                                     :icon="cat.icon"
+                                    :month="selectedMonth"
                                     :name="cat.name"
-                                    :spent="cat.spent" />
+                                    :spent="cat.spent"
+                                    :year="selectedYear" />
                             </div>
                             <div v-else class="flex flex-1 items-center justify-center text-center">
                                 <div>
