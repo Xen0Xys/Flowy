@@ -198,16 +198,14 @@ const categoryRows = computed(() => {
     const categoryOverspend = rows.reduce((sum, row) => sum + Math.max(0, row.spent - row.budgeted), 0);
     const effectiveAvailable = Math.max(0, unallocated - categoryOverspend);
 
-    if (effectiveAvailable > 0.005 || uncategorizedSpent > 0.005) {
-        rows.push({
-            id: "__uncategorized__",
-            name: t("budget.category.uncategorized"),
-            icon: "iconoir:question-mark",
-            hexColor: "#888",
-            spent: uncategorizedSpent,
-            budgeted: effectiveAvailable,
-        });
-    }
+    rows.push({
+        id: "__uncategorized__",
+        name: t("budget.category.uncategorized"),
+        icon: "iconoir:question-mark",
+        hexColor: "#888",
+        spent: uncategorizedSpent,
+        budgeted: effectiveAvailable,
+    });
 
     return rows;
 });
@@ -221,14 +219,16 @@ const planningOverAmount = computed(() => {
 const forecastOverAmount = computed(() => {
     if (!budget.value) return 0;
     const spendingMap = new Map((spending.value?.byCategory ?? []).map((cat) => [cat.categoryId, cat]));
-    const uncategorizedSpent =
-        spending.value?.byCategory?.filter((cat) => !cat.categoryId).reduce((sum, cat) => sum + cat.spent, 0) ?? 0;
+    const budgetedIds = new Set((budget.value.budgetedCategories ?? []).map((bc) => bc.categoryId).filter(Boolean));
+    const unplannedSpent = (spending.value?.byCategory ?? [])
+        .filter((cat) => !cat.categoryId || !budgetedIds.has(cat.categoryId))
+        .reduce((sum, cat) => sum + cat.spent, 0);
     const forecastTotal =
         (budget.value.budgetedCategories ?? []).reduce((sum, bc) => {
             if (!bc.categoryId) return sum;
             const spent = spendingMap.get(bc.categoryId)?.spent ?? 0;
             return sum + Math.max(bc.amount, spent);
-        }, 0) + uncategorizedSpent;
+        }, 0) + unplannedSpent;
     return Math.max(0, forecastTotal - budget.value.budgetedIncome);
 });
 
