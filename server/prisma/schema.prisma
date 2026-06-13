@@ -52,6 +52,7 @@ model Users {
   merchants     UserMerchants[]
   categories    UserCategories[]
   budgets       Budgets[]
+  transactions  Transactions[]
 
   @@map("users")
 }
@@ -120,6 +121,8 @@ model Transactions {
   credit_transfer Transfers?      @relation("TransferCreditTransaction")
   is_rebalance    Boolean         @default(false)
   in_budget       Boolean         @default(true)
+  created_by_id   String?         @db.Uuid
+  created_by      Users?          @relation(fields: [created_by_id], references: [id], onDelete: SetNull)
   created_at      DateTime        @default(now())
   updated_at      DateTime        @updatedAt
 

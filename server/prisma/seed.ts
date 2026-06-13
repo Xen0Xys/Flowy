@@ -117,13 +117,14 @@ async function main() {
                 transactionsCount += await (seedTransactionsForAccount as any)(
                     prisma,
                     account.id,
+                    user.id,
                     merchants,
                     categories,
                     faker,
                 );
             }
 
-            transfersCount += await (seedTransfersForUser as any)(prisma, accounts, faker);
+            transfersCount += await (seedTransfersForUser as any)(prisma, user.id, accounts, faker);
 
             const budgetsSeed = await (seedBudgetsForUser as any)(prisma, user.id, categories, faker);
             budgetsCount += budgetsSeed.budgetsCount;

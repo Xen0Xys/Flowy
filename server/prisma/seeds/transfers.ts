@@ -18,6 +18,7 @@ function randomTransferAmount(faker: Faker): number {
 
 export async function seedTransfersForUser(
     prisma: PrismaClient,
+    userId: string,
     accounts: SeedAccountRef[],
     faker: Faker,
 ): Promise<number> {
@@ -54,6 +55,7 @@ export async function seedTransfersForUser(
                     date,
                     is_rebalance: false,
                     in_budget: false,
+                    created_by_id: userId,
                 },
                 select: {
                     id: true,
@@ -68,6 +70,7 @@ export async function seedTransfersForUser(
                     date,
                     is_rebalance: false,
                     in_budget: false,
+                    created_by_id: userId,
                 },
                 select: {
                     id: true,
