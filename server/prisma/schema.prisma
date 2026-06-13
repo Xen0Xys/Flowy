@@ -15,6 +15,24 @@ enum ConfigKey {
   @@map("config_keys")
 }
 
+enum AccountTypes {
+  CHECKING // Compte courant
+  SAVINGS // Compte d'épargne
+  CREDIT // Carte de crédit
+  CASH // Argent liquide
+  INVESTMENT // Compte d'investissement
+  OTHER // Autre
+
+  @@map("account_types")
+}
+
+enum SharePermission {
+  READ
+  READ_WRITE
+
+  @@map("share_permission")
+}
+
 model Config {
   key   ConfigKey @id
   value String
@@ -37,22 +55,25 @@ enum UserRoles {
 }
 
 model Users {
-  id            String           @id @default(uuid(7)) @db.Uuid
-  username      String           @db.VarChar(30)
-  email         String           @unique
-  password      String
-  jwt_id        String           @unique
-  user_settings UserSettings?
-  family_role   UserRoles?
-  family_id     String?          @db.Uuid
-  family        Family?          @relation(fields: [family_id], references: [id], onDelete: SetNull)
-  created_at    DateTime         @default(now())
-  updated_at    DateTime         @updatedAt
-  accounts      Accounts[]
-  merchants     UserMerchants[]
-  categories    UserCategories[]
-  budgets       Budgets[]
-  transactions  Transactions[]
+  id                String             @id @default(uuid(7)) @db.Uuid
+  username          String             @db.VarChar(30)
+  email             String             @unique
+  password          String
+  jwt_id            String             @unique
+  user_settings     UserSettings?
+  family_role       UserRoles?
+  family_id         String?            @db.Uuid
+  family            Family?            @relation(fields: [family_id], references: [id], onDelete: SetNull)
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+  accounts          Accounts[]
+  merchants         UserMerchants[]
+  categories        UserCategories[]
+  budgets           Budgets[]
+  transactions      Transactions[]
+  account_shares    AccountShares[]
+  budget_shares     BudgetShares[]
+  category_mappings CategoryMappings[] @relation("SharedUserMappings")
 
   @@map("users")
 }
@@ -61,10 +82,10 @@ model Family {
   id         String          @id @default(uuid(7)) @db.Uuid
   name       String          @db.VarChar(50)
   currency   String          @default("USD") @db.VarChar(3)
-  members    Users[]
-  invites    FamilyInvites[]
   created_at DateTime        @default(now())
   updated_at DateTime        @updatedAt
+  members    Users[]
+  invites    FamilyInvites[]
 
   @@map("families")
 }
@@ -80,28 +101,18 @@ model FamilyInvites {
   @@map("family_invites")
 }
 
-enum AccountTypes {
-  CHECKING // Compte courant
-  SAVINGS // Compte d'épargne
-  CREDIT // Carte de crédit
-  CASH // Argent liquide
-  INVESTMENT // Compte d'investissement
-  OTHER // Autre
-
-  @@map("account_types")
-}
-
 model Accounts {
-  id           String         @id @default(uuid(7)) @db.Uuid
-  user_id      String         @db.Uuid
-  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           String           @id @default(uuid(7)) @db.Uuid
+  user_id      String           @db.Uuid
+  user         Users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
   type         AccountTypes
-  name         String         @db.VarChar(50)
-  balance      Float          @default(0)
-  in_budget    Boolean        @default(true)
+  name         String           @db.VarChar(50)
+  balance      Float            @default(0)
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @updatedAt
   transactions Transactions[]
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
+  shares       AccountShares[]
+  budget_links BudgetAccounts[]
 
   @@map("accounts")
 }
@@ -132,8 +143,8 @@ model Transactions {
 model Transfers {
   id                    String       @id @default(uuid(7)) @db.Uuid
   debit_transaction_id  String       @unique @db.Uuid
-  credit_transaction_id String       @unique @db.Uuid
   debit_transaction     Transactions @relation("TransferDebitTransaction", fields: [debit_transaction_id], references: [id], onDelete: Cascade)
+  credit_transaction_id String       @unique @db.Uuid
   credit_transaction    Transactions @relation("TransferCreditTransaction", fields: [credit_transaction_id], references: [id], onDelete: Cascade)
   created_at            DateTime     @default(now())
   updated_at            DateTime     @updatedAt
@@ -146,25 +157,27 @@ model UserMerchants {
   user_id      String         @db.Uuid
   user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
   name         String         @db.VarChar(50)
-  transactions Transactions[]
   created_at   DateTime       @default(now())
   updated_at   DateTime       @updatedAt
+  transactions Transactions[]
 
   @@unique([user_id, name])
   @@map("user_merchants")
 }
 
 model UserCategories {
-  id                  String               @id @default(uuid(7)) @db.Uuid
-  user_id             String               @db.Uuid
-  user                Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name                String               @db.VarChar(50)
-  hex_color           String               @db.VarChar(7)
-  icon                String               @db.VarChar(50)
-  created_at          DateTime             @default(now())
-  updated_at          DateTime             @updatedAt
-  transactions        Transactions[]
-  budgeted_categories BudgetedCategories[]
+  id                      String               @id @default(uuid(7)) @db.Uuid
+  user_id                 String               @db.Uuid
+  user                    Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                    String               @db.VarChar(50)
+  hex_color               String               @db.VarChar(7)
+  icon                    String               @db.VarChar(50)
+  created_at              DateTime             @default(now())
+  updated_at              DateTime             @updatedAt
+  transactions            Transactions[]
+  budgeted_categories     BudgetedCategories[]
+  their_category_mappings CategoryMappings[]   @relation("TheirCategory")
+  owner_category_mappings CategoryMappings[]   @relation("OwnerCategory")
 
   @@unique([user_id, name])
   @@map("user_categories")
@@ -174,26 +187,71 @@ model Budgets {
   id                  String               @id @default(uuid(7)) @db.Uuid
   user_id             String               @db.Uuid
   user                Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                String
   month               Int
   year                Int
   budgeted_income     Float
   created_at          DateTime             @default(now())
   updated_at          DateTime             @updatedAt
   budgeted_categories BudgetedCategories[]
+  accounts            BudgetAccounts[]
+  shares              BudgetShares[]
 
-  @@unique([user_id, month, year])
   @@map("budgets")
 }
 
 model BudgetedCategories {
   budget_id   String         @db.Uuid
-  category_id String         @db.Uuid
-  amount      Float
   budget      Budgets        @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+  category_id String         @db.Uuid
   category    UserCategories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  amount      Float
   created_at  DateTime       @default(now())
   updated_at  DateTime       @updatedAt
 
   @@id([budget_id, category_id])
   @@map("budgeted_categories")
+}
+
+model AccountShares {
+  account_id String          @db.Uuid
+  account    Accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  user_id    String          @db.Uuid
+  user       Users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  permission SharePermission
+
+  @@id([account_id, user_id])
+  @@map("account_shares")
+}
+
+model CategoryMappings {
+  shared_user_id    String         @db.Uuid
+  shared_user       Users          @relation("SharedUserMappings", fields: [shared_user_id], references: [id], onDelete: Cascade)
+  their_category_id String         @db.Uuid
+  their_category    UserCategories @relation("TheirCategory", fields: [their_category_id], references: [id], onDelete: Cascade)
+  owner_category_id String         @db.Uuid
+  owner_category    UserCategories @relation("OwnerCategory", fields: [owner_category_id], references: [id], onDelete: Cascade)
+
+  @@id([shared_user_id, their_category_id])
+  @@map("category_mappings")
+}
+
+model BudgetAccounts {
+  budget_id  String   @db.Uuid
+  budget     Budgets  @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+  account_id String   @db.Uuid
+  account    Accounts @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  @@id([budget_id, account_id])
+  @@map("budget_accounts")
+}
+
+model BudgetShares {
+  budget_id String  @db.Uuid
+  budget    Budgets @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+  user_id   String  @db.Uuid
+  user      Users   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([budget_id, user_id])
+  @@map("budget_shares")
 }
