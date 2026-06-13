@@ -71,6 +71,7 @@ export class TransferService {
                     date: parsedDate,
                     is_rebalance: false,
                     in_budget: createTransferDto.inBudget,
+                    created_by_id: user.id,
                 },
             });
 
@@ -82,6 +83,7 @@ export class TransferService {
                     date: parsedDate,
                     is_rebalance: false,
                     in_budget: createTransferDto.inBudget,
+                    created_by_id: user.id,
                 },
             });
 

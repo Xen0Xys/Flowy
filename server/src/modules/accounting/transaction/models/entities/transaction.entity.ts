@@ -12,6 +12,7 @@ export class TransactionEntity {
     isRebalance!: boolean;
     inBudget!: boolean;
     linkedTransactionId?: string;
+    createdById!: string | null;
     createdAt!: Date;
     updatedAt!: Date;
 

@@ -1281,4 +1281,73 @@ describe("TransactionController (e2e)", () => {
         expect(clear.body.merchant).toBeUndefined();
         expect(clear.body.category).toBeUndefined();
     });
+
+    test("sets createdById from JWT on transaction creation", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Main", type: "CHECKING"});
+
+        const create = await agent
+            .post(`/transaction/account/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: -50, description: "Groceries", date: "2026-01-15T12:00:00.000Z", inBudget: true});
+
+        expect(create.status).toBe(201);
+        expect(create.body.createdById).toBe(user.user.id);
+    });
+
+    test("sets createdById from JWT on bulk transaction creation", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bulk", type: "CHECKING"});
+
+        const bulk = await agent
+            .post(`/transaction/account/${account.body.id}/bulk`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send([
+                {amount: -10, description: "Coffee", date: "2026-01-15T08:00:00.000Z", inBudget: true},
+                {amount: -20, description: "Lunch", date: "2026-01-15T12:00:00.000Z", inBudget: true},
+            ]);
+
+        expect(bulk.status).toBe(201);
+        expect(bulk.body.insertedCount).toBe(2);
+
+        const stored = await prisma.transactions.findMany({where: {account_id: account.body.id}});
+        expect(stored).toHaveLength(2);
+        expect(stored.every((tx) => tx.created_by_id === user.user.id)).toBe(true);
+    });
+
+    test("sets createdById to null when creator user is deleted", async () => {
+        const user = await registerUser(server);
+        const account = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Main", type: "CHECKING"});
+
+        const create = await agent
+            .post(`/transaction/account/${account.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: -30, description: "Test", date: "2026-01-15T12:00:00.000Z", inBudget: true});
+
+        expect(create.status).toBe(201);
+        expect(create.body.createdById).toBe(user.user.id);
+
+        const creator = await prisma.users.create({
+            data: {username: "creator", email: "creator@test.com", password: "x", jwt_id: "creator-jwt"},
+        });
+
+        await prisma.transactions.update({
+            where: {id: create.body.id},
+            data: {created_by_id: creator.id},
+        });
+
+        await prisma.users.delete({where: {id: creator.id}});
+
+        const stored = await prisma.transactions.findUnique({where: {id: create.body.id}});
+        expect(stored?.created_by_id).toBeNull();
+    });
 });
