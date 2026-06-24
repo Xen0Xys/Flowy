@@ -324,6 +324,7 @@ async function handleTestDb() {
             categoryId: tx.categoryId ?? undefined,
             merchantId: tx.merchantId ?? undefined,
             isRebalance: tx.isRebalance,
+            inBudget: true,
         }));
 
         const result = await transactionStore.testBulkTransactions(selectedAccountId.value, payload);
@@ -379,6 +380,7 @@ async function handleImport() {
                 categoryId: tx.categoryId ?? undefined,
                 merchantId: tx.merchantId ?? undefined,
                 isRebalance: tx.isRebalance,
+                inBudget: true,
             }));
 
         const result = await transactionStore.createBulkTransactions(selectedAccountId.value, payload);
