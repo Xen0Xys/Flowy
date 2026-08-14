@@ -12,6 +12,7 @@ function randomAmount(faker: Faker) {
 export async function seedTransactionsForAccount(
     prisma: any,
     accountId: string,
+    userId: string,
     merchants: Array<{id: string}>,
     categories: Array<{id: string}>,
     faker: Faker,
@@ -32,6 +33,7 @@ export async function seedTransactionsForAccount(
         category_id: string | null;
         is_rebalance: boolean;
         in_budget: boolean;
+        created_by_id: string | null;
     }> = [];
 
     for (let txIndex = 0; txIndex < txCount; txIndex++) {
@@ -60,6 +62,7 @@ export async function seedTransactionsForAccount(
             category_id: categoryId,
             is_rebalance: txIndex === 0,
             in_budget: true,
+            created_by_id: userId,
         });
     }
 

@@ -221,6 +221,7 @@ export class TransactionService {
                     category_id: createTransactionDto.categoryId,
                     is_rebalance: createTransactionDto.isRebalance ?? false,
                     in_budget: createTransactionDto.inBudget,
+                    created_by_id: user.id,
                 },
             });
         });
@@ -292,6 +293,7 @@ export class TransactionService {
                     category_id: transaction.categoryId,
                     is_rebalance: transaction.isRebalance ?? false,
                     in_budget: transaction.inBudget,
+                    created_by_id: user.id,
                 })),
             });
 
@@ -551,6 +553,7 @@ export class TransactionService {
             isRebalance: transaction.is_rebalance,
             inBudget: transaction.in_budget,
             linkedTransactionId,
+            createdById: transaction.created_by_id,
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,
         });
