@@ -10,7 +10,6 @@
     "arrowParens": "always",
     "objectWrap": "preserve",
     "printWidth": 121,
-    "sortPackageJson": false,
-    "ignorePatterns": ["node_modules", "web/.nuxt", "server/prisma/generated"],
-    "endOfLine": "lf"
+    "endOfLine": "lf",
+    "ignorePatterns": ["node_modules", ".git", "server/dist", "web/.nuxt", "web/.output", "server/prisma/generated"]
 }

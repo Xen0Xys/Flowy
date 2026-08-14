@@ -1,3 +1,4 @@
+// oxlint-disable-next-line import/no-unassigned-import
 import "reflect-metadata";
 // @ts-ignore
 import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";

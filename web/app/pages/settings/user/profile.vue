@@ -88,7 +88,7 @@ const avatarUrl = computed(() => userStore.user?.avatar || "");
 const effectiveRole = ref("");
 
 async function computeEffectiveRole() {
-    if (await userStore.isInstanceOwner) effectiveRole.value = t("profile.roles.instanceOwner");
+    if (await userStore.fetchIsInstanceOwner()) effectiveRole.value = t("profile.roles.instanceOwner");
     else if (userStore.isFamilyAdmin) effectiveRole.value = t("profile.roles.familyAdmin");
     else effectiveRole.value = t("profile.roles.familyMember");
 }
@@ -128,7 +128,7 @@ async function deleteAccountNow() {
     } catch (err: any) {
         const message = err?.data?.message ?? err?.message ?? t("profile.errors.deleteAccountFailed");
         toast.error(message);
-        throw new Error(message);
+        throw new Error(message, {cause: err});
     }
 }
 

@@ -59,6 +59,7 @@ export async function seedUserCategories(prisma: any, userId: string, faker: Fak
     const categories: Array<{id: string}> = [];
 
     for (let i = 0; i < categoryNames.length; i++) {
+        // oxlint-disable-next-line no-await-in-loop
         const category = await prisma.userCategories.create({
             data: {
                 id: Bun.randomUUIDv7(),

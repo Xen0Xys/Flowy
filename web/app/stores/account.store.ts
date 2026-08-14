@@ -54,7 +54,7 @@ export const useAccountStore = defineStore("account", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.fetchAccounts");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -70,7 +70,7 @@ export const useAccountStore = defineStore("account", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.fetchAccount");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -90,7 +90,7 @@ export const useAccountStore = defineStore("account", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.createAccount");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -111,7 +111,7 @@ export const useAccountStore = defineStore("account", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.deleteAccount");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -137,7 +137,7 @@ export const useAccountStore = defineStore("account", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.updateAccount");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -156,7 +156,7 @@ export const useAccountStore = defineStore("account", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.fetchEvolution");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

@@ -76,7 +76,7 @@ export const useBudgetStore = defineStore("budget", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("budget.store.errors.fetchBudget");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             } finally {
                 this.isLoading = false;
             }
@@ -98,7 +98,7 @@ export const useBudgetStore = defineStore("budget", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("budget.store.errors.createBudget");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -118,7 +118,7 @@ export const useBudgetStore = defineStore("budget", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("budget.store.errors.updateBudget");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -136,7 +136,7 @@ export const useBudgetStore = defineStore("budget", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("budget.store.errors.deleteBudget");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -151,7 +151,7 @@ export const useBudgetStore = defineStore("budget", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("budget.store.errors.fetchSpending");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -166,7 +166,7 @@ export const useBudgetStore = defineStore("budget", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("budget.store.errors.fetchAvailableMonths");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

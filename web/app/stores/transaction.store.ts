@@ -116,7 +116,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -134,7 +134,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -148,7 +148,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -207,7 +207,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -227,7 +227,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createTransaction");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -244,7 +244,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.testBulkTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -266,7 +266,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createBulkTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -286,7 +286,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.updateTransaction");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -315,7 +315,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.deleteTransaction");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -335,7 +335,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createTransfer");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -354,7 +354,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.unlinkTransfer");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -376,7 +376,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.linkTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

@@ -1,20 +1,20 @@
 {
     "name": "flowy-monorepo",
     "version": "1.1.6",
-    "type": "module",
-    "author": "Tom CZEKAJ aka Xen0Xys",
     "license": "CC-BY-NC-SA-4.0",
+    "author": "Tom CZEKAJ aka Xen0Xys",
+    "workspaces": [
+        "./*"
+    ],
+    "type": "module",
     "scripts": {
         "lint": "oxlint . && oxfmt --check .",
         "lint:fix": "oxlint --fix . && oxfmt --write ."
     },
-    "workspaces": [
-        "./*"
-    ],
     "devDependencies": {
         "@types/bun": "^1.3.14",
-        "oxfmt": "^0.54.0",
-        "oxlint": "^1.69.0"
+        "oxfmt": "^0.63.0",
+        "oxlint": "^1.78.0"
     },
     "peerDependencies": {
         "typescript": "^6.0.3"

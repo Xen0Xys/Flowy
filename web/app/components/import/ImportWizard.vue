@@ -272,7 +272,7 @@ function applyMappingAndParse() {
     const duplicateMap = detectInternalDuplicates(transactions);
     for (const [, ids] of duplicateMap) {
         for (let i = 1; i < ids.length; i++) {
-            const tx = transactions.find((t) => t.id === ids[i]);
+            const tx = transactions.find((_t) => _t.id === ids[i]);
             if (tx) {
                 tx.status = "duplicate_internal";
                 tx.duplicateOf = ids[0];

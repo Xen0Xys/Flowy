@@ -55,7 +55,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.fetchReferences");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             } finally {
                 this.isLoading = false;
             }
@@ -84,7 +84,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.createCategory");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -108,7 +108,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.updateCategory");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -128,7 +128,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteCategory");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -150,7 +150,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.createMerchant");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -174,7 +174,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.updateMerchant");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -194,7 +194,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteMerchant");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

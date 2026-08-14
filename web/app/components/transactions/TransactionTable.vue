@@ -3,11 +3,14 @@ import {computed, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {
     type ColumnDef,
+    columnVisibilityFeature,
+    createSortedRowModel,
     FlexRender,
-    getCoreRowModel,
-    getSortedRowModel,
+    rowSortingFeature,
+    sortFns,
     type SortingState,
-    useVueTable,
+    tableFeatures,
+    useTable,
 } from "@tanstack/vue-table";
 import {useMediaQuery} from "@vueuse/core";
 import {cn} from "~/lib/utils";
@@ -20,7 +23,7 @@ import {Button} from "~/components/ui/button";
 import {Badge} from "~/components/ui/badge";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
 import {Skeleton} from "~/components/ui/skeleton";
-import {valueUpdater} from "~/components/ui/table/utils";
+import {valueUpdater} from "~/lib/table";
 
 const props = defineProps<{
     transactions: Transaction[];
@@ -114,7 +117,15 @@ const columns = computed<ColumnDef<Transaction>[]>(() => {
     return [baseColumns[0], accountColumn, ...baseColumns.slice(1)];
 });
 
-const table = useVueTable({
+const features = tableFeatures({
+    rowSortingFeature,
+    columnVisibilityFeature,
+    sortedRowModel: createSortedRowModel(),
+    sortFns,
+});
+
+const table = useTable({
+    features,
     get data() {
         return props.transactions;
     },
@@ -127,8 +138,6 @@ const table = useVueTable({
         },
     },
     onSortingChange: (updater) => valueUpdater(updater, sorting),
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
 });
 </script>
 

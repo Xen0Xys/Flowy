@@ -37,7 +37,10 @@ export default defineNuxtConfig({
     },
     compatibilityDate: "2025-07-15",
     devtools: {enabled: true},
-    css: ["@/assets/css/main.css"],
+    css: ["@/assets/css/main.css", "vue-sonner/style.css"],
+    app: {
+        pageTransition: {name: "page", mode: "out-in"},
+    },
     vite: {
         plugins: [
             // @ts-ignore
@@ -91,6 +94,17 @@ export default defineNuxtConfig({
     colorMode: {
         preference: "dark",
         classSuffix: "",
+    },
+    icon: {
+        serverBundle: {
+            collections: ["iconoir", "svg-spinners"],
+        },
+        clientBundle: {
+            scan: {
+                globInclude: ["**/*.{vue,jsx,tsx,ts,js,md,mdc,mdx}"],
+            },
+            sizeLimitKb: 512,
+        },
     },
     shadcn: {
         prefix: "",

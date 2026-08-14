@@ -69,6 +69,7 @@ export async function seedBudgetsForUser(
                 fractionDigits: 2,
             });
 
+            // oxlint-disable-next-line no-await-in-loop
             const budget = await tx.budgets.upsert({
                 where: {
                     user_id_month_year: {
@@ -93,6 +94,7 @@ export async function seedBudgetsForUser(
 
             budgetsCount += 1;
 
+            // oxlint-disable-next-line no-await-in-loop
             await tx.budgetedCategories.deleteMany({
                 where: {
                     budget_id: budget.id,
@@ -108,6 +110,7 @@ export async function seedBudgetsForUser(
             const selectedCategoryIds = pickUniqueCategoryIds(categories, linesCount, faker);
 
             if (selectedCategoryIds.length > 0) {
+                // oxlint-disable-next-line no-await-in-loop
                 await tx.budgetedCategories.createMany({
                     data: selectedCategoryIds.map((categoryId) => ({
                         budget_id: budget.id,

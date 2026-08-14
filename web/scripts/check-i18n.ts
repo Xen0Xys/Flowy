@@ -44,6 +44,7 @@ const getAllFiles = async (directory: string): Promise<string[]> => {
         const fullPath = path.join(directory, entry.name);
 
         if (entry.isDirectory()) {
+            // oxlint-disable-next-line no-await-in-loop
             files.push(...(await getAllFiles(fullPath)));
             continue;
         }
@@ -66,6 +67,7 @@ const collectUsedKeys = async (): Promise<UsageCollection> => {
     const dynamicPrefixes = new Set<string>();
 
     for (const filePath of sourceFiles) {
+        // oxlint-disable-next-line no-await-in-loop
         const content = await readFile(filePath, "utf8");
         const matches = content.matchAll(TRANSLATION_CALL_PATTERN);
 
@@ -97,6 +99,7 @@ const readLocaleFiles = async (): Promise<Map<string, Set<string>>> => {
 
     for (const localeFile of localeFiles) {
         const localePath = path.join(LOCALES_DIR, localeFile.name);
+        // oxlint-disable-next-line no-await-in-loop
         const rawContent = await readFile(localePath, "utf8");
         const parsed = JSON.parse(rawContent) as JsonValue;
         const localeCode = path.parse(localeFile.name).name;
@@ -194,6 +197,7 @@ const main = async (): Promise<void> => {
     }
 
     if (dynamicPrefixes.size > 0) {
+        // oxlint-disable-next-line no-console
         console.log(
             `Detected ${dynamicPrefixes.size} dynamic i18n key prefix(es): ${[...dynamicPrefixes].sort().join(", ")}`,
         );
@@ -208,6 +212,7 @@ const main = async (): Promise<void> => {
         process.exit(1);
     }
 
+    // oxlint-disable-next-line no-console
     console.log(
         `I18n check passed. ${staticKeys.size} static used keys found across ${localeEntries.length} locale files.`,
     );

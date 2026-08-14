@@ -4,12 +4,18 @@ import {useI18n} from "vue-i18n";
 import {useClipboard} from "@vueuse/core";
 import {
     type ColumnDef,
+    columnFilteringFeature,
+    columnVisibilityFeature,
+    createFilteredRowModel,
+    createSortedRowModel,
+    filterFns,
     FlexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getSortedRowModel,
+    globalFilteringFeature,
+    rowSortingFeature,
+    sortFns,
     type SortingState,
-    useVueTable,
+    tableFeatures,
+    useTable,
 } from "@tanstack/vue-table";
 import {Copy, Eye, KeyRound, MoreHorizontal, Trash2} from "lucide-vue-next";
 import {toast} from "vue-sonner";
@@ -34,7 +40,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {valueUpdater} from "@/components/ui/table/utils";
+import {valueUpdater} from "@/lib/table";
 import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
 
 type AdminUser = {
@@ -94,7 +100,19 @@ const columns = computed<ColumnDef<AdminUser>[]>(() => [
     },
 ]);
 
-const table = useVueTable({
+const features = tableFeatures({
+    rowSortingFeature,
+    columnFilteringFeature,
+    columnVisibilityFeature,
+    globalFilteringFeature,
+    sortedRowModel: createSortedRowModel(),
+    filteredRowModel: createFilteredRowModel(),
+    sortFns,
+    filterFns,
+});
+
+const table = useTable({
+    features,
     get data() {
         return users.value;
     },
@@ -111,9 +129,6 @@ const table = useVueTable({
     },
     onGlobalFilterChange: (updater) => valueUpdater(updater, globalFilter),
     onSortingChange: (updater) => valueUpdater(updater, sorting),
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     globalFilterFn: (row, _columnId, filterValue) => {
         const query = String(filterValue ?? "")
             .trim()
@@ -387,153 +402,153 @@ async function copyUserId(id: string) {
                 </ScrollArea>
             </div>
         </div>
-    </div>
 
-    <Dialog :open="Boolean(detailsState)" @update:open="(open) => !open && (detailsState = null)">
-        <DialogContent class="max-w-lg">
-            <DialogHeader>
-                <DialogTitle>{{ t("settings.users.detailsTitle") }}</DialogTitle>
-                <DialogDescription>{{ t("settings.users.detailsDescription") }}</DialogDescription>
-            </DialogHeader>
-            <div v-if="detailsState" class="grid gap-3 text-sm">
-                <div>
-                    <p class="text-muted-foreground">{{ t("auth.common.username") }}</p>
-                    <p class="font-medium">{{ detailsState.user.username }}</p>
-                </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("auth.common.email") }}</p>
-                    <p class="font-medium">{{ detailsState.user.email }}</p>
-                </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.users.uuid") }}</p>
-                    <div class="flex items-center gap-2">
-                        <p
-                            :title="detailsState.user.id"
-                            class="text-muted-foreground max-w-65 truncate font-mono text-xs">
-                            {{ detailsState.user.id }}
+        <Dialog :open="Boolean(detailsState)" @update:open="(open) => !open && (detailsState = null)">
+            <DialogContent class="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{{ t("settings.users.detailsTitle") }}</DialogTitle>
+                    <DialogDescription>{{ t("settings.users.detailsDescription") }}</DialogDescription>
+                </DialogHeader>
+                <div v-if="detailsState" class="grid gap-3 text-sm">
+                    <div>
+                        <p class="text-muted-foreground">{{ t("auth.common.username") }}</p>
+                        <p class="font-medium">{{ detailsState.user.username }}</p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("auth.common.email") }}</p>
+                        <p class="font-medium">{{ detailsState.user.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.users.uuid") }}</p>
+                        <div class="flex items-center gap-2">
+                            <p
+                                :title="detailsState.user.id"
+                                class="text-muted-foreground max-w-65 truncate font-mono text-xs">
+                                {{ detailsState.user.id }}
+                            </p>
+                            <Button
+                                aria-label="Copy user UUID"
+                                class="h-7 w-7"
+                                size="icon"
+                                variant="ghost"
+                                @click="copyUserId(detailsState.user.id)">
+                                <Copy class="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                    <div class="border-t pt-3" />
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.users.familyRole") }}</p>
+                        <p class="font-medium">
+                            {{ getDetailsFamilyRoleLabel(detailsState) }}
                         </p>
-                        <Button
-                            aria-label="Copy user UUID"
-                            class="h-7 w-7"
-                            size="icon"
-                            variant="ghost"
-                            @click="copyUserId(detailsState.user.id)">
-                            <Copy class="h-3.5 w-3.5" />
-                        </Button>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.users.familyId") }}</p>
+                        <div v-if="detailsState.user.familyId" class="flex items-center gap-2">
+                            <p
+                                :title="detailsState.user.familyId"
+                                class="text-muted-foreground max-w-65 truncate font-mono text-xs">
+                                {{ detailsState.user.familyId }}
+                            </p>
+                            <Button
+                                aria-label="Copy family UUID"
+                                class="h-7 w-7"
+                                size="icon"
+                                variant="ghost"
+                                @click="copyUserId(detailsState.user.familyId)">
+                                <Copy class="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                        <p v-else class="font-medium">-</p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.users.familyName") }}</p>
+                        <p class="font-medium">
+                            {{ loadingDetails ? t("common.loading") : (detailsState.family?.name ?? "-") }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.users.familyCurrency") }}</p>
+                        <p class="font-medium">
+                            {{ loadingDetails ? t("common.loading") : (detailsState.family?.currency ?? "-") }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.users.familyOwner") }}</p>
+                        <p class="font-medium">
+                            {{ loadingDetails ? t("common.loading") : (detailsState.family?.owner?.username ?? "-") }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground">{{ t("settings.family.members") }}</p>
+                        <p class="font-medium">
+                            {{
+                                loadingDetails
+                                    ? t("common.loading")
+                                    : detailsState.family
+                                      ? (detailsState.family.members?.length as number) + 1
+                                      : "-"
+                            }}
+                        </p>
                     </div>
                 </div>
-                <div class="border-t pt-3" />
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.users.familyRole") }}</p>
-                    <p class="font-medium">
-                        {{ getDetailsFamilyRoleLabel(detailsState) }}
-                    </p>
+                <DialogFooter>
+                    <Button variant="outline" @click="detailsState = null">{{ t("common.close") }}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog :open="Boolean(resetDialogUser)" @update:open="(open) => !open && (resetDialogUser = null)">
+            <DialogContent class="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{{ t("settings.users.resetPassword") }}</DialogTitle>
+                    <DialogDescription v-if="resetDialogUser">
+                        {{ t("settings.users.resetPasswordFor", {username: resetDialogUser.username}) }}
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid gap-2">
+                    <Input v-model="resetPasswordValue" :placeholder="t('settings.users.newPassword')" type="password" />
                 </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.users.familyId") }}</p>
-                    <div v-if="detailsState.user.familyId" class="flex items-center gap-2">
-                        <p
-                            :title="detailsState.user.familyId"
-                            class="text-muted-foreground max-w-65 truncate font-mono text-xs">
-                            {{ detailsState.user.familyId }}
-                        </p>
-                        <Button
-                            aria-label="Copy family UUID"
-                            class="h-7 w-7"
-                            size="icon"
-                            variant="ghost"
-                            @click="copyUserId(detailsState.user.familyId)">
-                            <Copy class="h-3.5 w-3.5" />
-                        </Button>
-                    </div>
-                    <p v-else class="font-medium">-</p>
-                </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.users.familyName") }}</p>
-                    <p class="font-medium">
-                        {{ loadingDetails ? t("common.loading") : (detailsState.family?.name ?? "-") }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.users.familyCurrency") }}</p>
-                    <p class="font-medium">
-                        {{ loadingDetails ? t("common.loading") : (detailsState.family?.currency ?? "-") }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.users.familyOwner") }}</p>
-                    <p class="font-medium">
-                        {{ loadingDetails ? t("common.loading") : (detailsState.family?.owner?.username ?? "-") }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-muted-foreground">{{ t("settings.family.members") }}</p>
-                    <p class="font-medium">
+                <DialogFooter>
+                    <Button variant="outline" @click="resetDialogUser = null">{{ t("common.cancel") }}</Button>
+                    <Button :disabled="isResettingCurrentUser" @click="handleResetPassword">
+                        <span v-if="!isResettingCurrentUser">{{ t("settings.users.resetPassword") }}</span>
+                        <span v-else>{{ t("settings.users.resetting") }}</span>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <AlertDialog :open="Boolean(deleteDialogUser)" @update:open="(open) => !open && (deleteDialogUser = null)">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ t("settings.users.deleteUser") }}</AlertDialogTitle>
+                    <AlertDialogDescription v-if="deleteDialogUser">
                         {{
-                            loadingDetails
-                                ? t("common.loading")
-                                : detailsState.family
-                                  ? (detailsState.family.members?.length as number) + 1
-                                  : "-"
+                            t("settings.users.deletePromptWithName", {
+                                username: deleteDialogUser.username,
+                            })
                         }}
-                    </p>
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" @click="detailsState = null">{{ t("common.close") }}</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-
-    <Dialog :open="Boolean(resetDialogUser)" @update:open="(open) => !open && (resetDialogUser = null)">
-        <DialogContent class="max-w-md">
-            <DialogHeader>
-                <DialogTitle>{{ t("settings.users.resetPassword") }}</DialogTitle>
-                <DialogDescription v-if="resetDialogUser">
-                    {{ t("settings.users.resetPasswordFor", {username: resetDialogUser.username}) }}
-                </DialogDescription>
-            </DialogHeader>
-            <div class="grid gap-2">
-                <Input v-model="resetPasswordValue" :placeholder="t('settings.users.newPassword')" type="password" />
-            </div>
-            <DialogFooter>
-                <Button variant="outline" @click="resetDialogUser = null">{{ t("common.cancel") }}</Button>
-                <Button :disabled="isResettingCurrentUser" @click="handleResetPassword">
-                    <span v-if="!isResettingCurrentUser">{{ t("settings.users.resetPassword") }}</span>
-                    <span v-else>{{ t("settings.users.resetting") }}</span>
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-
-    <AlertDialog :open="Boolean(deleteDialogUser)" @update:open="(open) => !open && (deleteDialogUser = null)">
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>{{ t("settings.users.deleteUser") }}</AlertDialogTitle>
-                <AlertDialogDescription v-if="deleteDialogUser">
-                    {{
-                        t("settings.users.deletePromptWithName", {
-                            username: deleteDialogUser.username,
-                        })
-                    }}
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                <Button
-                    :disabled="
-                        Boolean(
-                            deleteDialogUser &&
-                            (deleteDialogUser.id === instanceOwnerId || deletingId === deleteDialogUser.id),
-                        )
-                    "
-                    variant="destructive"
-                    @click="handleDelete"
-                    >{{ t("common.delete") }}</Button
-                >
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                    <Button
+                        :disabled="
+                            Boolean(
+                                deleteDialogUser &&
+                                (deleteDialogUser.id === instanceOwnerId || deletingId === deleteDialogUser.id),
+                            )
+                        "
+                        variant="destructive"
+                        @click="handleDelete"
+                        >{{ t("common.delete") }}</Button
+                    >
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
 </template>
 
 <style scoped>

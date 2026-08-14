@@ -28,7 +28,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -48,7 +48,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.createFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -66,7 +66,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.createInvite");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -79,7 +79,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchInvites");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -95,7 +95,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.revokeInvite");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -113,7 +113,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.joinFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -129,7 +129,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.leaveFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -151,7 +151,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.updateFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -173,11 +173,11 @@ export const useFamilyStore = defineStore("family", {
                 if (err?.status === 404 || err?.response?.status === 404) {
                     const msg = i18nT("family.store.errors.removeMemberEndpointMissing");
                     toast.error(msg);
-                    throw new Error(msg);
+                    throw new Error(msg, {cause: err});
                 }
                 const message = err?.message ?? i18nT("family.store.errors.removeMember");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -196,11 +196,11 @@ export const useFamilyStore = defineStore("family", {
                 if (err?.status === 404 || err?.response?.status === 404) {
                     const msg = i18nT("family.store.errors.deleteFamilyEndpointMissing");
                     toast.error(msg);
-                    throw new Error(msg);
+                    throw new Error(msg, {cause: err});
                 }
                 const message = err?.message ?? i18nT("family.store.errors.deleteFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -213,7 +213,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

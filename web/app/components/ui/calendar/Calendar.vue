@@ -71,7 +71,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 </div>
                 <NativeSelect
                     class="relative h-8 pr-6 pl-2 text-xs text-transparent"
-                    :model-value="date.month"
                     @change="
                         (e: Event) => {
                             placeholder = placeholder.set({
@@ -99,7 +98,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 </div>
                 <NativeSelect
                     class="relative h-8 pr-6 pl-2 text-xs text-transparent"
-                    :model-value="date.year"
                     @change="
                         (e: Event) => {
                             placeholder = placeholder.set({
@@ -124,7 +122,12 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         v-bind="forwarded"
         v-model:placeholder="placeholder"
         data-slot="calendar"
-        :class="cn('p-3', props.class)">
+        :class="
+            cn(
+                'group/calendar bg-background p-3 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(8)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent',
+                props.class,
+            )
+        ">
         <CalendarHeader class="pt-0">
             <nav class="absolute inset-x-0 top-0 flex items-center justify-between gap-1">
                 <CalendarPrevButton>

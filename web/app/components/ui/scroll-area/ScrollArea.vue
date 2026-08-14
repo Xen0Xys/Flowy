@@ -6,11 +6,9 @@ import {ScrollAreaCorner, ScrollAreaRoot, ScrollAreaViewport} from "reka-ui";
 import {cn} from "@/lib/utils";
 import ScrollBar from "./ScrollBar.vue";
 
-const props = defineProps<
-    ScrollAreaRootProps & {class?: HTMLAttributes["class"]; scrollbarClass?: HTMLAttributes["class"]}
->();
+const props = defineProps<ScrollAreaRootProps & {class?: HTMLAttributes["class"]}>();
 
-const delegatedProps = reactiveOmit(props, "class", "scrollbarClass");
+const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
@@ -20,7 +18,7 @@ const delegatedProps = reactiveOmit(props, "class", "scrollbarClass");
             class="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-3 focus-visible:outline-1">
             <slot />
         </ScrollAreaViewport>
-        <ScrollBar :class="scrollbarClass" />
+        <ScrollBar />
         <ScrollAreaCorner />
     </ScrollAreaRoot>
 </template>

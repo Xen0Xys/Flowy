@@ -41,6 +41,7 @@ export async function seedUsers(prisma: any, familyIds: string[] = [], faker: Fa
 
     // upsert users one by one to ensure relations work and keep idempotency
     for (const u of users) {
+        // oxlint-disable-next-line no-await-in-loop
         await prisma.users.upsert({
             where: {id: u.id},
             create: {

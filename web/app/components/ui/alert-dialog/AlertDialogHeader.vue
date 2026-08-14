@@ -8,7 +8,14 @@ const props = defineProps<{
 </script>
 
 <template>
-    <div data-slot="alert-dialog-header" :class="cn('flex flex-col gap-2 text-center sm:text-left', props.class)">
+    <div
+        data-slot="alert-dialog-header"
+        :class="
+            cn(
+                'grid grid-rows-[auto_1fr] place-items-center gap-1.5 text-center has-data-[slot=alert-dialog-media]:grid-rows-[auto_auto_1fr] has-data-[slot=alert-dialog-media]:gap-x-6 sm:group-data-[size=default]/alert-dialog-content:place-items-start sm:group-data-[size=default]/alert-dialog-content:text-left sm:group-data-[size=default]/alert-dialog-content:has-data-[slot=alert-dialog-media]:grid-rows-[auto_1fr]',
+                props.class,
+            )
+        ">
         <slot />
     </div>
 </template>

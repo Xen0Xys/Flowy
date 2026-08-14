@@ -1,3 +1,4 @@
+// oxlint-disable no-await-in-loop
 import {Faker} from "@faker-js/faker";
 import {PrismaClient} from "../generated/client";
 

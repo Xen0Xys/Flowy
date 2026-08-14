@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {PaginationNextProps} from "reka-ui";
+
 import type {HTMLAttributes} from "vue";
 import type {ButtonVariants} from "@/components/ui/button";
 import {ChevronRightIcon} from "@lucide/vue";
@@ -27,11 +28,11 @@ const forwarded = useForwardProps(delegatedProps);
 <template>
     <PaginationNext
         data-slot="pagination-next"
-        :class="cn(buttonVariants({variant: 'ghost', size}), 'gap-1 px-2.5 sm:pr-2.5', props.class)"
+        :class="cn(buttonVariants({variant: 'ghost', size}), 'pr-2!', props.class)"
         v-bind="forwarded">
         <slot>
             <span class="hidden sm:block">Next</span>
-            <ChevronRightIcon />
+            <ChevronRightIcon data-icon="inline-end" class="cn-rtl-flip" />
         </slot>
     </PaginationNext>
 </template>

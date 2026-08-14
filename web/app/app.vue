@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import "vue-sonner/style.css";
 import {computed} from "vue";
 import {useI18n} from "vue-i18n";
 import {useHead, useRoute} from "#app";
