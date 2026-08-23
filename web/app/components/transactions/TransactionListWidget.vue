@@ -9,6 +9,7 @@ import {
     type TransactionSearchFilters,
     useTransactionStore,
 } from "~/stores/transaction.store";
+import {useReferenceStore} from "~/stores/reference.store";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
@@ -33,6 +34,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n();
 const transactionStore = useTransactionStore();
+const referenceStore = useReferenceStore();
 const route = useRoute();
 
 const isTransactionModalOpen = ref(false);
@@ -48,25 +50,17 @@ const filters = ref<TransactionFilters>({
     dateRange: {start: undefined, end: undefined},
 });
 
-const availableCategories = computed(() => {
-    const categoriesMap = new Map<string, {id: string; name: string}>();
-    for (const tx of transactions.value) {
-        if (tx.category && !categoriesMap.has(tx.category.id)) {
-            categoriesMap.set(tx.category.id, {id: tx.category.id, name: tx.category.name});
-        }
-    }
-    return Array.from(categoriesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-});
+const availableCategories = computed(() =>
+    referenceStore.categories
+        .map((category) => ({id: category.id, name: category.name}))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+);
 
-const availableMerchants = computed(() => {
-    const merchantsMap = new Map<string, {id: string; name: string}>();
-    for (const tx of transactions.value) {
-        if (tx.merchant && !merchantsMap.has(tx.merchant.id)) {
-            merchantsMap.set(tx.merchant.id, {id: tx.merchant.id, name: tx.merchant.name});
-        }
-    }
-    return Array.from(merchantsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-});
+const availableMerchants = computed(() =>
+    referenceStore.merchants
+        .map((merchant) => ({id: merchant.id, name: merchant.name}))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+);
 
 const accountNameById = computed(() => {
     return Object.fromEntries((props.availableAccounts || []).map((account) => [account.id, account.name]));
@@ -207,6 +201,7 @@ onMounted(() => {
         };
     }
 
+    referenceStore.fetchReferences().catch((err) => console.error(err));
     fetchFirstPage();
 
     if (!process.client) {
