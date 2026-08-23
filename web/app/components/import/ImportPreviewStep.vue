@@ -269,18 +269,18 @@ async function submitMerchant() {
                     <span class="text-muted-foreground text-sm">{{ t("import.preview.stats.total") }}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <Icon class="h-4 w-4 text-green-500" name="iconoir:check-circle" />
-                    <span class="font-medium text-green-600 dark:text-green-400">{{ stats.willImport }}</span>
+                    <Icon class="text-success h-4 w-4" name="iconoir:check-circle" />
+                    <span class="text-success font-medium tabular-nums">{{ stats.willImport }}</span>
                     <span class="text-muted-foreground text-sm">{{ t("import.preview.stats.willImport") }}</span>
                 </div>
                 <div v-if="stats.duplicates > 0" class="flex items-center gap-2">
-                    <Icon class="h-4 w-4 text-orange-500" name="iconoir:warning-triangle" />
-                    <span class="font-medium text-orange-600 dark:text-orange-400">{{ stats.duplicates }}</span>
+                    <Icon class="text-warning h-4 w-4" name="iconoir:warning-triangle" />
+                    <span class="text-warning font-medium tabular-nums">{{ stats.duplicates }}</span>
                     <span class="text-muted-foreground text-sm">{{ t("import.preview.stats.duplicates") }}</span>
                 </div>
                 <div v-if="stats.dbDups > 0" class="flex items-center gap-2">
-                    <Icon class="h-4 w-4 text-red-500" name="iconoir:database" />
-                    <span class="font-medium text-red-600 dark:text-red-400">{{ stats.dbDups }}</span>
+                    <Icon class="text-destructive h-4 w-4" name="iconoir:database" />
+                    <span class="text-destructive font-medium tabular-nums">{{ stats.dbDups }}</span>
                     <span class="text-muted-foreground text-sm">{{ t("import.preview.stats.dbDuplicates") }}</span>
                 </div>
                 <div v-if="stats.errors > 0" class="flex items-center gap-2">
@@ -316,8 +316,8 @@ async function submitMerchant() {
                         :class="
                             cn(
                                 transaction.status === 'error' && 'opacity-50',
-                                transaction.status === 'duplicate_internal' && 'bg-orange-500/5',
-                                transaction.status === 'duplicate_db' && 'bg-red-500/5',
+                                transaction.status === 'duplicate_internal' && 'bg-warning/5',
+                                transaction.status === 'duplicate_db' && 'bg-destructive/5',
                             )
                         ">
                         <TableCell class="text-muted-foreground">
@@ -333,10 +333,8 @@ async function submitMerchant() {
                             <span
                                 :class="
                                     cn(
-                                        'font-medium',
-                                        transaction.amount > 0
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400',
+                                        'font-medium tabular-nums',
+                                        transaction.amount > 0 ? 'text-success' : 'text-destructive',
                                     )
                                 ">
                                 {{ transaction.amount.toFixed(2) }}

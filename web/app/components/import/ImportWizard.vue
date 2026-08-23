@@ -462,9 +462,20 @@ const stats = computed(() => {
         <!-- Header -->
         <div class="border-b px-6 py-4">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-semibold">{{ t("import.title") }}</h1>
-                    <p class="text-muted-foreground text-sm">{{ t("import.subtitle") }}</p>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <span
+                            aria-hidden="true"
+                            class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
+                        <div
+                            class="bg-brand-gradient-soft border-border/60 relative flex size-10 items-center justify-center rounded-xl border">
+                            <Icon class="text-primary size-5" name="iconoir:upload" />
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-heading text-xl font-semibold tracking-tight">{{ t("import.title") }}</h1>
+                        <p class="text-muted-foreground text-sm">{{ t("import.subtitle") }}</p>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <Button v-if="canGoBack && !isInitializing" variant="ghost" @click="goBack">
@@ -483,18 +494,28 @@ const stats = computed(() => {
                     <div
                         :class="
                             cn(
-                                'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium',
+                                'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all duration-300',
                                 currentStep === step || (currentStep === 'result' && index <= 3)
-                                    ? 'bg-primary text-primary-foreground'
+                                    ? 'bg-brand-gradient shadow-glow text-white'
                                     : (['upload', 'config', 'mapping', 'preview'] as string[]).indexOf(currentStep) >
                                         index
-                                      ? 'bg-primary/20 text-primary'
+                                      ? 'bg-brand-gradient-soft text-primary'
                                       : 'bg-muted text-muted-foreground',
                             )
                         ">
                         {{ index + 1 }}
                     </div>
-                    <div v-if="index < 3" class="bg-muted h-0.5 w-8" />
+                    <div
+                        v-if="index < 3"
+                        :class="
+                            cn(
+                                'h-0.5 w-8 transition-all duration-500',
+                                (['upload', 'config', 'mapping', 'preview'] as string[]).indexOf(currentStep) > index ||
+                                    currentStep === 'result'
+                                    ? 'bg-brand-gradient'
+                                    : 'bg-muted',
+                            )
+                        " />
                 </template>
             </div>
         </div>
