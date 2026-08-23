@@ -1,0 +1,199 @@
+/* ============================================================
+   Flowy motion vocabulary
+   - Discreet, functional motion
+   - Respects prefers-reduced-motion
+   ============================================================ */
+
+/* ---------- Global page transition ---------- */
+.page-enter-active,
+.page-leave-active {
+    transition:
+        opacity var(--motion-base) var(--ease-out-expo),
+        transform var(--motion-base) var(--ease-out-expo);
+}
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(6px);
+}
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+/* ---------- Vue transition helpers (usable via <transition name="..."/>) ---------- */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity var(--motion-base) var(--ease-standard);
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition:
+        opacity var(--motion-base) var(--ease-out-expo),
+        transform var(--motion-base) var(--ease-out-expo);
+}
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+}
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.slide-x-enter-active,
+.slide-x-leave-active {
+    transition:
+        opacity var(--motion-base) var(--ease-out-expo),
+        transform var(--motion-base) var(--ease-out-expo);
+}
+.slide-x-enter-from {
+    opacity: 0;
+    transform: translateX(12px);
+}
+.slide-x-leave-to {
+    opacity: 0;
+    transform: translateX(-12px);
+}
+
+/* ---------- Utility classes ---------- */
+.animate-fade-in {
+    animation: flowy-fade-in var(--motion-base) var(--ease-out-expo) both;
+}
+.animate-fade-in-up {
+    animation: flowy-fade-in-up var(--motion-slow) var(--ease-out-expo) both;
+}
+.animate-fade-in-scale {
+    animation: flowy-fade-in-scale var(--motion-base) var(--ease-out-expo) both;
+}
+.animate-slide-in-right {
+    animation: flowy-slide-in-right var(--motion-slow) var(--ease-out-expo) both;
+}
+
+@keyframes flowy-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes flowy-fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes flowy-fade-in-scale {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes flowy-slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ---------- Stagger children ---------- */
+.stagger-children > * {
+    animation: flowy-fade-in-up var(--motion-slow) var(--ease-out-expo) both;
+    animation-delay: calc(var(--stagger-delay, 60ms) * var(--stagger-index, 0));
+}
+
+/* ---------- Skeleton shimmer (replaces animate-pulse for a nicer effect) ---------- */
+.flowy-shimmer {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.flowy-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        oklch(1 0 0 / 0.06) 40%,
+        oklch(1 0 0 / 0.12) 50%,
+        oklch(1 0 0 / 0.06) 60%,
+        transparent 100%
+    );
+    animation: flowy-shimmer 1.6s var(--ease-in-out) infinite;
+}
+:root .flowy-shimmer::after {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        oklch(0 0 0 / 0.03) 40%,
+        oklch(0 0 0 / 0.06) 50%,
+        oklch(0 0 0 / 0.03) 60%,
+        transparent 100%
+    );
+}
+.dark .flowy-shimmer::after {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        oklch(1 0 0 / 0.04) 40%,
+        oklch(1 0 0 / 0.08) 50%,
+        oklch(1 0 0 / 0.04) 60%,
+        transparent 100%
+    );
+}
+@keyframes flowy-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* ---------- Interactive polish ---------- */
+button,
+a,
+[role="button"] {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--ease-standard);
+}
+
+/* Focus rings: soft teal by default from token */
+:where(button, a, input, textarea, select, [role="button"]):focus-visible {
+    outline: 2px solid transparent;
+    box-shadow:
+        0 0 0 2px var(--background),
+        0 0 0 4px var(--ring);
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .flowy-shimmer::after {
+        display: none;
+    }
+}

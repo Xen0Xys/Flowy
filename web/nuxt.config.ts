@@ -66,7 +66,26 @@ export default defineNuxtConfig({
             ],
         },
     },
-    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "@nuxtjs/i18n", "shadcn-nuxt", "@pinia/nuxt", "nuxt-security"],
+    modules: [
+        "@nuxt/icon",
+        "@nuxt/fonts",
+        "@nuxtjs/color-mode",
+        "@nuxtjs/i18n",
+        "shadcn-nuxt",
+        "@pinia/nuxt",
+        "nuxt-security",
+    ],
+    fonts: {
+        families: [
+            {name: "Geist", provider: "google", weights: [400, 500, 600, 700], styles: ["normal"]},
+            {name: "Bricolage Grotesque", provider: "google", weights: [500, 600, 700, 800], styles: ["normal"]},
+        ],
+        defaults: {
+            weights: [400, 500, 600, 700],
+            styles: ["normal"],
+            subsets: ["latin", "latin-ext"],
+        },
+    },
     i18n: {
         strategy: "no_prefix",
         defaultLocale: "en",
