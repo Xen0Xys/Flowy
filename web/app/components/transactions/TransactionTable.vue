@@ -58,8 +58,8 @@ const formatDate = (dateString: string) => {
 };
 
 const amountClass = (value: number) => {
-    if (value < 0) return "text-red-500 dark:text-red-400";
-    if (value > 0) return "text-emerald-600 dark:text-emerald-500";
+    if (value < 0) return "text-destructive";
+    if (value > 0) return "text-success";
     return "text-foreground";
 };
 
@@ -197,7 +197,7 @@ const table = useTable({
                         :key="cell.id"
                         :class="[
                             isMobile || isCompactHeight ? 'h-[2.3125rem] py-0' : 'h-[2.6875rem] py-0',
-                            cell.column.id === 'amount' ? 'text-right' : '',
+                            cell.column.id === 'amount' ? 'text-right tabular-nums' : '',
                             cell.column.id === 'date' ? (isMobile ? 'w-[115px]' : 'w-[150px]') : '',
                             cell.column.id === 'account' ? 'w-[180px]' : '',
                             cell.column.id === 'category' ? 'w-[200px]' : '',
@@ -220,7 +220,7 @@ const table = useTable({
                                 v-else-if="row.original.linkedTransactionId"
                                 :title="String(cell.getValue())"
                                 class="flex min-w-0 items-center gap-1.5 font-medium">
-                                <Icon class="h-4 w-4 text-blue-500" name="iconoir:data-transfer-both" />
+                                <Icon class="text-accent h-4 w-4" name="iconoir:data-transfer-both" />
                                 <span class="block truncate">{{ cell.getValue() }}</span>
                             </span>
                             <span v-else :class="cn('block truncate font-medium')" :title="String(cell.getValue())">
