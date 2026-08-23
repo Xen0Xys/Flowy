@@ -2,20 +2,12 @@
 import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
 import FlowySidebar from "~/components/sidebar/FlowySidebar.vue";
 import AppBreadcrumb from "~/components/layout/AppBreadcrumb.vue";
-import {useRoute} from "vue-router";
-import {computed} from "vue";
-
-const route = useRoute();
-const showSidebar = computed(() => {
-    const p = route.path || "";
-    return !(p.startsWith("/auth") || p.startsWith("/onboarding"));
-});
 
 const defaultOpen = useCookie<boolean>("sidebar_state");
 </script>
 
 <template>
-    <main v-if="showSidebar" class="flex h-dvh w-full grow flex-col">
+    <main class="flex h-dvh w-full grow flex-col">
         <SidebarProvider :defaultOpen="defaultOpen">
             <SidebarWatcher />
             <FlowySidebar />
@@ -33,8 +25,5 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
                 </div>
             </SidebarInset>
         </SidebarProvider>
-    </main>
-    <main v-else class="flex h-dvh w-full grow flex-col">
-        <slot></slot>
     </main>
 </template>

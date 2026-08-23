@@ -7,14 +7,6 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {
-    Stepper,
-    StepperDescription,
-    StepperIndicator,
-    StepperItem,
-    StepperTitle,
-    StepperTrigger,
-} from "@/components/ui/stepper";
 import {Card, CardContent} from "@/components/ui/card";
 import {cn} from "@/lib/utils";
 import {
@@ -26,6 +18,12 @@ import {
 } from "@/lib/validation";
 import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
 
+definePageMeta({
+    layout: "onboarding",
+    pageTransition: {name: "fade", mode: "out-in"},
+    onboarding: {step: 0},
+});
+
 const router = useRouter();
 const familyStore = useFamilyStore();
 const {t} = useI18n();
@@ -33,18 +31,6 @@ const {t} = useI18n();
 const form = ref({name: "", currency: "EUR"});
 const loading = ref(false);
 const error = ref<string | null>(null);
-
-const steps = [
-    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
-    {title: t("onboarding.steps.createJoin.title"), description: t("onboarding.steps.createJoin.description")},
-    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
-];
-
-// stepper indexes the steps from 0 in the template loop, start at 0 so
-// the first step is active by default
-const active = ref(0);
-
-// rely on global background token
 
 function goBack() {
     router.push("/onboarding/select");
@@ -57,7 +43,6 @@ function validate() {
     if (!name) {
         const msg = t("onboarding.create.errors.familyNameRequired");
         toast.error(msg);
-        // remove inline error when using toast
         error.value = null;
         return false;
     }
@@ -97,7 +82,6 @@ async function submit() {
     } catch (err: any) {
         const msg = err?.data?.message ?? err?.message ?? t("onboarding.create.errors.createFailed");
         toast.error(msg);
-        // ensure no inline error is left visible when using toast
         error.value = null;
     } finally {
         loading.value = false;
@@ -106,94 +90,63 @@ async function submit() {
 </script>
 
 <template>
-    <div :class="cn('relative flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
-            <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
-            <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
-        </div>
-        <Card class="animate-fade-in-up py-0">
-            <CardContent class="p-3">
-                <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
-                    <template v-for="(s, i) in steps" :key="i">
-                        <StepperItem
-                            :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
-                            :step="i"
-                            class="flex">
-                            <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
-                                <div class="flex items-center gap-3">
-                                    <StepperIndicator>
-                                        <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
-                                    </StepperIndicator>
-                                    <div class="text-left">
-                                        <StepperTitle>{{ s.title }}</StepperTitle>
-                                        <StepperDescription>{{ s.description }}</StepperDescription>
-                                    </div>
-                                </div>
-                            </StepperTrigger>
-                        </StepperItem>
-                    </template>
-                </Stepper>
-            </CardContent>
-        </Card>
+    <Card :class="cn('w-full self-center', 'max-w-md')">
+        <CardContent>
+            <header class="text-center">
+                <h1 class="font-heading text-2xl font-semibold tracking-tight">
+                    {{ t("onboarding.create.title") }}
+                </h1>
+            </header>
+            <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
+                <FormItem>
+                    <FormField name="name">
+                        <FormLabel for="name">{{ t("onboarding.create.familyName") }}</FormLabel>
+                        <FormControl>
+                            <Input id="name" v-model="form.name" autofocus required />
+                        </FormControl>
+                        <FormMessage />
+                    </FormField>
+                </FormItem>
 
-        <Card :class="cn('animate-fade-in-scale w-full self-center', 'max-w-md')">
-            <CardContent>
-                <header class="text-center">
-                    <h1 class="font-heading text-2xl font-semibold tracking-tight">
-                        {{ t("onboarding.create.title") }}
-                    </h1>
-                </header>
-                <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-                    <FormItem>
-                        <FormField name="name">
-                            <FormLabel for="name">{{ t("onboarding.create.familyName") }}</FormLabel>
-                            <FormControl>
-                                <Input id="name" v-model="form.name" autofocus required />
-                            </FormControl>
-                            <FormMessage />
-                        </FormField>
-                    </FormItem>
+                <FormItem>
+                    <FormField name="currency">
+                        <FormLabel for="currency">{{ t("onboarding.create.currency") }}</FormLabel>
+                        <FormControl>
+                            <Select v-model="form.currency">
+                                <SelectTrigger id="currency">
+                                    <SelectValue :placeholder="t('onboarding.create.selectCurrency')" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <template v-for="code in Object.keys(CURRENCY_LOCALES_MAP)" :key="code">
+                                            <SelectItem :value="code">{{ code }}</SelectItem>
+                                        </template>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </FormControl>
+                        <FormMessage />
+                    </FormField>
+                </FormItem>
 
-                    <FormItem>
-                        <FormField name="currency">
-                            <FormLabel for="currency">{{ t("onboarding.create.currency") }}</FormLabel>
-                            <FormControl>
-                                <Select v-model="form.currency">
-                                    <SelectTrigger id="currency">
-                                        <SelectValue :placeholder="t('onboarding.create.selectCurrency')" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <template v-for="code in Object.keys(CURRENCY_LOCALES_MAP)" :key="code">
-                                                <SelectItem :value="code">{{ code }}</SelectItem>
-                                            </template>
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </FormControl>
-                            <FormMessage />
-                        </FormField>
-                    </FormItem>
+                <div v-if="error" class="text-destructive text-sm" role="alert">
+                    {{ error }}
+                </div>
 
-                    <div v-if="error" class="text-destructive text-sm" role="alert">
-                        {{ error }}
-                    </div>
-
-                    <div class="flex justify-between">
-                        <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">
-                            {{ t("common.back") }}
-                        </Button>
-                        <Button
-                            :as="'button'"
-                            :disabled="loading"
-                            class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
-                            type="submit">
-                            <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
-                            {{ loading ? t("onboarding.create.loading") : t("onboarding.create.create") }}
-                        </Button>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
-    </div>
+                <div class="flex justify-between">
+                    <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">
+                        {{ t("common.back") }}
+                    </Button>
+                    <Button
+                        :as="'button'"
+                        :disabled="loading"
+                        class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
+                        type="submit">
+                        <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
+                        {{ loading ? t("onboarding.create.loading") : t("onboarding.create.create") }}
+                    </Button>
+                </div>
+            </form>
+        </CardContent>
+    </Card>
 </template>

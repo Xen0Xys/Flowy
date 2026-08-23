@@ -5,18 +5,16 @@ import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {
-    Stepper,
-    StepperDescription,
-    StepperIndicator,
-    StepperItem,
-    StepperTitle,
-    StepperTrigger,
-} from "@/components/ui/stepper";
 import {Card, CardContent} from "~/components/ui/card";
 import {cn} from "@/lib/utils";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "~/components/ui/form";
 import {isValidEmail} from "@/lib/validation";
+
+definePageMeta({
+    layout: "onboarding",
+    pageTransition: {name: "fade", mode: "out-in"},
+    onboarding: {step: 2},
+});
 
 const router = useRouter();
 const familyStore = useFamilyStore();
@@ -26,14 +24,6 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const success = ref<string | null>(null);
 const invitedCount = ref(0);
-
-const steps = [
-    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
-    {title: t("onboarding.steps.createJoin.title"), description: t("onboarding.steps.createJoin.description")},
-    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
-];
-
-const active = ref(2);
 
 function validate() {
     const email = form.value.email.trim();
@@ -77,86 +67,54 @@ async function submit() {
 }
 
 function skip() {
-    // proceed to home even if no invites sent
     router.push("/");
 }
 </script>
 
 <template>
-    <div :class="cn('relative flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
-            <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
-            <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
-        </div>
-        <Card class="animate-fade-in-up py-0">
-            <CardContent class="p-3">
-                <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
-                    <template v-for="(s, i) in steps" :key="i">
-                        <StepperItem
-                            :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
-                            :step="i"
-                            class="flex">
-                            <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
-                                <div class="flex items-center gap-3">
-                                    <StepperIndicator>
-                                        <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
-                                    </StepperIndicator>
-                                    <div class="text-left">
-                                        <StepperTitle>{{ s.title }}</StepperTitle>
-                                        <StepperDescription>{{ s.description }}</StepperDescription>
-                                    </div>
-                                </div>
-                            </StepperTrigger>
-                        </StepperItem>
-                    </template>
-                </Stepper>
-            </CardContent>
-        </Card>
+    <Card :class="cn('w-full self-center', 'max-w-md')">
+        <CardContent>
+            <header class="text-center">
+                <h1 class="font-heading text-2xl font-semibold tracking-tight">
+                    {{ t("onboarding.invite.title") }}
+                </h1>
+            </header>
 
-        <Card :class="cn('animate-fade-in-scale w-full self-center', 'max-w-md')">
-            <CardContent>
-                <header class="text-center">
-                    <h1 class="font-heading text-2xl font-semibold tracking-tight">
-                        {{ t("onboarding.invite.title") }}
-                    </h1>
-                </header>
+            <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
+                <FormItem>
+                    <FormField name="email">
+                        <FormLabel for="email">{{ t("onboarding.invite.memberEmail") }}</FormLabel>
+                        <FormControl>
+                            <Input
+                                id="email"
+                                v-model="form.email"
+                                autofocus
+                                :placeholder="t('onboarding.invite.memberEmailPlaceholder')"
+                                required
+                                type="email" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormField>
+                </FormItem>
 
-                <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-                    <FormItem>
-                        <FormField name="email">
-                            <FormLabel for="email">{{ t("onboarding.invite.memberEmail") }}</FormLabel>
-                            <FormControl>
-                                <Input
-                                    id="email"
-                                    v-model="form.email"
-                                    autofocus
-                                    :placeholder="t('onboarding.invite.memberEmailPlaceholder')"
-                                    required
-                                    type="email" />
-                            </FormControl>
-                            <FormMessage />
-                        </FormField>
-                    </FormItem>
+                <div v-if="error" class="text-destructive text-sm" role="alert">
+                    {{ error }}
+                </div>
 
-                    <div v-if="error" class="text-destructive text-sm" role="alert">
-                        {{ error }}
-                    </div>
-
-                    <div class="flex items-center justify-end gap-2">
-                        <Button
-                            :as="'button'"
-                            :disabled="loading"
-                            class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
-                            type="submit">
-                            <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
-                            {{ loading ? t("onboarding.invite.sending") : t("onboarding.invite.send") }}
-                        </Button>
-                        <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">
-                            {{ invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip") }}
-                        </Button>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
-    </div>
+                <div class="flex items-center justify-end gap-2">
+                    <Button
+                        :as="'button'"
+                        :disabled="loading"
+                        class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
+                        type="submit">
+                        <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
+                        {{ loading ? t("onboarding.invite.sending") : t("onboarding.invite.send") }}
+                    </Button>
+                    <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">
+                        {{ invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip") }}
+                    </Button>
+                </div>
+            </form>
+        </CardContent>
+    </Card>
 </template>

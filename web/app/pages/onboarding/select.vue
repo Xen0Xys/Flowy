@@ -8,15 +8,12 @@ import {useApi} from "@/composables/useApi";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Card, CardContent} from "@/components/ui/card";
-import {
-    Stepper,
-    StepperDescription,
-    StepperIndicator,
-    StepperItem,
-    StepperTitle,
-    StepperTrigger,
-} from "@/components/ui/stepper";
-import {cn} from "@/lib/utils";
+
+definePageMeta({
+    layout: "onboarding",
+    pageTransition: {name: "fade", mode: "out-in"},
+    onboarding: {step: 1},
+});
 
 const router = useRouter();
 const store = useUserStore();
@@ -25,14 +22,6 @@ const {t} = useI18n();
 const code = ref("");
 const loading = ref(false);
 const error = ref<string | null>(null);
-
-const steps = [
-    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
-    {title: t("onboarding.steps.createJoin.title"), description: t("onboarding.steps.createJoin.description")},
-    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
-];
-
-const active = ref(1);
 
 function goCreate() {
     return router.push("/onboarding/create-family");
@@ -50,14 +39,12 @@ async function joinFamily() {
         await apiFetch(`/family/join/${encodeURIComponent(code.value)}`, {
             method: "POST",
         });
-        // refresh profile and go home
         try {
             await store.fetchProfile();
         } catch {
             // ignore profile refresh failures
         }
         toast.success(t("onboarding.select.toast.joined"));
-        // clear inline error when success is displayed via toast
         error.value = null;
         await router.push("/");
     } catch (err: any) {
@@ -71,87 +58,56 @@ async function joinFamily() {
 </script>
 
 <template>
-    <div :class="cn('relative flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
-            <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
-            <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
-        </div>
-        <Card class="animate-fade-in-up py-0">
-            <CardContent class="p-3">
-                <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
-                    <template v-for="(s, i) in steps" :key="i">
-                        <StepperItem
-                            :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
-                            :step="i"
-                            class="flex">
-                            <StepperTrigger class="px-3 py-2" @click="() => (active = i)">
-                                <div class="flex items-center gap-3">
-                                    <StepperIndicator>
-                                        <span class="inline-flex h-8 w-8 items-center justify-center">{{ i + 1 }}</span>
-                                    </StepperIndicator>
-                                    <div class="text-left">
-                                        <StepperTitle>{{ s.title }}</StepperTitle>
-                                        <StepperDescription>{{ s.description }}</StepperDescription>
-                                    </div>
-                                </div>
-                            </StepperTrigger>
-                        </StepperItem>
-                    </template>
-                </Stepper>
+    <div class="stagger-children grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+        <Card :style="{'--stagger-index': 0}" class="py-0 transition-shadow hover:shadow-md">
+            <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
+                <div class="flex flex-col gap-1">
+                    <h2 class="font-heading text-lg font-semibold tracking-tight">
+                        {{ t("onboarding.select.create.title") }}
+                    </h2>
+                    <p class="text-muted-foreground text-sm">
+                        {{ t("onboarding.select.create.description") }}
+                    </p>
+                </div>
+                <div class="flex justify-end">
+                    <Button
+                        :as="'button'"
+                        class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
+                        @click="goCreate">
+                        {{ t("onboarding.select.create.button") }}
+                    </Button>
+                </div>
             </CardContent>
         </Card>
 
-        <div class="stagger-children grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-            <Card :style="{'--stagger-index': 0}" class="py-0 transition-shadow hover:shadow-md">
-                <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
-                    <div class="flex flex-col gap-1">
+        <Card :style="{'--stagger-index': 1}" class="py-0 transition-shadow hover:shadow-md">
+            <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
+                <div class="flex flex-col gap-2">
+                    <div>
                         <h2 class="font-heading text-lg font-semibold tracking-tight">
-                            {{ t("onboarding.select.create.title") }}
+                            {{ t("onboarding.select.join.title") }}
                         </h2>
                         <p class="text-muted-foreground text-sm">
-                            {{ t("onboarding.select.create.description") }}
+                            {{ t("onboarding.select.join.description") }}
                         </p>
                     </div>
-                    <div class="flex justify-end">
-                        <Button
-                            :as="'button'"
-                            class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
-                            @click="goCreate">
-                            {{ t("onboarding.select.create.button") }}
+                    <div>
+                        <Input v-model="code" :placeholder="t('onboarding.select.join.inviteCode')" autofocus />
+                    </div>
+                </div>
+
+                <form class="flex flex-col" @submit.prevent="joinFamily">
+                    <div class="flex items-center justify-end">
+                        <Button :as="'button'" :disabled="loading" type="submit">
+                            {{ loading ? t("onboarding.select.join.loading") : t("onboarding.select.join.button") }}
                         </Button>
                     </div>
-                </CardContent>
-            </Card>
 
-            <Card :style="{'--stagger-index': 1}" class="py-0 transition-shadow hover:shadow-md">
-                <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
-                    <div class="flex flex-col gap-2">
-                        <div>
-                            <h2 class="font-heading text-lg font-semibold tracking-tight">
-                                {{ t("onboarding.select.join.title") }}
-                            </h2>
-                            <p class="text-muted-foreground text-sm">
-                                {{ t("onboarding.select.join.description") }}
-                            </p>
-                        </div>
-                        <div>
-                            <Input v-model="code" :placeholder="t('onboarding.select.join.inviteCode')" autofocus />
-                        </div>
+                    <div v-if="error" class="text-destructive text-sm" role="alert">
+                        {{ error }}
                     </div>
-
-                    <form class="flex flex-col" @submit.prevent="joinFamily">
-                        <div class="flex items-center justify-end">
-                            <Button :as="'button'" :disabled="loading" type="submit">{{
-                                loading ? t("onboarding.select.join.loading") : t("onboarding.select.join.button")
-                            }}</Button>
-                        </div>
-
-                        <div v-if="error" class="text-destructive text-sm" role="alert">
-                            {{ error }}
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                </form>
+            </CardContent>
+        </Card>
     </div>
 </template>
