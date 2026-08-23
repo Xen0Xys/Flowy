@@ -138,7 +138,8 @@ const formatCurrency = (value: number) => {
             <!-- Center text -->
             <text
                 v-if="hasBudget !== false"
-                class="fill-foreground text-3xl font-bold"
+                class="fill-foreground font-heading text-3xl font-semibold"
+                style="font-variant-numeric: tabular-nums"
                 text-anchor="middle"
                 x="140"
                 y="120">
@@ -175,7 +176,7 @@ const formatCurrency = (value: number) => {
         <TooltipProvider v-if="hasBudget !== false && (planningOverAmount ?? 0) > 0.005">
             <Tooltip>
                 <TooltipTrigger as-child>
-                    <div class="mt-2 flex cursor-help items-center gap-1 text-sm font-medium text-amber-500">
+                    <div class="text-warning mt-2 flex cursor-help items-center gap-1 text-sm font-medium">
                         <Icon class="h-4 w-4" name="iconoir:warning-triangle" />
                         {{ $t("budget.donut.planningOver") }}: +{{ formatCurrency(planningOverAmount ?? 0) }}
                     </div>
@@ -207,13 +208,13 @@ const formatCurrency = (value: number) => {
         <div v-if="totalBudgeted > 0" class="mt-4 w-full max-w-xs">
             <div class="mb-1 flex items-center justify-between text-sm">
                 <span class="text-muted-foreground">{{ $t("budget.donut.incomeProgress") }}</span>
-                <span :class="isOverIncome ? 'text-green-500' : ''" class="font-semibold tabular-nums"
+                <span :class="isOverIncome ? 'text-success' : ''" class="font-semibold tabular-nums"
                     >{{ incomeProgress.toFixed(0) }}%</span
                 >
             </div>
             <div class="bg-muted h-2.5 overflow-hidden rounded-full">
                 <div
-                    :class="isOverIncome ? 'bg-green-500' : incomeProgress >= 100 ? 'bg-green-500' : 'bg-primary'"
+                    :class="isOverIncome || incomeProgress >= 100 ? 'bg-success' : 'bg-brand-gradient'"
                     :style="{width: `${Math.min(incomeProgress, 100)}%`}"
                     class="h-full rounded-full transition-all duration-500" />
             </div>
@@ -222,7 +223,7 @@ const formatCurrency = (value: number) => {
                 <span class="text-muted-foreground">{{ formatCurrency(totalBudgeted) }}</span>
             </div>
             <!-- Extra income display -->
-            <div v-if="isOverIncome" class="mt-2 flex items-center gap-1 text-sm font-medium text-green-500">
+            <div v-if="isOverIncome" class="text-success mt-2 flex items-center gap-1 text-sm font-medium">
                 <Icon class="h-4 w-4" name="iconoir:arrow-up-right" />
                 {{ $t("budget.donut.extraIncome") }}: +{{ formatCurrency(extraIncome) }}
             </div>

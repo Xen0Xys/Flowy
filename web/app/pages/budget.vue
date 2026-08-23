@@ -460,13 +460,21 @@ watch([selectedMonth, selectedYear], async () => {
 <template>
     <div class="w-full">
         <div class="mx-auto max-w-7xl">
-            <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
+            <div class="animate-fade-in-up flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
-                        <Icon class="icon-lg text-primary shrink-0" name="iconoir:piggy-bank" />
+                        <div class="relative">
+                            <span
+                                aria-hidden="true"
+                                class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
+                            <div
+                                class="bg-brand-gradient-soft border-border/60 relative flex size-12 items-center justify-center rounded-xl border">
+                                <Icon class="text-primary size-6" name="iconoir:piggy-bank" />
+                            </div>
+                        </div>
                         <div>
-                            <h1 class="text-2xl font-bold tracking-tight">
+                            <h1 class="font-heading text-2xl font-semibold tracking-tight">
                                 {{ t("budget.page.title") }}
                             </h1>
                             <p class="text-muted-foreground text-sm">
@@ -623,9 +631,9 @@ watch([selectedMonth, selectedYear], async () => {
 
                         <!-- Right panel: Category list -->
                         <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
-                            <div v-if="categoryRows.length > 0" class="space-y-2">
+                            <div v-if="categoryRows.length > 0" class="stagger-children space-y-2">
                                 <BudgetCategoryRow
-                                    v-for="cat in categoryRows"
+                                    v-for="(cat, idx) in categoryRows"
                                     :id="cat.id"
                                     :key="cat.id"
                                     :budgeted="cat.budgeted"
@@ -635,6 +643,7 @@ watch([selectedMonth, selectedYear], async () => {
                                     :month="selectedMonth"
                                     :name="cat.name"
                                     :spent="cat.spent"
+                                    :style="{'--stagger-index': idx}"
                                     :year="selectedYear" />
                             </div>
                             <div v-else class="flex flex-1 items-center justify-center text-center">
