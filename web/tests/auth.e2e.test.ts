@@ -23,41 +23,53 @@ test.describe("Authentication and Onboarding Flow", () => {
 
         await page.click('button[type="submit"]');
 
-        // Check redirection to onboarding/select
+        // ----------------------------------------------------
+        // 2. ONBOARDING: WELCOME
+        // ----------------------------------------------------
+        await page.waitForURL(/\/onboarding\/?$/);
+        await page.waitForLoadState("networkidle");
+
+        // Click "Get started" - the last visible primary CTA on the welcome card
+        await page.locator('main button:has-text("Commencer"), main button:has-text("Get started")').first().click();
+
+        // ----------------------------------------------------
+        // 3. ONBOARDING: SELECT
+        // ----------------------------------------------------
         await page.waitForURL("**/onboarding/select");
         await page.waitForLoadState("networkidle");
 
-        // ----------------------------------------------------
-        // 2. ONBOARDING: SELECT
-        // ----------------------------------------------------
         // Target the first button inside the grid cards (which is the "Create" button)
         await page.locator(".grid button").first().click();
 
-        // Check redirection to onboarding/create-family
+        // ----------------------------------------------------
+        // 4. ONBOARDING: CREATE FAMILY
+        // ----------------------------------------------------
         await page.waitForURL("**/onboarding/create-family");
         await page.waitForLoadState("networkidle");
 
-        // ----------------------------------------------------
-        // 3. ONBOARDING: CREATE FAMILY
-        // ----------------------------------------------------
         await page.fill("#name", testFamilyName);
-
-        // Submit the form
         await page.click('button[type="submit"]');
 
-        // Check redirection to onboarding/invite
+        // ----------------------------------------------------
+        // 5. ONBOARDING: CATEGORIES
+        // ----------------------------------------------------
+        await page.waitForURL("**/onboarding/categories");
+        await page.waitForLoadState("networkidle");
+
+        // Click continue with default selection
+        await page.locator('button:has-text("Continuer"), button:has-text("Continue")').first().click();
+
+        // ----------------------------------------------------
+        // 6. ONBOARDING: INVITE (SKIP)
+        // ----------------------------------------------------
         await page.waitForURL("**/onboarding/invite");
         await page.waitForLoadState("networkidle");
 
-        // ----------------------------------------------------
-        // 4. ONBOARDING: INVITE (SKIP)
-        // ----------------------------------------------------
-        // Click the skip/continue button. We target the button inside the form that has type="button"
-        // to avoid colliding with stepper buttons.
-        await page.locator('form button[type="button"]').click();
+        // Skip: nothing entered, click the "Skip"/"Passer" button
+        await page.locator('button:has-text("Passer"), button:has-text("Skip")').first().click();
 
         // Check redirection to home page
-        await page.waitForURL("**/");
+        await page.waitForURL(/\/$/);
         await page.waitForLoadState("networkidle");
 
         // Wait for the sidebar and user avatar to appear
@@ -65,7 +77,7 @@ test.describe("Authentication and Onboarding Flow", () => {
         await expect(userMenuButton).toBeVisible();
 
         // ----------------------------------------------------
-        // 5. LOGOUT
+        // 7. LOGOUT
         // ----------------------------------------------------
         // Open user dropdown menu
         await userMenuButton.click();
@@ -84,14 +96,14 @@ test.describe("Authentication and Onboarding Flow", () => {
         await page.waitForLoadState("networkidle");
 
         // ----------------------------------------------------
-        // 6. LOGIN
+        // 8. LOGIN
         // ----------------------------------------------------
         await page.fill("#email", testEmail);
         await page.fill("#password", testPassword);
         await page.click('button[type="submit"]');
 
         // Check redirection back to home page
-        await page.waitForURL("**/");
+        await page.waitForURL(/\/$/);
         await page.waitForLoadState("networkidle");
 
         // Verify we are logged in again

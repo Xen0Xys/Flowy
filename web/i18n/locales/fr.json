@@ -92,13 +92,43 @@
                 "title": "Bienvenue",
                 "description": "Démarrez avec Flowy"
             },
-            "createJoin": {
-                "title": "Créer/Rejoindre",
-                "description": "Créez ou rejoignez une famille"
+            "select": {
+                "title": "Créer ou rejoindre",
+                "description": "Choisissez votre parcours"
+            },
+            "createFamily": {
+                "title": "Créer la famille",
+                "description": "Nommez votre famille"
+            },
+            "categories": {
+                "title": "Catégories",
+                "description": "Configurez vos dépenses"
             },
             "invite": {
                 "title": "Inviter",
-                "description": "Invitez des membres"
+                "description": "Ajoutez des membres"
+            }
+        },
+        "welcome": {
+            "title": "Bienvenue sur Flowy",
+            "tagline": "Configurons ensemble votre espace en quelques étapes.",
+            "bullets": {
+                "family": {
+                    "title": "Créez ou rejoignez une famille",
+                    "description": "Partagez vos finances avec vos proches ou rejoignez un espace existant."
+                },
+                "categories": {
+                    "title": "Choisissez vos catégories",
+                    "description": "Sélectionnez les catégories qui reflètent vos habitudes de dépenses."
+                },
+                "invite": {
+                    "title": "Invitez vos proches",
+                    "description": "Ajoutez d'autres membres à votre famille pour collaborer."
+                }
+            },
+            "cta": {
+                "start": "Commencer",
+                "logout": "Se déconnecter"
             }
         },
         "select": {
@@ -124,6 +154,7 @@
         },
         "create": {
             "title": "Créer une famille",
+            "description": "Donnez un nom à votre famille et choisissez la devise par défaut.",
             "familyName": "Nom de la famille",
             "currency": "Devise",
             "selectCurrency": "Sélectionner une devise",
@@ -136,14 +167,62 @@
                 "createFailed": "Échec de création de la famille"
             }
         },
-        "invite": {
-            "title": "Inviter des membres",
-            "memberEmail": "Email du membre",
-            "memberEmailPlaceholder": "member{'@'}example.org",
-            "send": "Envoyer l'invitation",
-            "sending": "Envoi...",
+        "categories": {
+            "title": "Configurez vos catégories",
+            "description": "Sélectionnez les catégories suggérées et ajoutez les vôtres. Vous pourrez les modifier plus tard.",
+            "suggestedSection": "Suggestions",
+            "customSection": "Personnalisées",
+            "customPlaceholder": "ex : Animaux, Éducation…",
+            "addCustom": "Ajouter",
+            "removeCustom": "Retirer {name}",
+            "selectedCount": "{count} sélectionnée(s)",
             "continue": "Continuer",
+            "creating": "Création...",
             "skip": "Passer",
+            "summary": {
+                "success": "{count} catégorie(s) créée(s)",
+                "partial": "{success} créée(s), {failed} échec(s)",
+                "failed": "Échec de la création des catégories"
+            },
+            "errors": {
+                "customDuplicate": "Cette catégorie personnalisée existe déjà."
+            },
+            "defaults": {
+                "food": "Alimentation",
+                "housing": "Logement",
+                "transport": "Transports",
+                "restaurants": "Restaurants",
+                "leisure": "Loisirs",
+                "health": "Santé",
+                "subscriptions": "Abonnements",
+                "shopping": "Shopping",
+                "salary": "Salaire",
+                "savings": "Épargne"
+            }
+        },
+        "invite": {
+            "title": "Invitez vos proches",
+            "description": "Ajoutez plusieurs adresses e-mail, elles recevront une invitation à rejoindre votre famille.",
+            "chipInput": {
+                "label": "Adresses e-mail",
+                "placeholder": "member{'@'}example.org",
+                "hint": "Appuyez sur Entrée ou virgule pour ajouter une adresse.",
+                "invalid": "Adresse e-mail invalide.",
+                "duplicate": "Cette adresse a déjà été ajoutée.",
+                "remove": "Retirer {email}"
+            },
+            "sent": {
+                "title": "Invitation(s) envoyée(s) ({count})"
+            },
+            "send": "Envoyer les invitations",
+            "sending": "Envoi...",
+            "finish": "Terminer",
+            "skip": "Passer",
+            "summary": {
+                "success": "{count} invitation(s) envoyée(s)",
+                "partial": "{success} envoyée(s), {failed} échec(s)",
+                "failed": "Échec de l'envoi des invitations"
+            },
             "errors": {
                 "sendFailed": "Échec de l'envoi de l'invitation"
             }

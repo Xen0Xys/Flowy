@@ -92,13 +92,43 @@
                 "title": "Welcome",
                 "description": "Get started with Flowy"
             },
-            "createJoin": {
-                "title": "Create/Join",
-                "description": "Create or join a family"
+            "select": {
+                "title": "Create or join",
+                "description": "Choose your path"
+            },
+            "createFamily": {
+                "title": "Create family",
+                "description": "Name your family"
+            },
+            "categories": {
+                "title": "Categories",
+                "description": "Configure your spending"
             },
             "invite": {
                 "title": "Invite",
-                "description": "Invite members"
+                "description": "Add members"
+            }
+        },
+        "welcome": {
+            "title": "Welcome to Flowy",
+            "tagline": "Let's set up your space in a few quick steps.",
+            "bullets": {
+                "family": {
+                    "title": "Create or join a family",
+                    "description": "Share finances with your loved ones or join an existing space."
+                },
+                "categories": {
+                    "title": "Pick your categories",
+                    "description": "Select the categories that reflect your spending habits."
+                },
+                "invite": {
+                    "title": "Invite your loved ones",
+                    "description": "Add other members to your family to collaborate."
+                }
+            },
+            "cta": {
+                "start": "Get started",
+                "logout": "Log out"
             }
         },
         "select": {
@@ -124,6 +154,7 @@
         },
         "create": {
             "title": "Create family",
+            "description": "Give your family a name and pick the default currency.",
             "familyName": "Family name",
             "currency": "Currency",
             "selectCurrency": "Select a currency",
@@ -136,14 +167,62 @@
                 "createFailed": "Failed to create family"
             }
         },
-        "invite": {
-            "title": "Invite members",
-            "memberEmail": "Member email",
-            "memberEmailPlaceholder": "member{'@'}example.org",
-            "send": "Send invite",
-            "sending": "Sending...",
+        "categories": {
+            "title": "Set up your categories",
+            "description": "Select the suggested categories and add your own. You can edit them later.",
+            "suggestedSection": "Suggestions",
+            "customSection": "Custom",
+            "customPlaceholder": "e.g. Pets, Education…",
+            "addCustom": "Add",
+            "removeCustom": "Remove {name}",
+            "selectedCount": "{count} selected",
             "continue": "Continue",
+            "creating": "Creating...",
             "skip": "Skip",
+            "summary": {
+                "success": "{count} category(ies) created",
+                "partial": "{success} created, {failed} failed",
+                "failed": "Failed to create categories"
+            },
+            "errors": {
+                "customDuplicate": "This custom category already exists."
+            },
+            "defaults": {
+                "food": "Groceries",
+                "housing": "Housing",
+                "transport": "Transport",
+                "restaurants": "Restaurants",
+                "leisure": "Leisure",
+                "health": "Health",
+                "subscriptions": "Subscriptions",
+                "shopping": "Shopping",
+                "salary": "Salary",
+                "savings": "Savings"
+            }
+        },
+        "invite": {
+            "title": "Invite your family",
+            "description": "Add several email addresses; they will receive an invitation to join your family.",
+            "chipInput": {
+                "label": "Email addresses",
+                "placeholder": "member{'@'}example.org",
+                "hint": "Press Enter or comma to add an address.",
+                "invalid": "Invalid email address.",
+                "duplicate": "This address has already been added.",
+                "remove": "Remove {email}"
+            },
+            "sent": {
+                "title": "Invitation(s) sent ({count})"
+            },
+            "send": "Send invites",
+            "sending": "Sending...",
+            "finish": "Finish",
+            "skip": "Skip",
+            "summary": {
+                "success": "{count} invitation(s) sent",
+                "partial": "{success} sent, {failed} failed",
+                "failed": "Failed to send invitations"
+            },
             "errors": {
                 "sendFailed": "Failed to send invite"
             }

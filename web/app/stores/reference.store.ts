@@ -88,6 +88,41 @@ export const useReferenceStore = defineStore("reference", {
             }
         },
 
+        async bulkCreateCategories(payloads: CreateCategoryPayload[]) {
+            if (!payloads.length) {
+                return {created: [] as TransactionCategory[], failed: [] as {name: string; error: unknown}[]};
+            }
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const results = await Promise.allSettled(
+                payloads.map((payload) =>
+                    apiFetch<TransactionCategory>("/reference/category", {
+                        method: "POST",
+                        body: payload,
+                    }),
+                ),
+            );
+
+            const created: TransactionCategory[] = [];
+            const failed: {name: string; error: unknown}[] = [];
+
+            results.forEach((result, index) => {
+                if (result.status === "fulfilled") {
+                    created.push(result.value);
+                } else {
+                    failed.push({name: payloads[index]!.name, error: result.reason});
+                }
+            });
+
+            if (created.length) {
+                this.categories = [...created, ...this.categories];
+            }
+
+            return {created, failed};
+        },
+
         async updateCategory(categoryId: string, payload: UpdateCategoryPayload) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");

@@ -70,6 +70,36 @@ export const useFamilyStore = defineStore("family", {
             }
         },
 
+        async inviteMembers(emails: string[]) {
+            if (!emails.length) return {sent: [] as string[], failed: [] as {email: string; error: unknown}[]};
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const results = await Promise.allSettled(
+                emails.map((email) =>
+                    apiFetch("/family/invite", {
+                        method: "POST",
+                        body: {email},
+                    }),
+                ),
+            );
+
+            const sent: string[] = [];
+            const failed: {email: string; error: unknown}[] = [];
+
+            results.forEach((result, index) => {
+                const email = emails[index]!;
+                if (result.status === "fulfilled") {
+                    sent.push(email);
+                } else {
+                    failed.push({email, error: result.reason});
+                }
+            });
+
+            return {sent, failed};
+        },
+
         async getInvites() {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");

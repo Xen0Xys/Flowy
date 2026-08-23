@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
 import {toast} from "vue-sonner";
 import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
@@ -17,20 +17,34 @@ import {
     normalizeCurrencyCode,
 } from "@/lib/validation";
 import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
+import {useOnboardingStore} from "@/stores/onboarding.store";
+import {useUserStore} from "@/stores/user.store";
 
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in"},
-    onboarding: {step: 0},
+    onboarding: {step: 2},
 });
 
 const router = useRouter();
 const familyStore = useFamilyStore();
+const userStore = useUserStore();
+const onboardingStore = useOnboardingStore();
 const {t} = useI18n();
 
 const form = ref({name: "", currency: "EUR"});
 const loading = ref(false);
-const error = ref<string | null>(null);
+
+onMounted(() => {
+    onboardingStore.hydrate();
+    if (userStore.hasFamily) {
+        router.replace("/onboarding/categories");
+        return;
+    }
+    if (!onboardingStore.mode) {
+        onboardingStore.setMode("create");
+    }
+});
 
 function goBack() {
     router.push("/onboarding/select");
@@ -41,26 +55,22 @@ function validate() {
     const currency = normalizeCurrencyCode(form.value.currency);
 
     if (!name) {
-        const msg = t("onboarding.create.errors.familyNameRequired");
-        toast.error(msg);
-        error.value = null;
+        toast.error(t("onboarding.create.errors.familyNameRequired"));
         return false;
     }
 
     if (!isValidFamilyName(name)) {
-        const msg = t("onboarding.create.errors.familyNameLength", {
-            min: FAMILY_NAME_MIN_LENGTH,
-            max: FAMILY_NAME_MAX_LENGTH,
-        });
-        toast.error(msg);
-        error.value = null;
+        toast.error(
+            t("onboarding.create.errors.familyNameLength", {
+                min: FAMILY_NAME_MIN_LENGTH,
+                max: FAMILY_NAME_MAX_LENGTH,
+            }),
+        );
         return false;
     }
 
     if (!isValidCurrencyCode(currency)) {
-        const msg = t("onboarding.create.errors.currencyInvalid");
-        toast.error(msg);
-        error.value = null;
+        toast.error(t("onboarding.create.errors.currencyInvalid"));
         return false;
     }
 
@@ -70,7 +80,6 @@ function validate() {
 }
 
 async function submit() {
-    error.value = null;
     if (!validate()) return;
     loading.value = true;
     try {
@@ -78,11 +87,10 @@ async function submit() {
             name: form.value.name,
             currency: form.value.currency,
         });
-        await router.push("/onboarding/invite");
+        await router.push("/onboarding/categories");
     } catch (err: any) {
         const msg = err?.data?.message ?? err?.message ?? t("onboarding.create.errors.createFailed");
         toast.error(msg);
-        error.value = null;
     } finally {
         loading.value = false;
     }
@@ -96,6 +104,9 @@ async function submit() {
                 <h1 class="font-heading text-2xl font-semibold tracking-tight">
                     {{ t("onboarding.create.title") }}
                 </h1>
+                <p class="text-muted-foreground mt-1 text-sm">
+                    {{ t("onboarding.create.description") }}
+                </p>
             </header>
             <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
                 <FormItem>
@@ -129,12 +140,9 @@ async function submit() {
                     </FormField>
                 </FormItem>
 
-                <div v-if="error" class="text-destructive text-sm" role="alert">
-                    {{ error }}
-                </div>
-
                 <div class="flex justify-between">
-                    <Button :as="'button'" type="button" variant="destructive" @click.prevent="goBack">
+                    <Button :as="'button'" type="button" variant="ghost" @click.prevent="goBack">
+                        <Icon class="mr-2 h-4 w-4" name="iconoir:arrow-left" />
                         {{ t("common.back") }}
                     </Button>
                     <Button
