@@ -607,11 +607,22 @@
                 "deleteMerchant": "Supprimer le marchand",
                 "selectColor": "Sélectionner la couleur",
                 "selectIcon": "Sélectionner l'icône",
-                "hexColorInput": "Code couleur hexadécimal"
+                "hexColorInput": "Code couleur hexadécimal",
+                "removeKeyword": "Retirer le mot-clé",
+                "addKeyword": "Ajouter le mot-clé"
             },
             "findIconsAt": "Trouver des icônes sur",
             "categoryPlaceholder": "ex : Courses",
-            "merchantPlaceholder": "ex : Walmart"
+            "merchantPlaceholder": "ex : Walmart",
+            "keywords": "Mots-clés",
+            "keywordsPlaceholder": "Ajouter un mot-clé et appuyer sur Entrée",
+            "keywordsHelp": "Mots supplémentaires qui déclenchent l'auto-complétion quand ils apparaissent dans la description d'une transaction.",
+            "primaryKeyword": "Mot-clé principal",
+            "primaryKeywordPlaceholder": "Sélectionner le mot-clé principal",
+            "primaryKeywordHelp": "Utilisé pour remplir automatiquement la description quand cette référence est sélectionnée sur une nouvelle transaction.",
+            "useName": "Utiliser le nom ({name})",
+            "autoComplete": "Auto-complétion",
+            "autoCompleteHelp": "Quand activée, cette référence participe à l'auto-complétion des transactions."
         }
     },
     "user": {

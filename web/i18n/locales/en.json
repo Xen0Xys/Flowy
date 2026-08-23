@@ -607,11 +607,22 @@
                 "deleteMerchant": "Delete merchant",
                 "selectColor": "Select color",
                 "selectIcon": "Select icon",
-                "hexColorInput": "Hex color code"
+                "hexColorInput": "Hex color code",
+                "removeKeyword": "Remove keyword",
+                "addKeyword": "Add keyword"
             },
             "findIconsAt": "Find icons at",
             "categoryPlaceholder": "e.g. Groceries",
-            "merchantPlaceholder": "e.g. Walmart"
+            "merchantPlaceholder": "e.g. Walmart",
+            "keywords": "Keywords",
+            "keywordsPlaceholder": "Add a keyword and press Enter",
+            "keywordsHelp": "Additional words that trigger auto-completion when found in a transaction description.",
+            "primaryKeyword": "Primary keyword",
+            "primaryKeywordPlaceholder": "Select the primary keyword",
+            "primaryKeywordHelp": "Used to auto-fill the description when this reference is selected on a new transaction.",
+            "useName": "Use name ({name})",
+            "autoComplete": "Auto-complete",
+            "autoCompleteHelp": "When enabled, this reference participates in transaction auto-completion."
         }
     },
     "user": {

@@ -15,6 +15,7 @@ import {
 } from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
 import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
+import {ReferenceMatcherService, ReferenceSuggestion} from "../reference/reference-matcher.service";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
@@ -29,7 +30,14 @@ type TransactionWithRelations = Prisma.TransactionsGetPayload<{
 export class TransactionService {
     private readonly logger = new Logger(TransactionService.name);
 
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly referenceMatcher: ReferenceMatcherService,
+    ) {}
+
+    async suggestReferences(user: UserEntity, description: string): Promise<ReferenceSuggestion> {
+        return this.referenceMatcher.suggestForDescription(user, description);
+    }
 
     async getTransactions(user: UserEntity): Promise<TransactionEntity[]> {
         const transactions = await this.prismaService.transactions.findMany({
@@ -708,6 +716,24 @@ export class TransactionService {
             });
         }
 
+        const [categories, merchants] = await this.referenceMatcher.loadEnabledReferences(user, tx);
+        const enrichedDtos = createTransactionDtos.map((transaction) => {
+            const needsCategory = !transaction.categoryId;
+            const needsMerchant = !transaction.merchantId;
+            if (!needsCategory && !needsMerchant) return transaction;
+            const matchedCategoryId = needsCategory
+                ? this.referenceMatcher.findBestMatch(transaction.description, categories)
+                : null;
+            const matchedMerchantId = needsMerchant
+                ? this.referenceMatcher.findBestMatch(transaction.description, merchants)
+                : null;
+            return {
+                ...transaction,
+                categoryId: transaction.categoryId ?? matchedCategoryId ?? undefined,
+                merchantId: transaction.merchantId ?? matchedMerchantId ?? undefined,
+            };
+        });
+
         const existingTransactions = await prisma.transactions.findMany({
             where: {
                 account_id: accountId,
@@ -732,7 +758,7 @@ export class TransactionService {
         const toInsert: CreateTransactionDto[] = [];
         const duplicates: CreateTransactionDto[] = [];
 
-        for (const transaction of createTransactionDtos) {
+        for (const transaction of enrichedDtos) {
             const signature = this.buildTransactionSignature(transaction);
 
             if (existingSignatures.has(signature)) {

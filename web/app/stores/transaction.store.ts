@@ -8,6 +8,9 @@ export type TransactionMerchant = {
     id: string;
     userId: string;
     name: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -18,6 +21,9 @@ export type TransactionCategory = {
     name: string;
     hexColor: string;
     icon: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
     createdAt?: string;
     updatedAt?: string;
 };

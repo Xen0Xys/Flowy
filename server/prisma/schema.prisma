@@ -139,29 +139,35 @@ model Transfers {
 }
 
 model UserMerchants {
-  id           String         @id @default(uuid(7)) @db.Uuid
-  user_id      String         @db.Uuid
-  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name         String         @db.VarChar(50)
-  transactions Transactions[]
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
+  id                    String         @id @default(uuid(7)) @db.Uuid
+  user_id               String         @db.Uuid
+  user                  Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                  String         @db.VarChar(50)
+  keywords              String[]       @default([])
+  primary_keyword       String?        @db.VarChar(50)
+  auto_complete_enabled Boolean        @default(true)
+  transactions          Transactions[]
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
 
   @@unique([user_id, name])
   @@map("user_merchants")
 }
 
 model UserCategories {
-  id                  String               @id @default(uuid(7)) @db.Uuid
-  user_id             String               @db.Uuid
-  user                Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name                String               @db.VarChar(50)
-  hex_color           String               @db.VarChar(7)
-  icon                String               @db.VarChar(50)
-  created_at          DateTime             @default(now())
-  updated_at          DateTime             @updatedAt
-  transactions        Transactions[]
-  budgeted_categories BudgetedCategories[]
+  id                    String               @id @default(uuid(7)) @db.Uuid
+  user_id               String               @db.Uuid
+  user                  Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                  String               @db.VarChar(50)
+  hex_color             String               @db.VarChar(7)
+  icon                  String               @db.VarChar(50)
+  keywords              String[]             @default([])
+  primary_keyword       String?              @db.VarChar(50)
+  auto_complete_enabled Boolean              @default(true)
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  transactions          Transactions[]
+  budgeted_categories   BudgetedCategories[]
 
   @@unique([user_id, name])
   @@map("user_categories")

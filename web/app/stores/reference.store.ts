@@ -9,20 +9,32 @@ type CreateCategoryPayload = {
     name: string;
     hexColor: string;
     icon: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 type UpdateCategoryPayload = {
     name?: string;
     hexColor?: string;
     icon?: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 type CreateMerchantPayload = {
     name: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 type UpdateMerchantPayload = {
     name?: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 export const useReferenceStore = defineStore("reference", {

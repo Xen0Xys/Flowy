@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
+import {watchDebounced} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {toast} from "vue-sonner";
 import {
@@ -12,6 +13,7 @@ import {
 import {useReferenceStore} from "~/stores/reference.store";
 import {useAccountStore} from "~/stores/account.store";
 import {useApi} from "~/composables/useApi";
+import {useReferenceMatcher} from "~/composables/useReferenceMatcher";
 import {Button} from "~/components/ui/button";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Input} from "~/components/ui/input";
@@ -60,6 +62,7 @@ const isCreateCategoryDialogOpen = ref(false);
 const isCreateMerchantDialogOpen = ref(false);
 const keepLinkedTransaction = ref(true);
 const isUnlinking = ref(false);
+const lastAutoFilledDescription = ref<string | null>(null);
 
 // Link transfer state
 const isLinkTransferDialogOpen = ref(false);
@@ -116,6 +119,7 @@ watch(
 
 const resetForm = () => {
     keepLinkedTransaction.value = false;
+    lastAutoFilledDescription.value = null;
     if (props.transaction) {
         transactionType.value = props.transaction.amount < 0 ? "expense" : "income";
         formData.value = {
@@ -174,6 +178,7 @@ watch(
     () => props.transaction,
     (newTransaction) => {
         keepLinkedTransaction.value = false;
+        lastAutoFilledDescription.value = null;
         if (newTransaction) {
             transactionType.value = newTransaction.amount < 0 ? "expense" : "income";
             formData.value = {
@@ -212,6 +217,49 @@ watch(
 const onOpenChange = (open: boolean) => {
     emit("update:open", open);
 };
+
+const {matchDescription, primaryKeywordFor} = useReferenceMatcher();
+
+const canAutoFillDescription = () =>
+    formData.value.description === "" || formData.value.description === lastAutoFilledDescription.value;
+
+const composedAutoDescription = computed(() => {
+    if (transactionType.value === "transfer") return "";
+    const merchant =
+        formData.value.merchantId && formData.value.merchantId !== "none"
+            ? availableMerchants.value.find((m) => m.id === formData.value.merchantId)
+            : null;
+    const category =
+        formData.value.categoryId && formData.value.categoryId !== "none"
+            ? availableCategories.value.find((c) => c.id === formData.value.categoryId)
+            : null;
+    const parts: string[] = [];
+    if (category?.autoCompleteEnabled) parts.push(primaryKeywordFor(category));
+    if (merchant?.autoCompleteEnabled) parts.push(primaryKeywordFor(merchant));
+    return parts.filter((part) => part.length > 0).join(" ");
+});
+
+watchDebounced(
+    () => formData.value.description,
+    (description) => {
+        if (transactionType.value === "transfer") return;
+        if (!description || !description.trim()) return;
+        const match = matchDescription(description, availableCategories.value, availableMerchants.value);
+        if (match.categoryId && formData.value.categoryId === "none") {
+            formData.value.categoryId = match.categoryId;
+        }
+        if (match.merchantId && formData.value.merchantId === "none") {
+            formData.value.merchantId = match.merchantId;
+        }
+    },
+    {debounce: 300},
+);
+
+watch(composedAutoDescription, (auto) => {
+    if (!canAutoFillDescription()) return;
+    formData.value.description = auto;
+    lastAutoFilledDescription.value = auto || null;
+});
 
 const save = async () => {
     isSubmitting.value = true;

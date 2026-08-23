@@ -24,6 +24,8 @@ import {TransactionEntity} from "./models/entities/transaction.entity";
 import {SearchTransactionsDto} from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
 import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
+import {SuggestReferenceDto} from "./models/dto/suggest-reference.dto";
+import {ReferenceSuggestion} from "../reference/reference-matcher.service";
 
 @Controller("transaction")
 export class TransactionController {
@@ -37,6 +39,16 @@ export class TransactionController {
         @Query() query: SearchTransactionsDto,
     ): Promise<SearchTransactionsResultEntity> {
         return this.transactionService.searchTransactions(user, query);
+    }
+
+    @Get("suggest")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async suggestReferences(
+        @User() user: UserEntity,
+        @Query() query: SuggestReferenceDto,
+    ): Promise<ReferenceSuggestion> {
+        return this.transactionService.suggestReferences(user, query.description);
     }
 
     @Post("account/:accountId")

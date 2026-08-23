@@ -4,6 +4,9 @@ export class CategoryEntity {
     name: string;
     hexColor: string;
     icon: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
     createdAt: Date;
     updatedAt: Date;
 

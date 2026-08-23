@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type {TransactionCategory} from "~/stores/transaction.store";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
+import {Switch} from "~/components/ui/switch";
 
 const props = defineProps<{
     open: boolean;
@@ -54,42 +56,101 @@ const form = ref({
     name: "",
     hexColor: "#ef4444",
     icon: "iconoir:label",
+    keywords: [] as string[],
+    primaryKeyword: null as string | null,
+    autoCompleteEnabled: true,
 });
 
+const keywordInput = ref("");
 const isLoading = ref(false);
+
+const PRIMARY_DEFAULT_SENTINEL = "__default__";
+
+const primaryOptionValue = computed(() => form.value.primaryKeyword ?? PRIMARY_DEFAULT_SENTINEL);
+
+const handlePrimaryChange = (value: string) => {
+    form.value.primaryKeyword = value === PRIMARY_DEFAULT_SENTINEL ? null : value;
+};
 
 // Reset form when dialog opens
 watch(
     () => props.open,
     (isOpen) => {
         if (isOpen) {
+            keywordInput.value = "";
             if (props.category) {
                 form.value = {
                     name: props.category.name,
                     hexColor: props.category.hexColor,
                     icon: props.category.icon,
+                    keywords: [...(props.category.keywords ?? [])],
+                    primaryKeyword: props.category.primaryKeyword ?? null,
+                    autoCompleteEnabled: props.category.autoCompleteEnabled ?? true,
                 };
             } else {
                 form.value = {
                     name: "",
                     hexColor: "#ef4444",
                     icon: "iconoir:label",
+                    keywords: [],
+                    primaryKeyword: null,
+                    autoCompleteEnabled: true,
                 };
             }
         }
     },
 );
 
+function addKeyword() {
+    const trimmed = keywordInput.value.trim();
+    if (!trimmed) return;
+    const alreadyExists = form.value.keywords.some((k) => k.toLowerCase() === trimmed.toLowerCase());
+    if (alreadyExists || trimmed.toLowerCase() === form.value.name.trim().toLowerCase()) {
+        keywordInput.value = "";
+        return;
+    }
+    if (form.value.keywords.length >= 20) return;
+    form.value.keywords.push(trimmed);
+    keywordInput.value = "";
+}
+
+function removeKeyword(keyword: string) {
+    form.value.keywords = form.value.keywords.filter((k) => k !== keyword);
+    if (form.value.primaryKeyword === keyword) {
+        form.value.primaryKeyword = null;
+    }
+}
+
+function handleKeywordKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter" || event.key === ",") {
+        event.preventDefault();
+        addKeyword();
+        return;
+    }
+    if (event.key === "Backspace" && !keywordInput.value && form.value.keywords.length > 0) {
+        const last = form.value.keywords[form.value.keywords.length - 1];
+        if (last) removeKeyword(last);
+    }
+}
+
 async function handleSubmit() {
     if (!form.value.name.trim()) return;
 
     isLoading.value = true;
     try {
+        const payload = {
+            name: form.value.name,
+            hexColor: form.value.hexColor,
+            icon: form.value.icon,
+            keywords: form.value.keywords,
+            primaryKeyword: form.value.primaryKeyword,
+            autoCompleteEnabled: form.value.autoCompleteEnabled,
+        };
         let result: TransactionCategory;
         if (props.category) {
-            result = await referenceStore.updateCategory(props.category.id, form.value);
+            result = await referenceStore.updateCategory(props.category.id, payload);
         } else {
-            result = await referenceStore.createCategory(form.value);
+            result = await referenceStore.createCategory(payload);
         }
         emit("saved", result);
         emit("update:open", false);
@@ -197,6 +258,87 @@ function handleClose(value: boolean) {
                                 {{ t("settings.references.iconLibrary") }}
                             </a>
                         </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 items-start gap-4">
+                    <Label class="mt-2 text-right text-sm font-medium" for="category-keywords">
+                        {{ t("settings.references.keywords") }}
+                    </Label>
+                    <div class="col-span-3 flex flex-col gap-2">
+                        <div v-if="form.keywords.length" class="flex flex-wrap gap-1.5">
+                            <span
+                                v-for="keyword in form.keywords"
+                                :key="keyword"
+                                class="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs">
+                                {{ keyword }}
+                                <button
+                                    type="button"
+                                    class="hover:text-destructive"
+                                    :aria-label="t('settings.references.aria.removeKeyword')"
+                                    @click="removeKeyword(keyword)">
+                                    <Icon name="iconoir:xmark" class="h-3 w-3" />
+                                </button>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Input
+                                id="category-keywords"
+                                v-model="keywordInput"
+                                :placeholder="t('settings.references.keywordsPlaceholder')"
+                                @keydown="handleKeywordKeydown" />
+                            <Button
+                                :aria-label="t('settings.references.aria.addKeyword')"
+                                :disabled="!keywordInput.trim()"
+                                :title="t('settings.references.aria.addKeyword')"
+                                size="icon-sm"
+                                type="button"
+                                variant="ghost"
+                                @click="addKeyword">
+                                <Icon name="iconoir:plus" class="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div class="text-muted-foreground text-xs">
+                            {{ t("settings.references.keywordsHelp") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 items-start gap-4">
+                    <Label class="mt-2 text-right text-sm font-medium" for="category-primary">
+                        {{ t("settings.references.primaryKeyword") }}
+                    </Label>
+                    <div class="col-span-3 flex flex-col gap-2">
+                        <Select :model-value="primaryOptionValue" @update:model-value="handlePrimaryChange">
+                            <SelectTrigger id="category-primary">
+                                <SelectValue :placeholder="t('settings.references.primaryKeywordPlaceholder')" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem :value="PRIMARY_DEFAULT_SENTINEL">
+                                        {{ t("settings.references.useName", {name: form.name || "..."}) }}
+                                    </SelectItem>
+                                    <SelectItem v-for="keyword in form.keywords" :key="keyword" :value="keyword">
+                                        {{ keyword }}
+                                    </SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                        <div class="text-muted-foreground text-xs">
+                            {{ t("settings.references.primaryKeywordHelp") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right text-sm font-medium" for="category-autocomplete">
+                        {{ t("settings.references.autoComplete") }}
+                    </Label>
+                    <div class="col-span-3 flex items-center gap-2">
+                        <Switch id="category-autocomplete" v-model="form.autoCompleteEnabled" />
+                        <span class="text-muted-foreground text-xs">
+                            {{ t("settings.references.autoCompleteHelp") }}
+                        </span>
                     </div>
                 </div>
             </div>
