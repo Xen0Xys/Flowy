@@ -21,8 +21,9 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
             <FlowySidebar />
             <SidebarInset>
                 <div class="flex h-full flex-col">
-                    <header class="bg-background flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                        <SidebarTrigger class="-ml-1" />
+                    <header
+                        class="bg-background/80 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b px-4 backdrop-blur-md">
+                        <SidebarTrigger class="hover:bg-accent/20 -ml-1 transition-colors" />
                         <Separator class="mr-2 max-h-6" orientation="vertical" />
                         <AppBreadcrumb />
                     </header>
