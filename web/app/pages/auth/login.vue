@@ -48,10 +48,8 @@ async function submit() {
             email: form.value.email,
             password: form.value.password,
         });
-        // redirect after successful login
         await router.push("/");
     } catch (err: any) {
-        // store.login already displays a toast for server errors; remove inline error
         error.value = null;
     } finally {
         loading.value = false;
@@ -60,27 +58,67 @@ async function submit() {
 </script>
 
 <template>
-    <main :class="cn('flex min-h-screen items-center justify-center p-6')">
-        <div class="flex w-full max-w-5xl flex-col items-center gap-6">
-            <div class="text-center">
-                <div class="text-5xl font-semibold tracking-tight md:text-6xl">Flowy</div>
+    <main :class="cn('bg-background relative flex min-h-dvh items-center justify-center overflow-hidden p-6')">
+        <!-- Ambient brand backdrop -->
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10">
+            <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-20 blur-3xl"></div>
+            <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
+        </div>
+
+        <div class="animate-fade-in-up flex w-full max-w-5xl flex-col gap-8">
+            <div class="flex items-center justify-center gap-3">
+                <div class="relative">
+                    <span
+                        aria-hidden="true"
+                        class="bg-brand-gradient absolute inset-0 rounded-2xl opacity-70 blur-lg"></span>
+                    <img alt="Flowy" class="relative size-12 rounded-2xl" src="/flowy-logo.webp" />
+                </div>
+                <div class="font-heading text-4xl font-semibold tracking-tight md:text-5xl">Flowy</div>
             </div>
+
             <div :class="cn('grid w-full grid-cols-1 gap-8 md:grid-cols-2')">
-                <aside class="relative hidden items-center justify-center overflow-hidden rounded-lg md:flex">
-                    <img
-                        :alt="t('auth.login.backgroundAlt')"
-                        class="absolute inset-0 h-full w-full object-cover opacity-80"
-                        src="/assets/login-image.webp" />
-                    <div class="relative z-10 p-8 text-center text-white">
-                        <h2 class="mb-2 text-3xl font-bold">{{ t("auth.login.welcome") }}</h2>
-                        <p class="text-sm opacity-90">{{ t("auth.login.subtitle") }}</p>
+                <!-- Hero column: brand gradient composition, no external image -->
+                <aside
+                    class="bg-brand-gradient relative hidden overflow-hidden rounded-2xl shadow-lg md:flex md:min-h-[520px]">
+                    <div aria-hidden="true" class="absolute inset-0">
+                        <!-- Large filigrane F -->
+                        <svg
+                            class="absolute -right-16 -bottom-16 h-[420px] w-[420px] opacity-15"
+                            fill="white"
+                            viewBox="0 0 100 100"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M18 12 Q14 12 14 18 L14 82 Q14 88 20 88 L28 88 Q34 88 34 82 L34 58 L54 58 Q60 58 60 52 L60 46 Q60 40 54 40 L34 40 L34 32 L66 32 Q72 32 72 26 L72 18 Q72 12 66 12 Z" />
+                        </svg>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/5"></div>
+                        <!-- Floating orbs -->
+                        <div class="absolute top-10 left-10 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
+                        <div class="absolute right-16 bottom-24 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
                     </div>
-                    <div class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
+                    <div class="relative z-10 flex flex-col justify-end p-10 text-white">
+                        <div
+                            class="mb-3 inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium tracking-wide backdrop-blur">
+                            <span class="size-1.5 rounded-full bg-white"></span>
+                            {{ t("auth.login.welcome") }}
+                        </div>
+                        <h2 class="font-heading mb-2 text-3xl font-semibold tracking-tight lg:text-4xl">
+                            {{ t("auth.login.welcome") }}
+                        </h2>
+                        <p class="max-w-sm text-sm text-white/85">{{ t("auth.login.subtitle") }}</p>
+                    </div>
                 </aside>
 
                 <div class="flex flex-col gap-6">
-                    <section :class="cn('bg-card rounded-lg p-8 shadow-lg')">
-                        <h1 class="mb-6 text-2xl font-semibold">{{ t("auth.login.title") }}</h1>
+                    <section
+                        :class="
+                            cn(
+                                'bg-card border-border/60 animate-fade-in-scale rounded-2xl border p-8 shadow-lg backdrop-blur-sm',
+                            )
+                        ">
+                        <h1 class="font-heading mb-1 text-2xl font-semibold tracking-tight">
+                            {{ t("auth.login.title") }}
+                        </h1>
+                        <p class="text-muted-foreground mb-6 text-sm">{{ t("auth.login.subtitle") }}</p>
 
                         <form class="space-y-4" novalidate @submit.prevent="submit">
                             <FormItem>
@@ -126,17 +164,21 @@ async function submit() {
                                     :aria-label="t('auth.login.title')"
                                     :as="'button'"
                                     :disabled="loading"
+                                    class="bg-brand-gradient hover:shadow-glow w-full font-medium text-white shadow-md transition-all hover:brightness-110 disabled:opacity-70"
                                     type="submit">
+                                    <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
                                     {{ loading ? t("auth.login.loading") : t("auth.login.title") }}
                                 </Button>
                             </div>
                         </form>
 
-                        <p class="mt-4 text-sm">
+                        <p class="text-muted-foreground mt-6 text-center text-sm">
                             {{ t("auth.login.noAccount") }}
-                            <NuxtLink class="text-primary underline" to="/auth/register">{{
-                                t("auth.register.title")
-                            }}</NuxtLink>
+                            <NuxtLink
+                                class="text-primary ml-1 font-medium underline-offset-4 hover:underline"
+                                to="/auth/register">
+                                {{ t("auth.register.title") }}
+                            </NuxtLink>
                         </p>
                     </section>
                 </div>
