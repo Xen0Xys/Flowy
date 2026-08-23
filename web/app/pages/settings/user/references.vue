@@ -4,10 +4,8 @@ import {useI18n} from "vue-i18n";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Card} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -19,6 +17,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import CategoryDialog from "~/components/references/CategoryDialog.vue";
+import MerchantDialog from "~/components/references/MerchantDialog.vue";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
 import {Icon} from "#components";
 
@@ -31,96 +31,17 @@ onMounted(async () => {
     await referenceStore.fetchReferences();
 });
 
-const PRESET_COLORS = [
-    "#ef4444", // Red
-    "#f97316", // Orange
-    "#f59e0b", // Amber
-    "#ca8a04", // Yellow
-    "#84cc16", // Lime
-    "#22c55e", // Green
-    "#10b981", // Emerald
-    "#14b8a6", // Teal
-    "#06b6d4", // Cyan
-    "#0ea5e9", // Sky
-    "#3b82f6", // Blue
-    "#6366f1", // Indigo
-    "#8b5cf6", // Violet
-    "#a855f7", // Purple
-    "#ec4899", // Pink
-    "#64748b", // Slate
-];
-
-const PRESET_ICONS = [
-    "iconoir:label",
-    "iconoir:home",
-    "iconoir:car",
-    "iconoir:bus",
-    "iconoir:cart",
-    "iconoir:shopping-bag",
-    "iconoir:coffee-cup",
-    "iconoir:apple-mac",
-    "iconoir:tv",
-    "iconoir:shirt",
-    "iconoir:book",
-    "iconoir:gym",
-    "iconoir:airplane",
-    "iconoir:heart",
-];
-
-// Category State
 const categoryDialogOpen = ref(false);
 const editingCategory = ref<TransactionCategory | null>(null);
-const categoryForm = ref({
-    name: "",
-    hexColor: "#000000",
-    icon: "iconoir:label",
-});
-const categoryActionLoading = ref(false);
 const deletingCategoryId = ref<string | null>(null);
 
-// Merchant State
 const merchantDialogOpen = ref(false);
 const editingMerchant = ref<TransactionMerchant | null>(null);
-const merchantForm = ref({
-    name: "",
-});
-const merchantActionLoading = ref(false);
 const deletingMerchantId = ref<string | null>(null);
 
-// Category Methods
 function openCategoryDialog(category?: TransactionCategory) {
-    if (category) {
-        editingCategory.value = category;
-        categoryForm.value = {
-            name: category.name,
-            hexColor: category.hexColor,
-            icon: category.icon,
-        };
-    } else {
-        editingCategory.value = null;
-        categoryForm.value = {
-            name: "",
-            hexColor: "#000000",
-            icon: "iconoir:label",
-        };
-    }
+    editingCategory.value = category ?? null;
     categoryDialogOpen.value = true;
-}
-
-async function saveCategory() {
-    if (!categoryForm.value.name) return;
-
-    categoryActionLoading.value = true;
-    try {
-        if (editingCategory.value) {
-            await referenceStore.updateCategory(editingCategory.value.id, categoryForm.value);
-        } else {
-            await referenceStore.createCategory(categoryForm.value);
-        }
-        categoryDialogOpen.value = false;
-    } finally {
-        categoryActionLoading.value = false;
-    }
 }
 
 async function deleteCategory(id: string) {
@@ -132,36 +53,9 @@ async function deleteCategory(id: string) {
     }
 }
 
-// Merchant Methods
 function openMerchantDialog(merchant?: TransactionMerchant) {
-    if (merchant) {
-        editingMerchant.value = merchant;
-        merchantForm.value = {
-            name: merchant.name,
-        };
-    } else {
-        editingMerchant.value = null;
-        merchantForm.value = {
-            name: "",
-        };
-    }
+    editingMerchant.value = merchant ?? null;
     merchantDialogOpen.value = true;
-}
-
-async function saveMerchant() {
-    if (!merchantForm.value.name) return;
-
-    merchantActionLoading.value = true;
-    try {
-        if (editingMerchant.value) {
-            await referenceStore.updateMerchant(editingMerchant.value.id, merchantForm.value);
-        } else {
-            await referenceStore.createMerchant(merchantForm.value);
-        }
-        merchantDialogOpen.value = false;
-    } finally {
-        merchantActionLoading.value = false;
-    }
 }
 
 async function deleteMerchant(id: string) {
@@ -367,153 +261,7 @@ async function deleteMerchant(id: string) {
             </Tabs>
         </div>
 
-        <!-- Category Dialog -->
-        <Dialog v-model:open="categoryDialogOpen">
-            <DialogContent class="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>
-                        {{
-                            editingCategory
-                                ? t("settings.references.editCategory")
-                                : t("settings.references.createCategory")
-                        }}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {{
-                            editingCategory
-                                ? t("settings.references.editCategoryDescription")
-                                : t("settings.references.createCategoryDescription")
-                        }}
-                    </DialogDescription>
-                </DialogHeader>
-                <div class="grid gap-4 py-4">
-                    <div class="grid grid-cols-4 items-center gap-4">
-                        <label class="text-right text-sm font-medium" for="name">{{
-                            t("settings.references.name")
-                        }}</label>
-                        <Input
-                            id="name"
-                            v-model="categoryForm.name"
-                            class="col-span-3"
-                            :placeholder="t('settings.references.categoryPlaceholder')" />
-                    </div>
-                    <div class="grid grid-cols-4 items-start gap-4">
-                        <label class="mt-2 text-right text-sm font-medium" for="color">{{
-                            t("settings.references.color")
-                        }}</label>
-                        <div class="col-span-3 flex flex-col gap-3">
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    v-for="color in PRESET_COLORS"
-                                    :key="color"
-                                    :class="{
-                                        'ring-ring ring-offset-background ring-2 ring-offset-2':
-                                            categoryForm.hexColor === color,
-                                    }"
-                                    :style="{backgroundColor: color}"
-                                    :aria-label="t('settings.references.aria.selectColor')"
-                                    class="border-border h-6 w-6 rounded-full border transition-transform hover:scale-110"
-                                    type="button"
-                                    @click="categoryForm.hexColor = color"></button>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <Input
-                                    id="color"
-                                    v-model="categoryForm.hexColor"
-                                    class="h-10 w-16 cursor-pointer p-1"
-                                    type="color" />
-                                <Input v-model="categoryForm.hexColor" class="uppercase" placeholder="#000000" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-4 items-start gap-4">
-                        <label class="mt-2 text-right text-sm font-medium" for="icon">{{
-                            t("settings.references.icon")
-                        }}</label>
-                        <div class="col-span-3 flex flex-col gap-3">
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    v-for="iconName in PRESET_ICONS"
-                                    :key="iconName"
-                                    :class="{
-                                        'bg-primary text-primary-foreground hover:bg-primary':
-                                            categoryForm.icon === iconName,
-                                    }"
-                                    :aria-label="t('settings.references.aria.selectIcon')"
-                                    class="border-border hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
-                                    type="button"
-                                    @click="categoryForm.icon = iconName">
-                                    <Icon :name="iconName" class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div
-                                    class="border-input flex h-10 w-10 shrink-0 items-center justify-center rounded-md border">
-                                    <Icon :name="categoryForm.icon" class="h-5 w-5" />
-                                </div>
-                                <Input id="icon" v-model="categoryForm.icon" placeholder="iconoir:label" />
-                            </div>
-                            <div class="text-muted-foreground text-xs">
-                                {{ t("settings.references.findIconsAt") }}
-                                <a
-                                    class="hover:text-foreground underline"
-                                    href="https://icones.js.org/collection/iconoir"
-                                    target="_blank"
-                                    >{{ t("settings.references.iconLibrary") }}</a
-                                >
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" @click="categoryDialogOpen = false">{{ t("common.cancel") }}</Button>
-                    <Button :disabled="!categoryForm.name || categoryActionLoading" @click="saveCategory">
-                        <span v-if="categoryActionLoading">{{ t("common.saving") }}</span>
-                        <span v-else>{{ t("common.save") }}</span>
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        <!-- Merchant Dialog -->
-        <Dialog v-model:open="merchantDialogOpen">
-            <DialogContent class="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>
-                        {{
-                            editingMerchant
-                                ? t("settings.references.editMerchant")
-                                : t("settings.references.createMerchant")
-                        }}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {{
-                            editingMerchant
-                                ? t("settings.references.editMerchantDescription")
-                                : t("settings.references.createMerchantDescription")
-                        }}
-                    </DialogDescription>
-                </DialogHeader>
-                <div class="grid gap-4 py-4">
-                    <div class="grid grid-cols-4 items-center gap-4">
-                        <label class="text-right text-sm font-medium" for="merchant-name">{{
-                            t("settings.references.name")
-                        }}</label>
-                        <Input
-                            id="merchant-name"
-                            v-model="merchantForm.name"
-                            class="col-span-3"
-                            :placeholder="t('settings.references.merchantPlaceholder')" />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" @click="merchantDialogOpen = false">{{ t("common.cancel") }}</Button>
-                    <Button :disabled="!merchantForm.name || merchantActionLoading" @click="saveMerchant">
-                        <span v-if="merchantActionLoading">{{ t("common.saving") }}</span>
-                        <span v-else>{{ t("common.save") }}</span>
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <CategoryDialog v-model:open="categoryDialogOpen" :category="editingCategory" />
+        <MerchantDialog v-model:open="merchantDialogOpen" :merchant="editingMerchant" />
     </div>
 </template>
