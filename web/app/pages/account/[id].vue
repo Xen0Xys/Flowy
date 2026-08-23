@@ -2,7 +2,7 @@
 import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute, useRouter} from "vue-router";
-import {useMediaQuery} from "@vueuse/core";
+import {useCssVar, useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
 import type {TimeRange} from "~/utils/accounts";
@@ -66,15 +66,20 @@ const accountTypeLabel = computed(() => {
     return te(key) ? t(key) : type;
 });
 
+const successVar = useCssVar("--success");
+const destructiveVar = useCssVar("--destructive");
+const mutedFgVar = useCssVar("--muted-foreground");
+
 const chartColor = computed(() => {
     const series = evolutionSeries.value;
-    if (!series || series.length === 0) return "#94a3b8"; // slate-400
+    const fallback = mutedFgVar.value?.trim() || "oklch(0.5 0.02 250)";
+    if (!series || series.length === 0) return fallback;
     const startValue = series[0].balance;
     const endValue = series[series.length - 1].balance;
 
-    if (endValue > startValue) return "#10b981"; // emerald-500
-    if (endValue < startValue) return "#ef4444"; // red-500
-    return "#94a3b8"; // slate-400
+    if (endValue > startValue) return successVar.value?.trim() || fallback;
+    if (endValue < startValue) return destructiveVar.value?.trim() || fallback;
+    return fallback;
 });
 
 const chartConfig = computed(() => ({
@@ -92,6 +97,7 @@ const loadData = async () => {
     try {
         await Promise.all([accountStore.fetchAccountById(accountId), familyStore.fetchFamily()]);
         await loadChartData();
+        animateBalance(0, account.value?.balance ?? 0);
     } catch (err) {
         console.error(err);
         router.push("/");
@@ -189,8 +195,8 @@ const formatDate = (dateString: string) => {
 };
 
 const amountClass = (value: number) => {
-    if (value < 0) return "text-red-500";
-    if (value > 0) return "text-emerald-600";
+    if (value < 0) return "text-destructive";
+    if (value > 0) return "text-success";
     return "text-foreground";
 };
 
@@ -221,7 +227,38 @@ const graphHeaderClass = computed(() =>
     cn("flex flex-col md:flex-row md:items-start md:justify-between", isVeryCompactHeight.value ? "gap-3" : "gap-4"),
 );
 
-const graphAmountClass = computed(() => cn("mt-1 font-bold", isVeryCompactHeight.value ? "text-2xl" : "text-3xl"));
+const graphAmountClass = computed(() =>
+    cn(
+        "font-heading mt-1 font-semibold tracking-tight tabular-nums",
+        isVeryCompactHeight.value ? "text-2xl" : "text-3xl",
+    ),
+);
+
+// Count-up on balance
+const displayedBalance = ref(0);
+let rafHandle: number | null = null;
+function animateBalance(from: number, to: number) {
+    if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        displayedBalance.value = to;
+        return;
+    }
+    const duration = 500;
+    const start = performance.now();
+    const step = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        displayedBalance.value = from + (to - from) * eased;
+        if (progress < 1) rafHandle = requestAnimationFrame(step);
+        else rafHandle = null;
+    };
+    rafHandle = requestAnimationFrame(step);
+}
+watch(
+    () => account.value?.balance ?? 0,
+    (v, prev) => animateBalance(prev ?? 0, v),
+    {immediate: false},
+);
 
 const graphHeightClass = computed(() =>
     cn("md:mx-0", {
@@ -250,7 +287,7 @@ const graphHeightClass = computed(() =>
                                 <Skeleton class="h-4 w-24" />
                             </div>
                             <div v-else-if="account" class="min-w-0">
-                                <h1 class="truncate text-2xl font-bold tracking-tight">
+                                <h1 class="font-heading truncate text-2xl font-semibold tracking-tight">
                                     {{ account.name }}
                                 </h1>
                                 <p class="text-muted-foreground text-sm">
@@ -296,7 +333,7 @@ const graphHeightClass = computed(() =>
                                     {{ t("account.currentBalance") }}
                                 </h3>
                                 <div :class="graphAmountClass">
-                                    {{ formatCurrency(account.balance) }}
+                                    {{ formatCurrency(displayedBalance) }}
                                 </div>
                             </div>
                             <Tabs v-model="timeRange" class="w-auto">
