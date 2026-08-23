@@ -276,12 +276,22 @@ async function copyUserId(id: string) {
 
 <template>
     <div class="w-full">
-        <div class="mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
+        <div class="animate-fade-in-up mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
             <div class="mb-6 shrink-0">
                 <div class="flex items-center gap-3">
-                    <Icon class="icon-lg text-primary shrink-0" name="iconoir:user-crown" />
+                    <div class="relative">
+                        <span
+                            aria-hidden="true"
+                            class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
+                        <div
+                            class="bg-brand-gradient-soft border-border/60 relative flex size-12 items-center justify-center rounded-xl border">
+                            <Icon class="text-primary size-6" name="iconoir:user-crown" />
+                        </div>
+                    </div>
                     <div>
-                        <h1 class="text-2xl font-semibold">{{ t("settings.users.title") }}</h1>
+                        <h1 class="font-heading text-2xl font-semibold tracking-tight">
+                            {{ t("settings.users.title") }}
+                        </h1>
                         <p class="text-muted-foreground text-sm">{{ t("settings.users.subtitle") }}</p>
                     </div>
                 </div>

@@ -212,11 +212,17 @@ async function changePasswordNow() {
 
 <template>
     <div class="w-full">
-        <div class="mx-auto w-full max-w-6xl py-6">
+        <div class="animate-fade-in-up mx-auto w-full max-w-6xl py-6">
             <div class="mb-6 flex items-center gap-3">
-                <Icon class="icon-lg text-primary shrink-0" name="iconoir:user" />
+                <div class="relative">
+                    <span aria-hidden="true" class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
+                    <div
+                        class="bg-brand-gradient-soft border-border/60 relative flex size-12 items-center justify-center rounded-xl border">
+                        <Icon class="text-primary size-6" name="iconoir:user" />
+                    </div>
+                </div>
                 <div>
-                    <h1 class="text-2xl font-semibold">{{ t("profile.title") }}</h1>
+                    <h1 class="font-heading text-2xl font-semibold tracking-tight">{{ t("profile.title") }}</h1>
                     <p class="text-muted-foreground text-sm">{{ t("profile.description") }}</p>
                 </div>
             </div>
