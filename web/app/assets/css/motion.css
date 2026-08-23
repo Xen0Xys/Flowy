@@ -166,6 +166,45 @@
     }
 }
 
+/* ---------- Ambient blobs (auth surfaces) ---------- */
+.animate-blob-a {
+    animation: flowy-blob-a 26s var(--ease-in-out) infinite alternate;
+    will-change: transform;
+}
+.animate-blob-b {
+    animation: flowy-blob-b 32s var(--ease-in-out) infinite alternate;
+    will-change: transform;
+}
+.animate-blob-c {
+    animation: flowy-blob-c 38s var(--ease-in-out) infinite alternate;
+    will-change: transform;
+}
+
+@keyframes flowy-blob-a {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+        transform: translate3d(6%, -4%, 0) scale(1.08);
+    }
+}
+@keyframes flowy-blob-b {
+    from {
+        transform: translate3d(0, 0, 0) scale(1.05);
+    }
+    to {
+        transform: translate3d(-5%, 6%, 0) scale(0.95);
+    }
+}
+@keyframes flowy-blob-c {
+    from {
+        transform: translate3d(0, 0, 0) scale(0.95);
+    }
+    to {
+        transform: translate3d(4%, 5%, 0) scale(1.1);
+    }
+}
+
 /* ---------- Interactive polish ---------- */
 button,
 a,

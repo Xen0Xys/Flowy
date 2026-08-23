@@ -105,20 +105,16 @@ async function submit() {
             </div>
 
             <div :class="cn('grid w-full grid-cols-1 gap-8 md:grid-cols-2')">
-                <aside
-                    class="bg-brand-gradient relative hidden overflow-hidden rounded-2xl shadow-lg md:flex md:min-h-[520px]">
+                <aside class="bg-brand-gradient relative hidden overflow-hidden rounded-2xl shadow-lg md:flex">
                     <div aria-hidden="true" class="absolute inset-0">
-                        <svg
-                            class="absolute -bottom-16 -left-16 h-[420px] w-[420px] opacity-15"
-                            fill="white"
-                            viewBox="0 0 100 100"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M18 12 Q14 12 14 18 L14 82 Q14 88 20 88 L28 88 Q34 88 34 82 L34 58 L54 58 Q60 58 60 52 L60 46 Q60 40 54 40 L34 40 L34 32 L66 32 Q72 32 72 26 L72 18 Q72 12 66 12 Z" />
-                        </svg>
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/5"></div>
-                        <div class="absolute top-16 right-16 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
-                        <div class="absolute bottom-24 left-20 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
+                        <div
+                            class="animate-blob-a absolute top-[-20%] left-[-10%] h-[70%] w-[70%] rounded-full bg-white/25 blur-3xl"></div>
+                        <div
+                            class="animate-blob-b absolute right-[-15%] bottom-[-20%] h-[80%] w-[80%] rounded-full bg-white/15 blur-3xl"></div>
+                        <div
+                            class="animate-blob-c absolute top-[30%] right-[20%] h-[45%] w-[45%] rounded-full bg-white/10 blur-3xl"></div>
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                     </div>
                     <div class="relative z-10 flex flex-col justify-end p-10 text-white">
                         <div
