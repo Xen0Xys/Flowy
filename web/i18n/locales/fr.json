@@ -49,7 +49,6 @@
         },
         "login": {
             "title": "Connexion",
-            "backgroundAlt": "Arrière-plan de connexion",
             "welcome": "Bon retour",
             "subtitle": "Connectez-vous pour accéder à votre tableau de bord",
             "loading": "Connexion...",
@@ -60,7 +59,6 @@
         },
         "register": {
             "title": "Inscription",
-            "backgroundAlt": "Arrière-plan d'inscription",
             "heading": "Créez votre compte",
             "subtitle": "Rejoignez Flowy et organisez-vous en famille",
             "loading": "Inscription...",
@@ -222,9 +220,6 @@
                 "success": "{count} invitation(s) envoyée(s)",
                 "partial": "{success} envoyée(s), {failed} échec(s)",
                 "failed": "Échec de l'envoi des invitations"
-            },
-            "errors": {
-                "sendFailed": "Échec de l'envoi de l'invitation"
             }
         }
     },

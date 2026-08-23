@@ -49,7 +49,6 @@
         },
         "login": {
             "title": "Login",
-            "backgroundAlt": "Login background",
             "welcome": "Welcome back",
             "subtitle": "Sign in to continue to your dashboard",
             "loading": "Logging in...",
@@ -60,7 +59,6 @@
         },
         "register": {
             "title": "Register",
-            "backgroundAlt": "Register background",
             "heading": "Create your account",
             "subtitle": "Join and start organizing with your family",
             "loading": "Registering...",
@@ -222,9 +220,6 @@
                 "success": "{count} invitation(s) sent",
                 "partial": "{success} sent, {failed} failed",
                 "failed": "Failed to send invitations"
-            },
-            "errors": {
-                "sendFailed": "Failed to send invite"
             }
         }
     },
