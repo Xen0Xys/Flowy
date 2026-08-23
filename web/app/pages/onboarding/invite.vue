@@ -83,8 +83,12 @@ function skip() {
 </script>
 
 <template>
-    <div :class="cn('flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <Card class="py-0">
+    <div :class="cn('relative flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
+        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
+            <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
+            <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
+        </div>
+        <Card class="animate-fade-in-up py-0">
             <CardContent class="p-3">
                 <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
                     <template v-for="(s, i) in steps" :key="i">
@@ -109,10 +113,12 @@ function skip() {
             </CardContent>
         </Card>
 
-        <Card :class="cn('w-full self-center', 'max-w-md')">
+        <Card :class="cn('animate-fade-in-scale w-full self-center', 'max-w-md')">
             <CardContent>
                 <header class="text-center">
-                    <h1 class="text-2xl font-semibold">{{ t("onboarding.invite.title") }}</h1>
+                    <h1 class="font-heading text-2xl font-semibold tracking-tight">
+                        {{ t("onboarding.invite.title") }}
+                    </h1>
                 </header>
 
                 <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
@@ -137,12 +143,17 @@ function skip() {
                     </div>
 
                     <div class="flex items-center justify-end gap-2">
-                        <Button :as="'button'" :disabled="loading" type="submit">{{
-                            loading ? t("onboarding.invite.sending") : t("onboarding.invite.send")
-                        }}</Button>
-                        <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">{{
-                            invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip")
-                        }}</Button>
+                        <Button
+                            :as="'button'"
+                            :disabled="loading"
+                            class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
+                            type="submit">
+                            <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
+                            {{ loading ? t("onboarding.invite.sending") : t("onboarding.invite.send") }}
+                        </Button>
+                        <Button :as="'button'" type="button" variant="outline" @click.prevent="skip">
+                            {{ invitedCount > 0 ? t("onboarding.invite.continue") : t("onboarding.invite.skip") }}
+                        </Button>
                     </div>
                 </form>
             </CardContent>

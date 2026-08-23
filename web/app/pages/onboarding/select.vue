@@ -71,8 +71,12 @@ async function joinFamily() {
 </script>
 
 <template>
-    <div :class="cn('flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
-        <Card class="py-0">
+    <div :class="cn('relative flex w-full grow flex-col justify-center self-center px-4', 'max-w-3xl')">
+        <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
+            <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
+            <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
+        </div>
+        <Card class="animate-fade-in-up py-0">
             <CardContent class="p-3">
                 <Stepper :class="cn('flex w-max justify-center gap-6 md:items-center', 'flex-col md:flex-row')">
                     <template v-for="(s, i) in steps" :key="i">
@@ -97,26 +101,35 @@ async function joinFamily() {
             </CardContent>
         </Card>
 
-        <div class="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-            <Card class="py-0">
+        <div class="stagger-children grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+            <Card :style="{'--stagger-index': 0}" class="py-0 transition-shadow hover:shadow-md">
                 <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
                     <div class="flex flex-col gap-1">
-                        <h2 class="text-lg font-medium">{{ t("onboarding.select.create.title") }}</h2>
+                        <h2 class="font-heading text-lg font-semibold tracking-tight">
+                            {{ t("onboarding.select.create.title") }}
+                        </h2>
                         <p class="text-muted-foreground text-sm">
                             {{ t("onboarding.select.create.description") }}
                         </p>
                     </div>
                     <div class="flex justify-end">
-                        <Button :as="'button'" @click="goCreate">{{ t("onboarding.select.create.button") }}</Button>
+                        <Button
+                            :as="'button'"
+                            class="bg-brand-gradient hover:shadow-glow text-white hover:brightness-110"
+                            @click="goCreate">
+                            {{ t("onboarding.select.create.button") }}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
 
-            <Card class="py-0">
+            <Card :style="{'--stagger-index': 1}" class="py-0 transition-shadow hover:shadow-md">
                 <CardContent class="flex h-auto flex-col justify-between p-4 sm:h-72">
                     <div class="flex flex-col gap-2">
                         <div>
-                            <h2 class="text-lg font-medium">{{ t("onboarding.select.join.title") }}</h2>
+                            <h2 class="font-heading text-lg font-semibold tracking-tight">
+                                {{ t("onboarding.select.join.title") }}
+                            </h2>
                             <p class="text-muted-foreground text-sm">
                                 {{ t("onboarding.select.join.description") }}
                             </p>
