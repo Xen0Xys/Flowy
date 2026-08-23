@@ -25,17 +25,17 @@ const pageTitle = computed(() => {
 useHead({
     title: computed(() => (pageTitle.value ? t("app.head.withPage", {page: pageTitle.value}) : t("app.head.default"))),
     link: [
-        {
-            rel: "icon",
-            type: "image/webp",
-            href: "/flowy-logo.webp",
-        },
+        {rel: "icon", type: "image/webp", href: "/flowy-logo.webp"},
+        {rel: "apple-touch-icon", href: "/flowy-logo.webp"},
     ],
     meta: [
-        {
-            name: "robots",
-            content: "noindex, nofollow",
-        },
+        {name: "robots", content: "noindex, nofollow"},
+        {name: "theme-color", content: "#3b6cff"},
+        {property: "og:title", content: "Flowy"},
+        {property: "og:description", content: "Your personal finance flow, made calm."},
+        {property: "og:type", content: "website"},
+        {property: "og:image", content: "/og-image.png"},
+        {name: "twitter:card", content: "summary_large_image"},
     ],
 });
 </script>
