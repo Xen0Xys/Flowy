@@ -2,6 +2,7 @@
 import {computed} from "vue";
 import {useI18n} from "vue-i18n";
 import {useHead, useRoute} from "#app";
+import WhatsNewDialog from "~/components/whats-new/WhatsNewDialog.vue";
 
 const route = useRoute();
 const {t} = useI18n();
@@ -44,6 +45,9 @@ useHead({
     <div class="bg-background min-h-dvh">
         <NuxtLoadingIndicator />
         <Toaster close-button richColors />
+        <ClientOnly>
+            <WhatsNewDialog />
+        </ClientOnly>
         <NuxtLayout>
             <NuxtPage />
         </NuxtLayout>

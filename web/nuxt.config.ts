@@ -2,31 +2,43 @@
 import tailwindcss from "@tailwindcss/vite";
 import pkg from "./package.json";
 
-let securityHeaders = {};
-if (process.env.NODE_ENV === "production") {
-    securityHeaders = {
-        headers: {
-            contentSecurityPolicy: {
-                "default-src": ["'self'"],
-                "script-src": ["'self'", "'unsafe-inline'"],
-                "style-src": ["'self'", "'unsafe-inline'"],
-                "img-src": ["'self'", "data:", "https:"],
-                "connect-src": ["'self'"],
-                "font-src": ["'self'"],
-                "object-src": ["'none'"],
-                "media-src": ["'none'"],
-                "frame-src": ["'none'"],
-                "upgrade-insecure-requests": true,
-            },
+const isDev = process.env.NODE_ENV !== "production";
 
-            crossOriginEmbedderPolicy: false,
-            crossOriginOpenerPolicy: "same-origin",
-            crossOriginResourcePolicy: false,
-
-            referrerPolicy: "strict-origin-when-cross-origin",
-        },
-    };
+const apiBaseEnv = process.env.NUXT_PUBLIC_API_BASE?.trim() || (isDev ? "http://localhost:4000" : "");
+const apiOrigins: string[] = [];
+if (apiBaseEnv) {
+    try {
+        apiOrigins.push(new URL(apiBaseEnv).origin);
+    } catch {
+        // ignore invalid URL
+    }
 }
+
+const devConnectExtras = isDev ? ["ws:", "wss:", "http://localhost:*"] : [];
+
+const securityHeaders = {
+    headers: {
+        contentSecurityPolicy: {
+            "default-src": ["'self'"],
+            "script-src": ["'self'", "'unsafe-inline'"],
+            "style-src": ["'self'", "'unsafe-inline'"],
+            "img-src": ["'self'", "data:", "https:"],
+            "connect-src": ["'self'", "https://api.github.com", ...apiOrigins, ...devConnectExtras],
+            "font-src": ["'self'"],
+            "object-src": ["'none'"],
+            "media-src": ["'none'"],
+            "frame-src": ["'none'"],
+            "worker-src": ["'self'", "blob:"],
+            "upgrade-insecure-requests": true,
+        },
+
+        crossOriginEmbedderPolicy: false,
+        crossOriginOpenerPolicy: "same-origin",
+        crossOriginResourcePolicy: false,
+
+        referrerPolicy: "strict-origin-when-cross-origin",
+    },
+};
 
 export default defineNuxtConfig({
     runtimeConfig: {

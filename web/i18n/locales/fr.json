@@ -934,5 +934,12 @@
         "success": {
             "testComplete": "{count} transactions prêtes à être importées"
         }
+    },
+    "whatsNew": {
+        "title": "Nouveautés de la v{version}",
+        "subtitle": "Voici ce qui a changé depuis votre dernière visite.",
+        "viewOnGithub": "Voir sur GitHub",
+        "dismiss": "Compris",
+        "noBody": "Aucune note de version disponible."
     }
 }
