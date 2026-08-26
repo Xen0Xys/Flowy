@@ -21,8 +21,9 @@ import {CreateTransactionDto} from "./models/dto/create-transaction.dto";
 import {UpdateTransactionDto} from "./models/dto/update-transaction.dto";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {TransactionEntity} from "./models/entities/transaction.entity";
-import {SearchTransactionsDto} from "./models/dto/search-transactions.dto";
+import {SearchTransactionsDto, TransactionFiltersDto} from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
+import {TransactionSummaryEntity} from "./models/entities/transaction-summary.entity";
 import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
 import {SuggestReferenceDto} from "./models/dto/suggest-reference.dto";
 import {ReferenceSuggestion} from "../reference/reference-matcher.service";
@@ -49,6 +50,16 @@ export class TransactionController {
         @Query() query: SuggestReferenceDto,
     ): Promise<ReferenceSuggestion> {
         return this.transactionService.suggestReferences(user, query.description);
+    }
+
+    @Get("summary")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getSummary(
+        @User() user: UserEntity,
+        @Query() query: TransactionFiltersDto,
+    ): Promise<TransactionSummaryEntity> {
+        return this.transactionService.getTransactionsSummary(user, query);
     }
 
     @Post("account/:accountId")

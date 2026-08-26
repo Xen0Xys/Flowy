@@ -13,7 +13,7 @@ export enum TransactionSearchRebalance {
     EXCLUDE = "exclude",
 }
 
-export class SearchTransactionsDto {
+export class TransactionFiltersDto {
     @IsOptional()
     @IsString()
     @Length(1, 255)
@@ -53,7 +53,9 @@ export class SearchTransactionsDto {
     @IsOptional()
     @IsDateString()
     endDate?: string;
+}
 
+export class SearchTransactionsDto extends TransactionFiltersDto {
     @IsOptional()
     @Type(() => Number)
     @IsInt()

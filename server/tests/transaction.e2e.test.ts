@@ -71,6 +71,10 @@ describe("TransactionController (e2e)", () => {
         expect(search.status).toBe(401);
         expect(search.body.message).toBe("Authorization token is missing");
 
+        const summary = await agent.get("/transaction/summary");
+        expect(summary.status).toBe(401);
+        expect(summary.body.message).toBe("Authorization token is missing");
+
         const create = await agent.post("/transaction/account/account-id").send({
             amount: 12.34,
             description: "Lunch",
@@ -583,6 +587,40 @@ describe("TransactionController (e2e)", () => {
         expect(response.body.total).toBe(1);
         expect(response.body.items).toHaveLength(1);
         expect(response.body.items[0].id).toBe(expenseTx.body.id);
+    });
+
+    test("searches transactions by account name", async () => {
+        const user = await registerUser(server);
+
+        const savingsAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Livret A", type: "SAVINGS"});
+        const checkingAccount = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Compte courant", type: "CHECKING"});
+
+        expect(savingsAccount.status).toBe(201);
+        expect(checkingAccount.status).toBe(201);
+
+        const savingsTx = await agent
+            .post(`/transaction/account/${savingsAccount.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: 100, description: "Interest", date: "2026-02-01", inBudget: true});
+        await agent
+            .post(`/transaction/account/${checkingAccount.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({amount: -20, description: "Coffee", date: "2026-02-05", inBudget: true});
+
+        const response = await agent
+            .get("/transaction")
+            .query({search: "Livret"})
+            .set("Authorization", `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].id).toBe(savingsTx.body.id);
     });
 
     test("search endpoint supports optional pagination metadata", async () => {
@@ -1281,5 +1319,227 @@ describe("TransactionController (e2e)", () => {
         expect(clear.status).toBe(200);
         expect(clear.body.merchant).toBeUndefined();
         expect(clear.body.category).toBeUndefined();
+    });
+
+    describe("GET /transaction/summary", () => {
+        test("returns zeros when the user has no transactions", async () => {
+            const user = await registerUser(server);
+
+            const response = await agent.get("/transaction/summary").set("Authorization", `Bearer ${user.token}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                count: 0,
+                income: 0,
+                expense: 0,
+                net: 0,
+                rebalanceCount: 0,
+                rebalanceNet: 0,
+            });
+        });
+
+        test("aggregates income, expense and net across all accounts", async () => {
+            const user = await registerUser(server);
+
+            const accountA = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({name: "Checking", type: "CHECKING"});
+            const accountB = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({name: "Savings", type: "SAVINGS"});
+
+            await agent
+                .post(`/transaction/account/${accountA.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: 2000, description: "Salary", date: "2026-02-01", inBudget: true});
+            await agent
+                .post(`/transaction/account/${accountA.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: -42.5, description: "Groceries", date: "2026-02-10", inBudget: true});
+            await agent
+                .post(`/transaction/account/${accountB.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: -100, description: "Coffee", date: "2026-02-15", inBudget: true});
+            await agent
+                .post(`/transaction/account/${accountB.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: 500, description: "Freelance", date: "2026-02-20", inBudget: true});
+
+            const response = await agent.get("/transaction/summary").set("Authorization", `Bearer ${user.token}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.count).toBe(4);
+            expect(response.body.income).toBe(2500);
+            expect(response.body.expense).toBe(-142.5);
+            expect(response.body.net).toBe(2357.5);
+            expect(response.body.rebalanceCount).toBe(0);
+            expect(response.body.rebalanceNet).toBe(0);
+        });
+
+        test("excludes rebalance transactions from income/expense and reports them separately", async () => {
+            const user = await registerUser(server);
+
+            const account = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({name: "Checking", type: "CHECKING"});
+
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: 200, description: "Income", date: "2026-02-01", inBudget: true});
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: -50, description: "Expense", date: "2026-02-05", inBudget: true});
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: 15.5, description: "Rebalance", date: "2026-02-10", isRebalance: true, inBudget: true});
+
+            const response = await agent.get("/transaction/summary").set("Authorization", `Bearer ${user.token}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.count).toBe(2);
+            expect(response.body.income).toBe(200);
+            expect(response.body.expense).toBe(-50);
+            expect(response.body.net).toBe(150);
+            expect(response.body.rebalanceCount).toBe(1);
+            expect(response.body.rebalanceNet).toBe(15.5);
+        });
+
+        test("respects account, date range and category filters", async () => {
+            const user = await registerUser(server);
+
+            const accountA = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({name: "Checking", type: "CHECKING"});
+            const accountB = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({name: "Savings", type: "SAVINGS"});
+
+            const groceriesCategory = await prisma.userCategories.create({
+                data: {user_id: user.user.id, name: "Groceries", hex_color: "#10B981", icon: "cart"},
+            });
+
+            await agent
+                .post(`/transaction/account/${accountA.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({
+                    amount: -30,
+                    description: "Groceries Feb",
+                    date: "2026-02-10",
+                    categoryId: groceriesCategory.id,
+                    inBudget: true,
+                });
+            await agent
+                .post(`/transaction/account/${accountA.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({
+                    amount: -20,
+                    description: "Groceries Jan",
+                    date: "2026-01-10",
+                    categoryId: groceriesCategory.id,
+                    inBudget: true,
+                });
+            await agent
+                .post(`/transaction/account/${accountA.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: -12, description: "No category Feb", date: "2026-02-15", inBudget: true});
+            await agent
+                .post(`/transaction/account/${accountB.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({
+                    amount: -80,
+                    description: "Groceries other account",
+                    date: "2026-02-12",
+                    categoryId: groceriesCategory.id,
+                    inBudget: true,
+                });
+
+            const filtered = await agent
+                .get("/transaction/summary")
+                .query({
+                    accountId: accountA.body.id,
+                    categoryId: groceriesCategory.id,
+                    startDate: "2026-02-01",
+                    endDate: "2026-02-28",
+                })
+                .set("Authorization", `Bearer ${user.token}`);
+
+            expect(filtered.status).toBe(200);
+            expect(filtered.body.count).toBe(1);
+            expect(filtered.body.income).toBe(0);
+            expect(filtered.body.expense).toBe(-30);
+            expect(filtered.body.net).toBe(-30);
+        });
+
+        test("supports categoryId=none to target uncategorized transactions only", async () => {
+            const user = await registerUser(server);
+
+            const account = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({name: "Checking", type: "CHECKING"});
+            const category = await prisma.userCategories.create({
+                data: {user_id: user.user.id, name: "Food", hex_color: "#10B981", icon: "cart"},
+            });
+
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({
+                    amount: -25,
+                    description: "Lunch",
+                    date: "2026-02-05",
+                    categoryId: category.id,
+                    inBudget: true,
+                });
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: -10, description: "Uncategorized 1", date: "2026-02-06", inBudget: true});
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${user.token}`)
+                .send({amount: -15, description: "Uncategorized 2", date: "2026-02-07", inBudget: true});
+
+            const response = await agent
+                .get("/transaction/summary")
+                .query({categoryId: "none"})
+                .set("Authorization", `Bearer ${user.token}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.count).toBe(2);
+            expect(response.body.expense).toBe(-25);
+            expect(response.body.income).toBe(0);
+            expect(response.body.net).toBe(-25);
+        });
+
+        test("does not leak transactions from other users", async () => {
+            const owner = await registerUser(server);
+            const outsider = await registerUser(server);
+
+            const account = await agent
+                .post("/account")
+                .set("Authorization", `Bearer ${owner.token}`)
+                .send({name: "Owner", type: "CHECKING"});
+            await agent
+                .post(`/transaction/account/${account.body.id}`)
+                .set("Authorization", `Bearer ${owner.token}`)
+                .send({amount: 999, description: "Owner-only", date: "2026-02-01", inBudget: true});
+
+            const response = await agent.get("/transaction/summary").set("Authorization", `Bearer ${outsider.token}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.count).toBe(0);
+            expect(response.body.income).toBe(0);
+            expect(response.body.expense).toBe(0);
+            expect(response.body.net).toBe(0);
+        });
     });
 });

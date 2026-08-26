@@ -10,10 +10,12 @@ import {Prisma} from "../../../../prisma/generated/client";
 import {BulkAnalysisAccountEntity, BulkAnalysisEntity} from "./models/entities/bulk-analysis.entity";
 import {
     SearchTransactionsDto,
+    TransactionFiltersDto,
     TransactionSearchRebalance,
     TransactionSearchType,
 } from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
+import {TransactionSummaryEntity} from "./models/entities/transaction-summary.entity";
 import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
 import {ReferenceMatcherService, ReferenceSuggestion} from "../reference/reference-matcher.service";
 
@@ -84,63 +86,7 @@ export class TransactionService {
     }
 
     async searchTransactions(user: UserEntity, query: SearchTransactionsDto): Promise<SearchTransactionsResultEntity> {
-        const where: Prisma.TransactionsWhereInput = {
-            account: {
-                user_id: user.id,
-            },
-        };
-
-        if (query.accountId) where.account_id = query.accountId;
-        if (query.categoryId === "none") where.category_id = null;
-        else if (query.categoryId) where.category_id = query.categoryId;
-        if (query.merchantId) where.merchant_id = query.merchantId;
-        if (query.type === TransactionSearchType.INCOME) where.amount = {gt: 0};
-        if (query.type === TransactionSearchType.EXPENSE) where.amount = {lt: 0};
-        if (query.rebalance === TransactionSearchRebalance.ONLY) where.is_rebalance = true;
-        if (query.rebalance === TransactionSearchRebalance.EXCLUDE) where.is_rebalance = false;
-
-        if (query.startDate || query.endDate) {
-            const dateRange: Prisma.DateTimeFilter = {};
-
-            if (query.startDate) dateRange.gte = this.normalizeDateForRangeStart(query.startDate);
-            if (query.endDate) dateRange.lte = this.normalizeDateForRangeEnd(query.endDate);
-            if (dateRange.gte && dateRange.lte && dateRange.gte > dateRange.lte)
-                throw new BadRequestException("startDate must be before or equal to endDate");
-
-            where.date = dateRange;
-        }
-
-        const normalizedSearch = query.search?.trim();
-        if (normalizedSearch) {
-            where.OR = [
-                {
-                    description: {
-                        contains: normalizedSearch,
-                        mode: "insensitive",
-                    },
-                },
-                {
-                    merchant: {
-                        is: {
-                            name: {
-                                contains: normalizedSearch,
-                                mode: "insensitive",
-                            },
-                        },
-                    },
-                },
-                {
-                    category: {
-                        is: {
-                            name: {
-                                contains: normalizedSearch,
-                                mode: "insensitive",
-                            },
-                        },
-                    },
-                },
-            ];
-        }
+        const where = this.buildSearchWhere(user, query);
 
         const isPaginated = query.page !== undefined || query.pageSize !== undefined;
         const page = query.page ?? 1;
@@ -200,6 +146,44 @@ export class TransactionService {
             pageSize,
             totalPages,
             isPaginated: true,
+        });
+    }
+
+    async getTransactionsSummary(user: UserEntity, filters: TransactionFiltersDto): Promise<TransactionSummaryEntity> {
+        const where = this.buildSearchWhere(user, filters);
+        const withFilter = (extra: Prisma.TransactionsWhereInput): Prisma.TransactionsWhereInput => ({
+            AND: [where, extra],
+        });
+
+        const [nonRebalanceCount, incomeAgg, expenseAgg, rebalanceCount, rebalanceAgg] =
+            await this.prismaService.$transaction([
+                this.prismaService.transactions.count({where: withFilter({is_rebalance: false})}),
+                this.prismaService.transactions.aggregate({
+                    where: withFilter({is_rebalance: false, amount: {gt: 0}}),
+                    _sum: {amount: true},
+                }),
+                this.prismaService.transactions.aggregate({
+                    where: withFilter({is_rebalance: false, amount: {lt: 0}}),
+                    _sum: {amount: true},
+                }),
+                this.prismaService.transactions.count({where: withFilter({is_rebalance: true})}),
+                this.prismaService.transactions.aggregate({
+                    where: withFilter({is_rebalance: true}),
+                    _sum: {amount: true},
+                }),
+            ]);
+
+        const income = this.toDecimal(incomeAgg._sum.amount ?? 0);
+        const expense = this.toDecimal(expenseAgg._sum.amount ?? 0);
+        const rebalanceNet = this.toDecimal(rebalanceAgg._sum.amount ?? 0);
+
+        return new TransactionSummaryEntity({
+            count: nonRebalanceCount,
+            income,
+            expense,
+            net: this.toDecimal(income + expense),
+            rebalanceCount,
+            rebalanceNet,
         });
     }
 
@@ -562,6 +546,78 @@ export class TransactionService {
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,
         });
+    }
+
+    private buildSearchWhere(user: UserEntity, filters: TransactionFiltersDto): Prisma.TransactionsWhereInput {
+        const where: Prisma.TransactionsWhereInput = {
+            account: {
+                user_id: user.id,
+            },
+        };
+
+        if (filters.accountId) where.account_id = filters.accountId;
+        if (filters.categoryId === "none") where.category_id = null;
+        else if (filters.categoryId) where.category_id = filters.categoryId;
+        if (filters.merchantId) where.merchant_id = filters.merchantId;
+        if (filters.type === TransactionSearchType.INCOME) where.amount = {gt: 0};
+        if (filters.type === TransactionSearchType.EXPENSE) where.amount = {lt: 0};
+        if (filters.rebalance === TransactionSearchRebalance.ONLY) where.is_rebalance = true;
+        if (filters.rebalance === TransactionSearchRebalance.EXCLUDE) where.is_rebalance = false;
+
+        if (filters.startDate || filters.endDate) {
+            const dateRange: Prisma.DateTimeFilter = {};
+
+            if (filters.startDate) dateRange.gte = this.normalizeDateForRangeStart(filters.startDate);
+            if (filters.endDate) dateRange.lte = this.normalizeDateForRangeEnd(filters.endDate);
+            if (dateRange.gte && dateRange.lte && dateRange.gte > dateRange.lte)
+                throw new BadRequestException("startDate must be before or equal to endDate");
+
+            where.date = dateRange;
+        }
+
+        const normalizedSearch = filters.search?.trim();
+        if (normalizedSearch) {
+            where.OR = [
+                {
+                    description: {
+                        contains: normalizedSearch,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    merchant: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+                {
+                    category: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+                {
+                    account: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            ];
+        }
+
+        return where;
     }
 
     private normalizeTransactionDate(date: string | Date): Date {
