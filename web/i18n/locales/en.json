@@ -326,7 +326,11 @@
         "list": {
             "title": "Transactions",
             "viewAll": "View All",
-            "newTransaction": "New Transaction"
+            "newTransaction": "New Transaction",
+            "summary": {
+                "count": "{count} transactions",
+                "net": "Net"
+            }
         },
         "filters": {
             "title": "Filters",
@@ -353,7 +357,19 @@
             "rebalance": "Rebalance",
             "includeRebalance": "Include Rebalance",
             "excludeRebalance": "Exclude Rebalance",
-            "onlyRebalance": "Only Rebalance"
+            "onlyRebalance": "Only Rebalance",
+            "remove": "Remove this filter",
+            "presets": {
+                "title": "Shortcuts",
+                "today": "Today",
+                "yesterday": "Yesterday",
+                "last7": "Last 7 days",
+                "last30": "Last 30 days",
+                "thisMonth": "This month",
+                "lastMonth": "Last month",
+                "thisYear": "This year",
+                "clear": "Clear"
+            }
         },
         "table": {
             "date": "Date",
@@ -362,6 +378,8 @@
             "amount": "Amount",
             "account": "Account",
             "system": "System",
+            "today": "Today",
+            "yesterday": "Yesterday",
             "noMatch": "No transactions match your filters.",
             "noTransactions": "No transactions found."
         },

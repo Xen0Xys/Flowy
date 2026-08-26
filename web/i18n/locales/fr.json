@@ -326,7 +326,11 @@
         "list": {
             "title": "Transactions",
             "viewAll": "Voir tout",
-            "newTransaction": "Nouvelle transaction"
+            "newTransaction": "Nouvelle transaction",
+            "summary": {
+                "count": "{count} transactions",
+                "net": "Net"
+            }
         },
         "filters": {
             "title": "Filtres",
@@ -353,7 +357,19 @@
             "rebalance": "Rééquilibrage",
             "includeRebalance": "Inclure les rééquilibrages",
             "excludeRebalance": "Exclure les rééquilibrages",
-            "onlyRebalance": "Uniquement les rééquilibrages"
+            "onlyRebalance": "Uniquement les rééquilibrages",
+            "remove": "Retirer ce filtre",
+            "presets": {
+                "title": "Raccourcis",
+                "today": "Aujourd'hui",
+                "yesterday": "Hier",
+                "last7": "7 derniers jours",
+                "last30": "30 derniers jours",
+                "thisMonth": "Ce mois-ci",
+                "lastMonth": "Mois dernier",
+                "thisYear": "Cette année",
+                "clear": "Effacer"
+            }
         },
         "table": {
             "date": "Date",
@@ -362,6 +378,8 @@
             "amount": "Montant",
             "account": "Compte",
             "system": "Système",
+            "today": "Aujourd'hui",
+            "yesterday": "Hier",
             "noMatch": "Aucune transaction ne correspond à vos filtres.",
             "noTransactions": "Aucune transaction trouvée."
         },

@@ -108,6 +108,32 @@ export type SearchTransactionsResult = {
     isPaginated: boolean;
 };
 
+export type TransactionSummary = {
+    count: number;
+    income: number;
+    expense: number;
+    net: number;
+    rebalanceCount: number;
+    rebalanceNet: number;
+};
+
+function buildTransactionSearchParams(filters: TransactionSearchFilters): URLSearchParams {
+    const params = new URLSearchParams();
+
+    if (filters.search?.trim()) params.set("search", filters.search.trim());
+    if (filters.type && filters.type !== "all") params.set("type", filters.type);
+    if (filters.accountId && filters.accountId !== "all") params.set("accountId", filters.accountId);
+    if (filters.categoryId && filters.categoryId !== "all") params.set("categoryId", filters.categoryId);
+    if (filters.merchantId && filters.merchantId !== "all") params.set("merchantId", filters.merchantId);
+    if (filters.rebalance && filters.rebalance !== "all") params.set("rebalance", filters.rebalance);
+    if (filters.startDate) params.set("startDate", filters.startDate);
+    if (filters.endDate) params.set("endDate", filters.endDate);
+    if (filters.page !== undefined) params.set("page", String(filters.page));
+    if (filters.pageSize !== undefined) params.set("pageSize", String(filters.pageSize));
+
+    return params;
+}
+
 export const useTransactionStore = defineStore("transaction", {
     state: () => ({}),
 
@@ -163,53 +189,28 @@ export const useTransactionStore = defineStore("transaction", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
-            const params = new URLSearchParams();
-
-            if (filters.search?.trim()) {
-                params.set("search", filters.search.trim());
-            }
-
-            if (filters.type && filters.type !== "all") {
-                params.set("type", filters.type);
-            }
-
-            if (filters.accountId && filters.accountId !== "all") {
-                params.set("accountId", filters.accountId);
-            }
-
-            if (filters.categoryId && filters.categoryId !== "all") {
-                params.set("categoryId", filters.categoryId);
-            }
-
-            if (filters.merchantId && filters.merchantId !== "all") {
-                params.set("merchantId", filters.merchantId);
-            }
-
-            if (filters.rebalance && filters.rebalance !== "all") {
-                params.set("rebalance", filters.rebalance);
-            }
-
-            if (filters.startDate) {
-                params.set("startDate", filters.startDate);
-            }
-
-            if (filters.endDate) {
-                params.set("endDate", filters.endDate);
-            }
-
-            if (filters.page !== undefined) {
-                params.set("page", String(filters.page));
-            }
-
-            if (filters.pageSize !== undefined) {
-                params.set("pageSize", String(filters.pageSize));
-            }
-
-            const queryString = params.toString();
+            const queryString = buildTransactionSearchParams(filters).toString();
             const endpoint = queryString ? `/transaction?${queryString}` : "/transaction";
 
             try {
                 return await apiFetch<SearchTransactionsResult>(endpoint);
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async fetchTransactionsSummary(filters: Omit<TransactionSearchFilters, "page" | "pageSize"> = {}) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const queryString = buildTransactionSearchParams(filters).toString();
+            const endpoint = queryString ? `/transaction/summary?${queryString}` : "/transaction/summary";
+
+            try {
+                return await apiFetch<TransactionSummary>(endpoint);
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);

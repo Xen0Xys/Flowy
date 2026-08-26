@@ -7,14 +7,18 @@ import {
     type SearchTransactionsResult,
     type Transaction,
     type TransactionSearchFilters,
+    type TransactionSummary,
     useTransactionStore,
 } from "~/stores/transaction.store";
 import {useReferenceStore} from "~/stores/reference.store";
+import {useFamilyStore} from "~/stores/family.store";
+import {toCurrency} from "~/lib/currency";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
 import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
 import {Button} from "~/components/ui/button";
 import {ScrollArea} from "~/components/ui/scroll-area";
+import {Skeleton} from "~/components/ui/skeleton";
 import {NuxtLink} from "#components";
 
 const PAGE_SIZE = 25;
@@ -35,6 +39,7 @@ const emit = defineEmits<{
 const {t} = useI18n();
 const transactionStore = useTransactionStore();
 const referenceStore = useReferenceStore();
+const familyStore = useFamilyStore();
 const route = useRoute();
 
 const isTransactionModalOpen = ref(false);
@@ -81,16 +86,22 @@ const isLoadingInitial = ref(false);
 const isLoadingMore = ref(false);
 const loadMoreTrigger = ref<HTMLElement | null>(null);
 
-const totalResults = computed(() => searchResult.value.total ?? 0);
+const summary = ref<TransactionSummary | null>(null);
+const isLoadingSummary = ref(false);
+
 const isLoading = computed(() => isLoadingInitial.value || isLoadingMore.value);
 const hasMorePages = computed(() => currentPage.value < (searchResult.value.totalPages ?? 1));
+
+const formatCurrency = (value: number) => {
+    const currency = familyStore.family?.currency || "USD";
+    return toCurrency(value, currency);
+};
 
 const hasActiveFilters = computed(() => {
     const currentFilters = buildSearchFilters();
     const hasOtherFilters = Object.keys(currentFilters).some(
         (key) => key !== "accountId" && key !== "page" && key !== "pageSize",
     );
-    // User-selected account filter counts as active, but props.accountId (context) doesn't
     const hasAccountFilter = !props.accountId && filters.value.accountId !== "all";
     return hasOtherFilters || hasAccountFilter;
 });
@@ -140,6 +151,11 @@ const buildSearchFilters = (page = 1): TransactionSearchFilters => {
     return searchFilters;
 };
 
+const buildSummaryFilters = (): Omit<TransactionSearchFilters, "page" | "pageSize"> => {
+    const {page: _page, pageSize: _pageSize, ...rest} = buildSearchFilters();
+    return rest;
+};
+
 async function fetchTransactions(page = 1, append = false) {
     if (append && (!hasMorePages.value || isLoadingMore.value || isLoadingInitial.value)) {
         return;
@@ -169,7 +185,21 @@ async function fetchTransactions(page = 1, append = false) {
     }
 }
 
-const fetchFirstPage = () => fetchTransactions(1, false);
+async function fetchSummary() {
+    try {
+        isLoadingSummary.value = true;
+        summary.value = await transactionStore.fetchTransactionsSummary(buildSummaryFilters());
+    } catch (err) {
+        console.error(err);
+    } finally {
+        isLoadingSummary.value = false;
+    }
+}
+
+const refreshFromFilters = () => {
+    fetchTransactions(1, false);
+    fetchSummary();
+};
 
 const fetchNextPage = () => {
     if (!hasMorePages.value) {
@@ -182,7 +212,7 @@ const fetchNextPage = () => {
 watchDebounced(
     filters,
     () => {
-        fetchFirstPage();
+        refreshFromFilters();
     },
     {debounce: 300, deep: true},
 );
@@ -202,7 +232,7 @@ onMounted(() => {
     }
 
     referenceStore.fetchReferences().catch((err) => console.error(err));
-    fetchFirstPage();
+    refreshFromFilters();
 
     if (!process.client) {
         return;
@@ -246,12 +276,12 @@ const handleViewLinked = async (transactionId: string) => {
 };
 
 const onTransactionSaved = () => {
-    fetchFirstPage();
+    refreshFromFilters();
     emit("saved");
 };
 
 defineExpose({
-    refreshTransactions: fetchFirstPage,
+    refreshTransactions: refreshFromFilters,
 });
 </script>
 
@@ -291,6 +321,45 @@ defineExpose({
                 :available-categories="availableCategories"
                 :available-merchants="availableMerchants"
                 :show-account-filter="props.showAccountFilter" />
+        </div>
+
+        <!-- Summary bar -->
+        <div
+            v-if="summary || isLoadingSummary"
+            class="bg-muted/30 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-6 py-2.5 text-xs md:text-sm"
+            :class="{'opacity-70': isLoadingSummary && !summary}">
+            <div class="text-muted-foreground flex items-center gap-2">
+                <Icon name="iconoir:list" class="size-4" />
+                <template v-if="summary">
+                    <span class="tabular-nums">
+                        {{ t("transactions.list.summary.count", {count: summary.count}) }}
+                    </span>
+                </template>
+                <Skeleton v-else class="h-4 w-24" />
+            </div>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <template v-if="summary">
+                    <span class="text-muted-foreground flex items-center gap-1">
+                        <Icon name="iconoir:arrow-down-left" class="text-success size-3.5" />
+                        <span class="tabular-nums">{{ formatCurrency(summary.income) }}</span>
+                    </span>
+                    <span class="text-muted-foreground flex items-center gap-1">
+                        <Icon name="iconoir:arrow-up-right" class="text-destructive size-3.5" />
+                        <span class="tabular-nums">{{ formatCurrency(summary.expense) }}</span>
+                    </span>
+                    <span
+                        class="flex items-center gap-1 font-medium"
+                        :class="summary.net >= 0 ? 'text-success' : 'text-destructive'">
+                        <span class="text-muted-foreground text-xs">{{ t("transactions.list.summary.net") }}</span>
+                        <span class="tabular-nums">{{ formatCurrency(summary.net) }}</span>
+                    </span>
+                </template>
+                <template v-else>
+                    <Skeleton class="h-4 w-16" />
+                    <Skeleton class="h-4 w-16" />
+                    <Skeleton class="h-4 w-24" />
+                </template>
+            </div>
         </div>
 
         <ScrollArea class="min-h-0 flex-1 overflow-hidden rounded-b-md border-t" scrollbar-class="pt-[41px]">
