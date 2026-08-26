@@ -123,6 +123,10 @@ model Transactions {
   created_at      DateTime        @default(now())
   updated_at      DateTime        @updatedAt
 
+  @@index([account_id, date(sort: Desc), created_at(sort: Desc)])
+  @@index([date(sort: Desc)])
+  @@index([category_id])
+  @@index([merchant_id])
   @@map("transactions")
 }
 
