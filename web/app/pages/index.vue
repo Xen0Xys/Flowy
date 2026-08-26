@@ -3,6 +3,7 @@ import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useCssVar, useMediaQuery, useStorage} from "@vueuse/core";
 import {useRouter} from "vue-router";
+import {cn} from "~/lib/utils";
 import {useFamilyStore} from "~/stores/family.store";
 import type {Account} from "~/stores/account.store";
 import {useAccountStore} from "~/stores/account.store";
@@ -52,6 +53,16 @@ const userStore = useUserStore();
 const router = useRouter();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
+const isCompactHeight = useMediaQuery("(max-height: 1080px)");
+const isVeryCompactHeight = useMediaQuery("(max-height: 920px)");
+
+const graphHeightClass = computed(() =>
+    cn("md:mx-0", {
+        "-mx-3 mt-2 h-[150px] md:h-[170px]": isVeryCompactHeight.value,
+        "-mx-4 mt-3 h-[180px] md:h-[210px]": !isVeryCompactHeight.value && isCompactHeight.value,
+        "-mx-6 mt-6 h-[260px] md:h-[300px]": !isVeryCompactHeight.value && !isCompactHeight.value,
+    }),
+);
 
 const isLoading = ref(true);
 const isCreating = ref(false);
@@ -292,7 +303,7 @@ const formatCompactCurrency = (value: number) => {
                             </Tabs>
                         </div>
                         <div class="relative">
-                            <div class="-mx-6 mt-6 h-75 md:mx-0">
+                            <div :class="graphHeightClass">
                                 <ClientOnly>
                                     <ChartContainer :config="chartConfig">
                                         <VisXYContainer
