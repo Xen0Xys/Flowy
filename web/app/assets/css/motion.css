@@ -19,6 +19,14 @@
     opacity: 0;
     transform: translateY(-4px);
 }
+/* Prevent scrollbar flash: the translateY on the entering page briefly
+   overflows its scroll parent (e.g. the default layout's overflow-y-auto
+   region). Clipping the parent for the duration of the transition avoids
+   the momentary scrollbar without changing the motion. */
+:where(*):has(> .page-enter-active),
+:where(*):has(> .page-leave-active) {
+    overflow: clip;
+}
 
 /* ---------- Vue transition helpers (usable via <transition name="..."/>) ---------- */
 .fade-enter-active,
