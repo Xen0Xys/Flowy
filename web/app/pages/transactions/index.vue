@@ -2,6 +2,7 @@
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
+import {useFamilyStore} from "~/stores/family.store";
 import {type Transaction, useTransactionStore} from "~/stores/transaction.store";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
@@ -9,6 +10,7 @@ import {Skeleton} from "~/components/ui/skeleton";
 import {Button} from "~/components/ui/button";
 
 const accountStore = useAccountStore();
+const familyStore = useFamilyStore();
 const transactionStore = useTransactionStore();
 const {t} = useI18n();
 const isLoading = ref(true);
@@ -26,7 +28,7 @@ const availableAccounts = computed(() =>
 const loadData = async () => {
     isLoading.value = true;
     try {
-        await accountStore.fetchAccounts();
+        await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily()]);
     } catch (err) {
         console.error(err);
     } finally {
