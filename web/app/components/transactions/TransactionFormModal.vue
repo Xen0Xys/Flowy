@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
-import {watchDebounced} from "@vueuse/core";
+import {watchDebounced, useEventListener} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {toast} from "vue-sonner";
 import {
@@ -12,13 +12,16 @@ import {
 } from "~/stores/transaction.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useAccountStore} from "~/stores/account.store";
-import {useApi} from "~/composables/useApi";
+import {useFamilyStore} from "~/stores/family.store";
 import {useReferenceMatcher} from "~/composables/useReferenceMatcher";
+import {toCurrency} from "~/lib/currency";
+import {cn} from "~/lib/utils";
 import {Button} from "~/components/ui/button";
-import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {Switch} from "~/components/ui/switch";
+import {Badge} from "~/components/ui/badge";
+import {Separator} from "~/components/ui/separator";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {Alert, AlertDescription, AlertTitle} from "~/components/ui/alert";
@@ -32,10 +35,22 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import MoneyInput from "~/components/common/MoneyInput.vue";
+import DatePicker from "~/components/common/DatePicker.vue";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
+import TransactionLinkTransferSheet from "~/components/transactions/TransactionLinkTransferSheet.vue";
+import TransactionReferenceCombobox from "~/components/transactions/TransactionReferenceCombobox.vue";
 import {Icon} from "#components";
-import {cn} from "~/lib/utils";
+
+type TransactionType = "expense" | "income" | "transfer";
 
 const props = defineProps<{
     open: boolean;
@@ -52,106 +67,30 @@ const emit = defineEmits<{
 const transactionStore = useTransactionStore();
 const referenceStore = useReferenceStore();
 const accountStore = useAccountStore();
-const {apiFetch} = useApi();
-const {t} = useI18n();
+const familyStore = useFamilyStore();
+const {t, locale} = useI18n();
 
 const isSubmitting = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isDeleting = ref(false);
 const isCreateCategoryDialogOpen = ref(false);
 const isCreateMerchantDialogOpen = ref(false);
-const keepLinkedTransaction = ref(true);
+const isLinkTransferSheetOpen = ref(false);
+const keepLinkedTransaction = ref(false);
 const isUnlinking = ref(false);
 const lastAutoFilledDescription = ref<string | null>(null);
 
-// Link transfer state
-const isLinkTransferDialogOpen = ref(false);
-const selectedLinkAccountId = ref<string>("");
-const eligibleTransactions = ref<Transaction[]>([]);
-const selectedTransactionId = ref<string>("");
-const isLoadingEligibleTransactions = ref(false);
-const isLinking = ref(false);
-
-const loadData = async () => {
-    try {
-        await Promise.all([
-            referenceStore.fetchReferences(),
-            !props.accountId ? accountStore.fetchAccounts() : Promise.resolve(),
-        ]);
-    } catch (e: unknown) {
-        toast.error(t("transactions.form.errors.loadData"));
-    }
-};
+const currency = computed(() => familyStore.family?.currency || "USD");
+const formatCurrency = (value: number) => toCurrency(value, currency.value);
 
 const availableCategories = computed(() => referenceStore.categories);
 const availableMerchants = computed(() => referenceStore.merchants);
 const availableAccounts = computed(() => accountStore.accounts);
-const destinationAccounts = computed(() =>
-    availableAccounts.value.filter((acc) => acc.id !== transferFormData.value.sourceAccountId),
+
+const categoryItems = computed(() =>
+    availableCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
 );
-
-// Link transfer computed
-const linkableAccounts = computed(() => {
-    if (!props.transaction) return [];
-    return availableAccounts.value.filter((acc) => acc.id !== props.transaction?.accountId);
-});
-
-const formattedTransactionAmount = computed(() => {
-    if (!props.transaction) return "0.00";
-    return Math.abs(props.transaction.amount).toFixed(2);
-});
-
-const formattedTransactionDate = computed(() => {
-    if (!props.transaction?.date) return "";
-    return new Date(props.transaction.date).toLocaleDateString();
-});
-
-watch(
-    () => props.open,
-    (isOpen) => {
-        if (isOpen) {
-            loadData();
-            resetForm();
-        }
-    },
-    {immediate: true},
-);
-
-const resetForm = () => {
-    keepLinkedTransaction.value = false;
-    lastAutoFilledDescription.value = null;
-    if (props.transaction) {
-        transactionType.value = props.transaction.amount < 0 ? "expense" : "income";
-        formData.value = {
-            amount: Math.abs(props.transaction.amount),
-            description: props.transaction.description,
-            date: props.transaction.date ? new Date(props.transaction.date).toISOString().split("T")[0] || "" : "",
-            categoryId: props.transaction.category?.id || "none",
-            merchantId: props.transaction.merchant?.id || "none",
-            selectedAccountId: props.transaction.accountId || props.accountId || "",
-            inBudget: props.transaction.inBudget ?? true,
-        };
-    } else {
-        transactionType.value = "expense";
-        formData.value = {
-            amount: 0,
-            description: "",
-            date: new Date().toISOString().split("T")[0] || "",
-            categoryId: "none",
-            merchantId: "none",
-            selectedAccountId: props.accountId || "",
-            inBudget: true,
-        };
-        transferFormData.value = {
-            sourceAccountId: props.accountId || "",
-            destinationAccountId: "",
-            amount: 0,
-            description: "",
-            date: new Date().toISOString().split("T")[0] || "",
-            inBudget: false,
-        };
-    }
-};
+const merchantItems = computed(() => availableMerchants.value.map((m) => ({id: m.id, name: m.name})));
 
 const formData = ref({
     amount: 0,
@@ -172,51 +111,87 @@ const transferFormData = ref({
     inBudget: false,
 });
 
-const transactionType = ref<"expense" | "income" | "transfer">("expense");
+const transactionType = ref<TransactionType>("expense");
+
+const destinationAccounts = computed(() =>
+    availableAccounts.value.filter((acc) => acc.id !== transferFormData.value.sourceAccountId),
+);
+
+const sourceAccount = computed(
+    () => availableAccounts.value.find((acc) => acc.id === transferFormData.value.sourceAccountId) ?? null,
+);
+const destinationAccount = computed(
+    () => availableAccounts.value.find((acc) => acc.id === transferFormData.value.destinationAccountId) ?? null,
+);
+
+const isRebalance = computed(() => props.transaction?.isRebalance ?? false);
+const isLinkedTransfer = computed(() => Boolean(props.transaction?.linkedTransactionId));
+const isEditing = computed(() => Boolean(props.transaction));
+
+const today = () => new Date().toISOString().split("T")[0] || "";
+
+const initFormFromProps = () => {
+    keepLinkedTransaction.value = false;
+    lastAutoFilledDescription.value = null;
+
+    if (props.transaction) {
+        transactionType.value = props.transaction.amount < 0 ? "expense" : "income";
+        formData.value = {
+            amount: Math.abs(props.transaction.amount),
+            description: props.transaction.description,
+            date: props.transaction.date ? new Date(props.transaction.date).toISOString().split("T")[0] || "" : "",
+            categoryId: props.transaction.category?.id || "none",
+            merchantId: props.transaction.merchant?.id || "none",
+            selectedAccountId: props.transaction.accountId || props.accountId || "",
+            inBudget: props.transaction.inBudget ?? true,
+        };
+    } else {
+        transactionType.value = "expense";
+        formData.value = {
+            amount: 0,
+            description: "",
+            date: today(),
+            categoryId: "none",
+            merchantId: "none",
+            selectedAccountId: props.accountId || "",
+            inBudget: true,
+        };
+        transferFormData.value = {
+            sourceAccountId: props.accountId || "",
+            destinationAccountId: "",
+            amount: 0,
+            description: "",
+            date: today(),
+            inBudget: false,
+        };
+    }
+};
+
+const loadData = async () => {
+    try {
+        await Promise.all([
+            referenceStore.fetchReferences(),
+            !props.accountId ? accountStore.fetchAccounts() : Promise.resolve(),
+        ]);
+    } catch {
+        toast.error(t("transactions.form.errors.loadData"));
+    }
+};
 
 watch(
-    () => props.transaction,
-    (newTransaction) => {
-        keepLinkedTransaction.value = false;
-        lastAutoFilledDescription.value = null;
-        if (newTransaction) {
-            transactionType.value = newTransaction.amount < 0 ? "expense" : "income";
-            formData.value = {
-                amount: Math.abs(newTransaction.amount),
-                description: newTransaction.description,
-                date: newTransaction.date ? new Date(newTransaction.date).toISOString().split("T")[0] || "" : "",
-                categoryId: newTransaction.category?.id || "none",
-                merchantId: newTransaction.merchant?.id || "none",
-                selectedAccountId: newTransaction.accountId || props.accountId || "",
-                inBudget: newTransaction.inBudget ?? true,
-            };
-        } else {
-            transactionType.value = "expense";
-            formData.value = {
-                amount: 0,
-                description: "",
-                date: new Date().toISOString().split("T")[0] || "",
-                categoryId: "none",
-                merchantId: "none",
-                selectedAccountId: props.accountId || "",
-                inBudget: true,
-            };
-            transferFormData.value = {
-                sourceAccountId: props.accountId || "",
-                destinationAccountId: "",
-                amount: 0,
-                description: "",
-                date: new Date().toISOString().split("T")[0] || "",
-                inBudget: false,
-            };
+    () => props.open,
+    (isOpen) => {
+        if (isOpen) {
+            loadData();
+            initFormFromProps();
         }
     },
     {immediate: true},
 );
 
-const onOpenChange = (open: boolean) => {
-    emit("update:open", open);
-};
+watch(() => props.transaction, initFormFromProps, {immediate: true});
+
+const onOpenChange = (open: boolean) => emit("update:open", open);
 
 const {matchDescription, primaryKeywordFor} = useReferenceMatcher();
 
@@ -261,19 +236,37 @@ watch(composedAutoDescription, (auto) => {
     lastAutoFilledDescription.value = auto || null;
 });
 
+const canSubmitStandard = computed(() => {
+    if (transactionType.value === "transfer") return false;
+    if (!formData.value.description.trim()) return false;
+    if (!Number.isFinite(formData.value.amount) || formData.value.amount <= 0) return false;
+    if (!formData.value.date) return false;
+    const targetAccountId = props.accountId || formData.value.selectedAccountId;
+    if (!targetAccountId) return false;
+    return true;
+});
+
+const canSubmitTransfer = computed(() => {
+    if (transactionType.value !== "transfer") return false;
+    if (!transferFormData.value.sourceAccountId) return false;
+    if (!transferFormData.value.destinationAccountId) return false;
+    if (transferFormData.value.sourceAccountId === transferFormData.value.destinationAccountId) return false;
+    if (!Number.isFinite(transferFormData.value.amount) || transferFormData.value.amount <= 0) return false;
+    if (!transferFormData.value.date) return false;
+    return true;
+});
+
+const canSubmit = computed(() =>
+    transactionType.value === "transfer" ? canSubmitTransfer.value : canSubmitStandard.value,
+);
+
 const save = async () => {
+    if (isRebalance.value) return;
+    if (!canSubmit.value) return;
+
     isSubmitting.value = true;
     try {
         if (transactionType.value === "transfer") {
-            if (
-                !transferFormData.value.sourceAccountId ||
-                !transferFormData.value.destinationAccountId ||
-                transferFormData.value.sourceAccountId === transferFormData.value.destinationAccountId
-            ) {
-                toast.error(t("transactions.transfer.sameAccountError"));
-                return;
-            }
-
             const payload: CreateTransferPayload = {
                 debitAccountId: transferFormData.value.sourceAccountId,
                 creditAccountId: transferFormData.value.destinationAccountId,
@@ -309,9 +302,6 @@ const save = async () => {
                     inBudget: formData.value.inBudget,
                 };
                 const targetAccountId = props.accountId || formData.value.selectedAccountId;
-                if (!targetAccountId) {
-                    throw new Error(t("transactions.form.errors.accountRequired"));
-                }
                 await transactionStore.createTransaction(targetAccountId, payload);
             }
         }
@@ -329,17 +319,8 @@ const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
 };
 
-const handleCategoryCreated = (category: {id: string}) => {
-    formData.value.categoryId = category.id;
-};
-
-const handleMerchantCreated = (merchant: {id: string}) => {
-    formData.value.merchantId = merchant.id;
-};
-
 const executeDelete = async () => {
     if (!props.transaction) return;
-
     isDeleting.value = true;
     try {
         await transactionStore.deleteTransaction(props.transaction.id, {
@@ -357,7 +338,6 @@ const executeDelete = async () => {
 
 const unlinkTransfer = async () => {
     if (!props.transaction?.linkedTransactionId) return;
-
     isUnlinking.value = true;
     try {
         await transactionStore.unlinkTransfer(props.transaction.id);
@@ -375,416 +355,415 @@ const viewLinkedTransaction = () => {
     emit("view-linked", props.transaction.linkedTransactionId);
 };
 
-// Link transfer methods
-const openLinkTransferDialog = () => {
-    selectedLinkAccountId.value = "";
-    eligibleTransactions.value = [];
-    selectedTransactionId.value = "";
-    isLinkTransferDialogOpen.value = true;
+const handleCategoryCreated = (category: {id: string}) => {
+    formData.value.categoryId = category.id;
 };
 
-const fetchEligibleTransactions = async (accountId: string) => {
-    if (!props.transaction || !accountId) return;
+const handleMerchantCreated = (merchant: {id: string}) => {
+    formData.value.merchantId = merchant.id;
+};
 
-    isLoadingEligibleTransactions.value = true;
-    eligibleTransactions.value = [];
-    selectedTransactionId.value = "";
+const onLinkTransferDone = () => {
+    emit("saved");
+    emit("update:open", false);
+};
 
-    try {
-        const transactionDate = new Date(props.transaction.date);
-        const startDate = new Date(transactionDate);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(transactionDate);
-        endDate.setHours(23, 59, 59, 999);
-
-        const result = await transactionStore.searchTransactions({
-            accountId,
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
-        });
-
-        // Filter transactions with opposite sign and same absolute amount
-        const targetAmount = Math.abs(props.transaction.amount);
-        const oppositeSign = props.transaction.amount < 0 ? "income" : "expense";
-
-        eligibleTransactions.value = result.items.filter((tx) => {
-            // Must have opposite sign
-            const hasOppositeSign = oppositeSign === "income" ? tx.amount > 0 : tx.amount < 0;
-            // Must have same absolute amount
-            const hasSameAmount = Math.abs(tx.amount) === targetAmount;
-            // Must not already be linked to a transfer
-            const isNotLinked = !tx.linkedTransactionId;
-            return hasOppositeSign && hasSameAmount && isNotLinked;
-        });
-    } catch (err) {
-        console.error(err);
-        toast.error(t("transactions.form.errors.loadData"));
-    } finally {
-        isLoadingEligibleTransactions.value = false;
+useEventListener("keydown", (event: KeyboardEvent) => {
+    if (!props.open) return;
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        save();
     }
-};
+});
 
-const handleLinkAccountChange = (accountId: string) => {
-    selectedLinkAccountId.value = accountId;
-    fetchEligibleTransactions(accountId);
-};
+const typeOptions = computed(() => {
+    const opts: {value: TransactionType; label: string; icon: string; activeClass: string; hidden?: boolean}[] = [
+        {
+            value: "expense",
+            label: t("transactions.filters.expense"),
+            icon: "iconoir:minus-circle",
+            activeClass: "bg-destructive/10 text-destructive border-destructive/30",
+        },
+        {
+            value: "income",
+            label: t("transactions.filters.income"),
+            icon: "iconoir:plus-circle",
+            activeClass: "bg-success/10 text-success border-success/30",
+        },
+        {
+            value: "transfer",
+            label: t("transactions.transfer.tab"),
+            icon: "iconoir:refresh-double",
+            activeClass: "bg-primary/10 text-primary border-primary/30",
+            hidden: isEditing.value,
+        },
+    ];
+    return opts.filter((o) => !o.hidden);
+});
 
-const executeLinkTransfer = async () => {
-    if (!props.transaction || !selectedTransactionId.value) return;
+const amountVariant = computed<"expense" | "income" | "neutral">(() => {
+    if (transactionType.value === "expense") return "expense";
+    if (transactionType.value === "income") return "income";
+    return "neutral";
+});
 
-    isLinking.value = true;
-    try {
-        await transactionStore.linkTransactions(props.transaction.id, selectedTransactionId.value);
-        isLinkTransferDialogOpen.value = false;
-        emit("saved");
-        emit("update:open", false);
-    } catch (err) {
-        console.error(err);
-    } finally {
-        isLinking.value = false;
-    }
-};
+const linkedBadgeVisible = computed(() => isLinkedTransfer.value && transactionType.value !== "transfer");
+const hasHeaderActions = computed(() => isEditing.value && !isRebalance.value);
 </script>
 
 <template>
     <Dialog :open="open" @update:open="onOpenChange">
-        <DialogContent class="sm:max-w-106.25">
-            <DialogHeader>
-                <DialogTitle>
-                    {{ props.transaction ? t("transactions.form.editTitle") : t("transactions.form.newTitle") }}
-                </DialogTitle>
-                <DialogDescription>
-                    {{
-                        props.transaction
-                            ? t("transactions.form.editDescription")
-                            : t("transactions.form.newDescription")
-                    }}
-                </DialogDescription>
+        <DialogContent class="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-lg">
+            <DialogHeader class="border-b p-4 pr-12 pb-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex flex-col gap-1">
+                        <DialogTitle>
+                            {{ isEditing ? t("transactions.form.editTitle") : t("transactions.form.newTitle") }}
+                        </DialogTitle>
+                        <DialogDescription v-if="!isEditing">
+                            {{ t("transactions.form.newDescription") }}
+                        </DialogDescription>
+                        <Badge v-if="linkedBadgeVisible" variant="secondary" class="mt-1 gap-1">
+                            <Icon class="h-3 w-3" name="iconoir:link" />
+                            {{ t("transactions.form.linkedTransaction") }}
+                        </Badge>
+                    </div>
+                    <DropdownMenu v-if="hasHeaderActions">
+                        <DropdownMenuTrigger as-child>
+                            <Button variant="ghost" size="icon-sm" type="button" class="shrink-0">
+                                <Icon name="iconoir:more-vert" class="h-4 w-4" />
+                                <span class="sr-only">{{ t("transactions.form.actions") }}</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-56">
+                            <template v-if="isLinkedTransfer">
+                                <DropdownMenuItem @select="viewLinkedTransaction">
+                                    <Icon name="iconoir:eye" class="h-4 w-4" />
+                                    {{ t("transactions.form.viewLinked") }}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem :disabled="isUnlinking" @select="unlinkTransfer">
+                                    <Icon name="iconoir:link-slash" class="h-4 w-4" />
+                                    {{ t("transactions.form.unlinkTransfer") }}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                            </template>
+                            <DropdownMenuItem v-else @select="isLinkTransferSheetOpen = true">
+                                <Icon name="iconoir:link" class="h-4 w-4" />
+                                {{ t("transactions.form.linkTransfer") }}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator v-if="!isLinkedTransfer" />
+                            <DropdownMenuItem class="text-destructive focus:text-destructive" @select="confirmDelete">
+                                <Icon name="iconoir:trash" class="h-4 w-4" />
+                                {{ t("common.delete") }}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </DialogHeader>
 
-            <Tabs v-model="transactionType" class="w-full">
-                <TabsList :class="props.transaction ? 'grid w-full grid-cols-2' : 'grid w-full grid-cols-3'">
-                    <TabsTrigger value="expense">{{ t("transactions.filters.expense") }}</TabsTrigger>
-                    <TabsTrigger value="income">{{ t("transactions.filters.income") }}</TabsTrigger>
-                    <TabsTrigger v-if="!props.transaction" value="transfer">{{
-                        t("transactions.transfer.tab")
-                    }}</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <div class="flex-1 overflow-y-auto">
+                <div class="flex flex-col gap-5 p-4">
+                    <Alert v-if="isRebalance" variant="default" class="bg-muted/50">
+                        <AlertTitle class="flex items-center gap-2">
+                            <Icon class="h-4 w-4" name="iconoir:warning-triangle" />
+                            {{ t("transactions.form.systemTransaction") }}
+                        </AlertTitle>
+                        <AlertDescription>
+                            {{ t("transactions.form.systemTransactionDescription") }}
+                        </AlertDescription>
+                    </Alert>
 
-            <Alert v-if="props.transaction?.isRebalance" class="bg-muted/50 mt-4" variant="default">
-                <AlertTitle>{{ t("transactions.form.systemTransaction") }}</AlertTitle>
-                <AlertDescription>
-                    {{ t("transactions.form.systemTransactionDescription") }}
-                </AlertDescription>
-            </Alert>
-
-            <Alert v-if="props.transaction?.linkedTransactionId && transactionType !== 'transfer'" variant="default">
-                <AlertTitle class="flex items-center gap-2">
-                    <Icon class="h-4 w-4" name="iconoir:link" />
-                    {{ t("transactions.form.linkedTransaction") }}
-                </AlertTitle>
-                <AlertDescription>
-                    {{ t("transactions.form.linkedTransactionDescription") }}
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <Button
-                            :disabled="isUnlinking"
-                            :loading="isUnlinking"
-                            size="sm"
+                    <div
+                        role="tablist"
+                        :aria-label="t('transactions.filters.type')"
+                        class="bg-muted/50 grid grid-cols-3 gap-1 rounded-lg p-1"
+                        :class="{'grid-cols-2': typeOptions.length === 2}">
+                        <button
+                            v-for="opt in typeOptions"
+                            :key="opt.value"
                             type="button"
-                            variant="outline"
-                            @click="viewLinkedTransaction">
-                            <Icon class="mr-1.5 h-4 w-4" name="iconoir:eye" />
-                            {{ t("transactions.form.viewLinked") }}
-                        </Button>
-                        <Button
-                            :disabled="isUnlinking"
-                            :loading="isUnlinking"
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                            @click="unlinkTransfer">
-                            <Icon class="mr-1.5 h-4 w-4" name="iconoir:link-slash" />
-                            {{ isUnlinking ? t("transactions.form.unlinking") : t("transactions.form.unlinkTransfer") }}
-                        </Button>
+                            role="tab"
+                            :aria-selected="transactionType === opt.value"
+                            :disabled="isRebalance"
+                            :class="
+                                cn(
+                                    'flex items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-all',
+                                    'hover:bg-background/50 disabled:cursor-not-allowed disabled:opacity-50',
+                                    transactionType === opt.value ? opt.activeClass : 'text-muted-foreground',
+                                )
+                            "
+                            @click="transactionType = opt.value">
+                            <Icon :name="opt.icon" class="h-4 w-4" />
+                            <span>{{ opt.label }}</span>
+                        </button>
                     </div>
-                </AlertDescription>
-            </Alert>
 
-            <!-- Transfer Form -->
-            <form v-if="transactionType === 'transfer'" class="grid gap-4" @submit.prevent="save">
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="sourceAccount">
-                        {{ t("transactions.transfer.sourceAccount") }}
-                    </Label>
-                    <div class="col-span-3">
-                        <Select v-model="transferFormData.sourceAccountId" required>
-                            <SelectTrigger id="sourceAccount">
-                                <SelectValue :placeholder="t('transactions.form.selectAccount')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem
-                                        v-for="account in availableAccounts"
-                                        :key="account.id"
-                                        :value="account.id">
-                                        {{ account.name }}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="destinationAccount">
-                        {{ t("transactions.transfer.destinationAccount") }}
-                    </Label>
-                    <div class="col-span-3">
-                        <Select v-model="transferFormData.destinationAccountId" required>
-                            <SelectTrigger id="destinationAccount">
-                                <SelectValue :placeholder="t('transactions.form.selectAccount')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem
-                                        v-for="account in destinationAccounts"
-                                        :key="account.id"
-                                        :value="account.id">
-                                        {{ account.name }}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="transferDescription">
-                        {{ t("transactions.table.description") }}
-                    </Label>
-                    <Input
-                        id="transferDescription"
-                        v-model="transferFormData.description"
-                        :placeholder="t('transactions.transfer.descriptionPlaceholder')"
-                        class="col-span-3" />
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="transferAmount">
-                        {{ t("transactions.transfer.amount") }}
-                    </Label>
-                    <div class="col-span-3">
-                        <Input
-                            id="transferAmount"
-                            v-model.number="transferFormData.amount"
-                            min="0"
-                            required
-                            step="0.01"
-                            type="number" />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="transferDate"> {{ t("transactions.table.date") }} </Label>
-                    <Input id="transferDate" v-model="transferFormData.date" class="col-span-3" required type="date" />
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="transferInBudget">{{ t("transactions.form.inBudget") }}</Label>
-                    <div class="col-span-3 flex items-center">
-                        <Switch id="transferInBudget" v-model="transferFormData.inBudget" />
-                    </div>
-                </div>
-
-                <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
-                    <Button type="button" variant="outline" @click="emit('update:open', false)">
-                        {{ t("common.cancel") }}
-                    </Button>
-                    <Button :disabled="isSubmitting" type="submit">
-                        {{ isSubmitting ? t("common.saving") : t("transactions.transfer.create") }}
-                    </Button>
-                </DialogFooter>
-            </form>
-
-            <!-- Standard Transaction Form -->
-            <form v-else class="grid gap-4" @submit.prevent="save">
-                <div v-if="!props.accountId && !props.transaction" class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="account"> {{ t("transactions.table.account") }} </Label>
-                    <div class="col-span-3">
-                        <Select v-model="formData.selectedAccountId" required>
-                            <SelectTrigger id="account">
-                                <SelectValue :placeholder="t('transactions.form.selectAccount')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem
-                                        v-for="account in availableAccounts"
-                                        :key="account.id"
-                                        :value="account.id">
-                                        {{ account.name }}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="description"> {{ t("transactions.table.description") }} </Label>
-                    <Input
-                        id="description"
-                        v-model="formData.description"
-                        :placeholder="
-                            transactionType === 'income'
-                                ? t('transactions.form.incomeDescriptionPlaceholder')
-                                : t('transactions.form.expenseDescriptionPlaceholder')
-                        "
-                        class="col-span-3"
-                        required />
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="amount"> {{ t("transactions.table.amount") }} </Label>
-                    <div class="col-span-3">
-                        <Input id="amount" v-model.number="formData.amount" min="0" required step="0.01" type="number" />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="date"> {{ t("transactions.table.date") }} </Label>
-                    <Input id="date" v-model="formData.date" class="col-span-3" required type="date" />
-                </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="category"> {{ t("transactions.table.category") }} </Label>
-                    <div class="col-span-3">
-                        <div class="flex items-center gap-2">
-                            <Select v-model="formData.categoryId">
-                                <SelectTrigger id="category">
-                                    <SelectValue :placeholder="t('transactions.form.selectCategory')" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value="none">{{ t("common.none") }}</SelectItem>
-                                        <SelectItem v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
-                                            <div class="flex items-center gap-2">
-                                                <Icon :name="cat.icon" :style="{color: cat.hexColor}" class="h-4 w-4" />
-                                                <span>{{ cat.name }}</span>
-                                            </div>
-                                        </SelectItem>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                :aria-label="t('settings.references.addCategory')"
-                                :title="t('settings.references.addCategory')"
-                                size="icon-sm"
-                                type="button"
-                                variant="ghost"
-                                @click="isCreateCategoryDialogOpen = true">
-                                <Icon class="h-4 w-4" name="iconoir:plus" />
-                            </Button>
+                    <form v-if="transactionType !== 'transfer'" class="flex flex-col gap-5" @submit.prevent="save">
+                        <div class="flex flex-col gap-2">
+                            <Label class="text-muted-foreground text-xs tracking-wide uppercase" for="tx-form-amount">
+                                {{ t("transactions.table.amount") }}
+                            </Label>
+                            <MoneyInput
+                                id="tx-form-amount"
+                                v-model="formData.amount"
+                                :currency="currency"
+                                :locale="locale || 'en-US'"
+                                :variant="amountVariant"
+                                :disabled="isRebalance"
+                                required />
                         </div>
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="merchant"> {{ t("transactions.filters.merchant") }} </Label>
-                    <div class="col-span-3">
-                        <div class="flex items-center gap-2">
-                            <Select v-model="formData.merchantId">
-                                <SelectTrigger id="merchant">
-                                    <SelectValue :placeholder="t('transactions.form.selectMerchant')" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value="none">{{ t("common.none") }}</SelectItem>
-                                        <SelectItem
-                                            v-for="merchant in availableMerchants"
-                                            :key="merchant.id"
-                                            :value="merchant.id">
-                                            {{ merchant.name }}
-                                        </SelectItem>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                :aria-label="t('settings.references.addMerchant')"
-                                :title="t('settings.references.addMerchant')"
-                                size="icon-sm"
-                                type="button"
-                                variant="ghost"
-                                @click="isCreateMerchantDialogOpen = true">
-                                <Icon class="h-4 w-4" name="iconoir:plus" />
-                            </Button>
+                        <div class="flex flex-col gap-2">
+                            <Label for="tx-form-description">{{ t("transactions.table.description") }}</Label>
+                            <Input
+                                id="tx-form-description"
+                                v-model="formData.description"
+                                :placeholder="
+                                    transactionType === 'income'
+                                        ? t('transactions.form.incomeDescriptionPlaceholder')
+                                        : t('transactions.form.expenseDescriptionPlaceholder')
+                                "
+                                :disabled="isRebalance"
+                                required />
                         </div>
-                    </div>
+
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+                            <div class="flex flex-col gap-2 sm:min-w-56">
+                                <Label for="tx-form-date">{{ t("transactions.table.date") }}</Label>
+                                <DatePicker
+                                    id="tx-form-date"
+                                    v-model="formData.date"
+                                    :placeholder="t('transactions.filters.pickDateRange')"
+                                    :disabled="isRebalance" />
+                            </div>
+
+                            <div v-if="!accountId && !isEditing" class="flex flex-1 flex-col gap-2">
+                                <Label for="tx-form-account">{{ t("transactions.table.account") }}</Label>
+                                <Select v-model="formData.selectedAccountId" required>
+                                    <SelectTrigger id="tx-form-account" class="w-full">
+                                        <SelectValue :placeholder="t('transactions.form.selectAccount')" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectItem
+                                                v-for="account in availableAccounts"
+                                                :key="account.id"
+                                                :value="account.id">
+                                                {{ account.name }}
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div class="flex flex-col gap-4">
+                            <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                                {{ t("transactions.form.details") }}
+                            </p>
+
+                            <div class="flex flex-col gap-2">
+                                <Label for="tx-form-category">{{ t("transactions.table.category") }}</Label>
+                                <TransactionReferenceCombobox
+                                    id="tx-form-category"
+                                    v-model="formData.categoryId"
+                                    :items="categoryItems"
+                                    :placeholder="t('transactions.form.selectCategory')"
+                                    :empty-text="t('transactions.form.noResults')"
+                                    :none-label="t('common.none')"
+                                    :create-label="t('settings.references.addCategory')"
+                                    :disabled="isRebalance"
+                                    @create="isCreateCategoryDialogOpen = true" />
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <Label for="tx-form-merchant">{{ t("transactions.filters.merchant") }}</Label>
+                                <TransactionReferenceCombobox
+                                    id="tx-form-merchant"
+                                    v-model="formData.merchantId"
+                                    :items="merchantItems"
+                                    :placeholder="t('transactions.form.selectMerchant')"
+                                    :empty-text="t('transactions.form.noResults')"
+                                    :none-label="t('common.none')"
+                                    :create-label="t('settings.references.addMerchant')"
+                                    :disabled="isRebalance"
+                                    @create="isCreateMerchantDialogOpen = true" />
+                            </div>
+
+                            <div class="flex items-start justify-between gap-4 pt-2">
+                                <div class="flex flex-col">
+                                    <Label for="txInBudget" class="cursor-pointer">
+                                        {{ t("transactions.form.inBudget") }}
+                                    </Label>
+                                    <p class="text-muted-foreground text-xs">
+                                        {{ t("transactions.form.inBudgetDescription") }}
+                                    </p>
+                                </div>
+                                <Switch id="txInBudget" v-model="formData.inBudget" :disabled="isRebalance" />
+                            </div>
+                        </div>
+                    </form>
+
+                    <form v-else class="flex flex-col gap-5" @submit.prevent="save">
+                        <div class="flex flex-col gap-2">
+                            <Label
+                                class="text-muted-foreground text-xs tracking-wide uppercase"
+                                for="tx-form-transfer-amount">
+                                {{ t("transactions.transfer.amount") }}
+                            </Label>
+                            <MoneyInput
+                                id="tx-form-transfer-amount"
+                                v-model="transferFormData.amount"
+                                :currency="currency"
+                                :locale="locale || 'en-US'"
+                                variant="neutral"
+                                required />
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <div class="flex flex-col gap-2">
+                                <Label for="tx-form-source-account">{{
+                                    t("transactions.transfer.sourceAccount")
+                                }}</Label>
+                                <Select v-model="transferFormData.sourceAccountId" required>
+                                    <SelectTrigger id="tx-form-source-account">
+                                        <SelectValue :placeholder="t('transactions.form.selectAccount')" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectItem
+                                                v-for="account in availableAccounts"
+                                                :key="account.id"
+                                                :value="account.id">
+                                                <div class="flex w-full items-center justify-between gap-4">
+                                                    <span>{{ account.name }}</span>
+                                                    <span class="text-muted-foreground text-xs tabular-nums">
+                                                        {{ formatCurrency(account.balance) }}
+                                                    </span>
+                                                </div>
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                                <p v-if="sourceAccount" class="text-muted-foreground text-xs">
+                                    {{ t("transactions.table.amount") }}:
+                                    <span class="tabular-nums">{{ formatCurrency(sourceAccount.balance) }}</span>
+                                </p>
+                            </div>
+
+                            <div class="flex justify-center py-1" aria-hidden="true">
+                                <div class="bg-muted flex h-8 w-8 items-center justify-center rounded-full">
+                                    <Icon name="iconoir:arrow-down" class="h-4 w-4" />
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <Label for="tx-form-destination-account">
+                                    {{ t("transactions.transfer.destinationAccount") }}
+                                </Label>
+                                <Select v-model="transferFormData.destinationAccountId" required>
+                                    <SelectTrigger id="tx-form-destination-account">
+                                        <SelectValue :placeholder="t('transactions.form.selectAccount')" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectItem
+                                                v-for="account in destinationAccounts"
+                                                :key="account.id"
+                                                :value="account.id">
+                                                <div class="flex w-full items-center justify-between gap-4">
+                                                    <span>{{ account.name }}</span>
+                                                    <span class="text-muted-foreground text-xs tabular-nums">
+                                                        {{ formatCurrency(account.balance) }}
+                                                    </span>
+                                                </div>
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                                <p v-if="destinationAccount" class="text-muted-foreground text-xs">
+                                    {{ t("transactions.table.amount") }}:
+                                    <span class="tabular-nums">{{ formatCurrency(destinationAccount.balance) }}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div class="flex flex-col gap-2">
+                                <Label for="tx-form-transfer-description">{{
+                                    t("transactions.table.description")
+                                }}</Label>
+                                <Input
+                                    id="tx-form-transfer-description"
+                                    v-model="transferFormData.description"
+                                    :placeholder="t('transactions.transfer.descriptionPlaceholder')" />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <Label for="tx-form-transfer-date">{{ t("transactions.table.date") }}</Label>
+                                <DatePicker
+                                    id="tx-form-transfer-date"
+                                    v-model="transferFormData.date"
+                                    :placeholder="t('transactions.filters.pickDateRange')" />
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex flex-col">
+                                <Label for="transferInBudget" class="cursor-pointer">
+                                    {{ t("transactions.form.inBudget") }}
+                                </Label>
+                                <p class="text-muted-foreground text-xs">
+                                    {{ t("transactions.form.inBudgetDescription") }}
+                                </p>
+                            </div>
+                            <Switch id="transferInBudget" v-model="transferFormData.inBudget" />
+                        </div>
+                    </form>
                 </div>
-
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right" for="txInBudget">{{ t("transactions.form.inBudget") }}</Label>
-                    <div class="col-span-3 flex items-center">
-                        <Switch id="txInBudget" v-model="formData.inBudget" />
-                    </div>
-                </div>
-
-                <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
-                    <Button type="button" variant="outline" @click="emit('update:open', false)">
-                        {{ t("common.cancel") }}
-                    </Button>
-                    <Button :disabled="isSubmitting || isDeleting" type="submit">
-                        {{ isSubmitting ? t("common.saving") : t("transactions.form.saveChanges") }}
-                    </Button>
-                </DialogFooter>
-
-                <!-- Link as Transfer button (only for non-transfer transactions being edited) -->
-                <div v-if="props.transaction && !props.transaction.linkedTransactionId" class="border-t pt-4">
-                    <Button
-                        :disabled="isSubmitting || isDeleting"
-                        class="w-full"
-                        type="button"
-                        variant="outline"
-                        @click="openLinkTransferDialog">
-                        <Icon class="mr-2 h-4 w-4" name="iconoir:link" />
-                        {{ t("transactions.form.linkTransfer") }}
-                    </Button>
-                </div>
-            </form>
-
-            <div v-if="props.transaction" class="border-t pt-4">
-                <Button
-                    :disabled="isSubmitting || isDeleting"
-                    class="w-full"
-                    type="button"
-                    variant="destructive"
-                    @click="confirmDelete">
-                    <Icon class="mr-2 h-4 w-4" name="iconoir:trash" />
-                    {{ t("common.delete") }}
-                </Button>
             </div>
+
+            <DialogFooter class="border-t p-4">
+                <Button type="button" variant="outline" @click="emit('update:open', false)">
+                    {{ t("common.cancel") }}
+                </Button>
+                <Button :disabled="isSubmitting || isDeleting || !canSubmit || isRebalance" type="button" @click="save">
+                    {{
+                        isSubmitting
+                            ? t("common.saving")
+                            : isEditing
+                              ? t("transactions.form.saveChanges")
+                              : transactionType === "transfer"
+                                ? t("transactions.transfer.create")
+                                : t("transactions.form.saveChanges")
+                    }}
+                </Button>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
 
-    <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
+    <AlertDialog v-model:open="isDeleteDialogOpen">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>
                     {{
-                        props.transaction?.linkedTransactionId
+                        isLinkedTransfer
                             ? t("transactions.form.deleteTransferTitle")
                             : t("transactions.form.deleteTitle")
                     }}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
                     {{
-                        props.transaction?.linkedTransactionId
+                        isLinkedTransfer
                             ? t("transactions.form.deleteTransferDescription")
                             : t("transactions.form.deleteDescription")
                     }}
                 </AlertDialogDescription>
             </AlertDialogHeader>
-            <div v-if="props.transaction?.linkedTransactionId" class="mb-4 flex items-center gap-2">
+            <div v-if="isLinkedTransfer" class="mb-4 flex items-center gap-2">
                 <Switch
                     id="keepLinked"
                     v-model="keepLinkedTransaction"
@@ -802,7 +781,7 @@ const executeLinkTransfer = async () => {
                     {{
                         isDeleting
                             ? t("common.deleting")
-                            : props.transaction?.linkedTransactionId && !keepLinkedTransaction
+                            : isLinkedTransfer && !keepLinkedTransaction
                               ? t("transactions.form.deleteBoth")
                               : t("common.delete")
                     }}
@@ -821,148 +800,9 @@ const executeLinkTransfer = async () => {
         @saved="handleMerchantCreated"
         @update:open="isCreateMerchantDialogOpen = $event" />
 
-    <!-- Link Transfer Dialog -->
-    <Dialog :open="isLinkTransferDialogOpen" @update:open="isLinkTransferDialogOpen = $event">
-        <DialogContent class="sm:max-w-106.25">
-            <DialogHeader>
-                <DialogTitle>{{ t("transactions.transfer.linkTitle") }}</DialogTitle>
-                <DialogDescription>
-                    {{ t("transactions.transfer.linkDescription") }}
-                </DialogDescription>
-            </DialogHeader>
-
-            <div class="grid gap-4">
-                <!-- Current transaction info -->
-                <Alert class="bg-muted/50">
-                    <AlertTitle class="flex items-center gap-2">
-                        <Icon
-                            :name="
-                                props.transaction?.amount && props.transaction.amount < 0
-                                    ? 'iconoir:folder-minus'
-                                    : 'iconoir:folder-plus'
-                            "
-                            class="h-4 w-4" />
-                        {{
-                            props.transaction?.amount && props.transaction.amount < 0
-                                ? t("transactions.filters.expense")
-                                : t("transactions.filters.income")
-                        }}
-                    </AlertTitle>
-                    <AlertDescription>
-                        <div class="mt-1 flex flex-col gap-1">
-                            <span
-                                ><strong>{{ t("transactions.table.amount") }}:</strong>
-                                {{ formattedTransactionAmount }}</span
-                            >
-                            <span
-                                ><strong>{{ t("transactions.table.date") }}:</strong>
-                                {{ formattedTransactionDate }}</span
-                            >
-                            <span
-                                ><strong>{{ t("transactions.table.description") }}:</strong>
-                                {{ props.transaction?.description }}</span
-                            >
-                        </div>
-                    </AlertDescription>
-                </Alert>
-
-                <!-- Account selection -->
-                <div class="flex items-center gap-4">
-                    <Label class="text-right" for="linkAccount">
-                        {{ t("transactions.transfer.selectAccount") }}
-                    </Label>
-                    <div class="">
-                        <Select :model-value="selectedLinkAccountId" @update:model-value="handleLinkAccountChange">
-                            <SelectTrigger id="linkAccount">
-                                <SelectValue :placeholder="t('transactions.form.selectAccount')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem
-                                        v-for="account in linkableAccounts"
-                                        :key="account.id"
-                                        :value="account.id">
-                                        {{ account.name }}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <!-- Eligible transactions list -->
-                <div v-if="selectedLinkAccountId" class="mt-2">
-                    <Label class="mb-2 block">
-                        {{ t("transactions.transfer.selectTransaction") }}
-                    </Label>
-
-                    <!-- Loading state -->
-                    <div v-if="isLoadingEligibleTransactions" class="flex items-center justify-center py-8">
-                        <Icon class="h-6 w-6 animate-spin" name="iconoir:loading" />
-                        <span class="ml-2">{{ t("transactions.transfer.loadingTransactions") }}</span>
-                    </div>
-
-                    <!-- Empty state -->
-                    <div
-                        v-else-if="eligibleTransactions.length === 0"
-                        class="text-muted-foreground rounded-md border border-dashed p-6 text-center">
-                        {{ t("transactions.transfer.noEligibleTransactions") }}
-                    </div>
-
-                    <!-- Transaction list -->
-                    <div v-else class="max-h-60 overflow-y-auto rounded-md border">
-                        <p class="text-muted-foreground border-b px-3 py-2 text-sm">
-                            {{
-                                t("transactions.transfer.eligibilityHint", {
-                                    amount: formattedTransactionAmount,
-                                    date: formattedTransactionDate,
-                                })
-                            }}
-                        </p>
-                        <div class="divide-y">
-                            <button
-                                v-for="tx in eligibleTransactions"
-                                :key="tx.id"
-                                :class="
-                                    cn(
-                                        'hover:bg-muted/50 flex w-full items-center gap-3 px-3 py-2 text-left transition-colors',
-                                        selectedTransactionId === tx.id && 'bg-muted',
-                                    )
-                                "
-                                type="button"
-                                @click="selectedTransactionId = tx.id">
-                                <div
-                                    :class="
-                                        cn(
-                                            'flex h-4 w-4 items-center justify-center rounded-full border',
-                                            selectedTransactionId === tx.id
-                                                ? 'border-primary bg-primary text-primary-foreground'
-                                                : 'border-muted-foreground',
-                                        )
-                                    ">
-                                    <Icon v-if="selectedTransactionId === tx.id" class="h-3 w-3" name="iconoir:check" />
-                                </div>
-                                <div class="flex-1">
-                                    <div class="font-medium">{{ tx.description }}</div>
-                                    <div class="text-muted-foreground text-sm">
-                                        {{ tx.amount > 0 ? "+" : "" }}{{ tx.amount.toFixed(2) }} •
-                                        {{ new Date(tx.date).toLocaleDateString() }}
-                                    </div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <DialogFooter class="flex-col gap-2 sm:flex-row sm:justify-end">
-                <Button type="button" variant="outline" @click="isLinkTransferDialogOpen = false">
-                    {{ t("common.cancel") }}
-                </Button>
-                <Button :disabled="!selectedTransactionId || isLinking" type="button" @click="executeLinkTransfer">
-                    {{ isLinking ? t("transactions.transfer.linkingButton") : t("transactions.transfer.linkButton") }}
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+    <TransactionLinkTransferSheet
+        :open="isLinkTransferSheetOpen"
+        :transaction="transaction"
+        @linked="onLinkTransferDone"
+        @update:open="isLinkTransferSheetOpen = $event" />
 </template>

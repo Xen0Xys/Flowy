@@ -387,7 +387,6 @@
             "newTitle": "Nouvelle transaction",
             "editTitle": "Modifier la transaction",
             "newDescription": "Ajoutez une nouvelle transaction. Cliquez sur enregistrer quand vous avez terminé.",
-            "editDescription": "Mettez à jour les détails de cette transaction. Cliquez sur enregistrer quand vous avez terminé.",
             "selectAccount": "Sélectionner un compte",
             "selectCategory": "Sélectionner une catégorie",
             "selectMerchant": "Sélectionner un marchand",
@@ -403,15 +402,16 @@
             "keepLinked": "Garder la transaction liée",
             "deleteBoth": "Supprimer les deux",
             "linkedTransaction": "Transaction liée",
-            "linkedTransactionDescription": "Cette transaction est liée à un transfert entre comptes.",
             "viewLinked": "Voir la transaction liée",
             "unlinkTransfer": "Dissocier",
-            "unlinking": "Dissociation...",
             "linkTransfer": "Lier comme transfert",
             "inBudget": "Inclure dans le budget",
+            "inBudgetDescription": "Prendre en compte cette transaction dans les objectifs de budget.",
+            "actions": "Plus d'actions",
+            "details": "Détails",
+            "noResults": "Aucun résultat.",
             "errors": {
-                "loadData": "Impossible de charger les données requises",
-                "accountRequired": "Un compte est requis pour créer une transaction"
+                "loadData": "Impossible de charger les données requises"
             }
         },
         "transfer": {
@@ -422,7 +422,6 @@
             "amount": "Montant",
             "descriptionPlaceholder": "Transfert",
             "create": "Créer le transfert",
-            "sameAccountError": "Les comptes source et destination doivent être différents",
             "linkTitle": "Lier comme transfert",
             "linkDescription": "Liez cette transaction avec une autre pour créer un transfert entre comptes.",
             "selectAccount": "Sélectionner le compte",

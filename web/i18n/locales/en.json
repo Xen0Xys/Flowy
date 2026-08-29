@@ -387,7 +387,6 @@
             "newTitle": "New Transaction",
             "editTitle": "Edit Transaction",
             "newDescription": "Add a new transaction. Click save when you're done.",
-            "editDescription": "Update the details of this transaction. Click save when you're done.",
             "selectAccount": "Select an account",
             "selectCategory": "Select a category",
             "selectMerchant": "Select a merchant",
@@ -403,15 +402,16 @@
             "keepLinked": "Keep linked transaction",
             "deleteBoth": "Delete Both",
             "linkedTransaction": "Linked Transaction",
-            "linkedTransactionDescription": "This transaction is linked to a transfer between accounts.",
             "viewLinked": "View linked transaction",
             "unlinkTransfer": "Unlink",
-            "unlinking": "Unlinking...",
             "linkTransfer": "Link as Transfer",
             "inBudget": "Include in budget",
+            "inBudgetDescription": "Include this transaction when computing budget goals.",
+            "actions": "More actions",
+            "details": "Details",
+            "noResults": "No results.",
             "errors": {
-                "loadData": "Failed to load required data",
-                "accountRequired": "Account is required to create a transaction"
+                "loadData": "Failed to load required data"
             }
         },
         "transfer": {
@@ -422,7 +422,6 @@
             "amount": "Amount",
             "descriptionPlaceholder": "Transfer",
             "create": "Create Transfer",
-            "sameAccountError": "Source and destination accounts must be different",
             "linkTitle": "Link as Transfer",
             "linkDescription": "Link this transaction with another to create a transfer between accounts.",
             "selectAccount": "Select account",
