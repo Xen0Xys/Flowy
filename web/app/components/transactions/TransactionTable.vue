@@ -1,13 +1,11 @@
 <script lang="ts" setup>
-import {computed, ref} from "vue";
+import {computed} from "vue";
 import {useI18n} from "vue-i18n";
 import {
     type ColumnDef,
     columnVisibilityFeature,
-    createSortedRowModel,
     FlexRender,
     rowSortingFeature,
-    sortFns,
     type SortingState,
     tableFeatures,
     useTable,
@@ -23,10 +21,10 @@ import {Button} from "~/components/ui/button";
 import {Badge} from "~/components/ui/badge";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
 import {Skeleton} from "~/components/ui/skeleton";
-import {valueUpdater} from "~/lib/table";
 
 const props = defineProps<{
     transactions: Transaction[];
+    sorting: SortingState;
     isFiltered?: boolean;
     showAccountColumn?: boolean;
     accountNameById?: Record<string, string>;
@@ -35,14 +33,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: "row-click", transaction: Transaction): void;
+    (e: "update:sorting", value: SortingState): void;
 }>();
 
 const familyStore = useFamilyStore();
 const isMobile = useMediaQuery("(max-width: 768px)");
 const isCompactHeight = useMediaQuery("(max-height: 1080px)");
 const {locale, t} = useI18n();
-
-const sorting = ref<SortingState>([{id: "date", desc: true}]);
 
 const formatCurrency = (value: number) => {
     const currency = familyStore.family?.currency || "USD";
@@ -208,12 +205,11 @@ const columns = computed<ColumnDef<Transaction>[]>(() => {
 const features = tableFeatures({
     rowSortingFeature,
     columnVisibilityFeature,
-    sortedRowModel: createSortedRowModel(),
-    sortFns,
 });
 
 const table = useTable({
     features,
+    manualSorting: true,
     get data() {
         return props.transactions;
     },
@@ -222,10 +218,13 @@ const table = useTable({
     },
     state: {
         get sorting() {
-            return sorting.value;
+            return props.sorting;
         },
     },
-    onSortingChange: (updater) => valueUpdater(updater, sorting),
+    onSortingChange: (updater) => {
+        const next = typeof updater === "function" ? updater(props.sorting) : updater;
+        emit("update:sorting", next);
+    },
 });
 </script>
 

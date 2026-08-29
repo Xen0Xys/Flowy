@@ -1,12 +1,15 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import {useIntersectionObserver, watchDebounced} from "@vueuse/core";
 import {CalendarDate} from "@internationalized/date";
+import type {SortingState} from "@tanstack/vue-table";
 import {useI18n} from "vue-i18n";
+import type {LocationQueryRaw} from "vue-router";
 import {
     type SearchTransactionsResult,
     type Transaction,
     type TransactionSearchFilters,
+    type TransactionSortBy,
     type TransactionSummary,
     useTransactionStore,
 } from "~/stores/transaction.store";
@@ -20,6 +23,11 @@ import {Button} from "~/components/ui/button";
 import {ScrollArea} from "~/components/ui/scroll-area";
 import {Skeleton} from "~/components/ui/skeleton";
 import {NuxtLink} from "#components";
+
+const SORTABLE_COLUMNS: readonly TransactionSortBy[] = ["date", "description", "amount", "category", "account"];
+const DEFAULT_SORT_ID: TransactionSortBy = "date";
+const DEFAULT_SORT_DESC = true;
+const isSortableColumn = (id: string): id is TransactionSortBy => (SORTABLE_COLUMNS as readonly string[]).includes(id);
 
 const PAGE_SIZE = 25;
 
@@ -41,6 +49,7 @@ const transactionStore = useTransactionStore();
 const referenceStore = useReferenceStore();
 const familyStore = useFamilyStore();
 const route = useRoute();
+const router = useRouter();
 
 const isTransactionModalOpen = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
@@ -54,6 +63,11 @@ const filters = ref<TransactionFilters>({
     rebalance: "all",
     dateRange: {start: undefined, end: undefined},
 });
+
+const sorting = ref<SortingState>([{id: DEFAULT_SORT_ID, desc: DEFAULT_SORT_DESC}]);
+
+let requestSeq = 0;
+let lastSyncedQuery = "";
 
 const availableCategories = computed(() =>
     referenceStore.categories
@@ -145,6 +159,12 @@ const buildSearchFilters = (page = 1): TransactionSearchFilters => {
         searchFilters.endDate = `${end.year}-${String(end.month).padStart(2, "0")}-${String(end.day).padStart(2, "0")}`;
     }
 
+    const sort = sorting.value[0];
+    if (sort && isSortableColumn(sort.id)) {
+        searchFilters.sortBy = sort.id;
+        searchFilters.sortOrder = sort.desc ? "desc" : "asc";
+    }
+
     searchFilters.page = page;
     searchFilters.pageSize = PAGE_SIZE;
 
@@ -161,6 +181,8 @@ async function fetchTransactions(page = 1, append = false) {
         return;
     }
 
+    const seq = append ? requestSeq : ++requestSeq;
+
     try {
         if (append) {
             isLoadingMore.value = true;
@@ -171,16 +193,22 @@ async function fetchTransactions(page = 1, append = false) {
         const searchFilters = buildSearchFilters(page);
         const nextResult = await transactionStore.searchTransactions(searchFilters);
 
+        if (seq !== requestSeq) {
+            return;
+        }
+
         searchResult.value = nextResult;
         currentPage.value = nextResult.page;
         transactions.value = append ? [...transactions.value, ...nextResult.items] : nextResult.items;
     } catch (err) {
         console.error(err);
     } finally {
-        if (append) {
-            isLoadingMore.value = false;
-        } else {
-            isLoadingInitial.value = false;
+        if (seq === requestSeq) {
+            if (append) {
+                isLoadingMore.value = false;
+            } else {
+                isLoadingInitial.value = false;
+            }
         }
     }
 }
@@ -209,27 +237,142 @@ const fetchNextPage = () => {
     return fetchTransactions(currentPage.value + 1, true);
 };
 
+const parseCalendarDate = (value: string): CalendarDate | undefined => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return undefined;
+    const [, year, month, day] = match;
+    return new CalendarDate(Number(year), Number(month), Number(day));
+};
+
+const formatCalendarDate = (value: {year: number; month: number; day: number}): string => {
+    return `${value.year}-${String(value.month).padStart(2, "0")}-${String(value.day).padStart(2, "0")}`;
+};
+
+const serializeStateToQuery = (): Record<string, string> => {
+    const q: Record<string, string> = {};
+    const f = filters.value;
+
+    if (f.search.trim()) q.search = f.search.trim();
+    if (f.type !== "all") q.type = f.type;
+    if (!props.accountId && f.accountId !== "all") q.accountId = f.accountId;
+    if (f.categoryId !== "all") q.categoryId = f.categoryId;
+    if (f.merchantId !== "all") q.merchantId = f.merchantId;
+    if (f.rebalance !== "all") q.rebalance = f.rebalance;
+    if (f.dateRange?.start) q.startDate = formatCalendarDate(f.dateRange.start as any);
+    if (f.dateRange?.end) q.endDate = formatCalendarDate(f.dateRange.end as any);
+
+    const sort = sorting.value[0];
+    if (sort && isSortableColumn(sort.id)) {
+        const isDefault = sort.id === DEFAULT_SORT_ID && sort.desc === DEFAULT_SORT_DESC;
+        if (!isDefault) {
+            q.sortBy = sort.id;
+            q.sortOrder = sort.desc ? "desc" : "asc";
+        }
+    }
+
+    return q;
+};
+
+const hydrateStateFromQuery = (query: typeof route.query) => {
+    const getStr = (key: string): string | undefined => {
+        const v = query[key];
+        return typeof v === "string" && v.length > 0 ? v : undefined;
+    };
+
+    const next: TransactionFilters = {
+        search: getStr("search") ?? "",
+        type: (["income", "expense"] as const).includes(getStr("type") as any) ? (getStr("type") as any) : "all",
+        accountId: !props.accountId ? (getStr("accountId") ?? "all") : "all",
+        categoryId: getStr("categoryId") ?? "all",
+        merchantId: getStr("merchantId") ?? "all",
+        rebalance: (["only", "exclude"] as const).includes(getStr("rebalance") as any)
+            ? (getStr("rebalance") as any)
+            : "all",
+        dateRange: {
+            start: getStr("startDate") ? parseCalendarDate(getStr("startDate")!) : undefined,
+            end: getStr("endDate") ? parseCalendarDate(getStr("endDate")!) : undefined,
+        },
+    };
+
+    filters.value = next;
+
+    const sortBy = getStr("sortBy");
+    const sortOrder = getStr("sortOrder");
+    if (sortBy && isSortableColumn(sortBy)) {
+        sorting.value = [{id: sortBy, desc: sortOrder !== "asc"}];
+    } else {
+        sorting.value = [{id: DEFAULT_SORT_ID, desc: DEFAULT_SORT_DESC}];
+    }
+};
+
+const TRACKED_QUERY_KEYS = [
+    "search",
+    "type",
+    "accountId",
+    "categoryId",
+    "merchantId",
+    "rebalance",
+    "startDate",
+    "endDate",
+    "sortBy",
+    "sortOrder",
+] as const;
+
+const stableQuerySignature = (q: Record<string, string | undefined>) =>
+    TRACKED_QUERY_KEYS.map((key) => `${key}=${q[key] ?? ""}`).join("&");
+
+const syncQueryToUrl = (serialized: Record<string, string>) => {
+    const currentQuery = route.query;
+    const preservedKeys = Object.keys(currentQuery).filter(
+        (key) => !(TRACKED_QUERY_KEYS as readonly string[]).includes(key),
+    );
+
+    const merged: LocationQueryRaw = {...serialized};
+    for (const key of preservedKeys) {
+        merged[key] = currentQuery[key] as any;
+    }
+
+    const sameKeys =
+        Object.keys(merged).length === Object.keys(currentQuery).length &&
+        Object.keys(merged).every((key) => String(currentQuery[key] ?? "") === String(merged[key] ?? ""));
+
+    if (sameKeys) return;
+
+    router.replace({query: merged}).catch(() => {});
+};
+
 watchDebounced(
-    filters,
+    [filters, sorting],
     () => {
+        const serialized = serializeStateToQuery();
+        const signature = stableQuerySignature(serialized);
+        if (signature === lastSyncedQuery) return;
+        lastSyncedQuery = signature;
+        syncQueryToUrl(serialized);
         refreshFromFilters();
     },
     {debounce: 300, deep: true},
 );
 
+watch(
+    () => route.query,
+    (nextQuery) => {
+        const currentQueryStr: Record<string, string | undefined> = {};
+        for (const key of TRACKED_QUERY_KEYS) {
+            const v = nextQuery[key];
+            currentQueryStr[key] = typeof v === "string" ? v : undefined;
+        }
+        const incomingSignature = stableQuerySignature(currentQueryStr);
+        if (incomingSignature === lastSyncedQuery) return;
+        lastSyncedQuery = incomingSignature;
+        hydrateStateFromQuery(nextQuery);
+        refreshFromFilters();
+    },
+);
+
 onMounted(() => {
-    const q = route.query;
-    if (q.categoryId && typeof q.categoryId === "string") {
-        filters.value.categoryId = q.categoryId;
-    }
-    if (q.startDate && q.endDate && typeof q.startDate === "string" && typeof q.endDate === "string") {
-        const [startYear, startMonth, startDay] = q.startDate.split("-").map(Number);
-        const [endYear, endMonth, endDay] = q.endDate.split("-").map(Number);
-        filters.value.dateRange = {
-            start: new CalendarDate(startYear, startMonth, startDay),
-            end: new CalendarDate(endYear, endMonth, endDay),
-        };
-    }
+    hydrateStateFromQuery(route.query);
+    lastSyncedQuery = stableQuerySignature(serializeStateToQuery());
 
     referenceStore.fetchReferences().catch((err) => console.error(err));
     refreshFromFilters();
@@ -364,6 +507,7 @@ defineExpose({
 
         <ScrollArea class="min-h-0 flex-1 overflow-hidden rounded-b-md border-t" scrollbar-class="pt-[41px]">
             <TransactionTable
+                v-model:sorting="sorting"
                 :account-name-by-id="accountNameById"
                 :is-filtered="hasActiveFilters"
                 :is-loading="isLoading"

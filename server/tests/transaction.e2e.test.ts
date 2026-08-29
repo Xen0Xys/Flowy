@@ -665,6 +665,127 @@ describe("TransactionController (e2e)", () => {
         expect(response.body.items).toHaveLength(1);
     });
 
+    test("sorts search results by the requested column across all pages", async () => {
+        const user = await registerUser(server);
+
+        const accountAlpha = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Alpha", type: "CHECKING"});
+        const accountBravo = await agent
+            .post("/account")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({name: "Bravo", type: "CHECKING"});
+        expect(accountAlpha.status).toBe(201);
+        expect(accountBravo.status).toBe(201);
+
+        const categoryFood = await prisma.userCategories.create({
+            data: {user_id: user.user.id, name: "Food", hex_color: "#10B981", icon: "cart"},
+        });
+        const categoryTravel = await prisma.userCategories.create({
+            data: {user_id: user.user.id, name: "Travel", hex_color: "#3B82F6", icon: "plane"},
+        });
+
+        const rows = [
+            {account: accountAlpha, category: categoryFood, amount: -30, description: "Banana", date: "2026-01-03"},
+            {account: accountBravo, category: categoryTravel, amount: -10, description: "Apple", date: "2026-01-01"},
+            {account: accountAlpha, category: categoryTravel, amount: 50, description: "Cherry", date: "2026-01-02"},
+        ];
+        const created = await Promise.all(
+            rows.map((row) =>
+                agent
+                    .post(`/transaction/account/${row.account.body.id}`)
+                    .set("Authorization", `Bearer ${user.token}`)
+                    .send({
+                        amount: row.amount,
+                        description: row.description,
+                        date: row.date,
+                        categoryId: row.category.id,
+                        inBudget: true,
+                    }),
+            ),
+        );
+        for (const res of created) {
+            expect(res.status).toBe(201);
+        }
+
+        const byAmountAsc = await agent
+            .get("/transaction")
+            .query({sortBy: "amount", sortOrder: "asc"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(byAmountAsc.status).toBe(200);
+        expect(byAmountAsc.body.items.map((tx: {description: string}) => tx.description)).toEqual([
+            "Banana",
+            "Apple",
+            "Cherry",
+        ]);
+
+        const byDescriptionAsc = await agent
+            .get("/transaction")
+            .query({sortBy: "description", sortOrder: "asc"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(byDescriptionAsc.status).toBe(200);
+        expect(byDescriptionAsc.body.items.map((tx: {description: string}) => tx.description)).toEqual([
+            "Apple",
+            "Banana",
+            "Cherry",
+        ]);
+
+        const byCategoryDesc = await agent
+            .get("/transaction")
+            .query({sortBy: "category", sortOrder: "desc"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(byCategoryDesc.status).toBe(200);
+        const categoriesDesc = byCategoryDesc.body.items.map(
+            (tx: {category?: {name: string}}) => tx.category?.name ?? null,
+        );
+        expect(categoriesDesc[0]).toBe("Travel");
+        expect(categoriesDesc[1]).toBe("Travel");
+        expect(categoriesDesc[2]).toBe("Food");
+
+        const byAccountAsc = await agent
+            .get("/transaction")
+            .query({sortBy: "account", sortOrder: "asc"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(byAccountAsc.status).toBe(200);
+        const accountIdsAsc = byAccountAsc.body.items.map((tx: {accountId: string}) => tx.accountId);
+        expect(accountIdsAsc[0]).toBe(accountAlpha.body.id);
+        expect(accountIdsAsc[1]).toBe(accountAlpha.body.id);
+        expect(accountIdsAsc[2]).toBe(accountBravo.body.id);
+
+        const page1 = await agent
+            .get("/transaction")
+            .query({sortBy: "amount", sortOrder: "asc", page: 1, pageSize: 2})
+            .set("Authorization", `Bearer ${user.token}`);
+        const page2 = await agent
+            .get("/transaction")
+            .query({sortBy: "amount", sortOrder: "asc", page: 2, pageSize: 2})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(page1.status).toBe(200);
+        expect(page2.status).toBe(200);
+        expect([...page1.body.items, ...page2.body.items].map((tx: {description: string}) => tx.description)).toEqual([
+            "Banana",
+            "Apple",
+            "Cherry",
+        ]);
+    });
+
+    test("rejects invalid sortBy or sortOrder", async () => {
+        const user = await registerUser(server);
+
+        const badSortBy = await agent
+            .get("/transaction")
+            .query({sortBy: "unknown"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(badSortBy.status).toBe(400);
+
+        const badSortOrder = await agent
+            .get("/transaction")
+            .query({sortOrder: "sideways"})
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(badSortOrder.status).toBe(400);
+    });
+
     test("rejects invalid search date range", async () => {
         const user = await registerUser(server);
 

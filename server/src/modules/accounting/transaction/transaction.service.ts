@@ -13,6 +13,8 @@ import {
     TransactionFiltersDto,
     TransactionSearchRebalance,
     TransactionSearchType,
+    TransactionSortBy,
+    TransactionSortOrder,
 } from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
 import {TransactionSummaryEntity} from "./models/entities/transaction-summary.entity";
@@ -87,6 +89,7 @@ export class TransactionService {
 
     async searchTransactions(user: UserEntity, query: SearchTransactionsDto): Promise<SearchTransactionsResultEntity> {
         const where = this.buildSearchWhere(user, query);
+        const orderBy = this.buildSearchOrderBy(query.sortBy, query.sortOrder);
 
         const isPaginated = query.page !== undefined || query.pageSize !== undefined;
         const page = query.page ?? 1;
@@ -101,7 +104,7 @@ export class TransactionService {
                     credit_transfer: true,
                     debit_transfer: true,
                 },
-                orderBy: [{date: "desc"}, {created_at: "desc"}],
+                orderBy,
             });
 
             const items = transactions.map((transaction) => this.toTransactionEntity(transaction));
@@ -126,7 +129,7 @@ export class TransactionService {
                     credit_transfer: true,
                     debit_transfer: true,
                 },
-                orderBy: [{date: "desc"}, {created_at: "desc"}],
+                orderBy,
                 skip: (page - 1) * pageSize,
                 take: pageSize,
             }),
@@ -546,6 +549,28 @@ export class TransactionService {
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,
         });
+    }
+
+    private buildSearchOrderBy(
+        sortBy?: TransactionSortBy,
+        sortOrder?: TransactionSortOrder,
+    ): Prisma.TransactionsOrderByWithRelationInput[] {
+        const order: Prisma.SortOrder = sortOrder === TransactionSortOrder.ASC ? "asc" : "desc";
+        const tieBreaker: Prisma.TransactionsOrderByWithRelationInput = {created_at: "desc"};
+
+        switch (sortBy) {
+            case TransactionSortBy.DESCRIPTION:
+                return [{description: order}, tieBreaker];
+            case TransactionSortBy.AMOUNT:
+                return [{amount: order}, tieBreaker];
+            case TransactionSortBy.CATEGORY:
+                return [{category: {name: order}}, tieBreaker];
+            case TransactionSortBy.ACCOUNT:
+                return [{account: {name: order}}, tieBreaker];
+            case TransactionSortBy.DATE:
+            default:
+                return [{date: order}, tieBreaker];
+        }
     }
 
     private buildSearchWhere(user: UserEntity, filters: TransactionFiltersDto): Prisma.TransactionsWhereInput {

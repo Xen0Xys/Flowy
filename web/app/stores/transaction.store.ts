@@ -86,6 +86,9 @@ export type BulkTransactionsCreateResult = {
     duplicates: CreateTransactionPayload[];
 };
 
+export type TransactionSortBy = "date" | "description" | "amount" | "category" | "account";
+export type TransactionSortOrder = "asc" | "desc";
+
 export type TransactionSearchFilters = {
     search?: string;
     type?: "all" | "income" | "expense";
@@ -97,6 +100,8 @@ export type TransactionSearchFilters = {
     endDate?: string;
     page?: number;
     pageSize?: number;
+    sortBy?: TransactionSortBy;
+    sortOrder?: TransactionSortOrder;
 };
 
 export type SearchTransactionsResult = {
@@ -130,6 +135,8 @@ function buildTransactionSearchParams(filters: TransactionSearchFilters): URLSea
     if (filters.endDate) params.set("endDate", filters.endDate);
     if (filters.page !== undefined) params.set("page", String(filters.page));
     if (filters.pageSize !== undefined) params.set("pageSize", String(filters.pageSize));
+    if (filters.sortBy) params.set("sortBy", filters.sortBy);
+    if (filters.sortOrder) params.set("sortOrder", filters.sortOrder);
 
     return params;
 }

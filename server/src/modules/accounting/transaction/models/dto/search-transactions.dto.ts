@@ -13,6 +13,19 @@ export enum TransactionSearchRebalance {
     EXCLUDE = "exclude",
 }
 
+export enum TransactionSortBy {
+    DATE = "date",
+    DESCRIPTION = "description",
+    AMOUNT = "amount",
+    CATEGORY = "category",
+    ACCOUNT = "account",
+}
+
+export enum TransactionSortOrder {
+    ASC = "asc",
+    DESC = "desc",
+}
+
 export class TransactionFiltersDto {
     @IsOptional()
     @IsString()
@@ -68,4 +81,12 @@ export class SearchTransactionsDto extends TransactionFiltersDto {
     @Min(1)
     @Max(100)
     pageSize?: number;
+
+    @IsOptional()
+    @IsEnum(TransactionSortBy)
+    sortBy?: TransactionSortBy;
+
+    @IsOptional()
+    @IsEnum(TransactionSortOrder)
+    sortOrder?: TransactionSortOrder;
 }
