@@ -3,6 +3,7 @@ import {computed, ref, watch} from "vue";
 import {cn} from "@/lib/utils";
 
 type Variant = "expense" | "income" | "neutral";
+type Size = "lg" | "sm";
 
 const props = withDefaults(
     defineProps<{
@@ -10,6 +11,7 @@ const props = withDefaults(
         currency?: string;
         locale?: string;
         variant?: Variant;
+        size?: Size;
         disabled?: boolean;
         id?: string;
         required?: boolean;
@@ -20,6 +22,7 @@ const props = withDefaults(
         currency: "USD",
         locale: undefined,
         variant: "neutral",
+        size: "lg",
         disabled: false,
         placeholder: "0.00",
     },
@@ -161,6 +164,21 @@ const variantClasses = computed(() => {
     }
 });
 
+const sizeClasses = computed(() => {
+    if (props.size === "sm") {
+        return {
+            container: "h-9 gap-1 px-2.5",
+            symbol: "text-sm font-medium",
+            input: "text-sm font-medium",
+        };
+    }
+    return {
+        container: "h-14 gap-2 px-4 sm:h-16",
+        symbol: "text-xl font-semibold sm:text-2xl",
+        input: "text-xl font-semibold sm:text-2xl",
+    };
+});
+
 const focus = () => inputEl.value?.focus();
 defineExpose({focus});
 </script>
@@ -169,13 +187,14 @@ defineExpose({focus});
     <div
         :class="
             cn(
-                'bg-background flex h-16 w-full items-center gap-2 rounded-lg border px-4 shadow-xs transition-all focus-within:ring-4',
+                'bg-background flex w-full items-center rounded-lg border shadow-xs transition-all focus-within:ring-4',
+                sizeClasses.container,
                 variantClasses.border,
                 disabled && 'cursor-not-allowed opacity-60',
                 props.class,
             )
         ">
-        <div :class="cn('flex items-baseline gap-1 text-2xl font-semibold', variantClasses.symbolColor)">
+        <div :class="cn('flex items-baseline gap-1', sizeClasses.symbol, variantClasses.symbolColor)">
             <span v-if="variantClasses.sign" aria-hidden="true">{{ variantClasses.sign }}</span>
             <span aria-hidden="true">{{ currencySymbol }}</span>
         </div>
@@ -191,8 +210,9 @@ defineExpose({focus});
             style="outline: none; box-shadow: none"
             :class="
                 cn(
-                    'placeholder:text-muted-foreground/50 w-full flex-1 border-0 bg-transparent text-right text-2xl font-semibold tabular-nums',
+                    'placeholder:text-muted-foreground/50 w-full flex-1 border-0 bg-transparent text-right tabular-nums',
                     '!shadow-none !ring-0 !outline-none focus:!shadow-none focus:!ring-0 focus:!outline-none focus-visible:!shadow-none focus-visible:!ring-0 focus-visible:!outline-none',
+                    sizeClasses.input,
                     variantClasses.text,
                 )
             "

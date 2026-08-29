@@ -337,6 +337,20 @@ const existingBudgetForDialog = computed(() => {
     return null;
 });
 
+const sourcePeriodLabel = computed(() => {
+    if (dialogMode.value !== "renew" || !renewSourceBudget.value) return "";
+    const monthLabel = monthOptions.value.find((month) => month.value === renewSourceBudget.value?.month)?.label ?? "";
+    return `${monthLabel} ${renewSourceBudget.value.year}`;
+});
+
+const editBudgetPeriodLabel = computed(() => {
+    if (!budget.value) return "";
+    const monthLabel = monthOptions.value.find((month) => month.value === budget.value?.month)?.label ?? "";
+    return `${monthLabel} ${budget.value.year}`;
+});
+
+const isSavingBudget = ref(false);
+
 async function loadData() {
     const requestId = ++latestLoadRequestId.value;
     const year = selectedYear.value;
@@ -447,23 +461,28 @@ async function handleSaveBudget(payload: {
     budgetedIncome: number;
     categories: {categoryId: string; amount: number}[];
 }) {
-    if (dialogMode.value === "edit" && budget.value) {
-        await budgetStore.updateBudget(budget.value.id, {
-            budgetedIncome: payload.budgetedIncome,
-            categories: payload.categories,
-        });
-        isEditDialogOpen.value = false;
-    } else {
-        await budgetStore.createBudget({
-            month: selectedMonth.value,
-            year: selectedYear.value,
-            budgetedIncome: payload.budgetedIncome,
-            categories: payload.categories,
-        });
-        isCreateDialogOpen.value = false;
+    isSavingBudget.value = true;
+    try {
+        if (dialogMode.value === "edit" && budget.value) {
+            await budgetStore.updateBudget(budget.value.id, {
+                budgetedIncome: payload.budgetedIncome,
+                categories: payload.categories,
+            });
+            isEditDialogOpen.value = false;
+        } else {
+            await budgetStore.createBudget({
+                month: selectedMonth.value,
+                year: selectedYear.value,
+                budgetedIncome: payload.budgetedIncome,
+                categories: payload.categories,
+            });
+            isCreateDialogOpen.value = false;
+        }
+        await loadData();
+        await loadAvailableMonths();
+    } finally {
+        isSavingBudget.value = false;
     }
-    await loadData();
-    await loadAvailableMonths();
 }
 
 async function handleDelete() {
@@ -705,10 +724,14 @@ watch([selectedMonth, selectedYear], async () => {
         <!-- Create / Renew Dialog -->
         <BudgetFormDialog
             v-model:open="isCreateDialogOpen"
+            :currency="currency"
             :existing-budget="existingBudgetForDialog"
+            :is-saving="isSavingBudget"
             :mode="dialogMode"
+            :source-period-label="sourcePeriodLabel"
             :spending-categories="spending?.byCategory"
             :target-month="selectedMonth"
+            :target-period-label="periodLabel"
             :target-year="selectedYear"
             @save="handleSaveBudget" />
 
@@ -717,15 +740,18 @@ watch([selectedMonth, selectedYear], async () => {
             v-if="budget"
             v-model:open="isEditDialogOpen"
             :budget-id="budget.id"
+            :currency="currency"
             :existing-budget="{
                 month: budget.month,
                 year: budget.year,
                 budgetedIncome: budget.budgetedIncome,
                 categories: budget.budgetedCategories ?? [],
             }"
+            :is-saving="isSavingBudget"
             :mode="'edit'"
             :spending-categories="spending?.byCategory"
             :target-month="budget.month"
+            :target-period-label="editBudgetPeriodLabel"
             :target-year="budget.year"
             @save="handleSaveBudget" />
 
