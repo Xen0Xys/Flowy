@@ -68,6 +68,7 @@ const sorting = ref<SortingState>([{id: DEFAULT_SORT_ID, desc: DEFAULT_SORT_DESC
 
 let requestSeq = 0;
 let lastSyncedQuery = "";
+let hasMounted = false;
 
 const availableCategories = computed(() =>
     referenceStore.categories
@@ -98,12 +99,13 @@ const transactions = ref<Transaction[]>([]);
 const currentPage = ref(1);
 const isLoadingInitial = ref(false);
 const isLoadingMore = ref(false);
+const isRefreshPending = ref(false);
 const loadMoreTrigger = ref<HTMLElement | null>(null);
 
 const summary = ref<TransactionSummary | null>(null);
 const isLoadingSummary = ref(false);
 
-const isLoading = computed(() => isLoadingInitial.value || isLoadingMore.value);
+const isLoading = computed(() => isLoadingInitial.value || isLoadingMore.value || isRefreshPending.value);
 const hasMorePages = computed(() => currentPage.value < (searchResult.value.totalPages ?? 1));
 
 const formatCurrency = (value: number) => {
@@ -225,11 +227,15 @@ async function fetchSummary() {
 }
 
 const refreshFromFilters = () => {
+    isRefreshPending.value = false;
     fetchTransactions(1, false);
     fetchSummary();
 };
 
 const fetchNextPage = () => {
+    if (isRefreshPending.value) {
+        return;
+    }
     if (!hasMorePages.value) {
         return;
     }
@@ -341,12 +347,36 @@ const syncQueryToUrl = (serialized: Record<string, string>) => {
     router.replace({query: merged}).catch(() => {});
 };
 
+watch(
+    [filters, sorting],
+    () => {
+        if (!hasMounted) return;
+        const nextSignature = stableQuerySignature(serializeStateToQuery());
+        if (nextSignature === lastSyncedQuery) return;
+        transactions.value = [];
+        summary.value = null;
+        currentPage.value = 1;
+        searchResult.value = {
+            items: [],
+            total: 0,
+            page: 1,
+            pageSize: PAGE_SIZE,
+            totalPages: 1,
+            isPaginated: false,
+        };
+        isLoadingMore.value = false;
+        isRefreshPending.value = true;
+        requestSeq++;
+    },
+    {deep: true, flush: "sync"},
+);
+
 watchDebounced(
     [filters, sorting],
     () => {
         const serialized = serializeStateToQuery();
         const signature = stableQuerySignature(serialized);
-        if (signature === lastSyncedQuery) return;
+        if (signature === lastSyncedQuery && !isRefreshPending.value) return;
         lastSyncedQuery = signature;
         syncQueryToUrl(serialized);
         refreshFromFilters();
@@ -376,6 +406,7 @@ onMounted(() => {
 
     referenceStore.fetchReferences().catch((err) => console.error(err));
     refreshFromFilters();
+    hasMounted = true;
 
     if (!process.client) {
         return;
@@ -468,40 +499,33 @@ defineExpose({
 
         <!-- Summary bar -->
         <div
-            v-if="summary || isLoadingSummary"
-            class="bg-muted/30 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-6 py-2.5 text-xs md:text-sm"
-            :class="{'opacity-70': isLoadingSummary && !summary}">
+            v-if="summary || isLoadingSummary || isRefreshPending"
+            class="bg-muted/30 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-6 py-2.5 text-xs md:text-sm">
             <div class="text-muted-foreground flex items-center gap-2">
                 <Icon name="iconoir:list" class="size-4" />
-                <template v-if="summary">
-                    <span class="tabular-nums">
-                        {{ t("transactions.list.summary.count", {count: summary.count}) }}
-                    </span>
-                </template>
+                <span v-if="summary" class="tabular-nums">
+                    {{ t("transactions.list.summary.count", {count: summary.count}) }}
+                </span>
                 <Skeleton v-else class="h-4 w-24" />
             </div>
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <template v-if="summary">
-                    <span class="text-muted-foreground flex items-center gap-1">
-                        <Icon name="iconoir:arrow-down-left" class="text-success size-3.5" />
-                        <span class="tabular-nums">{{ formatCurrency(summary.income) }}</span>
-                    </span>
-                    <span class="text-muted-foreground flex items-center gap-1">
-                        <Icon name="iconoir:arrow-up-right" class="text-destructive size-3.5" />
-                        <span class="tabular-nums">{{ formatCurrency(summary.expense) }}</span>
-                    </span>
-                    <span
-                        class="flex items-center gap-1 font-medium"
-                        :class="summary.net >= 0 ? 'text-success' : 'text-destructive'">
-                        <span class="text-muted-foreground text-xs">{{ t("transactions.list.summary.net") }}</span>
-                        <span class="tabular-nums">{{ formatCurrency(summary.net) }}</span>
-                    </span>
-                </template>
-                <template v-else>
-                    <Skeleton class="h-4 w-16" />
-                    <Skeleton class="h-4 w-16" />
-                    <Skeleton class="h-4 w-24" />
-                </template>
+                <span class="text-muted-foreground flex items-center gap-1">
+                    <Icon name="iconoir:arrow-down-left" class="text-success size-3.5" />
+                    <span v-if="summary" class="tabular-nums">{{ formatCurrency(summary.income) }}</span>
+                    <Skeleton v-else class="h-4 w-16" />
+                </span>
+                <span class="text-muted-foreground flex items-center gap-1">
+                    <Icon name="iconoir:arrow-up-right" class="text-destructive size-3.5" />
+                    <span v-if="summary" class="tabular-nums">{{ formatCurrency(summary.expense) }}</span>
+                    <Skeleton v-else class="h-4 w-16" />
+                </span>
+                <span
+                    class="flex items-center gap-1 font-medium"
+                    :class="summary ? (summary.net >= 0 ? 'text-success' : 'text-destructive') : 'text-muted-foreground'">
+                    <span class="text-muted-foreground text-xs">{{ t("transactions.list.summary.net") }}</span>
+                    <span v-if="summary" class="tabular-nums">{{ formatCurrency(summary.net) }}</span>
+                    <Skeleton v-else class="h-4 w-20" />
+                </span>
             </div>
         </div>
 
