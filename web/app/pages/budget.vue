@@ -29,10 +29,42 @@ const {t, locale} = useI18n();
 const budgetStore = useBudgetStore();
 const referenceStore = useReferenceStore();
 const familyStore = useFamilyStore();
+const route = useRoute();
+const router = useRouter();
 
 const now = new Date();
-const selectedMonth = ref(now.getMonth() + 1);
-const selectedYear = ref(now.getFullYear());
+
+function parsePeriod(value: unknown): {month: number; year: number} {
+    const fallback = {month: now.getMonth() + 1, year: now.getFullYear()};
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== "string") return fallback;
+    const match = /^(\d{4})-(\d{2})$/.exec(raw);
+    if (!match) return fallback;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (!Number.isFinite(year) || year < 1900 || year > 2200) return fallback;
+    if (!Number.isFinite(month) || month < 1 || month > 12) return fallback;
+    return {month, year};
+}
+
+function formatPeriod(year: number, month: number): string {
+    return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+const currentPeriod = computed(() => parsePeriod(route.query.period));
+const selectedMonth = computed(() => currentPeriod.value.month);
+const selectedYear = computed(() => currentPeriod.value.year);
+
+function setPeriod(year: number, month: number, options?: {replace?: boolean}) {
+    const period = formatPeriod(year, month);
+    if (route.query.period === period) return;
+    const query = {...route.query, period};
+    if (options?.replace) {
+        router.replace({query});
+    } else {
+        router.push({query});
+    }
+}
 
 const budget = ref<Budget | null>(null);
 const spending = ref<BudgetSpending | null>(null);
@@ -353,7 +385,7 @@ async function loadAvailableMonths() {
     }
 }
 
-async function navigateMonth(direction: -1 | 1) {
+function navigateMonth(direction: -1 | 1) {
     let m = selectedMonth.value + direction;
     let y = selectedYear.value;
     if (m < 1) {
@@ -363,8 +395,7 @@ async function navigateMonth(direction: -1 | 1) {
         m = 1;
         y++;
     }
-    selectedMonth.value = m;
-    selectedYear.value = y;
+    setPeriod(y, m);
 }
 
 function handlePeriodPickerOpenChange(open: boolean) {
@@ -385,8 +416,7 @@ function applySelectedPeriod() {
         return;
     }
 
-    selectedMonth.value = draftPeriodPlaceholder.value.month;
-    selectedYear.value = draftPeriodPlaceholder.value.year;
+    setPeriod(draftPeriodPlaceholder.value.year, draftPeriodPlaceholder.value.month);
     isPeriodPickerOpen.value = false;
 }
 
@@ -446,6 +476,9 @@ async function handleDelete() {
 }
 
 onMounted(async () => {
+    if (typeof route.query.period !== "string" || !/^\d{4}-\d{2}$/.test(route.query.period)) {
+        setPeriod(now.getFullYear(), now.getMonth() + 1, {replace: true});
+    }
     await referenceStore.fetchReferences();
     await familyStore.fetchFamily();
     await loadData();
