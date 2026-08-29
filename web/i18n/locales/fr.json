@@ -601,7 +601,6 @@
             "merchants": "Marchands",
             "name": "Nom",
             "color": "Couleur",
-            "icon": "Icône",
             "iconLibrary": "Icônes (Iconoir)",
             "deleteCategory": "Supprimer la catégorie",
             "deleteMerchant": "Supprimer le marchand",
@@ -623,7 +622,6 @@
                 "editMerchant": "Modifier le marchand",
                 "deleteMerchant": "Supprimer le marchand",
                 "selectColor": "Sélectionner la couleur",
-                "selectIcon": "Sélectionner l'icône",
                 "hexColorInput": "Code couleur hexadécimal",
                 "removeKeyword": "Retirer le mot-clé"
             },

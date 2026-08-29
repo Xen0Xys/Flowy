@@ -601,7 +601,6 @@
             "merchants": "Merchants",
             "name": "Name",
             "color": "Color",
-            "icon": "Icon",
             "iconLibrary": "Icons (Iconoir)",
             "deleteCategory": "Delete category",
             "deleteMerchant": "Delete merchant",
@@ -623,7 +622,6 @@
                 "editMerchant": "Edit merchant",
                 "deleteMerchant": "Delete merchant",
                 "selectColor": "Select color",
-                "selectIcon": "Select icon",
                 "hexColorInput": "Hex color code",
                 "removeKeyword": "Remove keyword"
             },

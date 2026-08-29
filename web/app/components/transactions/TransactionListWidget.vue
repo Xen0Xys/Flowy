@@ -521,7 +521,9 @@ defineExpose({
                 </span>
                 <span
                     class="flex items-center gap-1 font-medium"
-                    :class="summary ? (summary.net >= 0 ? 'text-success' : 'text-destructive') : 'text-muted-foreground'">
+                    :class="
+                        summary ? (summary.net >= 0 ? 'text-success' : 'text-destructive') : 'text-muted-foreground'
+                    ">
                     <span class="text-muted-foreground text-xs">{{ t("transactions.list.summary.net") }}</span>
                     <span v-if="summary" class="tabular-nums">{{ formatCurrency(summary.net) }}</span>
                     <Skeleton v-else class="h-4 w-20" />
