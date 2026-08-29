@@ -625,21 +625,40 @@
                 "selectColor": "Select color",
                 "selectIcon": "Select icon",
                 "hexColorInput": "Hex color code",
-                "removeKeyword": "Remove keyword",
-                "addKeyword": "Add keyword"
+                "removeKeyword": "Remove keyword"
             },
             "findIconsAt": "Find icons at",
             "categoryPlaceholder": "e.g. Groceries",
             "merchantPlaceholder": "e.g. Walmart",
             "keywords": "Keywords",
             "keywordsPlaceholder": "Add a keyword and press Enter",
-            "keywordsHelp": "Additional words that trigger auto-completion when found in a transaction description.",
-            "primaryKeyword": "Primary keyword",
-            "primaryKeywordPlaceholder": "Select the primary keyword",
-            "primaryKeywordHelp": "Used to auto-fill the description when this reference is selected on a new transaction.",
-            "useName": "Use name ({name})",
             "autoComplete": "Auto-complete",
-            "autoCompleteHelp": "When enabled, this reference participates in transaction auto-completion."
+            "autoCompleteHelp": "When enabled, this reference participates in transaction auto-completion.",
+            "style": "Style & color",
+            "preview": {
+                "title": "Preview",
+                "placeholder": "Category name"
+            },
+            "errors": {
+                "nameRequired": "Name is required",
+                "categoryDuplicate": "A category with this name already exists",
+                "merchantDuplicate": "A merchant with this name already exists",
+                "invalidHex": "Invalid hex color code (e.g. #ef4444)"
+            },
+            "iconPicker": {
+                "trigger": "Choose an icon",
+                "search": "Search icons...",
+                "empty": "No icons found",
+                "customLabel": "Custom slug",
+                "apply": "Apply"
+            },
+            "keywordsField": {
+                "help": "Keywords trigger auto-completion. Click the star to pick the one used as default description.",
+                "defaultLabel": "default",
+                "markAsPrimary": "Use as default description",
+                "unsetPrimary": "Remove as default description",
+                "limitReached": "Limit of {max} keywords reached"
+            }
         }
     },
     "user": {

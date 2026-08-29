@@ -625,21 +625,40 @@
                 "selectColor": "Sélectionner la couleur",
                 "selectIcon": "Sélectionner l'icône",
                 "hexColorInput": "Code couleur hexadécimal",
-                "removeKeyword": "Retirer le mot-clé",
-                "addKeyword": "Ajouter le mot-clé"
+                "removeKeyword": "Retirer le mot-clé"
             },
             "findIconsAt": "Trouver des icônes sur",
             "categoryPlaceholder": "ex : Courses",
             "merchantPlaceholder": "ex : Walmart",
             "keywords": "Mots-clés",
             "keywordsPlaceholder": "Ajouter un mot-clé et appuyer sur Entrée",
-            "keywordsHelp": "Mots supplémentaires qui déclenchent l'auto-complétion quand ils apparaissent dans la description d'une transaction.",
-            "primaryKeyword": "Mot-clé principal",
-            "primaryKeywordPlaceholder": "Sélectionner le mot-clé principal",
-            "primaryKeywordHelp": "Utilisé pour remplir automatiquement la description quand cette référence est sélectionnée sur une nouvelle transaction.",
-            "useName": "Utiliser le nom ({name})",
             "autoComplete": "Auto-complétion",
-            "autoCompleteHelp": "Quand activée, cette référence participe à l'auto-complétion des transactions."
+            "autoCompleteHelp": "Quand activée, cette référence participe à l'auto-complétion des transactions.",
+            "style": "Style et couleur",
+            "preview": {
+                "title": "Aperçu",
+                "placeholder": "Nom de la catégorie"
+            },
+            "errors": {
+                "nameRequired": "Le nom est requis",
+                "categoryDuplicate": "Une catégorie porte déjà ce nom",
+                "merchantDuplicate": "Un marchand porte déjà ce nom",
+                "invalidHex": "Code couleur hexadécimal invalide (ex : #ef4444)"
+            },
+            "iconPicker": {
+                "trigger": "Choisir une icône",
+                "search": "Rechercher une icône...",
+                "empty": "Aucune icône trouvée",
+                "customLabel": "Slug personnalisé",
+                "apply": "Appliquer"
+            },
+            "keywordsField": {
+                "help": "Les mots-clés déclenchent l'auto-complétion. Cliquez sur l'étoile pour désigner celui utilisé comme description par défaut.",
+                "defaultLabel": "par défaut",
+                "markAsPrimary": "Utiliser comme description par défaut",
+                "unsetPrimary": "Retirer comme description par défaut",
+                "limitReached": "Limite de {max} mots-clés atteinte"
+            }
         }
     },
     "user": {
