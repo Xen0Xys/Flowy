@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from "vue";
 import type {DateRange} from "reka-ui";
-import {useMediaQuery} from "@vueuse/core";
+import {useMediaQuery, useVModel} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {getLocalTimeZone} from "@internationalized/date";
 
@@ -39,23 +39,7 @@ const isReducedHeight = useMediaQuery("(max-height: 1080px)");
 const {locale, t} = useI18n();
 const DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY = "flowy:transactions:desktop-filters-visible";
 
-const filters = ref<TransactionFilters>({...props.modelValue});
-
-if (!filters.value.dateRange) {
-    filters.value.dateRange = {start: undefined, end: undefined};
-}
-
-if (!filters.value.accountId) {
-    filters.value.accountId = "all";
-}
-
-watch(
-    filters,
-    (newFilters) => {
-        emit("update:modelValue", {...newFilters});
-    },
-    {deep: true},
-);
+const filters = useVModel(props, "modelValue", emit, {passive: true, deep: true, clone: (v) => ({...v})});
 
 const isSheetOpen = ref(false);
 const areDesktopFiltersVisible = ref(true);
