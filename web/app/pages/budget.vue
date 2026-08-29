@@ -13,6 +13,7 @@ import BudgetRenewDialog from "~/components/budget/BudgetRenewDialog.vue";
 import {Button} from "~/components/ui/button";
 import {Calendar} from "~/components/ui/calendar";
 import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
+import {ScrollArea} from "~/components/ui/scroll-area";
 import {Skeleton} from "~/components/ui/skeleton";
 import {
     AlertDialog,
@@ -614,15 +615,15 @@ watch([selectedMonth, selectedYear], async () => {
                         </div>
                     </div>
 
-                    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
-                        <div class="space-y-2">
+                    <ScrollArea class="min-h-0 flex-1">
+                        <div class="w-full space-y-2 pb-6 md:pr-4">
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                         </div>
-                    </div>
+                    </ScrollArea>
                 </div>
 
                 <!-- Main content: always visible (nav + donut + categories) -->
@@ -682,8 +683,8 @@ watch([selectedMonth, selectedYear], async () => {
                         </div>
 
                         <!-- Right panel: Category list -->
-                        <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
-                            <div v-if="categoryRows.length > 0" class="stagger-children space-y-2">
+                        <ScrollArea class="min-h-0 flex-1">
+                            <div v-if="categoryRows.length > 0" class="stagger-children w-full space-y-2 pb-6 md:pr-4">
                                 <BudgetCategoryRow
                                     v-for="(cat, idx) in categoryRows"
                                     :id="cat.id"
@@ -698,7 +699,7 @@ watch([selectedMonth, selectedYear], async () => {
                                     :style="{'--stagger-index': idx}"
                                     :year="selectedYear" />
                             </div>
-                            <div v-else class="flex flex-1 items-center justify-center text-center">
+                            <div v-else class="flex h-full w-full items-center justify-center text-center">
                                 <div>
                                     <Icon class="text-muted-foreground mb-2 h-8 w-8" name="iconoir:journal-page" />
                                     <p class="text-muted-foreground text-sm">
@@ -709,7 +710,7 @@ watch([selectedMonth, selectedYear], async () => {
                                     </p>
                                 </div>
                             </div>
-                        </div>
+                        </ScrollArea>
                     </div>
                 </template>
             </div>
