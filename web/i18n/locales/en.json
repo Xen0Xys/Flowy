@@ -628,8 +628,6 @@
                 "removeKeyword": "Remove keyword"
             },
             "findIconsAt": "Find icons at",
-            "categoryPlaceholder": "e.g. Groceries",
-            "merchantPlaceholder": "e.g. Walmart",
             "keywords": "Keywords",
             "keywordsPlaceholder": "Add a keyword and press Enter",
             "autoComplete": "Auto-complete",
@@ -936,9 +934,6 @@
             "readyToImport": "{count} transactions ready to import",
             "categoryPlaceholder": "Category name",
             "merchantPlaceholder": "Merchant name",
-            "createCategoryDescription": "Add a new category for your transactions.",
-            "createMerchantDescription": "Add a new merchant for your transactions.",
-            "findIcons": "Find icons at",
             "pagination": "Page {page} of {total}"
         },
         "result": {

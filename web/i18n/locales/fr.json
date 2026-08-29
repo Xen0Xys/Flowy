@@ -628,8 +628,6 @@
                 "removeKeyword": "Retirer le mot-clé"
             },
             "findIconsAt": "Trouver des icônes sur",
-            "categoryPlaceholder": "ex : Courses",
-            "merchantPlaceholder": "ex : Walmart",
             "keywords": "Mots-clés",
             "keywordsPlaceholder": "Ajouter un mot-clé et appuyer sur Entrée",
             "autoComplete": "Auto-complétion",
@@ -936,9 +934,6 @@
             "readyToImport": "{count} transactions prêtes à être importées",
             "categoryPlaceholder": "Nom de la catégorie",
             "merchantPlaceholder": "Nom du marchand",
-            "createCategoryDescription": "Ajoutez une nouvelle catégorie pour vos transactions.",
-            "createMerchantDescription": "Ajoutez un nouveau marchand pour vos transactions.",
-            "findIcons": "Trouvez des icônes sur",
             "pagination": "Page {page} sur {total}"
         },
         "result": {

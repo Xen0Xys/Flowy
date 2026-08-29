@@ -89,7 +89,7 @@ const displayValue = (value: string | number | boolean | Array<string | number |
             <ComboboxInput
                 :placeholder="placeholder"
                 :display-value="displayValue"
-                class="!outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none" />
+                class="text-base !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none md:text-sm" />
             <ComboboxEmpty>{{ emptyText }}</ComboboxEmpty>
             <ComboboxViewport>
                 <ComboboxGroup>
