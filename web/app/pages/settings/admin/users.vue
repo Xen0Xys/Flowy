@@ -16,17 +16,23 @@ import {
     type SortingState,
     tableFeatures,
     useTable,
+    type VisibilityState,
 } from "@tanstack/vue-table";
-import {Copy, Eye, KeyRound, MoreHorizontal, Trash2} from "lucide-vue-next";
+import {Copy, Eye, EyeOff, KeyRound, MoreHorizontal, RefreshCw, Trash2} from "lucide-vue-next";
 import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {Badge} from "@/components/ui/badge";
+import {Label} from "@/components/ui/label";
+import {Avatar, AvatarFallback} from "@/components/ui/avatar";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -69,16 +75,39 @@ const instanceOwnerId = ref<string | null>(null);
 
 const globalFilter = ref("");
 const sorting = ref<SortingState>([]);
+const columnVisibility = ref<VisibilityState>({id: false});
 
 const detailsState = ref<DetailsState | null>(null);
 const loadingDetails = ref(false);
 const resetDialogUser = ref<AdminUser | null>(null);
 const deleteDialogUser = ref<AdminUser | null>(null);
-const isDeleteDialogOpen = ref(false);
 const resetPasswordValue = ref("");
+const showResetPassword = ref(false);
 const isResettingCurrentUser = computed(() =>
     Boolean(resetDialogUser.value && resettingId.value === resetDialogUser.value.id),
 );
+
+function computeInitials(name: string | undefined | null): string {
+    const trimmed = (name ?? "").trim();
+    if (!trimmed) return "?";
+    const parts = trimmed.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return (parts[0] ?? "").slice(0, 2).toUpperCase();
+    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
+}
+
+function getUserRoleLabel(user: AdminUser): string {
+    if (user.id === instanceOwnerId.value) return t("settings.users.roles.instanceOwner");
+    if (!user.familyId) return t("settings.users.roles.noFamily");
+    if (user.familyRole === "ADMIN") return t("settings.users.roles.familyAdmin");
+    return t("settings.users.roles.familyMember");
+}
+
+function getUserRoleVariant(user: AdminUser): "default" | "secondary" | "outline" {
+    if (user.id === instanceOwnerId.value) return "default";
+    if (!user.familyId) return "outline";
+    if (user.familyRole === "ADMIN") return "secondary";
+    return "outline";
+}
 
 const columns = computed<ColumnDef<AdminUser>[]>(() => [
     {
@@ -88,6 +117,11 @@ const columns = computed<ColumnDef<AdminUser>[]>(() => [
     {
         accessorKey: "email",
         header: t("auth.common.email"),
+    },
+    {
+        id: "role",
+        header: t("settings.users.familyRole"),
+        enableSorting: false,
     },
     {
         accessorKey: "id",
@@ -126,9 +160,13 @@ const table = useTable({
         get sorting() {
             return sorting.value;
         },
+        get columnVisibility() {
+            return columnVisibility.value;
+        },
     },
     onGlobalFilterChange: (updater) => valueUpdater(updater, globalFilter),
     onSortingChange: (updater) => valueUpdater(updater, sorting),
+    onColumnVisibilityChange: (updater) => valueUpdater(updater, columnVisibility),
     globalFilterFn: (row, _columnId, filterValue) => {
         const query = String(filterValue ?? "")
             .trim()
@@ -166,11 +204,33 @@ watch(
 
 function openResetDialog(user: AdminUser) {
     resetPasswordValue.value = "";
+    showResetPassword.value = false;
     resetDialogUser.value = user;
 }
 
 function openDeleteDialog(user: AdminUser) {
     deleteDialogUser.value = user;
+}
+
+function generatePassword() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+    const length = Math.max(16, PASSWORD_MIN_LENGTH);
+    const cryptoObj = (globalThis as any).crypto;
+    let out = "";
+    if (cryptoObj?.getRandomValues) {
+        const values = new Uint32Array(length);
+        cryptoObj.getRandomValues(values);
+        for (let i = 0; i < length; i++) {
+            out += chars[(values[i] ?? 0) % chars.length];
+        }
+    } else {
+        for (let i = 0; i < length; i++) {
+            out += chars[Math.floor(Math.random() * chars.length)];
+        }
+    }
+    resetPasswordValue.value = out;
+    showResetPassword.value = true;
+    toast.success(t("settings.users.toasts.passwordGenerated"));
 }
 
 function findFamilyMemberRole(family: Family, userId: string) {
@@ -181,24 +241,18 @@ function findFamilyMemberRole(family: Family, userId: string) {
 
 function formatFamilyRole(role: string | null | undefined) {
     if (!role) return "-";
-
     if (role === "ADMIN") return t("settings.family.admin");
     if (role === "USER") return t("settings.family.member");
-
     return role;
 }
 
 function getDetailsFamilyRoleLabel(details: DetailsState) {
     const role = details.family ? findFamilyMemberRole(details.family, details.user.id) : details.user.familyRole;
-
     return formatFamilyRole(role);
 }
 
 async function openDetailsDialog(user: AdminUser) {
-    detailsState.value = {
-        user,
-        family: null,
-    };
+    detailsState.value = {user, family: null};
 
     if (!user.familyId) return;
 
@@ -206,16 +260,10 @@ async function openDetailsDialog(user: AdminUser) {
     try {
         const family = await familyStore.adminGetFamily(user.familyId);
         if (!detailsState.value || detailsState.value.user.id !== user.id) return;
-        detailsState.value = {
-            user,
-            family,
-        };
+        detailsState.value = {user, family};
     } catch {
         if (!detailsState.value || detailsState.value.user.id !== user.id) return;
-        detailsState.value = {
-            user,
-            family: null,
-        };
+        detailsState.value = {user, family: null};
     } finally {
         loadingDetails.value = false;
     }
@@ -254,6 +302,7 @@ async function handleResetPassword() {
         await userStore.adminUpdateUserPassword(user.id, password);
         resetDialogUser.value = null;
         resetPasswordValue.value = "";
+        showResetPassword.value = false;
     } finally {
         resettingId.value = null;
     }
@@ -288,10 +337,15 @@ async function copyUserId(id: string) {
                             <Icon class="text-primary size-6" name="iconoir:user-crown" />
                         </div>
                     </div>
-                    <div>
-                        <h1 class="font-heading text-2xl font-semibold tracking-tight">
-                            {{ t("settings.users.title") }}
-                        </h1>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <h1 class="font-heading text-2xl font-semibold tracking-tight">
+                                {{ t("settings.users.title") }}
+                            </h1>
+                            <Badge v-if="!loading" variant="outline">
+                                {{ t("settings.users.totalUsers", users.length) }}
+                            </Badge>
+                        </div>
                         <p class="text-muted-foreground text-sm">{{ t("settings.users.subtitle") }}</p>
                     </div>
                 </div>
@@ -299,10 +353,35 @@ async function copyUserId(id: string) {
 
             <div class="flex min-h-0 flex-1 flex-col space-y-4">
                 <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <Input
-                        v-model="globalFilter"
-                        class="w-full sm:max-w-sm"
-                        :placeholder="t('settings.users.searchPlaceholder')" />
+                    <div class="relative w-full sm:max-w-sm">
+                        <Icon
+                            class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                            name="iconoir:search" />
+                        <Input
+                            v-model="globalFilter"
+                            class="pl-9"
+                            :placeholder="t('settings.users.searchPlaceholder')" />
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline">
+                                <Icon class="size-4" name="iconoir:view-columns-3" />
+                                {{ t("settings.users.columns") }}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{{ t("settings.users.columns") }}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuCheckboxItem
+                                :model-value="table.getColumn('id')?.getIsVisible() ?? false"
+                                @select.prevent
+                                @update:model-value="
+                                    (v: boolean) => table.getColumn('id')?.toggleVisibility(Boolean(v))
+                                ">
+                                {{ t("settings.users.showUuidColumn") }}
+                            </DropdownMenuCheckboxItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 <div v-if="loading" class="text-muted-foreground text-sm">{{ t("common.loading") }}</div>
@@ -319,6 +398,7 @@ async function copyUserId(id: string) {
                                     :key="header.id"
                                     :class="[
                                         header.column.id === 'actions' ? 'w-14 text-right' : '',
+                                        header.column.id === 'role' ? 'w-40' : '',
                                         index === headerGroup.headers.length - 1 ? 'relative w-[calc(100%+12px)]' : '',
                                     ]">
                                     <div v-if="header.isPlaceholder" />
@@ -333,19 +413,25 @@ async function copyUserId(id: string) {
                                             :render="header.column.columnDef.header" />
                                         <Icon
                                             v-if="header.column.getIsSorted() === 'asc'"
-                                            class="ml-2 h-4 w-4"
+                                            class="ml-2 size-4"
                                             name="iconoir:nav-arrow-up" />
                                         <Icon
                                             v-else-if="header.column.getIsSorted() === 'desc'"
-                                            class="ml-2 h-4 w-4"
+                                            class="ml-2 size-4"
                                             name="iconoir:nav-arrow-down" />
                                         <Icon
                                             v-else
-                                            class="text-muted-foreground/50 ml-2 h-4 w-4"
+                                            class="text-muted-foreground/50 ml-2 size-4"
                                             name="iconoir:arrow-separate-vertical" />
                                     </Button>
-                                    <div v-else class="text-right">{{ t("common.actions") }}</div>
-                                    <!-- Background extension for the last column to cover the gap -->
+                                    <div v-else-if="header.column.id === 'actions'" class="text-right">
+                                        {{ t("common.actions") }}
+                                    </div>
+                                    <div v-else>
+                                        <FlexRender
+                                            :props="header.getContext()"
+                                            :render="header.column.columnDef.header" />
+                                    </div>
                                     <div
                                         v-if="index === headerGroup.headers.length - 1"
                                         class="bg-muted absolute top-0 right-[-12px] h-full w-[12px] border-b shadow-[0_1px_0_hsl(var(--border))]"></div>
@@ -354,33 +440,48 @@ async function copyUserId(id: string) {
                         </TableHeader>
 
                         <TableBody>
-                            <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
+                            <TableRow v-for="row in table.getRowModel().rows" :key="row.id" class="hover:bg-muted/40">
                                 <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
+                                    <div v-if="cell.column.id === 'username'" class="flex items-center gap-2">
+                                        <Avatar class="size-7 shrink-0">
+                                            <AvatarFallback class="text-[10px] font-semibold">
+                                                {{ computeInitials(row.original.username) }}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span class="font-medium">{{ row.original.username }}</span>
+                                    </div>
+
                                     <span
-                                        v-if="cell.column.id === 'id'"
+                                        v-else-if="cell.column.id === 'id'"
                                         :title="String(row.getValue('id'))"
                                         class="text-muted-foreground block max-w-[260px] truncate font-mono text-xs">
                                         {{ row.getValue("id") }}
                                     </span>
 
+                                    <Badge
+                                        v-else-if="cell.column.id === 'role'"
+                                        :variant="getUserRoleVariant(row.original)">
+                                        {{ getUserRoleLabel(row.original) }}
+                                    </Badge>
+
                                     <div v-else-if="cell.column.id === 'actions'" class="flex justify-end">
                                         <DropdownMenu>
-                                            <DropdownMenuTrigger as-child>
-                                                <Button class="h-8 w-8 p-0" size="icon" variant="ghost">
-                                                    <MoreHorizontal class="h-4 w-4" />
+                                            <DropdownMenuTrigger asChild>
+                                                <Button class="size-8 p-0" size="icon" variant="ghost">
+                                                    <MoreHorizontal class="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" class="w-48">
                                                 <DropdownMenuItem @click="openDetailsDialog(row.original)">
-                                                    <Eye class="h-4 w-4" />
+                                                    <Eye class="size-4" />
                                                     {{ t("settings.users.viewDetails") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem @click="copyUserId(row.original.id)">
-                                                    <Copy class="h-4 w-4" />
+                                                    <Copy class="size-4" />
                                                     {{ t("settings.users.copyUuid") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem @click="openResetDialog(row.original)">
-                                                    <KeyRound class="h-4 w-4" />
+                                                    <KeyRound class="size-4" />
                                                     {{ t("settings.users.resetPassword") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
@@ -391,7 +492,7 @@ async function copyUserId(id: string) {
                                                     "
                                                     variant="destructive"
                                                     @click="openDeleteDialog(row.original)">
-                                                    <Trash2 class="h-4 w-4" />
+                                                    <Trash2 class="size-4" />
                                                     {{ t("settings.users.deleteUser") }}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
@@ -403,7 +504,7 @@ async function copyUserId(id: string) {
                             </TableRow>
 
                             <TableRow v-if="table.getRowModel().rows.length === 0">
-                                <TableCell :colspan="4" class="text-muted-foreground h-24 text-center">
+                                <TableCell :colspan="5" class="text-muted-foreground h-24 text-center">
                                     {{ t("settings.users.noUsers") }}
                                 </TableCell>
                             </TableRow>
@@ -414,94 +515,113 @@ async function copyUserId(id: string) {
         </div>
 
         <Dialog :open="Boolean(detailsState)" @update:open="(open) => !open && (detailsState = null)">
-            <DialogContent class="max-w-lg">
+            <DialogContent class="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>{{ t("settings.users.detailsTitle") }}</DialogTitle>
                     <DialogDescription>{{ t("settings.users.detailsDescription") }}</DialogDescription>
                 </DialogHeader>
-                <div v-if="detailsState" class="grid gap-3 text-sm">
-                    <div>
-                        <p class="text-muted-foreground">{{ t("auth.common.username") }}</p>
-                        <p class="font-medium">{{ detailsState.user.username }}</p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("auth.common.email") }}</p>
-                        <p class="font-medium">{{ detailsState.user.email }}</p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.users.uuid") }}</p>
-                        <div class="flex items-center gap-2">
-                            <p
-                                :title="detailsState.user.id"
-                                class="text-muted-foreground max-w-65 truncate font-mono text-xs">
-                                {{ detailsState.user.id }}
-                            </p>
-                            <Button
-                                aria-label="Copy user UUID"
-                                class="h-7 w-7"
-                                size="icon"
-                                variant="ghost"
-                                @click="copyUserId(detailsState.user.id)">
-                                <Copy class="h-3.5 w-3.5" />
-                            </Button>
+                <div v-if="detailsState" class="grid gap-6 sm:grid-cols-2">
+                    <section class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <Avatar class="size-10">
+                                <AvatarFallback class="text-sm font-semibold">
+                                    {{ computeInitials(detailsState.user.username) }}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-medium">{{ detailsState.user.username }}</p>
+                                <p class="text-muted-foreground truncate text-xs">{{ detailsState.user.email }}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="border-t pt-3" />
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.users.familyRole") }}</p>
-                        <p class="font-medium">
-                            {{ getDetailsFamilyRoleLabel(detailsState) }}
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.users.familyId") }}</p>
-                        <div v-if="detailsState.user.familyId" class="flex items-center gap-2">
-                            <p
-                                :title="detailsState.user.familyId"
-                                class="text-muted-foreground max-w-65 truncate font-mono text-xs">
-                                {{ detailsState.user.familyId }}
-                            </p>
-                            <Button
-                                aria-label="Copy family UUID"
-                                class="h-7 w-7"
-                                size="icon"
-                                variant="ghost"
-                                @click="copyUserId(detailsState.user.familyId)">
-                                <Copy class="h-3.5 w-3.5" />
-                            </Button>
+                        <Badge :variant="getUserRoleVariant(detailsState.user)">
+                            {{ getUserRoleLabel(detailsState.user) }}
+                        </Badge>
+                        <div>
+                            <p class="text-muted-foreground text-xs">{{ t("settings.users.uuid") }}</p>
+                            <div class="flex items-center gap-2">
+                                <p
+                                    :title="detailsState.user.id"
+                                    class="text-muted-foreground max-w-56 truncate font-mono text-xs">
+                                    {{ detailsState.user.id }}
+                                </p>
+                                <Button
+                                    aria-label="Copy user UUID"
+                                    class="size-6"
+                                    size="icon"
+                                    variant="ghost"
+                                    @click="copyUserId(detailsState.user.id)">
+                                    <Copy class="size-3" />
+                                </Button>
+                            </div>
                         </div>
-                        <p v-else class="font-medium">-</p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.users.familyName") }}</p>
-                        <p class="font-medium">
-                            {{ loadingDetails ? t("common.loading") : (detailsState.family?.name ?? "-") }}
+                    </section>
+
+                    <section class="space-y-3">
+                        <p class="text-muted-foreground text-xs tracking-wide uppercase">
+                            {{ t("settings.users.familyInfo") }}
                         </p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.users.familyCurrency") }}</p>
-                        <p class="font-medium">
-                            {{ loadingDetails ? t("common.loading") : (detailsState.family?.currency ?? "-") }}
+                        <template v-if="detailsState.user.familyId">
+                            <div>
+                                <p class="text-muted-foreground text-xs">{{ t("settings.users.familyName") }}</p>
+                                <p class="text-sm font-medium">
+                                    {{ loadingDetails ? t("common.loading") : (detailsState.family?.name ?? "-") }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-muted-foreground text-xs">{{ t("settings.users.familyRole") }}</p>
+                                <p class="text-sm font-medium">{{ getDetailsFamilyRoleLabel(detailsState) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-muted-foreground text-xs">{{ t("settings.users.familyCurrency") }}</p>
+                                <p class="text-sm font-medium">
+                                    {{ loadingDetails ? t("common.loading") : (detailsState.family?.currency ?? "-") }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-muted-foreground text-xs">{{ t("settings.users.familyOwner") }}</p>
+                                <p class="text-sm font-medium">
+                                    {{
+                                        loadingDetails
+                                            ? t("common.loading")
+                                            : (detailsState.family?.owner?.username ?? "-")
+                                    }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-muted-foreground text-xs">{{ t("settings.family.members") }}</p>
+                                <p class="text-sm font-medium">
+                                    {{
+                                        loadingDetails
+                                            ? t("common.loading")
+                                            : detailsState.family
+                                              ? (detailsState.family.members?.length as number) + 1
+                                              : "-"
+                                    }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-muted-foreground text-xs">{{ t("settings.users.familyId") }}</p>
+                                <div class="flex items-center gap-2">
+                                    <p
+                                        :title="detailsState.user.familyId"
+                                        class="text-muted-foreground max-w-56 truncate font-mono text-xs">
+                                        {{ detailsState.user.familyId }}
+                                    </p>
+                                    <Button
+                                        aria-label="Copy family UUID"
+                                        class="size-6"
+                                        size="icon"
+                                        variant="ghost"
+                                        @click="copyUserId(detailsState.user.familyId)">
+                                        <Copy class="size-3" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </template>
+                        <p v-else class="text-muted-foreground text-sm">
+                            {{ t("settings.users.roles.noFamily") }}
                         </p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.users.familyOwner") }}</p>
-                        <p class="font-medium">
-                            {{ loadingDetails ? t("common.loading") : (detailsState.family?.owner?.username ?? "-") }}
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-muted-foreground">{{ t("settings.family.members") }}</p>
-                        <p class="font-medium">
-                            {{
-                                loadingDetails
-                                    ? t("common.loading")
-                                    : detailsState.family
-                                      ? (detailsState.family.members?.length as number) + 1
-                                      : "-"
-                            }}
-                        </p>
-                    </div>
+                    </section>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" @click="detailsState = null">{{ t("common.close") }}</Button>
@@ -517,8 +637,39 @@ async function copyUserId(id: string) {
                         {{ t("settings.users.resetPasswordFor", {username: resetDialogUser.username}) }}
                     </DialogDescription>
                 </DialogHeader>
-                <div class="grid gap-2">
-                    <Input v-model="resetPasswordValue" :placeholder="t('settings.users.newPassword')" type="password" />
+                <div class="space-y-2">
+                    <Label for="reset-password-input">{{ t("settings.users.newPassword") }}</Label>
+                    <div class="flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <Input
+                                id="reset-password-input"
+                                v-model="resetPasswordValue"
+                                :placeholder="t('settings.users.newPassword')"
+                                :type="showResetPassword ? 'text' : 'password'"
+                                class="pr-10 font-mono" />
+                            <Button
+                                :aria-label="
+                                    showResetPassword
+                                        ? t('settings.users.hidePassword')
+                                        : t('settings.users.showPassword')
+                                "
+                                class="absolute top-1/2 right-1 size-7 -translate-y-1/2"
+                                size="icon"
+                                type="button"
+                                variant="ghost"
+                                @click="showResetPassword = !showResetPassword">
+                                <Eye v-if="!showResetPassword" class="size-4" />
+                                <EyeOff v-else class="size-4" />
+                            </Button>
+                        </div>
+                        <Button
+                            :aria-label="t('settings.users.generatePassword')"
+                            size="icon"
+                            variant="outline"
+                            @click="generatePassword">
+                            <RefreshCw class="size-4" />
+                        </Button>
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" @click="resetDialogUser = null">{{ t("common.cancel") }}</Button>
@@ -535,11 +686,7 @@ async function copyUserId(id: string) {
                 <AlertDialogHeader>
                     <AlertDialogTitle>{{ t("settings.users.deleteUser") }}</AlertDialogTitle>
                     <AlertDialogDescription v-if="deleteDialogUser">
-                        {{
-                            t("settings.users.deletePromptWithName", {
-                                username: deleteDialogUser.username,
-                            })
-                        }}
+                        {{ t("settings.users.deletePromptWithName", {username: deleteDialogUser.username}) }}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -552,9 +699,9 @@ async function copyUserId(id: string) {
                             )
                         "
                         variant="destructive"
-                        @click="handleDelete"
-                        >{{ t("common.delete") }}</Button
-                    >
+                        @click="handleDelete">
+                        {{ t("common.delete") }}
+                    </Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

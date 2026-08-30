@@ -3,10 +3,13 @@ import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVal
 import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 import {computed, onMounted, ref, watch, watchEffect} from "vue";
-import {Card, CardContent} from "@/components/ui/card";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import {Badge} from "@/components/ui/badge";
+import {Label} from "@/components/ui/label";
+import {ScrollArea} from "@/components/ui/scroll-area";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,6 +25,7 @@ import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
 import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
+import {cn} from "@/lib/utils";
 import {
     isValidEmail,
     isValidPassword,
@@ -36,6 +40,7 @@ const authStore = useAuthStore();
 const colorMode = useColorMode();
 const {t, locale, locales, setLocale} = useI18n();
 const localeCookie = useCookie<string | null>("i18n_redirected");
+const {apiFetch} = useApi();
 
 function resolveBrowserLocale(): "en" | "fr" {
     if (process.client) {
@@ -60,7 +65,6 @@ const languagePreference = computed<string>({
     },
     set: (value) => {
         if (value === "browser") {
-            // Properly sequence: await locale change, then clear cookie once
             void (async () => {
                 localeCookie.value = null;
                 await setLocale(resolveBrowserLocale());
@@ -76,111 +80,85 @@ const languagePreference = computed<string>({
 
 const availableLocales = computed(() => locales.value.filter((entry) => entry.code === "en" || entry.code === "fr"));
 
+const themeOptions = computed(() => [
+    {value: "system", label: t("profile.system"), icon: "iconoir:computer"},
+    {value: "light", label: t("profile.light"), icon: "iconoir:sun-light"},
+    {value: "dark", label: t("profile.dark"), icon: "iconoir:half-moon"},
+]);
+
 const initials = computed(() => {
-    const name = userStore.user?.username ?? username.value ?? "";
+    const name = (userStore.user?.username ?? username.value ?? "").trim();
     const parts = name.split(/\s+/).filter(Boolean);
     if (!parts.length) return "U";
-    if (parts.length === 1) return parts[0]?.slice(0, 2).toUpperCase();
-    return ((parts[0] || [""])[0] || "" + (parts[1] || [""])[0]).toUpperCase();
+    if (parts.length === 1) return (parts[0] ?? "").slice(0, 2).toUpperCase();
+    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
 });
 const avatarUrl = computed(() => userStore.user?.avatar || "");
 
 const effectiveRole = ref("");
+const roleVariant = ref<"default" | "secondary" | "outline">("secondary");
 
 async function computeEffectiveRole() {
-    if (await userStore.fetchIsInstanceOwner()) effectiveRole.value = t("profile.roles.instanceOwner");
-    else if (userStore.isFamilyAdmin) effectiveRole.value = t("profile.roles.familyAdmin");
-    else effectiveRole.value = t("profile.roles.familyMember");
+    if (await userStore.fetchIsInstanceOwner()) {
+        effectiveRole.value = t("profile.roles.instanceOwner");
+        roleVariant.value = "default";
+    } else if (userStore.isFamilyAdmin) {
+        effectiveRole.value = t("profile.roles.familyAdmin");
+        roleVariant.value = "secondary";
+    } else {
+        effectiveRole.value = t("profile.roles.familyMember");
+        roleVariant.value = "outline";
+    }
 }
 
 const username = ref("");
 const email = ref("");
-const savingUsername = ref(false);
-const savingEmail = ref(false);
-const changingPassword = ref(false);
+const savingAccount = ref(false);
 
-// password fields
-const currentPassword = ref("");
-const newPassword = ref("");
-// delete account
-const deleting = ref(false);
-const confirmPassword = ref("");
+const usernameChanged = computed(() => username.value.trim() !== (userStore.user?.username ?? "").trim());
+const emailChanged = computed(() => email.value.trim() !== (userStore.user?.email ?? "").trim());
+const accountDirty = computed(() => usernameChanged.value || emailChanged.value);
 
-const {apiFetch} = useApi();
-
-async function deleteAccountNow() {
-    if (!userStore.token) return;
-    if (!confirmPassword.value.trim()) {
-        toast.error(t("profile.errors.currentPasswordRequired"));
-        return;
-    }
-    deleting.value = true;
-    try {
-        await apiFetch("/user/me", {
-            method: "DELETE",
-            body: {currentPassword: confirmPassword.value.trim()},
-        });
-        toast.success(t("profile.toasts.accountDeleted"));
-        deleting.value = false;
-        // always clear local session
-        authStore.logout();
-        await useRouter().push("/auth/login");
-    } catch (err: any) {
-        const message = err?.data?.message ?? err?.message ?? t("profile.errors.deleteAccountFailed");
-        toast.error(message);
-        throw new Error(message, {cause: err});
-    }
-}
-
-watchEffect(() => {
+function resetAccount() {
     username.value = userStore.user?.username || "";
     email.value = userStore.user?.email || "";
-});
+}
 
-onMounted(async () => {
-    await computeEffectiveRole();
-});
-
-// Recompute role when language changes
-watch(locale, async () => {
-    await computeEffectiveRole();
-});
-
-// instance ownership is fetched alongside profile (see token watcher)
-
-async function saveUsernameOnly() {
+async function saveAccount() {
     if (!userStore.token) return;
     const nextUsername = username.value.trim();
-    if (!isValidUsername(nextUsername)) {
+    const nextEmail = email.value.trim();
+
+    if (usernameChanged.value && !isValidUsername(nextUsername)) {
         toast.error(t("profile.errors.usernameLength", {min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH}));
         return;
     }
-
-    savingUsername.value = true;
-    try {
-        username.value = nextUsername;
-        await userStore.saveUsername(nextUsername);
-    } finally {
-        savingUsername.value = false;
-    }
-}
-
-async function saveEmailOnly() {
-    if (!userStore.token) return;
-    const nextEmail = email.value.trim();
-    if (!isValidEmail(nextEmail)) {
+    if (emailChanged.value && !isValidEmail(nextEmail)) {
         toast.error(t("auth.common.errors.invalidEmail"));
         return;
     }
 
-    savingEmail.value = true;
+    savingAccount.value = true;
     try {
-        email.value = nextEmail;
-        await userStore.saveEmail(nextEmail);
+        if (usernameChanged.value) {
+            username.value = nextUsername;
+            await userStore.saveUsername(nextUsername);
+        }
+        if (emailChanged.value) {
+            email.value = nextEmail;
+            await userStore.saveEmail(nextEmail);
+        }
     } finally {
-        savingEmail.value = false;
+        savingAccount.value = false;
     }
 }
+
+const currentPassword = ref("");
+const newPassword = ref("");
+const showNewPassword = ref(false);
+const changingPassword = ref(false);
+
+const passwordDirty = computed(() => Boolean(currentPassword.value && newPassword.value));
 
 async function changePasswordNow() {
     if (!userStore.token) return;
@@ -199,21 +177,60 @@ async function changePasswordNow() {
 
     changingPassword.value = true;
     try {
-        currentPassword.value = current;
         await userStore.changePassword(current, next);
-        // clear on success
         currentPassword.value = "";
         newPassword.value = "";
+        showNewPassword.value = false;
     } finally {
         changingPassword.value = false;
     }
 }
+
+const deleting = ref(false);
+const confirmPassword = ref("");
+
+async function deleteAccountNow() {
+    if (!userStore.token) return;
+    if (!confirmPassword.value.trim()) {
+        toast.error(t("profile.errors.currentPasswordRequired"));
+        return;
+    }
+    deleting.value = true;
+    try {
+        await apiFetch("/user/me", {
+            method: "DELETE",
+            body: {currentPassword: confirmPassword.value.trim()},
+        });
+        toast.success(t("profile.toasts.accountDeleted"));
+        deleting.value = false;
+        authStore.logout();
+        await useRouter().push("/auth/login");
+    } catch (err: any) {
+        const message = err?.data?.message ?? err?.message ?? t("profile.errors.deleteAccountFailed");
+        toast.error(message);
+        throw new Error(message, {cause: err});
+    }
+}
+
+watchEffect(() => {
+    username.value = userStore.user?.username || "";
+    email.value = userStore.user?.email || "";
+});
+
+onMounted(async () => {
+    await computeEffectiveRole();
+});
+
+watch(locale, async () => {
+    await computeEffectiveRole();
+});
 </script>
 
 <template>
     <div class="w-full">
-        <div class="animate-fade-in-up mx-auto w-full max-w-6xl py-6">
-            <div class="mb-6 flex items-center gap-3">
+        <div
+            class="animate-fade-in-up mx-auto flex w-full max-w-5xl flex-col gap-6 py-6 lg:h-[calc(100dvh-4rem-1.5rem)]">
+            <div class="flex shrink-0 items-center gap-3">
                 <div class="relative">
                     <span aria-hidden="true" class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
                     <div
@@ -227,192 +244,235 @@ async function changePasswordNow() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <aside class="md:col-span-1">
+            <div class="grid grid-cols-1 gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
+                <aside class="lg:col-span-1">
                     <Card>
-                        <CardContent>
-                            <div class="flex flex-col items-center gap-4 text-center">
-                                <Avatar class="h-20 w-20 rounded-full">
-                                    <AvatarImage :alt="userStore.user?.username ?? username" :src="avatarUrl" />
-                                    <AvatarFallback class="rounded-full text-2xl font-semibold">
-                                        {{ initials }}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <div class="text-lg font-medium">
-                                        {{ userStore.user?.username ?? username }}
-                                    </div>
-                                    <div class="text-muted-foreground text-sm">
-                                        {{ userStore.user?.email ?? email }}
-                                    </div>
+                        <CardContent class="flex flex-col items-center gap-4 text-center">
+                            <Avatar class="h-24 w-24 rounded-full">
+                                <AvatarImage :alt="userStore.user?.username ?? username" :src="avatarUrl" />
+                                <AvatarFallback class="rounded-full text-2xl font-semibold">
+                                    {{ initials }}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div class="min-w-0">
+                                <div class="truncate text-lg font-medium">
+                                    {{ userStore.user?.username ?? username }}
                                 </div>
-                                <p class="text-muted-foreground text-xs">
-                                    {{ effectiveRole }}
-                                </p>
+                                <div class="text-muted-foreground truncate text-sm">
+                                    {{ userStore.user?.email ?? email }}
+                                </div>
                             </div>
+                            <Badge v-if="effectiveRole" :variant="roleVariant">{{ effectiveRole }}</Badge>
                         </CardContent>
                     </Card>
                 </aside>
 
-                <main class="md:col-span-2">
-                    <Card class="h-full">
-                        <CardContent>
-                            <div class="mb-6">
-                                <label class="mb-2 block text-sm font-medium">{{ t("profile.username") }}</label>
-                                <div class="flex gap-3">
-                                    <Input
-                                        v-model="username"
-                                        :aria-label="t('profile.username')"
-                                        :placeholder="t('profile.username')"
-                                        class="flex-1" />
-                                    <Button
-                                        :disabled="savingUsername || !userStore.token"
-                                        aria-label="Save username"
-                                        size="sm"
-                                        variant="default"
-                                        @click="saveUsernameOnly">
-                                        <span v-if="!savingUsername">{{ t("profile.save") }}</span>
-                                        <span v-else>{{ t("profile.saving") }}</span>
-                                    </Button>
-                                </div>
-                            </div>
+                <main class="lg:col-span-2 lg:min-h-0">
+                    <ScrollArea class="lg:h-full">
+                        <div class="space-y-6 lg:pr-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{{ t("profile.sections.account") }}</CardTitle>
+                                    <CardDescription>{{ t("profile.sections.accountDescription") }}</CardDescription>
+                                </CardHeader>
+                                <CardContent class="space-y-4">
+                                    <div class="space-y-2">
+                                        <Label for="profile-username">{{ t("profile.username") }}</Label>
+                                        <Input
+                                            id="profile-username"
+                                            v-model="username"
+                                            :placeholder="t('profile.username')" />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <Label for="profile-email">{{ t("profile.email") }}</Label>
+                                        <Input
+                                            id="profile-email"
+                                            v-model="email"
+                                            :placeholder="t('profile.email')"
+                                            type="email" />
+                                    </div>
+                                    <div class="flex items-center justify-end gap-2 pt-2">
+                                        <Button
+                                            v-if="accountDirty"
+                                            :disabled="savingAccount"
+                                            size="sm"
+                                            variant="ghost"
+                                            @click="resetAccount">
+                                            {{ t("profile.discardChanges") }}
+                                        </Button>
+                                        <Button
+                                            :disabled="!accountDirty || savingAccount || !userStore.token"
+                                            size="sm"
+                                            @click="saveAccount">
+                                            <span v-if="!savingAccount">{{ t("profile.saveChanges") }}</span>
+                                            <span v-else>{{ t("profile.saving") }}</span>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                            <div class="mb-6">
-                                <label class="mb-2 block text-sm font-medium">{{ t("profile.email") }}</label>
-                                <div class="flex gap-3">
-                                    <Input
-                                        v-model="email"
-                                        :aria-label="t('profile.email')"
-                                        :placeholder="t('profile.email')"
-                                        class="flex-1"
-                                        type="email" />
-                                    <Button
-                                        :disabled="savingEmail || !userStore.token"
-                                        aria-label="Save email"
-                                        size="sm"
-                                        variant="default"
-                                        @click="saveEmailOnly">
-                                        <span v-if="!savingEmail">{{ t("profile.save") }}</span>
-                                        <span v-else>{{ t("profile.saving") }}</span>
-                                    </Button>
-                                </div>
-                            </div>
-
-                            <hr class="border-border my-4" />
-
-                            <div class="mb-6">
-                                <label class="mb-2 block text-sm font-medium">{{ t("profile.appearance") }}</label>
-                                <Select v-model="colorMode.preference">
-                                    <SelectTrigger class="w-[180px]">
-                                        <SelectValue :placeholder="t('profile.selectTheme')" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <SelectItem value="system">{{ t("profile.system") }}</SelectItem>
-                                            <SelectItem value="light">{{ t("profile.light") }}</SelectItem>
-                                            <SelectItem value="dark">{{ t("profile.dark") }}</SelectItem>
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <hr class="border-border my-4" />
-
-                            <div class="mb-6">
-                                <label class="mb-2 block text-sm font-medium">{{ t("profile.language") }}</label>
-                                <Select v-model="languagePreference">
-                                    <SelectTrigger class="w-[180px]">
-                                        <SelectValue :placeholder="t('profile.selectLanguage')" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <SelectItem value="browser">{{ t("profile.browser") }}</SelectItem>
-                                            <SelectItem
-                                                v-for="availableLocale in availableLocales"
-                                                :key="availableLocale.code"
-                                                :value="availableLocale.code">
-                                                {{ availableLocale.name }}
-                                            </SelectItem>
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <hr class="border-border my-4" />
-
-                            <div>
-                                <label class="mb-2 block text-sm font-medium">{{ t("profile.changePassword") }}</label>
-                                <p class="text-muted-foreground mb-3 text-sm">
-                                    {{ t("profile.changePasswordDescription") }}
-                                </p>
-                                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                    <Input
-                                        v-model="currentPassword"
-                                        :aria-label="t('profile.currentPassword')"
-                                        :placeholder="t('profile.currentPassword')"
-                                        type="password" />
-                                    <Input
-                                        v-model="newPassword"
-                                        :aria-label="t('profile.newPassword')"
-                                        :placeholder="t('profile.newPassword')"
-                                        type="password" />
-                                </div>
-                                <div class="mt-4 flex justify-end">
-                                    <Button
-                                        :disabled="
-                                            changingPassword || !userStore.token || !currentPassword || !newPassword
-                                        "
-                                        aria-label="Change password"
-                                        size="sm"
-                                        @click="changePasswordNow">
-                                        <span v-if="!changingPassword">{{ t("profile.changePasswordButton") }}</span>
-                                        <span v-else>{{ t("profile.updating") }}</span>
-                                    </Button>
-                                </div>
-                                <hr class="border-border my-4" />
-                                <div class="mt-6">
-                                    <AlertDialog>
-                                        <div class="flex items-center justify-between">
-                                            <div>
-                                                <p class="text-sm font-medium">{{ t("profile.dangerZone") }}</p>
-                                                <p class="text-muted-foreground text-xs">
-                                                    {{ t("profile.dangerZoneDescription") }}
-                                                </p>
-                                            </div>
-                                            <AlertDialogTrigger>
-                                                <Button size="sm" variant="destructive">{{
-                                                    t("profile.deleteAccount")
-                                                }}</Button>
-                                            </AlertDialogTrigger>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{{ t("profile.sections.preferences") }}</CardTitle>
+                                    <CardDescription>{{ t("profile.sections.preferencesDescription") }}</CardDescription>
+                                </CardHeader>
+                                <CardContent class="space-y-6">
+                                    <div class="space-y-2">
+                                        <Label>{{ t("profile.appearance") }}</Label>
+                                        <div class="bg-muted inline-flex w-full rounded-lg p-1 sm:w-auto">
+                                            <button
+                                                v-for="opt in themeOptions"
+                                                :key="opt.value"
+                                                type="button"
+                                                :class="
+                                                    cn(
+                                                        'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors sm:flex-initial',
+                                                        colorMode.preference === opt.value
+                                                            ? 'bg-background text-foreground shadow-sm'
+                                                            : 'text-muted-foreground hover:text-foreground',
+                                                    )
+                                                "
+                                                @click="colorMode.preference = opt.value">
+                                                <Icon :name="opt.icon" class="size-4" />
+                                                <span>{{ opt.label }}</span>
+                                            </button>
                                         </div>
+                                    </div>
 
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>{{ t("profile.deleteDialogTitle") }}</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    {{ t("profile.deleteDialogDescription") }}
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <div class="mt-4">
+                                    <div class="space-y-2">
+                                        <Label for="profile-language">{{ t("profile.language") }}</Label>
+                                        <Select v-model="languagePreference">
+                                            <SelectTrigger id="profile-language" class="w-full sm:max-w-xs">
+                                                <SelectValue :placeholder="t('profile.selectLanguage')" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    <SelectItem value="browser">{{ t("profile.browser") }}</SelectItem>
+                                                    <SelectItem
+                                                        v-for="availableLocale in availableLocales"
+                                                        :key="availableLocale.code"
+                                                        :value="availableLocale.code">
+                                                        {{ availableLocale.name }}
+                                                    </SelectItem>
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{{ t("profile.sections.security") }}</CardTitle>
+                                    <CardDescription>{{ t("profile.changePasswordDescription") }}</CardDescription>
+                                </CardHeader>
+                                <CardContent class="space-y-4">
+                                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div class="space-y-2">
+                                            <Label for="profile-current-password">{{
+                                                t("profile.currentPassword")
+                                            }}</Label>
+                                            <Input
+                                                id="profile-current-password"
+                                                v-model="currentPassword"
+                                                :placeholder="t('profile.currentPassword')"
+                                                type="password" />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label for="profile-new-password">{{ t("profile.newPassword") }}</Label>
+                                            <div class="relative">
                                                 <Input
-                                                    v-model="confirmPassword"
-                                                    :aria-label="t('profile.confirmPassword')"
-                                                    :placeholder="t('profile.currentPassword')"
-                                                    type="password" />
+                                                    id="profile-new-password"
+                                                    v-model="newPassword"
+                                                    :placeholder="t('profile.newPassword')"
+                                                    :type="showNewPassword ? 'text' : 'password'"
+                                                    class="pr-10" />
+                                                <Button
+                                                    :aria-label="
+                                                        showNewPassword
+                                                            ? t('settings.users.hidePassword')
+                                                            : t('settings.users.showPassword')
+                                                    "
+                                                    class="absolute top-1/2 right-1 size-7 -translate-y-1/2"
+                                                    size="icon"
+                                                    type="button"
+                                                    variant="ghost"
+                                                    @click="showNewPassword = !showNewPassword">
+                                                    <Icon
+                                                        :name="showNewPassword ? 'iconoir:eye-closed' : 'iconoir:eye'"
+                                                        class="size-4" />
+                                                </Button>
                                             </div>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>{{ t("profile.cancel") }}</AlertDialogCancel>
-                                                <AlertDialogAction :disabled="deleting" @click="deleteAccountNow">
-                                                    <span v-if="!deleting">{{ t("profile.delete") }}</span>
-                                                    <span v-else>{{ t("profile.deleting") }}</span>
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end pt-2">
+                                        <Button
+                                            :disabled="!passwordDirty || changingPassword || !userStore.token"
+                                            size="sm"
+                                            @click="changePasswordNow">
+                                            <span v-if="!changingPassword">{{ t("profile.changePasswordButton") }}</span>
+                                            <span v-else>{{ t("profile.updating") }}</span>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card class="border-destructive/40">
+                                <CardHeader>
+                                    <CardTitle class="text-destructive flex items-center gap-2">
+                                        <Icon class="size-5" name="iconoir:warning-triangle" />
+                                        {{ t("profile.dangerZone") }}
+                                    </CardTitle>
+                                    <CardDescription>{{ t("profile.dangerZoneDescription") }}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div
+                                        class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                                        <div class="text-sm">
+                                            <p class="font-medium">{{ t("profile.deleteAccount") }}</p>
+                                            <p class="text-muted-foreground text-xs">
+                                                {{ t("profile.deleteDialogDescription") }}
+                                            </p>
+                                        </div>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button size="sm" variant="destructive">
+                                                    {{ t("profile.deleteAccount") }}
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>{{
+                                                        t("profile.deleteDialogTitle")
+                                                    }}</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        {{ t("profile.deleteDialogDescription") }}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <div class="space-y-2">
+                                                    <Label for="profile-confirm-password">
+                                                        {{ t("profile.confirmPassword") }}
+                                                    </Label>
+                                                    <Input
+                                                        id="profile-confirm-password"
+                                                        v-model="confirmPassword"
+                                                        :placeholder="t('profile.currentPassword')"
+                                                        type="password" />
+                                                </div>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>{{ t("profile.cancel") }}</AlertDialogCancel>
+                                                    <AlertDialogAction :disabled="deleting" @click="deleteAccountNow">
+                                                        <span v-if="!deleting">{{ t("profile.delete") }}</span>
+                                                        <span v-else>{{ t("profile.deleting") }}</span>
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </ScrollArea>
                 </main>
             </div>
         </div>

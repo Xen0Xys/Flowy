@@ -87,6 +87,7 @@
 62. FORMS — Use `<form>` with native validation where possible; for advanced validation integrate vee-validate or zod-late as needed.
 63. TESTING (FRONTEND) — When adding tests, prefer Vitest via Bun once configured; align directories under `web/tests/` or alongside components.
 64. ACCESSIBILITY — Buttons always expose `aria` props; ensure focus-visible styles stay readable after formatter class wrapping.
+65. COMBOBOX SEARCH INPUT — When using `<Combobox>` + `<ComboboxInput>` for a searchable picker, always apply the flush + no-ring overrides so the search input sits flush with the popover top and does not show the default focus ring: on `<ComboboxList>` add `class="*:data-[slot=input-group]:!m-0 *:data-[slot=input-group]:!rounded-none *:data-[slot=input-group]:!border-x-0 *:data-[slot=input-group]:!border-t-0"`, on `<ComboboxInput>` add `class="text-base !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none md:text-sm"`. Reference: `web/app/components/transactions/TransactionReferenceCombobox.vue`. If the same picker shape is reused more than twice, extract a wrapper component instead of duplicating overrides.
 
 ## BACKEND (NEST FASTIFY)
 
