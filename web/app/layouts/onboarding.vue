@@ -48,7 +48,7 @@ const progressPercent = computed(() => Math.round(((active.value + 1) / steps.va
                                     :data-state="i === active ? 'active' : i < active ? 'completed' : 'inactive'"
                                     :step="i"
                                     :aria-current="i === active ? 'step' : undefined"
-                                    class="pointer-events-none flex flex-1 items-center gap-2">
+                                    class="pointer-events-none flex min-w-0 flex-1 items-center gap-2">
                                     <StepperIndicator
                                         :class="
                                             cn(
@@ -73,7 +73,8 @@ const progressPercent = computed(() => Math.round(((active.value + 1) / steps.va
                                             ">
                                             {{ s.title }}
                                         </StepperTitle>
-                                        <StepperDescription class="text-muted-foreground block truncate text-xs">
+                                        <StepperDescription
+                                            class="text-muted-foreground hidden truncate text-xs lg:block">
                                             {{ s.description }}
                                         </StepperDescription>
                                     </div>
