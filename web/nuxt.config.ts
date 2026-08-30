@@ -18,6 +18,9 @@ const devConnectExtras = isDev ? ["ws:", "wss:", "http://localhost:*"] : [];
 
 const securityHeaders = {
     headers: {
+        // Nuxt SSR requires 'unsafe-inline' on script-src for the hydration payload script.
+        // TODO(csp): migrate to a nonce-based policy via nuxt-security's built-in nonce support
+        // to drop 'unsafe-inline' and tighten XSS protection.
         contentSecurityPolicy: {
             "default-src": ["'self'"],
             "script-src": ["'self'", "'unsafe-inline'"],

@@ -11,6 +11,19 @@ export type Family = {
     members?: User[];
 };
 
+export type FamilyInvite = {
+    code: string;
+    email: string;
+    family_id: string;
+    created_at: string;
+    expires_at: string;
+};
+
+export type InviteMemberResponse = {
+    code: string;
+    expires_at: string;
+};
+
 export const useFamilyStore = defineStore("family", {
     state: () => ({
         family: null as Family | null,
@@ -37,7 +50,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const family = await apiFetch<any>("/family/create", {
+                const family = await apiFetch<Family>("/family/create", {
                     method: "POST",
                     body: payload,
                 });
@@ -57,7 +70,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const data = await apiFetch<any>("/family/invite", {
+                const data = await apiFetch<InviteMemberResponse>("/family/invite", {
                     method: "POST",
                     body: {email},
                 });
@@ -105,7 +118,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                return await apiFetch<any[]>("/family/invites");
+                return await apiFetch<FamilyInvite[]>("/family/invites");
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchInvites");
                 toast.error(message);
@@ -168,7 +181,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const family = await apiFetch<any>("/family/settings", {
+                const family = await apiFetch<Family>("/family/settings", {
                     method: "PATCH",
                     body,
                 });

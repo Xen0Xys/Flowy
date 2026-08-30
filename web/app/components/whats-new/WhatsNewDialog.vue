@@ -35,12 +35,20 @@ async function fireConfetti(): Promise<void> {
     if (typeof window === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     try {
+        const root = getComputedStyle(document.documentElement);
+        const readColor = (name: string, fallback: string) => root.getPropertyValue(name).trim() || fallback;
+        const colors = [
+            readColor("--confetti-primary", "#3b6cff"),
+            readColor("--confetti-secondary", "#8ab4ff"),
+            "#ffffff",
+            readColor("--confetti-tertiary", "#c9d8ff"),
+        ];
         const {default: confetti} = await import("canvas-confetti");
         const base = {
             particleCount: 90,
             spread: 70,
             startVelocity: 45,
-            colors: ["#3b6cff", "#8ab4ff", "#ffffff", "#c9d8ff"],
+            colors,
             zIndex: 100,
             disableForReducedMotion: true,
         } as const;

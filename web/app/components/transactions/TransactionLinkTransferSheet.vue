@@ -89,6 +89,8 @@ const fetchEligibleTransactions = async (accountId: string) => {
             accountId,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
+            page: 1,
+            pageSize: 100,
         });
 
         const targetAmount = Math.abs(props.transaction.amount);

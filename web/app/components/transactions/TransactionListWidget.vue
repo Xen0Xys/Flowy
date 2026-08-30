@@ -92,7 +92,6 @@ const searchResult = ref<SearchTransactionsResult>({
     page: 1,
     pageSize: PAGE_SIZE,
     totalPages: 1,
-    isPaginated: false,
 });
 
 const transactions = ref<Transaction[]>([]);
@@ -362,7 +361,6 @@ watch(
             page: 1,
             pageSize: PAGE_SIZE,
             totalPages: 1,
-            isPaginated: false,
         };
         isLoadingMore.value = false;
         isRefreshPending.value = true;

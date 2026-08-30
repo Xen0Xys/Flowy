@@ -118,6 +118,11 @@
     --brand-gradient: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-to) 100%);
     --brand-gradient-soft: linear-gradient(135deg, oklch(0.5 0.19 258 / 0.15) 0%, oklch(0.74 0.13 182 / 0.15) 100%);
 
+    /* Confetti palette - RGB approximations of brand tokens for canvas-confetti */
+    --confetti-primary: #3b6cff;
+    --confetti-secondary: #8ab4ff;
+    --confetti-tertiary: #c9d8ff;
+
     /* Shadow scale - tinted with primary */
     --shadow-color: 240 30% 20%;
     --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.05);

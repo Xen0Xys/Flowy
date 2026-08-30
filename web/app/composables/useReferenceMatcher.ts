@@ -12,8 +12,12 @@ export type ReferenceMatch = {
     merchantId: string | null;
 };
 
+function stripDiacritics(s: string): string {
+    return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
 function findBestMatch(description: string, entities: Matchable[]): string | null {
-    const normalized = description.toLowerCase();
+    const normalized = stripDiacritics(description);
     if (!normalized) return null;
 
     let bestId: string | null = null;
@@ -23,7 +27,7 @@ function findBestMatch(description: string, entities: Matchable[]): string | nul
         if (!entity.autoCompleteEnabled) continue;
         const candidates = [entity.name, ...entity.keywords];
         for (const candidate of candidates) {
-            const normalizedCandidate = candidate.trim().toLowerCase();
+            const normalizedCandidate = stripDiacritics(candidate.trim());
             if (!normalizedCandidate) continue;
             if (normalized.includes(normalizedCandidate) && normalizedCandidate.length > bestLength) {
                 bestId = entity.id;

@@ -103,6 +103,21 @@ const typeCardClass = (value: string) =>
             : "border-input hover:bg-accent hover:text-accent-foreground",
     );
 
+const onTypeKeyNav = (e: KeyboardEvent) => {
+    const keys = ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"];
+    if (!keys.includes(e.key)) return;
+    e.preventDefault();
+    const idx = typeOptions.findIndex((o) => o.value === formData.value.type);
+    let next: number;
+    if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = typeOptions.length - 1;
+    else if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % typeOptions.length;
+    else next = (idx - 1 + typeOptions.length) % typeOptions.length;
+    formData.value.type = typeOptions[next]!.value;
+    const container = (e.currentTarget as HTMLElement).parentElement;
+    container?.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
+};
+
 const submitForm = async () => {
     touched.value.name = true;
     touched.value.balance = true;
@@ -189,7 +204,8 @@ const submitForm = async () => {
                                 role="radio"
                                 :tabindex="formData.type === option.value ? 0 : -1"
                                 type="button"
-                                @click="formData.type = option.value">
+                                @click="formData.type = option.value"
+                                @keydown="onTypeKeyNav">
                                 <Icon :name="option.icon" class="h-5 w-5" />
                                 <span>{{ t(option.labelKey) }}</span>
                             </button>

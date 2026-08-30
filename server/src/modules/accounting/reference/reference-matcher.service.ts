@@ -42,7 +42,7 @@ export class ReferenceMatcherService {
     }
 
     findBestMatch(description: string, entities: MatchableEntity[]): string | null {
-        const normalizedDescription = description.toLowerCase();
+        const normalizedDescription = this.stripDiacritics(description);
         if (!normalizedDescription) return null;
 
         let bestId: string | null = null;
@@ -52,7 +52,7 @@ export class ReferenceMatcherService {
             if (!entity.auto_complete_enabled) continue;
             const candidates = [entity.name, ...entity.keywords];
             for (const candidate of candidates) {
-                const normalized = candidate.trim().toLowerCase();
+                const normalized = this.stripDiacritics(candidate.trim());
                 if (!normalized) continue;
                 if (normalizedDescription.includes(normalized) && normalized.length > bestLength) {
                     bestId = entity.id;
@@ -62,5 +62,9 @@ export class ReferenceMatcherService {
         }
 
         return bestId;
+    }
+
+    private stripDiacritics(s: string): string {
+        return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
     }
 }

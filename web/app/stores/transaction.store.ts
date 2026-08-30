@@ -110,7 +110,6 @@ export type SearchTransactionsResult = {
     page: number;
     pageSize: number;
     totalPages: number;
-    isPaginated: boolean;
 };
 
 export type TransactionSummary = {
@@ -145,38 +144,6 @@ export const useTransactionStore = defineStore("transaction", {
     state: () => ({}),
 
     actions: {
-        async fetchTransactions() {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
-            const {apiFetch} = useApi();
-
-            try {
-                return await apiFetch<Transaction[]>("/transaction");
-            } catch (err: any) {
-                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
-                toast.error(message);
-                throw new Error(message, {cause: err});
-            }
-        },
-
-        async fetchTransactionsByAccountId(accountId: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
-            const {apiFetch} = useApi();
-
-            try {
-                const params = new URLSearchParams({accountId});
-                const endpoint = `/transaction?${params.toString()}`;
-                const result = await apiFetch<SearchTransactionsResult>(endpoint);
-
-                return result.items;
-            } catch (err: any) {
-                const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
-                toast.error(message);
-                throw new Error(message, {cause: err});
-            }
-        },
-
         async fetchTransactionById(transactionId: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
@@ -272,8 +239,6 @@ export const useTransactionStore = defineStore("transaction", {
                     method: "POST",
                     body: payload,
                 });
-
-                await Promise.all([this.fetchTransactions(), this.fetchTransactionsByAccountId(accountId)]);
 
                 toast.success(i18nT("transaction.store.success.bulkTransactionsCreated", {count: result.insertedCount}));
                 return result;

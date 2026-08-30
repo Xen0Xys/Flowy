@@ -230,7 +230,6 @@ defineExpose({focus});
             :disabled="disabled"
             inputmode="decimal"
             autocomplete="off"
-            style="outline: none; box-shadow: none"
             :class="
                 cn(
                     'placeholder:text-muted-foreground/50 w-full flex-1 border-0 bg-transparent text-right tabular-nums',

@@ -35,7 +35,17 @@ const currentVersion = ref<string>("");
 let purifierPromise: Promise<PurifyLike> | null = null;
 async function getPurifier(): Promise<PurifyLike> {
     if (!purifierPromise) {
-        purifierPromise = import("dompurify").then((mod) => mod.default as unknown as PurifyLike);
+        purifierPromise = import("dompurify").then((mod) => {
+            const DOMPurify = mod.default as unknown as PurifyLike & {
+                addHook: (hook: string, cb: (node: Element) => void) => void;
+            };
+            DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+                if (node.tagName === "A" && node.getAttribute("target") === "_blank") {
+                    node.setAttribute("rel", "noopener noreferrer nofollow");
+                }
+            });
+            return DOMPurify;
+        });
     }
     return purifierPromise;
 }
