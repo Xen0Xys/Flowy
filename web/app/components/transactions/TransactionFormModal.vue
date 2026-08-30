@@ -408,7 +408,7 @@ const amountVariant = computed<"expense" | "income" | "neutral">(() => {
 });
 
 const linkedBadgeVisible = computed(() => isLinkedTransfer.value && transactionType.value !== "transfer");
-const hasHeaderActions = computed(() => isEditing.value && !isRebalance.value);
+const hasHeaderActions = computed(() => isEditing.value);
 </script>
 
 <template>
@@ -436,22 +436,23 @@ const hasHeaderActions = computed(() => isEditing.value && !isRebalance.value);
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" class="w-56">
-                            <template v-if="isLinkedTransfer">
-                                <DropdownMenuItem @select="viewLinkedTransaction">
-                                    <Icon name="iconoir:eye" class="h-4 w-4" />
-                                    {{ t("transactions.form.viewLinked") }}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem :disabled="isUnlinking" @select="unlinkTransfer">
-                                    <Icon name="iconoir:link-slash" class="h-4 w-4" />
-                                    {{ t("transactions.form.unlinkTransfer") }}
+                            <template v-if="!isRebalance">
+                                <template v-if="isLinkedTransfer">
+                                    <DropdownMenuItem @select="viewLinkedTransaction">
+                                        <Icon name="iconoir:eye" class="h-4 w-4" />
+                                        {{ t("transactions.form.viewLinked") }}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem :disabled="isUnlinking" @select="unlinkTransfer">
+                                        <Icon name="iconoir:link-slash" class="h-4 w-4" />
+                                        {{ t("transactions.form.unlinkTransfer") }}
+                                    </DropdownMenuItem>
+                                </template>
+                                <DropdownMenuItem v-else @select="isLinkTransferSheetOpen = true">
+                                    <Icon name="iconoir:link" class="h-4 w-4" />
+                                    {{ t("transactions.form.linkTransfer") }}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                             </template>
-                            <DropdownMenuItem v-else @select="isLinkTransferSheetOpen = true">
-                                <Icon name="iconoir:link" class="h-4 w-4" />
-                                {{ t("transactions.form.linkTransfer") }}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator v-if="!isLinkedTransfer" />
                             <DropdownMenuItem class="text-destructive focus:text-destructive" @select="confirmDelete">
                                 <Icon name="iconoir:trash" class="h-4 w-4" />
                                 {{ t("common.delete") }}
