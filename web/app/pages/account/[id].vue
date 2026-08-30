@@ -15,8 +15,15 @@ import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
-import {Input} from "~/components/ui/input";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import {Label} from "~/components/ui/label";
+import MoneyInput from "~/components/common/MoneyInput.vue";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -52,6 +59,7 @@ const isDeleteDialogOpen = ref(false);
 const isSetBalanceDialogOpen = ref(false);
 const isSettingBalance = ref(false);
 const targetBalance = ref(0);
+const targetBalanceTouched = ref(false);
 const timeRange = ref<TimeRange>("1M");
 const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> | null>(null);
 
@@ -137,8 +145,28 @@ const openEditModal = () => {
 const openSetBalanceDialog = () => {
     if (!account.value) return;
     targetBalance.value = account.value.balance;
+    targetBalanceTouched.value = false;
     isSetBalanceDialogOpen.value = true;
 };
+
+const rebalanceDelta = computed(() => {
+    if (!account.value) return 0;
+    return Number(((targetBalance.value ?? 0) - account.value.balance).toFixed(2));
+});
+
+const hasRebalanceChange = computed(() => !Number.isNaN(targetBalance.value) && rebalanceDelta.value !== 0);
+
+const deltaClass = computed(() => {
+    if (rebalanceDelta.value > 0) return "text-success";
+    if (rebalanceDelta.value < 0) return "text-destructive";
+    return "text-muted-foreground";
+});
+
+const deltaLabel = computed(() => {
+    if (!hasRebalanceChange.value) return t("account.noChange");
+    const sign = rebalanceDelta.value > 0 ? "+" : "";
+    return `${sign}${formatCurrency(rebalanceDelta.value)}`;
+});
 
 const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
@@ -161,6 +189,10 @@ const onTransactionSaved = () => {
 
 const submitSetBalance = async () => {
     if (!account.value || Number.isNaN(targetBalance.value)) return;
+    if (!hasRebalanceChange.value) {
+        isSetBalanceDialogOpen.value = false;
+        return;
+    }
 
     isSettingBalance.value = true;
     try {
@@ -304,19 +336,32 @@ const graphHeightClass = computed(() =>
                         </div>
                     </div>
 
-                    <div v-if="!isLoading && account" class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+                    <div v-if="!isLoading && account" class="flex w-full items-center gap-2 md:w-auto">
                         <Button class="flex-1 md:flex-none" variant="secondary" @click="openSetBalanceDialog">
                             <Icon class="h-4 w-4" name="iconoir:coins-swap" />
                             {{ t("account.setBalance") }}
                         </Button>
-                        <Button class="flex-1 md:flex-none" variant="outline" @click="openEditModal">
-                            <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
-                            {{ t("common.edit") }}
-                        </Button>
-                        <Button class="flex-1 md:flex-none" variant="destructive" @click="confirmDelete">
-                            <Icon class="h-4 w-4" name="iconoir:trash" />
-                            {{ t("common.delete") }}
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button class="shrink-0" size="icon" type="button" variant="outline">
+                                    <Icon class="h-4 w-4" name="iconoir:more-vert" />
+                                    <span class="sr-only">{{ t("common.moreActions") }}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-44">
+                                <DropdownMenuItem @select="openEditModal">
+                                    <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
+                                    {{ t("common.edit") }}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    class="text-destructive focus:text-destructive"
+                                    @select="confirmDelete">
+                                    <Icon class="h-4 w-4" name="iconoir:trash" />
+                                    {{ t("common.delete") }}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -460,23 +505,46 @@ const graphHeightClass = computed(() =>
                             </DialogDescription>
                         </DialogHeader>
 
-                        <form class="space-y-4 py-4" @submit.prevent="submitSetBalance">
-                            <div class="space-y-2">
-                                <Label for="target-balance">{{ t("account.targetBalance") }}</Label>
-                                <Input
-                                    id="target-balance"
-                                    v-model.number="targetBalance"
-                                    required
-                                    step="0.01"
-                                    type="number" />
-                            </div>
+                        <form class="space-y-5 py-4" novalidate @submit.prevent="submitSetBalance">
+                            <fieldset :disabled="isSettingBalance" class="space-y-5">
+                                <div class="space-y-2">
+                                    <Label for="target-balance">{{ t("account.newBalance") }}</Label>
+                                    <MoneyInput
+                                        id="target-balance"
+                                        v-model="targetBalance"
+                                        allow-negative
+                                        :currency="familyStore.family?.currency || 'USD'"
+                                        :locale="locale || 'en-US'"
+                                        required
+                                        size="sm"
+                                        @blur="targetBalanceTouched = true" />
+                                </div>
+
+                                <div class="bg-muted/40 space-y-2 rounded-lg border p-3 text-sm">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-muted-foreground">{{ t("account.currentBalance") }}</span>
+                                        <span class="font-medium tabular-nums">
+                                            {{ formatCurrency(account?.balance ?? 0) }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-muted-foreground">
+                                            {{ t("account.rebalanceTransaction") }}
+                                        </span>
+                                        <span class="font-semibold tabular-nums" :class="deltaClass">
+                                            {{ deltaLabel }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </fieldset>
 
                             <DialogFooter>
                                 <Button type="button" variant="outline" @click="isSetBalanceDialogOpen = false">
                                     {{ t("common.cancel") }}
                                 </Button>
-                                <Button :disabled="isSettingBalance" type="submit">
-                                    {{ isSettingBalance ? t("common.saving") : t("account.saveBalance") }}
+                                <Button :disabled="isSettingBalance || !hasRebalanceChange" type="submit">
+                                    <Icon v-if="isSettingBalance" class="h-4 w-4 animate-spin" name="iconoir:refresh" />
+                                    {{ isSettingBalance ? t("common.saving") : t("account.updateBalance") }}
                                 </Button>
                             </DialogFooter>
                         </form>

@@ -92,7 +92,7 @@ const balanceError = computed(() => {
     return null;
 });
 
-const isValid = computed(() => !nameError.value && !balanceError.value);
+const isValid = computed(() => !nameError.value && (!!props.account || !balanceError.value));
 
 const typeCardClass = (value: string) =>
     cn(
@@ -110,16 +110,19 @@ const submitForm = async () => {
 
     isLoading.value = true;
     try {
-        const payload = {
-            name: formData.value.name.trim(),
-            type: formData.value.type,
-            balance: formData.value.balance,
-            inBudget: formData.value.inBudget,
-        };
         if (props.account) {
-            await accountStore.updateAccount(props.account.id, payload);
+            await accountStore.updateAccount(props.account.id, {
+                name: formData.value.name.trim(),
+                type: formData.value.type,
+                inBudget: formData.value.inBudget,
+            });
         } else {
-            await accountStore.createAccount(payload);
+            await accountStore.createAccount({
+                name: formData.value.name.trim(),
+                type: formData.value.type,
+                balance: formData.value.balance,
+                inBudget: formData.value.inBudget,
+            });
         }
         emit("saved");
         emit("update:open", false);
@@ -193,11 +196,9 @@ const submitForm = async () => {
                         </div>
                     </div>
 
-                    <!-- Balance -->
-                    <div class="space-y-2">
-                        <Label for="balance">
-                            {{ account ? t("accounts.form.balance") : t("accounts.form.openingBalance") }}
-                        </Label>
+                    <!-- Opening balance (creation only) -->
+                    <div v-if="!account" class="space-y-2">
+                        <Label for="balance">{{ t("accounts.form.openingBalance") }}</Label>
                         <MoneyInput
                             id="balance"
                             v-model="formData.balance"
@@ -210,7 +211,7 @@ const submitForm = async () => {
                             size="sm"
                             @blur="touched.balance = true" />
                         <p id="balance-hint" class="text-muted-foreground text-xs">
-                            {{ account ? t("accounts.form.editBalanceHint") : t("accounts.form.openingBalanceHint") }}
+                            {{ t("accounts.form.openingBalanceHint") }}
                         </p>
                         <p
                             v-if="touched.balance && balanceError"
