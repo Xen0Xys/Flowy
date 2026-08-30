@@ -14,6 +14,7 @@ const accountStore = useAccountStore();
 const referenceStore = useReferenceStore();
 const transactionStore = useTransactionStore();
 const {parseFile, parseDate, parseAmount, generateId, detectInternalDuplicates, detectDateFormat} = useCsvParser();
+const {matchDescription} = useReferenceMatcher();
 const {
     loadState,
     clearState,
@@ -244,13 +245,15 @@ function applyMappingAndParse() {
             continue;
         }
 
+        const match = matchDescription(description, referenceStore.categories, referenceStore.merchants);
+
         transactions.push({
             id: generateId(),
             date,
             description,
             amount,
-            categoryId: null,
-            merchantId: null,
+            categoryId: match.categoryId,
+            merchantId: match.merchantId,
             isRebalance: false,
             status: "pending",
         });
