@@ -17,6 +17,7 @@ const props = withDefaults(
         required?: boolean;
         placeholder?: string;
         class?: string;
+        allowNegative?: boolean;
     }>(),
     {
         currency: "USD",
@@ -25,11 +26,14 @@ const props = withDefaults(
         size: "lg",
         disabled: false,
         placeholder: "0.00",
+        allowNegative: false,
     },
 );
 
 const emit = defineEmits<{
     (e: "update:modelValue", value: number): void;
+    (e: "blur", event: FocusEvent): void;
+    (e: "focus", event: FocusEvent): void;
 }>();
 
 const inputEl = ref<HTMLInputElement | null>(null);
@@ -86,12 +90,17 @@ const formatDisplay = (value: number): string => {
 };
 
 const parseInput = (text: string): number => {
-    if (!text) return 0;
+    if (!text || text === "-") return 0;
     let normalized = text.replace(new RegExp(`\\${groupSeparator.value}`, "g"), "");
     if (decimalSeparator.value !== ".") {
         normalized = normalized.replace(decimalSeparator.value, ".");
     }
-    normalized = normalized.replace(/[^0-9.]/g, "");
+    if (props.allowNegative) {
+        const isNegative = normalized.startsWith("-");
+        normalized = (isNegative ? "-" : "") + normalized.replace(/[^0-9.]/g, "");
+    } else {
+        normalized = normalized.replace(/[^0-9.]/g, "");
+    }
     const parsed = parseFloat(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
 };
@@ -109,7 +118,18 @@ const onInput = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const value = target.value;
     const decSep = decimalSeparator.value;
-    const filtered = value.replace(new RegExp(`[^0-9\\${decSep}]`, "g"), "");
+    const allowedChars = props.allowNegative
+        ? new RegExp(`[^0-9\\${decSep}\\-]`, "g")
+        : new RegExp(`[^0-9\\${decSep}]`, "g");
+    let filtered = value.replace(allowedChars, "");
+
+    let sign = "";
+    if (props.allowNegative) {
+        const isNegative = filtered.startsWith("-");
+        filtered = filtered.replace(/-/g, "");
+        sign = isNegative ? "-" : "";
+    }
+
     const firstDecIdx = filtered.indexOf(decSep);
     let cleaned = filtered;
     if (firstDecIdx !== -1) {
@@ -119,11 +139,12 @@ const onInput = (event: Event) => {
         const [intPart, decPart = ""] = cleaned.split(decSep);
         cleaned = intPart + decSep + decPart.slice(0, 2);
     }
-    rawText.value = cleaned;
-    emit("update:modelValue", parseInput(cleaned));
+    const finalText = sign + cleaned;
+    rawText.value = finalText;
+    emit("update:modelValue", parseInput(finalText));
 };
 
-const onFocus = () => {
+const onFocus = (event: FocusEvent) => {
     isFocused.value = true;
     const value = props.modelValue;
     if (!Number.isFinite(value) || value === 0) {
@@ -131,11 +152,13 @@ const onFocus = () => {
     } else {
         rawText.value = value.toString().replace(".", decimalSeparator.value);
     }
+    emit("focus", event);
 };
 
-const onBlur = () => {
+const onBlur = (event: FocusEvent) => {
     isFocused.value = false;
     rawText.value = formatDisplay(props.modelValue);
+    emit("blur", event);
 };
 
 const variantClasses = computed(() => {
