@@ -256,6 +256,44 @@
         "wip": "WIP",
         "logOut": "Se déconnecter"
     },
+    "commandPalette": {
+        "placeholder": "Tapez une commande ou recherchez...",
+        "empty": "Aucun résultat.",
+        "hints": {
+            "navigate": "Naviguer",
+            "select": "Sélectionner",
+            "close": "Fermer"
+        },
+        "groups": {
+            "navigation": "Navigation",
+            "quickActions": "Actions rapides",
+            "accounts": "Mes comptes",
+            "settings": "Paramètres",
+            "admin": "Administration",
+            "preferences": "Préférences",
+            "session": "Session"
+        },
+        "actions": {
+            "dashboard": "Aller au tableau de bord",
+            "transactions": "Aller aux transactions",
+            "budget": "Aller au budget",
+            "import": "Aller à l'import",
+            "newTransaction": "Nouvelle transaction",
+            "newAccount": "Nouveau compte",
+            "newBudget": "Nouveau budget",
+            "importCsv": "Importer un CSV",
+            "profile": "Profil",
+            "family": "Famille",
+            "references": "Références",
+            "instance": "Instance",
+            "users": "Utilisateurs",
+            "toggleThemeDark": "Passer en mode sombre",
+            "toggleThemeLight": "Passer en mode clair",
+            "switchToEnglish": "Switch to English",
+            "switchToFrench": "Passer en français",
+            "logout": "Se déconnecter"
+        }
+    },
     "dashboard": {
         "welcome": "Bienvenue, {name}",
         "subtitle": "Voici votre vue d'ensemble financière",

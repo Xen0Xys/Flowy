@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
@@ -38,6 +38,9 @@ const loadData = async () => {
 
 onMounted(loadData);
 
+const route = useRoute();
+const router = useRouter();
+
 const handleViewLinked = async (transactionId: string) => {
     try {
         const transaction = await transactionStore.fetchTransactionById(transactionId);
@@ -54,6 +57,18 @@ const handleNewTransaction = () => {
     selectedTransaction.value = null;
     isTransactionModalOpen.value = true;
 };
+
+watch(
+    () => route.query.new,
+    (value) => {
+        if (value) {
+            handleNewTransaction();
+            const {new: _drop, ...rest} = route.query;
+            router.replace({query: rest});
+        }
+    },
+    {immediate: true},
+);
 
 const onTransactionSaved = () => {
     loadData();

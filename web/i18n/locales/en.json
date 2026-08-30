@@ -256,6 +256,44 @@
         "wip": "WIP",
         "logOut": "Log out"
     },
+    "commandPalette": {
+        "placeholder": "Type a command or search...",
+        "empty": "No results found.",
+        "hints": {
+            "navigate": "Navigate",
+            "select": "Select",
+            "close": "Close"
+        },
+        "groups": {
+            "navigation": "Navigation",
+            "quickActions": "Quick actions",
+            "accounts": "My accounts",
+            "settings": "Settings",
+            "admin": "Administration",
+            "preferences": "Preferences",
+            "session": "Session"
+        },
+        "actions": {
+            "dashboard": "Go to dashboard",
+            "transactions": "Go to transactions",
+            "budget": "Go to budget",
+            "import": "Go to import",
+            "newTransaction": "New transaction",
+            "newAccount": "New account",
+            "newBudget": "New budget",
+            "importCsv": "Import CSV",
+            "profile": "Profile",
+            "family": "Family",
+            "references": "References",
+            "instance": "Instance",
+            "users": "Users",
+            "toggleThemeDark": "Switch to dark mode",
+            "toggleThemeLight": "Switch to light mode",
+            "switchToEnglish": "Switch to English",
+            "switchToFrench": "Passer en français",
+            "logout": "Log out"
+        }
+    },
     "dashboard": {
         "welcome": "Welcome, {name}",
         "subtitle": "Here's your financial overview",

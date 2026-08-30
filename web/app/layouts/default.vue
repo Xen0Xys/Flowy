@@ -2,6 +2,7 @@
 import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
 import FlowySidebar from "~/components/sidebar/FlowySidebar.vue";
 import AppBreadcrumb from "~/components/layout/AppBreadcrumb.vue";
+import CommandPalette from "~/components/layout/CommandPalette.vue";
 
 const defaultOpen = useCookie<boolean>("sidebar_state");
 </script>
@@ -10,6 +11,7 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
     <main class="flex h-dvh w-full grow flex-col">
         <SidebarProvider :defaultOpen="defaultOpen">
             <SidebarWatcher />
+            <CommandPalette />
             <FlowySidebar />
             <SidebarInset>
                 <div class="flex h-full flex-col">

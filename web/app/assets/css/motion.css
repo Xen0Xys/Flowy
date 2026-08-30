@@ -223,11 +223,16 @@ a,
 }
 
 /* Focus rings: soft teal by default from token */
-:where(button, a, input, textarea, select, [role="button"]):focus-visible {
+:where(button, a, input, textarea, select, [role="button"]):focus-visible:not([data-slot="command-input"]) {
     outline: 2px solid transparent;
     box-shadow:
         0 0 0 2px var(--background),
         0 0 0 4px var(--ring);
+}
+
+/* Command palette input: subtle wrapper tint instead of the loud global halo */
+[data-slot="input-group"]:has([data-slot="command-input"]:focus-visible) {
+    border-color: color-mix(in oklch, var(--ring) 60%, transparent);
 }
 
 /* ---------- Reduced motion ---------- */

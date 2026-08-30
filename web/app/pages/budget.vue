@@ -441,6 +441,18 @@ function openCreateDialog() {
     isCreateDialogOpen.value = true;
 }
 
+watch(
+    () => route.query.new,
+    (value) => {
+        if (value) {
+            openCreateDialog();
+            const {new: _drop, ...rest} = route.query;
+            router.replace({query: rest});
+        }
+    },
+    {immediate: true},
+);
+
 function openEditDialog() {
     dialogMode.value = "edit";
     isEditDialogOpen.value = true;

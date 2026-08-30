@@ -162,6 +162,19 @@ const openCreateModal = () => {
     isFormModalOpen.value = true;
 };
 
+const route = useRoute();
+watch(
+    () => route.query.new,
+    (value) => {
+        if (value) {
+            openCreateModal();
+            const {new: _drop, ...rest} = route.query;
+            router.replace({query: rest});
+        }
+    },
+    {immediate: true},
+);
+
 const openEditModal = (account: Account) => {
     accountToEdit.value = account;
     isFormModalOpen.value = true;

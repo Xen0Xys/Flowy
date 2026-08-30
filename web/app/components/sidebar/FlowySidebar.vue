@@ -28,6 +28,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Badge} from "~/components/ui/badge";
+import {Kbd, KbdGroup} from "~/components/ui/kbd";
 import {CATEGORY_ORDER, groupAccountsByType} from "~/utils/accounts";
 
 const route = useRoute();
@@ -116,6 +117,15 @@ async function handleLogout() {
     authStore.logout();
     await useRouter().push("/auth/login");
 }
+
+const commandPaletteOpen = useState<boolean>("commandPalette:open", () => false);
+function openCommandPalette() {
+    commandPaletteOpen.value = true;
+}
+const isMac = computed(() => {
+    if (typeof navigator === "undefined") return false;
+    return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+});
 </script>
 
 <template>
@@ -310,16 +320,13 @@ async function handleLogout() {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                    <SidebarMenuButton
-                        :is-active="isActiveFunction('/unknown')"
-                        aria-disabled="true"
-                        as-child
-                        class="opacity-70">
-                        <NuxtLink>
-                            <Icon name="iconoir:search"></Icon>
-                            <span>{{ t("sidebar.search") }}</span>
-                            <Badge class="ml-auto" variant="secondary">{{ t("sidebar.wip") }}</Badge>
-                        </NuxtLink>
+                    <SidebarMenuButton @click="openCommandPalette">
+                        <Icon name="iconoir:search"></Icon>
+                        <span>{{ t("sidebar.search") }}</span>
+                        <KbdGroup class="ml-auto">
+                            <Kbd>{{ isMac ? "⌘" : "Ctrl" }}</Kbd>
+                            <Kbd>K</Kbd>
+                        </KbdGroup>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
