@@ -65,6 +65,9 @@ export class ReferenceMatcherService {
     }
 
     private stripDiacritics(s: string): string {
-        return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+        return s
+            .normalize("NFD")
+            .replace(/\p{Diacritic}/gu, "")
+            .toLowerCase();
     }
 }

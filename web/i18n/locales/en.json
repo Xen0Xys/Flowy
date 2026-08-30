@@ -793,7 +793,6 @@
             },
             "errors": {
                 "fetchTransactions": "Failed fetching transactions",
-                "fetchAccountTransactions": "Failed fetching account transactions",
                 "createTransaction": "Failed creating transaction",
                 "updateTransaction": "Failed updating transaction",
                 "deleteTransaction": "Failed deleting transaction",

@@ -13,7 +13,10 @@ export type ReferenceMatch = {
 };
 
 function stripDiacritics(s: string): string {
-    return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+    return s
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase();
 }
 
 function findBestMatch(description: string, entities: Matchable[]): string | null {

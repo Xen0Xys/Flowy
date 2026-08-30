@@ -48,8 +48,7 @@ export class TransactionFiltersDto {
 
     @ApiProperty({
         required: false,
-        description:
-            "UUID v7 de la catégorie, ou 'none' pour ne renvoyer que les transactions sans catégorie.",
+        description: "UUID v7 de la catégorie, ou 'none' pour ne renvoyer que les transactions sans catégorie.",
         example: "018f8e00-0000-7000-8000-000000000000",
     })
     @IsOptional()

@@ -423,7 +423,10 @@ describe("TransactionController (e2e)", () => {
             inBudget: true,
         });
 
-        const listA = await agent.get("/transaction").set("Authorization", `Bearer ${userA.token}`);
+        const listA = await agent
+            .get("/transaction")
+            .query({page: 1, pageSize: 100})
+            .set("Authorization", `Bearer ${userA.token}`);
 
         expect(listA.status).toBe(200);
         expect(listA.body.total).toBe(1);
@@ -579,11 +582,12 @@ describe("TransactionController (e2e)", () => {
                 rebalance: "exclude",
                 startDate: "2026-02-10",
                 endDate: "2026-02-20",
+                page: 1,
+                pageSize: 100,
             })
             .set("Authorization", `Bearer ${user.token}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.isPaginated).toBe(false);
         expect(response.body.total).toBe(1);
         expect(response.body.items).toHaveLength(1);
         expect(response.body.items[0].id).toBe(expenseTx.body.id);
@@ -615,7 +619,7 @@ describe("TransactionController (e2e)", () => {
 
         const response = await agent
             .get("/transaction")
-            .query({search: "Livret"})
+            .query({search: "Livret", page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
 
         expect(response.status).toBe(200);
@@ -623,7 +627,7 @@ describe("TransactionController (e2e)", () => {
         expect(response.body.items[0].id).toBe(savingsTx.body.id);
     });
 
-    test("search endpoint supports optional pagination metadata", async () => {
+    test("search endpoint returns pagination metadata", async () => {
         const user = await registerUser(server);
 
         const account = await agent
@@ -657,7 +661,6 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.isPaginated).toBe(true);
         expect(response.body.total).toBe(3);
         expect(response.body.page).toBe(2);
         expect(response.body.pageSize).toBe(1);
@@ -711,7 +714,7 @@ describe("TransactionController (e2e)", () => {
 
         const byAmountAsc = await agent
             .get("/transaction")
-            .query({sortBy: "amount", sortOrder: "asc"})
+            .query({sortBy: "amount", sortOrder: "asc", page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
         expect(byAmountAsc.status).toBe(200);
         expect(byAmountAsc.body.items.map((tx: {description: string}) => tx.description)).toEqual([
@@ -722,7 +725,7 @@ describe("TransactionController (e2e)", () => {
 
         const byDescriptionAsc = await agent
             .get("/transaction")
-            .query({sortBy: "description", sortOrder: "asc"})
+            .query({sortBy: "description", sortOrder: "asc", page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
         expect(byDescriptionAsc.status).toBe(200);
         expect(byDescriptionAsc.body.items.map((tx: {description: string}) => tx.description)).toEqual([
@@ -733,7 +736,7 @@ describe("TransactionController (e2e)", () => {
 
         const byCategoryDesc = await agent
             .get("/transaction")
-            .query({sortBy: "category", sortOrder: "desc"})
+            .query({sortBy: "category", sortOrder: "desc", page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
         expect(byCategoryDesc.status).toBe(200);
         const categoriesDesc = byCategoryDesc.body.items.map(
@@ -745,7 +748,7 @@ describe("TransactionController (e2e)", () => {
 
         const byAccountAsc = await agent
             .get("/transaction")
-            .query({sortBy: "account", sortOrder: "asc"})
+            .query({sortBy: "account", sortOrder: "asc", page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
         expect(byAccountAsc.status).toBe(200);
         const accountIdsAsc = byAccountAsc.body.items.map((tx: {accountId: string}) => tx.accountId);
@@ -791,7 +794,7 @@ describe("TransactionController (e2e)", () => {
 
         const response = await agent
             .get("/transaction")
-            .query({startDate: "2026-03-15", endDate: "2026-03-01"})
+            .query({startDate: "2026-03-15", endDate: "2026-03-01", page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
 
         expect(response.status).toBe(400);
@@ -811,7 +814,7 @@ describe("TransactionController (e2e)", () => {
 
         const list = await agent
             .get("/transaction")
-            .query({accountId: account.body.id})
+            .query({accountId: account.body.id, page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${outsider.token}`);
 
         expect(list.status).toBe(200);
@@ -1207,7 +1210,7 @@ describe("TransactionController (e2e)", () => {
 
         const byAccount = await agent
             .get("/transaction")
-            .query({accountId: missingAccountId})
+            .query({accountId: missingAccountId, page: 1, pageSize: 100})
             .set("Authorization", `Bearer ${user.token}`);
         expect(byAccount.status).toBe(200);
         expect(byAccount.body.total).toBe(0);
