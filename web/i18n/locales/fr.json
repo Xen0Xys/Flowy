@@ -320,6 +320,8 @@
         "form": {
             "addTitle": "Ajouter un compte",
             "editTitle": "Modifier le compte",
+            "addDescription": "Ajoutez un nouveau compte pour commencer à suivre vos finances.",
+            "editDescription": "Mettez à jour les informations de ce compte.",
             "description": "Renseignez les informations de votre compte bancaire.",
             "name": "Nom du compte",
             "namePlaceholder": "Ex : Compte courant",
@@ -328,7 +330,16 @@
             "balance": "Solde",
             "current": "actuel",
             "initial": "initial",
-            "inBudget": "Inclure dans le budget"
+            "openingBalance": "Solde d'ouverture",
+            "openingBalanceHint": "Solde actuel au moment de la création du compte.",
+            "editBalanceHint": "Modifier cette valeur crée une transaction de rééquilibrage automatique.",
+            "inBudget": "Inclure dans le budget",
+            "inBudgetDescription": "Prendre en compte les transactions de ce compte dans le calcul de vos budgets mensuels.",
+            "errors": {
+                "nameTooShort": "Le nom doit contenir au moins 3 caractères.",
+                "nameTooLong": "Le nom ne peut pas dépasser 50 caractères.",
+                "balanceInvalid": "Veuillez saisir un montant valide."
+            }
         }
     },
     "account": {

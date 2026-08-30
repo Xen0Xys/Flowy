@@ -320,6 +320,8 @@
         "form": {
             "addTitle": "Add account",
             "editTitle": "Edit account",
+            "addDescription": "Add a new account to start tracking your finances.",
+            "editDescription": "Update the details of this account.",
             "description": "Fill in your bank account details.",
             "name": "Account name",
             "namePlaceholder": "Ex: Checking Account",
@@ -328,7 +330,16 @@
             "balance": "Balance",
             "current": "current",
             "initial": "initial",
-            "inBudget": "Include in budget"
+            "openingBalance": "Opening balance",
+            "openingBalanceHint": "Current balance at the time of account creation.",
+            "editBalanceHint": "Changing this creates an automatic rebalance transaction.",
+            "inBudget": "Include in budget",
+            "inBudgetDescription": "Include this account's transactions when computing your monthly budgets.",
+            "errors": {
+                "nameTooShort": "Name must be at least 3 characters.",
+                "nameTooLong": "Name must be at most 50 characters.",
+                "balanceInvalid": "Enter a valid amount."
+            }
         }
     },
     "account": {

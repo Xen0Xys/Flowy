@@ -151,6 +151,7 @@ const executeDelete = async () => {
 };
 
 const onFormSaved = () => {
+    transactionListWidgetRef.value?.refreshTransactions();
     loadData();
 };
 
