@@ -256,17 +256,28 @@ const canSubmitTransfer = computed(() => {
     return true;
 });
 
-const canSubmit = computed(() =>
-    transactionType.value === "transfer" ? canSubmitTransfer.value : canSubmitStandard.value,
-);
+const canSubmitRebalance = computed(() => {
+    if (!isRebalance.value) return false;
+    if (!formData.value.date) return false;
+    return true;
+});
+
+const canSubmit = computed(() => {
+    if (isRebalance.value) return canSubmitRebalance.value;
+    return transactionType.value === "transfer" ? canSubmitTransfer.value : canSubmitStandard.value;
+});
 
 const save = async () => {
-    if (isRebalance.value) return;
     if (!canSubmit.value) return;
 
     isSubmitting.value = true;
     try {
-        if (transactionType.value === "transfer") {
+        if (isRebalance.value && props.transaction) {
+            const payload: UpdateTransactionPayload = {
+                date: new Date(formData.value.date).toISOString(),
+            };
+            await transactionStore.updateTransaction(props.transaction.id, payload);
+        } else if (transactionType.value === "transfer") {
             const payload: CreateTransferPayload = {
                 debitAccountId: transferFormData.value.sourceAccountId,
                 creditAccountId: transferFormData.value.destinationAccountId,
@@ -534,8 +545,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                 <DatePicker
                                     id="tx-form-date"
                                     v-model="formData.date"
-                                    :placeholder="t('transactions.filters.pickDateRange')"
-                                    :disabled="isRebalance" />
+                                    :placeholder="t('transactions.filters.pickDateRange')" />
                             </div>
 
                             <div v-if="!accountId && !isEditing" class="flex flex-1 flex-col gap-2">
@@ -731,7 +741,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                 <Button type="button" variant="outline" @click="emit('update:open', false)">
                     {{ t("common.cancel") }}
                 </Button>
-                <Button :disabled="isSubmitting || isDeleting || !canSubmit || isRebalance" type="button" @click="save">
+                <Button :disabled="isSubmitting || isDeleting || !canSubmit" type="button" @click="save">
                     {{
                         isSubmitting
                             ? t("common.saving")

@@ -438,7 +438,7 @@
             "incomeDescriptionPlaceholder": "Income",
             "expenseDescriptionPlaceholder": "Expense",
             "systemTransaction": "System Transaction",
-            "systemTransactionDescription": "This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of sync.",
+            "systemTransactionDescription": "This is an automatic balance adjustment. Only the date can be modified.",
             "saveChanges": "Save changes",
             "deleteTitle": "Delete transaction",
             "deleteDescription": "Are you sure you want to delete this transaction? This action cannot be undone.",

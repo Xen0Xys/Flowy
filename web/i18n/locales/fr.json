@@ -438,7 +438,7 @@
             "incomeDescriptionPlaceholder": "Revenu",
             "expenseDescriptionPlaceholder": "Dépense",
             "systemTransaction": "Transaction système",
-            "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. La modifier peut désynchroniser le solde de votre compte.",
+            "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. Seule la date peut être modifiée.",
             "saveChanges": "Enregistrer les modifications",
             "deleteTitle": "Supprimer la transaction",
             "deleteDescription": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.",
