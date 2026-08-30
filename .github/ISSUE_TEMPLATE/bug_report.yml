@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible bug in Flowy
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in the sections below so we can reproduce and fix the issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I click X, I see Y, but I expected Z.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps someone can follow to hit the same bug.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Observe '...'
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+      description: Drag and drop images or GIFs here if relevant.
+  - type: input
+    id: version
+    attributes:
+      label: Flowy version
+      description: Docker image tag, commit hash or release version.
+      placeholder: e.g. main@abc1234 or v0.5.0
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker Compose (production)
+        - Docker Compose (dev)
+        - Coolify
+        - Local dev (Bun)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      description: Only fill in for frontend bugs.
+      placeholder: e.g. Firefox 132 on Windows 11
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant backend or browser console logs. Redact any sensitive data before pasting.
+      render: shell
