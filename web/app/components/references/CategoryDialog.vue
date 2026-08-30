@@ -28,20 +28,24 @@ const referenceStore = useReferenceStore();
 
 const PRESET_COLORS = [
     "#ef4444",
-    "#f97316",
-    "#f59e0b",
-    "#ca8a04",
-    "#84cc16",
-    "#22c55e",
-    "#10b981",
-    "#14b8a6",
-    "#06b6d4",
-    "#0ea5e9",
-    "#3b82f6",
-    "#6366f1",
-    "#8b5cf6",
-    "#a855f7",
+    "#f43f5e",
     "#ec4899",
+    "#d946ef",
+    "#a855f7",
+    "#8b5cf6",
+    "#6366f1",
+    "#3b82f6",
+    "#0ea5e9",
+    "#06b6d4",
+    "#14b8a6",
+    "#10b981",
+    "#22c55e",
+    "#84cc16",
+    "#ca8a04",
+    "#f59e0b",
+    "#f97316",
+    "#78716c",
+    "#6b7280",
     "#64748b",
 ];
 
@@ -211,7 +215,7 @@ function handleClose(value: boolean) {
                     <div class="border-border/60 flex items-center gap-3 rounded-lg border p-3">
                         <IconPicker v-model="form.icon" />
                         <Separator orientation="vertical" class="h-10" />
-                        <div class="flex flex-1 flex-wrap gap-1.5">
+                        <div class="grid flex-1 grid-cols-10 gap-1.5">
                             <button
                                 v-for="color in PRESET_COLORS"
                                 :key="color"
