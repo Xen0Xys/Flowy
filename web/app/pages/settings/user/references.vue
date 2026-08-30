@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from "vue";
+import {computed, nextTick, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Card, CardContent} from "@/components/ui/card";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -76,7 +75,9 @@ function openCategoryDialog(category?: TransactionCategory) {
 }
 
 function requestDeleteCategory(category: TransactionCategory) {
-    deleteCategoryDialogTarget.value = category;
+    nextTick(() => {
+        deleteCategoryDialogTarget.value = category;
+    });
 }
 
 async function confirmDeleteCategory() {
@@ -97,7 +98,9 @@ function openMerchantDialog(merchant?: TransactionMerchant) {
 }
 
 function requestDeleteMerchant(merchant: TransactionMerchant) {
-    deleteMerchantDialogTarget.value = merchant;
+    nextTick(() => {
+        deleteMerchantDialogTarget.value = merchant;
+    });
 }
 
 async function confirmDeleteMerchant() {
@@ -381,9 +384,12 @@ async function confirmDeleteMerchant() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmDeleteCategory">
+                    <Button
+                        :disabled="deletingCategoryId === deleteCategoryDialogTarget?.id"
+                        variant="destructive"
+                        @click="confirmDeleteCategory">
                         {{ t("common.delete") }}
-                    </AlertDialogAction>
+                    </Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -404,9 +410,12 @@ async function confirmDeleteMerchant() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmDeleteMerchant">
+                    <Button
+                        :disabled="deletingMerchantId === deleteMerchantDialogTarget?.id"
+                        variant="destructive"
+                        @click="confirmDeleteMerchant">
                         {{ t("common.delete") }}
-                    </AlertDialogAction>
+                    </Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
