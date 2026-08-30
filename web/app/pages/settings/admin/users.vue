@@ -325,7 +325,7 @@ async function copyUserId(id: string) {
 
 <template>
     <div class="w-full">
-        <div class="animate-fade-in-up mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
+        <div class="mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
             <div class="mb-6 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="relative">

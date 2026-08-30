@@ -78,7 +78,7 @@ const onTransactionSaved = () => {
 <template>
     <div class="w-full">
         <div class="mx-auto max-w-7xl">
-            <div class="animate-fade-in-up flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
+            <div class="flex flex-col gap-6 md:h-[calc(100dvh-4rem-1.5rem)]">
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex items-center gap-3">

@@ -39,7 +39,7 @@ const progressPercent = computed(() => Math.round(((active.value + 1) / steps.va
             <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
         </div>
         <div :class="cn('relative flex w-full grow flex-col justify-center gap-4 self-center px-4 py-6', 'max-w-3xl')">
-            <Card class="animate-fade-in-up py-0">
+            <Card class="py-0">
                 <CardContent class="p-3">
                     <div class="hidden md:block">
                         <Stepper class="flex w-full items-center justify-between gap-2">

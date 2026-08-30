@@ -22,9 +22,13 @@
 /* Prevent scrollbar flash: the translateY on the entering page briefly
    overflows its scroll parent (e.g. the default layout's overflow-y-auto
    region). Clipping the parent for the duration of the transition avoids
-   the momentary scrollbar without changing the motion. */
+   the momentary scrollbar without changing the motion. Covers both the
+   default `page` transition and the `fade` variant used by auth/onboarding
+   pages, on client navigation and on initial mount (appear). */
 :where(*):has(> .page-enter-active),
-:where(*):has(> .page-leave-active) {
+:where(*):has(> .page-leave-active),
+:where(*):has(> .fade-enter-active),
+:where(*):has(> .fade-leave-active) {
     overflow: clip;
 }
 

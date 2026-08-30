@@ -17,7 +17,7 @@ const isSuccess = computed(() => !!(props.result && props.result.insertedCount >
 
 <template>
     <div class="flex h-full items-center justify-center p-6">
-        <div class="animate-fade-in-up w-full max-w-md text-center">
+        <div class="w-full max-w-md text-center">
             <div class="mb-6 flex justify-center">
                 <div
                     :class="

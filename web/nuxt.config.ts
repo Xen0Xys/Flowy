@@ -54,7 +54,7 @@ export default defineNuxtConfig({
     devtools: {enabled: true},
     css: ["@/assets/css/main.css", "vue-sonner/style.css"],
     app: {
-        pageTransition: {name: "page", mode: "out-in"},
+        pageTransition: {name: "page", mode: "out-in", appear: true},
     },
     vite: {
         plugins: [

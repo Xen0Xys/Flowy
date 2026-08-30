@@ -11,7 +11,7 @@ import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/compon
 
 definePageMeta({
     layout: "auth",
-    pageTransition: {name: "fade", mode: "out-in"},
+    pageTransition: {name: "fade", mode: "out-in", appear: true},
 });
 
 const router = useRouter();

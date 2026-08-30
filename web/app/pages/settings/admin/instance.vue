@@ -146,7 +146,7 @@ async function copyVersions() {
 
 <template>
     <div class="w-full">
-        <div class="animate-fade-in-up mx-auto w-full max-w-4xl space-y-6 py-6">
+        <div class="mx-auto w-full max-w-4xl space-y-6 py-6">
             <div class="flex items-center gap-3">
                 <div class="relative">
                     <span aria-hidden="true" class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>

@@ -115,7 +115,7 @@ async function confirmDeleteMerchant() {
 
 <template>
     <div class="w-full">
-        <div class="animate-fade-in-up mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
+        <div class="mx-auto flex h-[calc(100dvh-4rem-1.5rem)] w-full max-w-6xl flex-col py-6">
             <div class="mb-6 flex shrink-0 items-center gap-3">
                 <div class="relative">
                     <span aria-hidden="true" class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>

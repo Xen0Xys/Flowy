@@ -11,7 +11,7 @@ import {cn} from "@/lib/utils";
 
 definePageMeta({
     layout: "onboarding",
-    pageTransition: {name: "fade", mode: "out-in"},
+    pageTransition: {name: "fade", mode: "out-in", appear: true},
     onboarding: {step: 0},
 });
 

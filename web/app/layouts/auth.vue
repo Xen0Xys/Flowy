@@ -18,7 +18,7 @@ const isLogin = computed(() => route.path.startsWith("/auth/login"));
                 class="bg-brand-gradient absolute -right-40 -bottom-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
         </div>
 
-        <div class="animate-fade-in-up flex w-full max-w-5xl flex-col gap-8">
+        <div class="flex w-full max-w-5xl flex-col gap-8">
             <div class="flex items-center justify-center gap-3">
                 <div class="relative">
                     <span
