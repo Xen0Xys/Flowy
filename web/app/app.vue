@@ -27,13 +27,24 @@ useHead({
     title: computed(() => (pageTitle.value ? t("app.head.withPage", {page: pageTitle.value}) : t("app.head.default"))),
     link: [
         {rel: "icon", type: "image/webp", href: "/flowy-logo.webp"},
-        {rel: "apple-touch-icon", href: "/flowy-logo.webp"},
+        {rel: "icon", type: "image/png", sizes: "192x192", href: "/pwa-192x192.png"},
+        {rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon-180x180.png"},
+        {rel: "manifest", href: "/manifest.webmanifest"},
     ],
     meta: [
         {name: "robots", content: "noindex, nofollow"},
-        {name: "theme-color", content: "#3b6cff"},
+        {name: "theme-color", content: "#0b0b0f", media: "(prefers-color-scheme: dark)"},
+        {name: "theme-color", content: "#3b6cff", media: "(prefers-color-scheme: light)"},
+        {name: "mobile-web-app-capable", content: "yes"},
+        {name: "apple-mobile-web-app-capable", content: "yes"},
+        {name: "apple-mobile-web-app-title", content: "Flowy"},
+        {name: "apple-mobile-web-app-status-bar-style", content: "black-translucent"},
         {property: "og:title", content: "Flowy"},
-        {property: "og:description", content: "Your personal finance flow, made calm."},
+        {
+            property: "og:description",
+            content:
+                "Flowy is a self-hosted finance platform built for people who are tired of juggling spreadsheets, disconnected banking apps, and shared Google Sheets that nobody agrees on.",
+        },
         {property: "og:type", content: "website"},
         {property: "og:image", content: "/og-image.png"},
         {name: "twitter:card", content: "summary_large_image"},

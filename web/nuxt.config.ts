@@ -32,6 +32,7 @@ const securityHeaders = {
             "media-src": ["'none'"],
             "frame-src": ["'none'"],
             "worker-src": ["'self'", "blob:"],
+            "manifest-src": ["'self'"],
             "upgrade-insecure-requests": true,
         },
 

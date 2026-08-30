@@ -3,31 +3,31 @@ description: Suggest a new feature or improvement for Flowy
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for the suggestion. Describe the problem first, then the proposal.
-  - type: textarea
-    id: problem
-    attributes:
-      label: Problem
-      description: What are you trying to accomplish that Flowy does not support today?
-    validations:
-      required: true
-  - type: textarea
-    id: proposal
-    attributes:
-      label: Proposed solution
-      description: How would you like Flowy to solve it?
-    validations:
-      required: true
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternatives considered
-      description: Workarounds you tried or other approaches you weighed.
-  - type: textarea
-    id: context
-    attributes:
-      label: Additional context
-      description: Mockups, links, related issues, use cases.
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for the suggestion. Describe the problem first, then the proposal.
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem
+          description: What are you trying to accomplish that Flowy does not support today?
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed solution
+          description: How would you like Flowy to solve it?
+      validations:
+          required: true
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives considered
+          description: Workarounds you tried or other approaches you weighed.
+    - type: textarea
+      id: context
+      attributes:
+          label: Additional context
+          description: Mockups, links, related issues, use cases.
