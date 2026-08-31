@@ -1,0 +1,107 @@
+{
+    "id": "/",
+    "name": "Flowy",
+    "short_name": "Flowy",
+    "description": "Flowy is a self-hosted finance platform built for people who are tired of juggling spreadsheets, disconnected banking apps, and shared Google Sheets that nobody agrees on.",
+    "lang": "en",
+    "dir": "ltr",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "theme_color": "#3b6cff",
+    "background_color": "#0b0b0f",
+    "categories": ["finance"],
+    "prefer_related_applications": false,
+    "launch_handler": {
+        "client_mode": "focus-existing"
+    },
+    "handle_links": "preferred",
+    "icons": [
+        {
+            "src": "/pwa-64x64.png",
+            "sizes": "64x64",
+            "type": "image/png"
+        },
+        {
+            "src": "/pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/maskable-icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshots/dashboard.webp",
+            "sizes": "2560x1440",
+            "type": "image/webp",
+            "form_factor": "wide",
+            "label": "Dashboard overview"
+        },
+        {
+            "src": "/screenshots/transactions.webp",
+            "sizes": "2560x1440",
+            "type": "image/webp",
+            "form_factor": "wide",
+            "label": "Transactions"
+        },
+        {
+            "src": "/screenshots/budget.webp",
+            "sizes": "2560x1440",
+            "type": "image/webp",
+            "form_factor": "wide",
+            "label": "Budget"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Transactions",
+            "short_name": "Transactions",
+            "description": "Browse and manage your transactions",
+            "url": "/transactions",
+            "icons": [
+                {
+                    "src": "/shortcuts/transactions-96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Budget",
+            "short_name": "Budget",
+            "description": "Track your monthly budget",
+            "url": "/budget",
+            "icons": [
+                {
+                    "src": "/shortcuts/budget-96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "description": "Go to the dashboard",
+            "url": "/",
+            "icons": [
+                {
+                    "src": "/shortcuts/home-96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ]
+}

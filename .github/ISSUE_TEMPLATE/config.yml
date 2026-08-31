@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Deployment help
+      url: https://github.com/Xen0Xys/Flowy/blob/main/DEPLOYMENT.md
+      about: Read the deployment guide first before opening an issue.
+    - name: Questions and community
+      url: https://github.com/Xen0Xys/Flowy/discussions
+      about: Ask questions, share ideas or get help from the community in Discussions.
+    - name: Security vulnerability
+      url: https://github.com/Xen0Xys/Flowy/security/advisories/new
+      about: Report security vulnerabilities privately. Do not open a public issue.

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import "vue-sonner/style.css";
 import {computed} from "vue";
 import {useI18n} from "vue-i18n";
 import {useHead, useRoute} from "#app";
+import WhatsNewDialog from "~/components/whats-new/WhatsNewDialog.vue";
 
 const route = useRoute();
 const {t} = useI18n();
@@ -26,17 +26,28 @@ const pageTitle = computed(() => {
 useHead({
     title: computed(() => (pageTitle.value ? t("app.head.withPage", {page: pageTitle.value}) : t("app.head.default"))),
     link: [
-        {
-            rel: "icon",
-            type: "image/webp",
-            href: "/flowy-logo.webp",
-        },
+        {rel: "icon", type: "image/webp", href: "/flowy-logo.webp"},
+        {rel: "icon", type: "image/png", sizes: "192x192", href: "/pwa-192x192.png"},
+        {rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon-180x180.png"},
+        {rel: "manifest", href: "/manifest.webmanifest"},
     ],
     meta: [
+        {name: "robots", content: "noindex, nofollow"},
+        {name: "theme-color", content: "#0b0b0f", media: "(prefers-color-scheme: dark)"},
+        {name: "theme-color", content: "#3b6cff", media: "(prefers-color-scheme: light)"},
+        {name: "mobile-web-app-capable", content: "yes"},
+        {name: "apple-mobile-web-app-capable", content: "yes"},
+        {name: "apple-mobile-web-app-title", content: "Flowy"},
+        {name: "apple-mobile-web-app-status-bar-style", content: "black-translucent"},
+        {property: "og:title", content: "Flowy"},
         {
-            name: "robots",
-            content: "noindex, nofollow",
+            property: "og:description",
+            content:
+                "Flowy is a self-hosted finance platform built for people who are tired of juggling spreadsheets, disconnected banking apps, and shared Google Sheets that nobody agrees on.",
         },
+        {property: "og:type", content: "website"},
+        {property: "og:image", content: "/og-image.png"},
+        {name: "twitter:card", content: "summary_large_image"},
     ],
 });
 </script>
@@ -45,6 +56,9 @@ useHead({
     <div class="bg-background min-h-dvh">
         <NuxtLoadingIndicator />
         <Toaster close-button richColors />
+        <ClientOnly>
+            <WhatsNewDialog />
+        </ClientOnly>
         <NuxtLayout>
             <NuxtPage />
         </NuxtLayout>

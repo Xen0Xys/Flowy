@@ -35,6 +35,7 @@ export async function seedUserMerchants(prisma: any, userId: string, faker: Fake
     const merchants: Array<{id: string}> = [];
 
     for (const merchantName of merchantNames) {
+        // oxlint-disable-next-line no-await-in-loop
         const merchant = await prisma.userMerchants.create({
             data: {
                 id: Bun.randomUUIDv7(),

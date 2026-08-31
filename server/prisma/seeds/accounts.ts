@@ -18,6 +18,7 @@ export async function seedAccounts(prisma: any, userId: string, faker: Faker) {
         const accountType = faker.helpers.arrayElement(ACCOUNT_TYPES);
         const accountName = `${faker.finance.accountName()} ${accountIndex + 1}`.slice(0, 50);
 
+        // oxlint-disable-next-line no-await-in-loop
         const account = await prisma.accounts.create({
             data: {
                 id: accountId,

@@ -10,11 +10,16 @@ import {Prisma} from "../../../../prisma/generated/client";
 import {BulkAnalysisAccountEntity, BulkAnalysisEntity} from "./models/entities/bulk-analysis.entity";
 import {
     SearchTransactionsDto,
+    TransactionFiltersDto,
     TransactionSearchRebalance,
     TransactionSearchType,
+    TransactionSortBy,
+    TransactionSortOrder,
 } from "./models/dto/search-transactions.dto";
 import {SearchTransactionsResultEntity} from "./models/entities/search-transactions-result.entity";
+import {TransactionSummaryEntity} from "./models/entities/transaction-summary.entity";
 import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
+import {ReferenceMatcherService, ReferenceSuggestion} from "../reference/reference-matcher.service";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
@@ -29,27 +34,13 @@ type TransactionWithRelations = Prisma.TransactionsGetPayload<{
 export class TransactionService {
     private readonly logger = new Logger(TransactionService.name);
 
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly referenceMatcher: ReferenceMatcherService,
+    ) {}
 
-    async getTransactions(user: UserEntity): Promise<TransactionEntity[]> {
-        const transactions = await this.prismaService.transactions.findMany({
-            where: {
-                account: {
-                    user_id: user.id,
-                },
-            },
-            include: {
-                merchant: true,
-                category: true,
-                credit_transfer: true,
-                debit_transfer: true,
-            },
-            orderBy: {
-                date: "desc",
-            },
-        });
-
-        return transactions.map((transaction) => this.toTransactionEntity(transaction));
+    async suggestReferences(user: UserEntity, description: string): Promise<ReferenceSuggestion> {
+        return this.referenceMatcher.suggestForDescription(user, description);
     }
 
     async getTransactionById(user: UserEntity, transactionId: string): Promise<TransactionEntity> {
@@ -76,91 +67,11 @@ export class TransactionService {
     }
 
     async searchTransactions(user: UserEntity, query: SearchTransactionsDto): Promise<SearchTransactionsResultEntity> {
-        const where: Prisma.TransactionsWhereInput = {
-            account: {
-                user_id: user.id,
-            },
-        };
+        const where = this.buildSearchWhere(user, query);
+        const orderBy = this.buildSearchOrderBy(query.sortBy, query.sortOrder);
 
-        if (query.accountId) where.account_id = query.accountId;
-        if (query.categoryId === "none") where.category_id = null;
-        else if (query.categoryId) where.category_id = query.categoryId;
-        if (query.merchantId) where.merchant_id = query.merchantId;
-        if (query.type === TransactionSearchType.INCOME) where.amount = {gt: 0};
-        if (query.type === TransactionSearchType.EXPENSE) where.amount = {lt: 0};
-        if (query.rebalance === TransactionSearchRebalance.ONLY) where.is_rebalance = true;
-        if (query.rebalance === TransactionSearchRebalance.EXCLUDE) where.is_rebalance = false;
-
-        if (query.startDate || query.endDate) {
-            const dateRange: Prisma.DateTimeFilter = {};
-
-            if (query.startDate) dateRange.gte = this.normalizeDateForRangeStart(query.startDate);
-            if (query.endDate) dateRange.lte = this.normalizeDateForRangeEnd(query.endDate);
-            if (dateRange.gte && dateRange.lte && dateRange.gte > dateRange.lte)
-                throw new BadRequestException("startDate must be before or equal to endDate");
-
-            where.date = dateRange;
-        }
-
-        const normalizedSearch = query.search?.trim();
-        if (normalizedSearch) {
-            where.OR = [
-                {
-                    description: {
-                        contains: normalizedSearch,
-                        mode: "insensitive",
-                    },
-                },
-                {
-                    merchant: {
-                        is: {
-                            name: {
-                                contains: normalizedSearch,
-                                mode: "insensitive",
-                            },
-                        },
-                    },
-                },
-                {
-                    category: {
-                        is: {
-                            name: {
-                                contains: normalizedSearch,
-                                mode: "insensitive",
-                            },
-                        },
-                    },
-                },
-            ];
-        }
-
-        const isPaginated = query.page !== undefined || query.pageSize !== undefined;
-        const page = query.page ?? 1;
-        const pageSize = query.pageSize ?? 25;
-
-        if (!isPaginated) {
-            const transactions = await this.prismaService.transactions.findMany({
-                where,
-                include: {
-                    merchant: true,
-                    category: true,
-                    credit_transfer: true,
-                    debit_transfer: true,
-                },
-                orderBy: [{date: "desc"}, {created_at: "desc"}],
-            });
-
-            const items = transactions.map((transaction) => this.toTransactionEntity(transaction));
-
-            return new SearchTransactionsResultEntity({
-                items,
-                total: items.length,
-                page: 1,
-                pageSize: items.length,
-                totalPages: 1,
-                isPaginated: false,
-            });
-        }
+        const page = query.page;
+        const pageSize = query.pageSize;
 
         const [total, transactions] = await this.prismaService.$transaction([
             this.prismaService.transactions.count({where}),
@@ -172,7 +83,7 @@ export class TransactionService {
                     credit_transfer: true,
                     debit_transfer: true,
                 },
-                orderBy: [{date: "desc"}, {created_at: "desc"}],
+                orderBy,
                 skip: (page - 1) * pageSize,
                 take: pageSize,
             }),
@@ -191,7 +102,44 @@ export class TransactionService {
             page,
             pageSize,
             totalPages,
-            isPaginated: true,
+        });
+    }
+
+    async getTransactionsSummary(user: UserEntity, filters: TransactionFiltersDto): Promise<TransactionSummaryEntity> {
+        const where = this.buildSearchWhere(user, filters);
+        const withFilter = (extra: Prisma.TransactionsWhereInput): Prisma.TransactionsWhereInput => ({
+            AND: [where, extra],
+        });
+
+        const [nonRebalanceCount, incomeAgg, expenseAgg, rebalanceCount, rebalanceAgg] =
+            await this.prismaService.$transaction([
+                this.prismaService.transactions.count({where: withFilter({is_rebalance: false})}),
+                this.prismaService.transactions.aggregate({
+                    where: withFilter({is_rebalance: false, amount: {gt: 0}}),
+                    _sum: {amount: true},
+                }),
+                this.prismaService.transactions.aggregate({
+                    where: withFilter({is_rebalance: false, amount: {lt: 0}}),
+                    _sum: {amount: true},
+                }),
+                this.prismaService.transactions.count({where: withFilter({is_rebalance: true})}),
+                this.prismaService.transactions.aggregate({
+                    where: withFilter({is_rebalance: true}),
+                    _sum: {amount: true},
+                }),
+            ]);
+
+        const income = this.toDecimal(incomeAgg._sum.amount ?? 0);
+        const expense = this.toDecimal(expenseAgg._sum.amount ?? 0);
+        const rebalanceNet = this.toDecimal(rebalanceAgg._sum.amount ?? 0);
+
+        return new TransactionSummaryEntity({
+            count: nonRebalanceCount,
+            income,
+            expense,
+            net: this.toDecimal(income + expense),
+            rebalanceCount,
+            rebalanceNet,
         });
     }
 
@@ -200,14 +148,14 @@ export class TransactionService {
         accountId: string,
         createTransactionDto: CreateTransactionDto,
     ): Promise<TransactionEntity> {
-        const account = await this.getOwnedAccountOrThrow(user, accountId);
+        await this.getOwnedAccountOrThrow(user, accountId);
         await this.validateReferencesOwnership(user, createTransactionDto.merchantId, createTransactionDto.categoryId);
 
         const transaction = await this.prismaService.$transaction(async (tx) => {
             await tx.accounts.update({
                 where: {id: accountId},
                 data: {
-                    balance: this.toDecimal(account.balance + createTransactionDto.amount),
+                    balance: {increment: createTransactionDto.amount},
                 },
             });
 
@@ -298,7 +246,7 @@ export class TransactionService {
             await tx.accounts.update({
                 where: {id: accountId},
                 data: {
-                    balance: this.toDecimal(analysis.account.balance + totalAmount),
+                    balance: {increment: totalAmount},
                 },
             });
 
@@ -389,7 +337,7 @@ export class TransactionService {
                     await tx.accounts.update({
                         where: {id: linkedTransaction.account_id},
                         data: {
-                            balance: this.toDecimal(linkedTransaction.account.balance + linkedDelta),
+                            balance: {increment: linkedDelta},
                         },
                     });
 
@@ -405,7 +353,7 @@ export class TransactionService {
             await tx.accounts.update({
                 where: {id: transaction.account_id},
                 data: {
-                    balance: this.toDecimal(transaction.account.balance + delta),
+                    balance: {increment: delta},
                 },
             });
 
@@ -471,7 +419,7 @@ export class TransactionService {
                     id: transaction.account_id,
                 },
                 data: {
-                    balance: this.toDecimal(transaction.account.balance - transaction.amount),
+                    balance: {decrement: transaction.amount},
                 },
             });
 
@@ -508,7 +456,7 @@ export class TransactionService {
                     id: linkedTransaction.account_id,
                 },
                 data: {
-                    balance: this.toDecimal(linkedTransaction.account.balance - linkedTransaction.amount),
+                    balance: {decrement: linkedTransaction.amount},
                 },
             });
         });
@@ -554,6 +502,100 @@ export class TransactionService {
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,
         });
+    }
+
+    private buildSearchOrderBy(
+        sortBy?: TransactionSortBy,
+        sortOrder?: TransactionSortOrder,
+    ): Prisma.TransactionsOrderByWithRelationInput[] {
+        const order: Prisma.SortOrder = sortOrder === TransactionSortOrder.ASC ? "asc" : "desc";
+        const tieBreaker: Prisma.TransactionsOrderByWithRelationInput = {created_at: "desc"};
+
+        switch (sortBy) {
+            case TransactionSortBy.DESCRIPTION:
+                return [{description: order}, tieBreaker];
+            case TransactionSortBy.AMOUNT:
+                return [{amount: order}, tieBreaker];
+            case TransactionSortBy.CATEGORY:
+                return [{category: {name: order}}, tieBreaker];
+            case TransactionSortBy.ACCOUNT:
+                return [{account: {name: order}}, tieBreaker];
+            case TransactionSortBy.DATE:
+            default:
+                return [{date: order}, tieBreaker];
+        }
+    }
+
+    private buildSearchWhere(user: UserEntity, filters: TransactionFiltersDto): Prisma.TransactionsWhereInput {
+        const where: Prisma.TransactionsWhereInput = {
+            account: {
+                user_id: user.id,
+            },
+        };
+
+        if (filters.accountId) where.account_id = filters.accountId;
+        if (filters.categoryId === "none") where.category_id = null;
+        else if (filters.categoryId) where.category_id = filters.categoryId;
+        if (filters.merchantId) where.merchant_id = filters.merchantId;
+        if (filters.type === TransactionSearchType.INCOME) where.amount = {gt: 0};
+        if (filters.type === TransactionSearchType.EXPENSE) where.amount = {lt: 0};
+        if (filters.rebalance === TransactionSearchRebalance.ONLY) where.is_rebalance = true;
+        if (filters.rebalance === TransactionSearchRebalance.EXCLUDE) where.is_rebalance = false;
+
+        if (filters.startDate || filters.endDate) {
+            const dateRange: Prisma.DateTimeFilter = {};
+
+            if (filters.startDate) dateRange.gte = this.normalizeDateForRangeStart(filters.startDate);
+            if (filters.endDate) dateRange.lte = this.normalizeDateForRangeEnd(filters.endDate);
+            if (dateRange.gte && dateRange.lte && dateRange.gte > dateRange.lte)
+                throw new BadRequestException("startDate must be before or equal to endDate");
+
+            where.date = dateRange;
+        }
+
+        const normalizedSearch = filters.search?.trim();
+        if (normalizedSearch) {
+            where.OR = [
+                {
+                    description: {
+                        contains: normalizedSearch,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    merchant: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+                {
+                    category: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+                {
+                    account: {
+                        is: {
+                            name: {
+                                contains: normalizedSearch,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                },
+            ];
+        }
+
+        return where;
     }
 
     private normalizeTransactionDate(date: string | Date): Date {
@@ -708,9 +750,32 @@ export class TransactionService {
             });
         }
 
+        const [categories, merchants] = await this.referenceMatcher.loadEnabledReferences(user, tx);
+        const enrichedDtos = createTransactionDtos.map((transaction) => {
+            const needsCategory = !transaction.categoryId;
+            const needsMerchant = !transaction.merchantId;
+            if (!needsCategory && !needsMerchant) return transaction;
+            const matchedCategoryId = needsCategory
+                ? this.referenceMatcher.findBestMatch(transaction.description, categories)
+                : null;
+            const matchedMerchantId = needsMerchant
+                ? this.referenceMatcher.findBestMatch(transaction.description, merchants)
+                : null;
+            return {
+                ...transaction,
+                categoryId: transaction.categoryId ?? matchedCategoryId ?? undefined,
+                merchantId: transaction.merchantId ?? matchedMerchantId ?? undefined,
+            };
+        });
+
+        const dtoTimestamps = enrichedDtos.map((d) => this.normalizeTransactionDate(d.date).getTime());
+        const minDate = new Date(Math.min(...dtoTimestamps));
+        const maxDate = new Date(Math.max(...dtoTimestamps));
+
         const existingTransactions = await prisma.transactions.findMany({
             where: {
                 account_id: accountId,
+                date: {gte: minDate, lte: maxDate},
             },
             select: {
                 amount: true,
@@ -732,7 +797,7 @@ export class TransactionService {
         const toInsert: CreateTransactionDto[] = [];
         const duplicates: CreateTransactionDto[] = [];
 
-        for (const transaction of createTransactionDtos) {
+        for (const transaction of enrichedDtos) {
             const signature = this.buildTransactionSignature(transaction);
 
             if (existingSignatures.has(signature)) {

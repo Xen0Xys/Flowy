@@ -6,13 +6,13 @@
         "all": "Tous",
         "none": "Aucun",
         "actions": "Actions",
+        "moreActions": "Plus d'actions",
         "save": "Enregistrer",
         "saving": "Enregistrement...",
         "delete": "Supprimer",
         "deleting": "Suppression...",
         "cancel": "Annuler",
         "close": "Fermer",
-        "copy": "Copier",
         "edit": "Modifier",
         "loading": "Chargement...",
         "processing": "Traitement...",
@@ -49,7 +49,6 @@
         },
         "login": {
             "title": "Connexion",
-            "backgroundAlt": "Arrière-plan de connexion",
             "welcome": "Bon retour",
             "subtitle": "Connectez-vous pour accéder à votre tableau de bord",
             "loading": "Connexion...",
@@ -60,7 +59,6 @@
         },
         "register": {
             "title": "Inscription",
-            "backgroundAlt": "Arrière-plan d'inscription",
             "heading": "Créez votre compte",
             "subtitle": "Rejoignez Flowy et organisez-vous en famille",
             "loading": "Inscription...",
@@ -92,13 +90,43 @@
                 "title": "Bienvenue",
                 "description": "Démarrez avec Flowy"
             },
-            "createJoin": {
-                "title": "Créer/Rejoindre",
-                "description": "Créez ou rejoignez une famille"
+            "select": {
+                "title": "Créer ou rejoindre",
+                "description": "Choisissez votre parcours"
+            },
+            "createFamily": {
+                "title": "Créer la famille",
+                "description": "Nommez votre famille"
+            },
+            "categories": {
+                "title": "Catégories",
+                "description": "Configurez vos dépenses"
             },
             "invite": {
                 "title": "Inviter",
-                "description": "Invitez des membres"
+                "description": "Ajoutez des membres"
+            }
+        },
+        "welcome": {
+            "title": "Bienvenue sur Flowy",
+            "tagline": "Configurons ensemble votre espace en quelques étapes.",
+            "bullets": {
+                "family": {
+                    "title": "Créez ou rejoignez une famille",
+                    "description": "Partagez vos finances avec vos proches ou rejoignez un espace existant."
+                },
+                "categories": {
+                    "title": "Choisissez vos catégories",
+                    "description": "Sélectionnez les catégories qui reflètent vos habitudes de dépenses."
+                },
+                "invite": {
+                    "title": "Invitez vos proches",
+                    "description": "Ajoutez d'autres membres à votre famille pour collaborer."
+                }
+            },
+            "cta": {
+                "start": "Commencer",
+                "logout": "Se déconnecter"
             }
         },
         "select": {
@@ -124,6 +152,7 @@
         },
         "create": {
             "title": "Créer une famille",
+            "description": "Donnez un nom à votre famille et choisissez la devise par défaut.",
             "familyName": "Nom de la famille",
             "currency": "Devise",
             "selectCurrency": "Sélectionner une devise",
@@ -136,16 +165,61 @@
                 "createFailed": "Échec de création de la famille"
             }
         },
-        "invite": {
-            "title": "Inviter des membres",
-            "memberEmail": "Email du membre",
-            "memberEmailPlaceholder": "member{'@'}example.org",
-            "send": "Envoyer l'invitation",
-            "sending": "Envoi...",
+        "categories": {
+            "title": "Configurez vos catégories",
+            "description": "Sélectionnez les catégories suggérées et ajoutez les vôtres. Vous pourrez les modifier plus tard.",
+            "suggestedSection": "Suggestions",
+            "customSection": "Personnalisées",
+            "customPlaceholder": "ex : Animaux, Éducation…",
+            "addCustom": "Ajouter",
+            "removeCustom": "Retirer {name}",
+            "selectedCount": "{count} sélectionnée(s)",
             "continue": "Continuer",
+            "creating": "Création...",
             "skip": "Passer",
+            "summary": {
+                "success": "{count} catégorie(s) créée(s)",
+                "partial": "{success} créée(s), {failed} échec(s)",
+                "failed": "Échec de la création des catégories"
+            },
             "errors": {
-                "sendFailed": "Échec de l'envoi de l'invitation"
+                "customDuplicate": "Cette catégorie personnalisée existe déjà."
+            },
+            "defaults": {
+                "food": "Alimentation",
+                "housing": "Logement",
+                "transport": "Transports",
+                "restaurants": "Restaurants",
+                "leisure": "Loisirs",
+                "health": "Santé",
+                "subscriptions": "Abonnements",
+                "shopping": "Shopping",
+                "salary": "Salaire",
+                "savings": "Épargne"
+            }
+        },
+        "invite": {
+            "title": "Invitez vos proches",
+            "description": "Ajoutez plusieurs adresses e-mail, elles recevront une invitation à rejoindre votre famille.",
+            "chipInput": {
+                "label": "Adresses e-mail",
+                "placeholder": "member{'@'}example.org",
+                "hint": "Appuyez sur Entrée ou virgule pour ajouter une adresse.",
+                "invalid": "Adresse e-mail invalide.",
+                "duplicate": "Cette adresse a déjà été ajoutée.",
+                "remove": "Retirer {email}"
+            },
+            "sent": {
+                "title": "Invitation(s) envoyée(s) ({count})"
+            },
+            "send": "Envoyer les invitations",
+            "sending": "Envoi...",
+            "finish": "Terminer",
+            "skip": "Passer",
+            "summary": {
+                "success": "{count} invitation(s) envoyée(s)",
+                "partial": "{success} envoyée(s), {failed} échec(s)",
+                "failed": "Échec de l'envoi des invitations"
             }
         }
     },
@@ -182,6 +256,44 @@
         "wip": "WIP",
         "logOut": "Se déconnecter"
     },
+    "commandPalette": {
+        "placeholder": "Tapez une commande ou recherchez...",
+        "empty": "Aucun résultat.",
+        "hints": {
+            "navigate": "Naviguer",
+            "select": "Sélectionner",
+            "close": "Fermer"
+        },
+        "groups": {
+            "navigation": "Navigation",
+            "quickActions": "Actions rapides",
+            "accounts": "Mes comptes",
+            "settings": "Paramètres",
+            "admin": "Administration",
+            "preferences": "Préférences",
+            "session": "Session"
+        },
+        "actions": {
+            "dashboard": "Aller au tableau de bord",
+            "transactions": "Aller aux transactions",
+            "budget": "Aller au budget",
+            "import": "Aller à l'import",
+            "newTransaction": "Nouvelle transaction",
+            "newAccount": "Nouveau compte",
+            "newBudget": "Nouveau budget",
+            "importCsv": "Importer un CSV",
+            "profile": "Profil",
+            "family": "Famille",
+            "references": "Références",
+            "instance": "Instance",
+            "users": "Utilisateurs",
+            "toggleThemeDark": "Passer en mode sombre",
+            "toggleThemeLight": "Passer en mode clair",
+            "switchToEnglish": "Switch to English",
+            "switchToFrench": "Passer en français",
+            "logout": "Se déconnecter"
+        }
+    },
     "dashboard": {
         "welcome": "Bienvenue, {name}",
         "subtitle": "Voici votre vue d'ensemble financière",
@@ -208,25 +320,32 @@
         "form": {
             "addTitle": "Ajouter un compte",
             "editTitle": "Modifier le compte",
-            "description": "Renseignez les informations de votre compte bancaire.",
+            "addDescription": "Ajoutez un nouveau compte pour commencer à suivre vos finances.",
+            "editDescription": "Mettez à jour les informations de ce compte.",
             "name": "Nom du compte",
             "namePlaceholder": "Ex : Compte courant",
             "type": "Catégorie / Type",
-            "selectType": "Sélectionner un type",
-            "balance": "Solde",
-            "current": "actuel",
-            "initial": "initial",
-            "inBudget": "Inclure dans le budget"
+            "openingBalance": "Solde d'ouverture",
+            "openingBalanceHint": "Solde actuel au moment de la création du compte.",
+            "inBudget": "Inclure dans le budget",
+            "inBudgetDescription": "Prendre en compte les transactions de ce compte dans le calcul de vos budgets mensuels.",
+            "errors": {
+                "nameTooShort": "Le nom doit contenir au moins 3 caractères.",
+                "nameTooLong": "Le nom ne peut pas dépasser 50 caractères.",
+                "balanceInvalid": "Veuillez saisir un montant valide."
+            }
         }
     },
     "account": {
         "updatedOn": "Mis à jour le {date}",
         "setBalance": "Définir le solde",
         "currentBalance": "Solde actuel",
-        "setBalanceTitle": "Définir le solde du compte",
-        "setBalanceDescription": "Définissez le nouveau solde actuel de ce compte. Une transaction de rééquilibrage est créée automatiquement si la valeur change.",
-        "targetBalance": "Solde cible",
-        "saveBalance": "Enregistrer le solde",
+        "setBalanceTitle": "Mettre à jour le solde",
+        "setBalanceDescription": "Saisissez le solde réel de votre banque. Une transaction correspondante sera ajoutée pour garder l'historique cohérent.",
+        "newBalance": "Nouveau solde",
+        "rebalanceTransaction": "Ajustement",
+        "noChange": "Aucun changement",
+        "updateBalance": "Mettre à jour",
         "noData": "Aucun historique de solde pour cette période",
         "store": {
             "success": {
@@ -252,7 +371,11 @@
         "list": {
             "title": "Transactions",
             "viewAll": "Voir tout",
-            "newTransaction": "Nouvelle transaction"
+            "newTransaction": "Nouvelle transaction",
+            "summary": {
+                "count": "{count} transactions",
+                "net": "Net"
+            }
         },
         "filters": {
             "title": "Filtres",
@@ -279,7 +402,19 @@
             "rebalance": "Rééquilibrage",
             "includeRebalance": "Inclure les rééquilibrages",
             "excludeRebalance": "Exclure les rééquilibrages",
-            "onlyRebalance": "Uniquement les rééquilibrages"
+            "onlyRebalance": "Uniquement les rééquilibrages",
+            "remove": "Retirer ce filtre",
+            "presets": {
+                "title": "Raccourcis",
+                "today": "Aujourd'hui",
+                "yesterday": "Hier",
+                "last7": "7 derniers jours",
+                "last30": "30 derniers jours",
+                "thisMonth": "Ce mois-ci",
+                "lastMonth": "Mois dernier",
+                "thisYear": "Cette année",
+                "clear": "Effacer"
+            }
         },
         "table": {
             "date": "Date",
@@ -288,6 +423,8 @@
             "amount": "Montant",
             "account": "Compte",
             "system": "Système",
+            "today": "Aujourd'hui",
+            "yesterday": "Hier",
             "noMatch": "Aucune transaction ne correspond à vos filtres.",
             "noTransactions": "Aucune transaction trouvée."
         },
@@ -295,14 +432,13 @@
             "newTitle": "Nouvelle transaction",
             "editTitle": "Modifier la transaction",
             "newDescription": "Ajoutez une nouvelle transaction. Cliquez sur enregistrer quand vous avez terminé.",
-            "editDescription": "Mettez à jour les détails de cette transaction. Cliquez sur enregistrer quand vous avez terminé.",
             "selectAccount": "Sélectionner un compte",
             "selectCategory": "Sélectionner une catégorie",
             "selectMerchant": "Sélectionner un marchand",
             "incomeDescriptionPlaceholder": "Revenu",
             "expenseDescriptionPlaceholder": "Dépense",
             "systemTransaction": "Transaction système",
-            "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. La modifier peut désynchroniser le solde de votre compte.",
+            "systemTransactionDescription": "Il s'agit d'un ajustement automatique de solde. Seule la date peut être modifiée.",
             "saveChanges": "Enregistrer les modifications",
             "deleteTitle": "Supprimer la transaction",
             "deleteDescription": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.",
@@ -311,15 +447,16 @@
             "keepLinked": "Garder la transaction liée",
             "deleteBoth": "Supprimer les deux",
             "linkedTransaction": "Transaction liée",
-            "linkedTransactionDescription": "Cette transaction est liée à un transfert entre comptes.",
             "viewLinked": "Voir la transaction liée",
             "unlinkTransfer": "Dissocier",
-            "unlinking": "Dissociation...",
             "linkTransfer": "Lier comme transfert",
             "inBudget": "Inclure dans le budget",
+            "inBudgetDescription": "Prendre en compte cette transaction dans les objectifs de budget.",
+            "actions": "Plus d'actions",
+            "details": "Détails",
+            "noResults": "Aucun résultat.",
             "errors": {
-                "loadData": "Impossible de charger les données requises",
-                "accountRequired": "Un compte est requis pour créer une transaction"
+                "loadData": "Impossible de charger les données requises"
             }
         },
         "transfer": {
@@ -330,7 +467,6 @@
             "amount": "Montant",
             "descriptionPlaceholder": "Transfert",
             "create": "Créer le transfert",
-            "sameAccountError": "Les comptes source et destination doivent être différents",
             "linkTitle": "Lier comme transfert",
             "linkDescription": "Liez cette transaction avec une autre pour créer un transfert entre comptes.",
             "selectAccount": "Sélectionner le compte",
@@ -347,17 +483,23 @@
         "description": "Gérez vos informations personnelles et vos identifiants",
         "username": "Nom d'utilisateur",
         "email": "Email",
-        "save": "Enregistrer",
         "saving": "Enregistrement...",
+        "saveChanges": "Enregistrer les modifications",
+        "discardChanges": "Annuler",
+        "sections": {
+            "account": "Compte",
+            "accountDescription": "Vos informations d'identification",
+            "preferences": "Préférences",
+            "preferencesDescription": "Apparence et langue",
+            "security": "Sécurité"
+        },
         "appearance": "Apparence",
-        "selectTheme": "Sélectionner un thème",
         "system": "Système",
         "light": "Clair",
         "dark": "Sombre",
         "language": "Langue",
         "selectLanguage": "Sélectionner la langue",
         "browser": "Navigateur",
-        "changePassword": "Changer le mot de passe",
         "changePasswordDescription": "Saisissez votre mot de passe actuel puis choisissez-en un nouveau.",
         "currentPassword": "Mot de passe actuel",
         "newPassword": "Nouveau mot de passe",
@@ -392,34 +534,35 @@
         "instance": {
             "title": "Paramètres d'instance",
             "subtitle": "Gérez les paramètres globaux de l'instance",
-            "versions": "Versions",
             "versionsDescription": "Version actuelle du frontend et du backend",
             "web": "Web",
             "server": "Serveur",
             "copyVersions": "Copier les versions",
-            "registration": "Inscription",
-            "registrationDescription": "Autoriser les utilisateurs à s'inscrire",
+            "about": "À propos",
+            "registration": "Inscription publique",
+            "registrationDescription": "Autoriser les nouveaux utilisateurs à créer un compte",
+            "registrationOn": "Activée",
+            "registrationOff": "Désactivée",
             "registrationEnabled": "Inscription activée",
-            "saveRegistrationTitle": "Enregistrer le paramètre d'inscription",
-            "saveRegistrationDescription": "Modifier l'inscription impacte qui peut créer des comptes. Êtes-vous sûr ?",
             "owner": "Propriétaire de l'instance",
-            "ownerDescription": "Définir le propriétaire de cette instance (id utilisateur)",
-            "ownerPlaceholder": "id propriétaire",
+            "ownerDescription": "L'utilisateur détenant le contrôle administrateur de l'instance",
+            "selectOwner": "Sélectionner un utilisateur...",
+            "searchOwner": "Rechercher un utilisateur",
             "changeOwnerTitle": "Changer le propriétaire de l'instance",
             "changeOwnerDescription": "Changer le propriétaire de l'instance transfère le contrôle administrateur. Cette action est destructive. Continuer ?",
+            "currentOwner": "Propriétaire actuel",
             "unknown": "inconnu",
             "toasts": {
                 "versionsCopied": "Versions copiées dans le presse-papiers"
-            },
-            "errors": {
-                "ownerRequired": "L'ID du propriétaire est requis.",
-                "ownerInvalid": "L'ID du propriétaire doit être un UUID v7 valide."
             }
         },
         "users": {
             "title": "Utilisateurs",
             "subtitle": "Gérez les utilisateurs de cette instance",
             "searchPlaceholder": "Rechercher par nom d'utilisateur, email ou UUID...",
+            "totalUsers": "{n} utilisateur | {n} utilisateurs",
+            "columns": "Colonnes",
+            "showUuidColumn": "Afficher la colonne UUID",
             "uuid": "UUID",
             "viewDetails": "Voir les détails",
             "copyUuid": "Copier l'UUID",
@@ -428,6 +571,7 @@
             "noUsers": "Aucun utilisateur trouvé.",
             "detailsTitle": "Détails utilisateur",
             "detailsDescription": "Informations détaillées pour ce compte.",
+            "familyInfo": "Informations famille",
             "familyRole": "Rôle familial",
             "familyId": "ID de la famille",
             "familyName": "Nom de la famille",
@@ -435,10 +579,20 @@
             "familyOwner": "Propriétaire de la famille",
             "resetPasswordFor": "Définir un nouveau mot de passe pour {username}.",
             "newPassword": "Nouveau mot de passe",
+            "generatePassword": "Générer",
+            "showPassword": "Afficher le mot de passe",
+            "hidePassword": "Masquer le mot de passe",
             "resetting": "Réinitialisation...",
             "deletePromptWithName": "Êtes-vous sûr de vouloir supprimer {username} ?",
+            "roles": {
+                "instanceOwner": "Propriétaire",
+                "familyAdmin": "Admin famille",
+                "familyMember": "Membre",
+                "noFamily": "Sans famille"
+            },
             "toasts": {
-                "uuidCopied": "UUID copié dans le presse-papiers"
+                "uuidCopied": "UUID copié dans le presse-papiers",
+                "passwordGenerated": "Mot de passe généré"
             },
             "errors": {
                 "newPasswordRequired": "Veuillez saisir un nouveau mot de passe.",
@@ -453,7 +607,20 @@
             "owner": "Propriétaire",
             "admin": "Admin",
             "member": "Membre",
+            "you": "Vous",
             "memberCount": "{n} membre | {n} membres",
+            "pendingInvitesCount": "{n} en attente | {n} en attente",
+            "saveChanges": "Enregistrer",
+            "sections": {
+                "settings": "Paramètres",
+                "settingsDescription": "Nom et devise de la famille",
+                "members": "Membres",
+                "membersDescription": "Gérez les membres actuels de la famille",
+                "invites": "Invitations en attente",
+                "invitesDescription": "Envoyez des invitations par email"
+            },
+            "noInvites": "Aucune invitation en attente",
+            "invitedBadge": "Invité",
             "deleteThis": "Supprimer cette famille",
             "leaveThis": "Quitter cette famille",
             "deleteFamily": "Supprimer la famille",
@@ -461,25 +628,17 @@
             "leave": "Quitter",
             "deleteFamilyDescription": "Cette action supprimera définitivement la famille, retirera toutes les invitations et dissociera les membres. Elle est irréversible.",
             "leaveFamilyDescription": "Êtes-vous sûr de vouloir quitter la famille ? Vous n'aurez plus accès aux données partagées.",
-            "unableToLoad": "Impossible de charger les détails de la famille.",
-            "info": "Informations famille",
-            "settings": "Paramètres famille",
             "familyName": "Nom de la famille",
             "currency": "Devise",
             "selectCurrency": "Sélectionner une devise",
             "adminOnly": "Seuls les admins de la famille peuvent modifier ces paramètres.",
             "members": "Membres",
-            "noMembers": "Aucun membre dans la famille pour le moment.",
             "remove": "Retirer",
-            "removing": "Retrait...",
             "removeMember": "Retirer le membre",
             "removeMemberDescription": "Êtes-vous sûr de vouloir retirer ce membre de la famille ? Il perdra l'accès aux données partagées.",
-            "invites": "Invitations",
             "invite": "Inviter",
             "inviting": "Invitation...",
             "invitePlaceholder": "member{'@'}example.com",
-            "code": "Code",
-            "revoke": "Révoquer",
             "notMember": "Vous ne faites partie d'aucune famille. Créez-en une ou demandez une invitation.",
             "toasts": {
                 "inviteCodeCopied": "Code d'invitation copié"
@@ -491,9 +650,6 @@
                 "currencyInvalid": "La devise doit être un code ISO à 3 lettres valide."
             },
             "aria": {
-                "saveFamilyName": "Enregistrer le nom de la famille",
-                "currency": "Devise",
-                "saveFamilyCurrency": "Enregistrer la devise",
                 "removeMember": "Retirer le membre",
                 "inviteEmail": "Email d'invitation",
                 "inviteMember": "Inviter un membre",
@@ -508,16 +664,23 @@
             "addMerchant": "Ajouter un marchand",
             "categories": "Catégories",
             "merchants": "Marchands",
+            "searchCategoriesPlaceholder": "Rechercher une catégorie...",
+            "searchMerchantsPlaceholder": "Rechercher un marchand...",
+            "categoriesCount": "{n} catégorie | {n} catégories",
+            "merchantsCount": "{n} marchand | {n} marchands",
             "name": "Nom",
-            "color": "Couleur",
-            "icon": "Icône",
             "iconLibrary": "Icônes (Iconoir)",
             "deleteCategory": "Supprimer la catégorie",
             "deleteMerchant": "Supprimer le marchand",
             "deleteCategoryDescription": "Êtes-vous sûr de vouloir supprimer la catégorie \"{name}\" ? Les transactions utilisant cette catégorie perdront leur association.",
             "deleteMerchantDescription": "Êtes-vous sûr de vouloir supprimer le marchand \"{name}\" ? Les transactions utilisant ce marchand perdront leur association.",
-            "noCategories": "Aucune catégorie trouvée. Créez-en une pour commencer.",
-            "noMerchants": "Aucun marchand trouvé. Créez-en un pour commencer.",
+            "noSearchResults": "Aucun résultat pour cette recherche.",
+            "emptyCategoriesTitle": "Aucune catégorie",
+            "emptyCategoriesDescription": "Créez votre première catégorie pour organiser vos transactions.",
+            "emptyMerchantsTitle": "Aucun marchand",
+            "emptyMerchantsDescription": "Créez votre premier marchand pour identifier vos transactions.",
+            "createFirstCategory": "Créer votre première catégorie",
+            "createFirstMerchant": "Créer votre premier marchand",
             "editCategory": "Modifier la catégorie",
             "createCategory": "Créer une catégorie",
             "editCategoryDescription": "Apportez des modifications à votre catégorie.",
@@ -527,17 +690,40 @@
             "editMerchantDescription": "Apportez des modifications à votre marchand.",
             "createMerchantDescription": "Ajoutez un nouveau marchand pour vos transactions.",
             "aria": {
-                "editCategory": "Modifier la catégorie",
-                "deleteCategory": "Supprimer la catégorie",
-                "editMerchant": "Modifier le marchand",
-                "deleteMerchant": "Supprimer le marchand",
                 "selectColor": "Sélectionner la couleur",
-                "selectIcon": "Sélectionner l'icône",
-                "hexColorInput": "Code couleur hexadécimal"
+                "hexColorInput": "Code couleur hexadécimal",
+                "removeKeyword": "Retirer le mot-clé"
             },
             "findIconsAt": "Trouver des icônes sur",
-            "categoryPlaceholder": "ex : Courses",
-            "merchantPlaceholder": "ex : Walmart"
+            "keywords": "Mots-clés",
+            "keywordsPlaceholder": "Ajouter un mot-clé et appuyer sur Entrée",
+            "autoComplete": "Auto-complétion",
+            "autoCompleteHelp": "Quand activée, cette référence participe à l'auto-complétion des transactions.",
+            "style": "Style et couleur",
+            "preview": {
+                "title": "Aperçu",
+                "placeholder": "Nom de la catégorie"
+            },
+            "errors": {
+                "nameRequired": "Le nom est requis",
+                "categoryDuplicate": "Une catégorie porte déjà ce nom",
+                "merchantDuplicate": "Un marchand porte déjà ce nom",
+                "invalidHex": "Code couleur hexadécimal invalide (ex : #ef4444)"
+            },
+            "iconPicker": {
+                "trigger": "Choisir une icône",
+                "search": "Rechercher une icône...",
+                "empty": "Aucune icône trouvée",
+                "customLabel": "Slug personnalisé",
+                "apply": "Appliquer"
+            },
+            "keywordsField": {
+                "help": "Les mots-clés déclenchent l'auto-complétion. Cliquez sur l'étoile pour désigner celui utilisé comme description par défaut.",
+                "defaultLabel": "par défaut",
+                "markAsPrimary": "Utiliser comme description par défaut",
+                "unsetPrimary": "Retirer comme description par défaut",
+                "limitReached": "Limite de {max} mots-clés atteinte"
+            }
         }
     },
     "user": {
@@ -607,7 +793,6 @@
             },
             "errors": {
                 "fetchTransactions": "Échec du chargement des transactions",
-                "fetchAccountTransactions": "Échec du chargement des transactions du compte",
                 "createTransaction": "Échec de création de la transaction",
                 "updateTransaction": "Échec de mise à jour de la transaction",
                 "deleteTransaction": "Échec de suppression de la transaction",
@@ -712,10 +897,29 @@
             "renewDescription": "Ajustez les montants reconduits depuis le budget sélectionné.",
             "editDescription": "Modifiez les montants de votre budget.",
             "budgetedIncome": "Revenus budgétés",
-            "budgetedIncomePlaceholder": "Ex: 3000",
+            "budgetedIncomePlaceholder": "0,00",
             "categories": "Catégories",
-            "amountPlaceholder": "Montant",
-            "totalCategories": "Total catégories"
+            "targetPeriodLabel": "Période ciblée : {period}",
+            "sourceHint": "Reconduit depuis {period}",
+            "resetSource": "Repartir de zéro",
+            "allocated": "Alloué",
+            "remaining": "Reste {amount} à allouer",
+            "overAllocatedBy": "Dépassement de {amount}",
+            "balanced": "Budget équilibré",
+            "addCategory": "Ajouter une catégorie",
+            "searchCategoryPlaceholder": "Rechercher une catégorie…",
+            "removeCategory": "Retirer cette catégorie",
+            "noCategoriesHint": "Aucune catégorie sélectionnée. Ajoutez-en une pour commencer à allouer votre budget.",
+            "noCategoriesFound": "Aucune catégorie trouvée.",
+            "createButton": "Créer le budget",
+            "updateButton": "Mettre à jour",
+            "renewButton": "Reconduire",
+            "renewedBadge": "reconduit",
+            "discardChangesTitle": "Abandonner les modifications ?",
+            "discardChangesDescription": "Vos saisies seront perdues.",
+            "discardChangesConfirm": "Abandonner",
+            "needIncomeHint": "Renseignez un revenu budgété pour continuer.",
+            "needCategoryHint": "Ajoutez au moins une catégorie avec un montant pour continuer."
         },
         "category": {
             "uncategorized": "Non catégorisé",
@@ -815,9 +1019,6 @@
             "readyToImport": "{count} transactions prêtes à être importées",
             "categoryPlaceholder": "Nom de la catégorie",
             "merchantPlaceholder": "Nom du marchand",
-            "createCategoryDescription": "Ajoutez une nouvelle catégorie pour vos transactions.",
-            "createMerchantDescription": "Ajoutez un nouveau marchand pour vos transactions.",
-            "findIcons": "Trouvez des icônes sur",
             "pagination": "Page {page} sur {total}"
         },
         "result": {
@@ -849,5 +1050,12 @@
         "success": {
             "testComplete": "{count} transactions prêtes à être importées"
         }
+    },
+    "whatsNew": {
+        "title": "Nouveautés de la v{version}",
+        "subtitle": "Voici ce qui a changé depuis votre dernière visite.",
+        "viewOnGithub": "Voir sur GitHub",
+        "dismiss": "Compris",
+        "noBody": "Aucune note de version disponible."
     }
 }

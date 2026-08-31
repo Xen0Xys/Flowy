@@ -13,6 +13,7 @@ import BudgetRenewDialog from "~/components/budget/BudgetRenewDialog.vue";
 import {Button} from "~/components/ui/button";
 import {Calendar} from "~/components/ui/calendar";
 import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
+import {ScrollArea} from "~/components/ui/scroll-area";
 import {Skeleton} from "~/components/ui/skeleton";
 import {
     AlertDialog,
@@ -29,10 +30,42 @@ const {t, locale} = useI18n();
 const budgetStore = useBudgetStore();
 const referenceStore = useReferenceStore();
 const familyStore = useFamilyStore();
+const route = useRoute();
+const router = useRouter();
 
 const now = new Date();
-const selectedMonth = ref(now.getMonth() + 1);
-const selectedYear = ref(now.getFullYear());
+
+function parsePeriod(value: unknown): {month: number; year: number} {
+    const fallback = {month: now.getMonth() + 1, year: now.getFullYear()};
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== "string") return fallback;
+    const match = /^(\d{4})-(\d{2})$/.exec(raw);
+    if (!match) return fallback;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (!Number.isFinite(year) || year < 1900 || year > 2200) return fallback;
+    if (!Number.isFinite(month) || month < 1 || month > 12) return fallback;
+    return {month, year};
+}
+
+function formatPeriod(year: number, month: number): string {
+    return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+const currentPeriod = computed(() => parsePeriod(route.query.period));
+const selectedMonth = computed(() => currentPeriod.value.month);
+const selectedYear = computed(() => currentPeriod.value.year);
+
+function setPeriod(year: number, month: number, options?: {replace?: boolean}) {
+    const period = formatPeriod(year, month);
+    if (route.query.period === period) return;
+    const query = {...route.query, period};
+    if (options?.replace) {
+        router.replace({query});
+    } else {
+        router.push({query});
+    }
+}
 
 const budget = ref<Budget | null>(null);
 const spending = ref<BudgetSpending | null>(null);
@@ -305,6 +338,20 @@ const existingBudgetForDialog = computed(() => {
     return null;
 });
 
+const sourcePeriodLabel = computed(() => {
+    if (dialogMode.value !== "renew" || !renewSourceBudget.value) return "";
+    const monthLabel = monthOptions.value.find((month) => month.value === renewSourceBudget.value?.month)?.label ?? "";
+    return `${monthLabel} ${renewSourceBudget.value.year}`;
+});
+
+const editBudgetPeriodLabel = computed(() => {
+    if (!budget.value) return "";
+    const monthLabel = monthOptions.value.find((month) => month.value === budget.value?.month)?.label ?? "";
+    return `${monthLabel} ${budget.value.year}`;
+});
+
+const isSavingBudget = ref(false);
+
 async function loadData() {
     const requestId = ++latestLoadRequestId.value;
     const year = selectedYear.value;
@@ -353,7 +400,7 @@ async function loadAvailableMonths() {
     }
 }
 
-async function navigateMonth(direction: -1 | 1) {
+function navigateMonth(direction: -1 | 1) {
     let m = selectedMonth.value + direction;
     let y = selectedYear.value;
     if (m < 1) {
@@ -363,8 +410,7 @@ async function navigateMonth(direction: -1 | 1) {
         m = 1;
         y++;
     }
-    selectedMonth.value = m;
-    selectedYear.value = y;
+    setPeriod(y, m);
 }
 
 function handlePeriodPickerOpenChange(open: boolean) {
@@ -385,8 +431,7 @@ function applySelectedPeriod() {
         return;
     }
 
-    selectedMonth.value = draftPeriodPlaceholder.value.month;
-    selectedYear.value = draftPeriodPlaceholder.value.year;
+    setPeriod(draftPeriodPlaceholder.value.year, draftPeriodPlaceholder.value.month);
     isPeriodPickerOpen.value = false;
 }
 
@@ -395,6 +440,18 @@ function openCreateDialog() {
     renewSourceBudget.value = null;
     isCreateDialogOpen.value = true;
 }
+
+watch(
+    () => route.query.new,
+    (value) => {
+        if (value) {
+            openCreateDialog();
+            const {new: _drop, ...rest} = route.query;
+            router.replace({query: rest});
+        }
+    },
+    {immediate: true},
+);
 
 function openEditDialog() {
     dialogMode.value = "edit";
@@ -417,23 +474,28 @@ async function handleSaveBudget(payload: {
     budgetedIncome: number;
     categories: {categoryId: string; amount: number}[];
 }) {
-    if (dialogMode.value === "edit" && budget.value) {
-        await budgetStore.updateBudget(budget.value.id, {
-            budgetedIncome: payload.budgetedIncome,
-            categories: payload.categories,
-        });
-        isEditDialogOpen.value = false;
-    } else {
-        await budgetStore.createBudget({
-            month: selectedMonth.value,
-            year: selectedYear.value,
-            budgetedIncome: payload.budgetedIncome,
-            categories: payload.categories,
-        });
-        isCreateDialogOpen.value = false;
+    isSavingBudget.value = true;
+    try {
+        if (dialogMode.value === "edit" && budget.value) {
+            await budgetStore.updateBudget(budget.value.id, {
+                budgetedIncome: payload.budgetedIncome,
+                categories: payload.categories,
+            });
+            isEditDialogOpen.value = false;
+        } else {
+            await budgetStore.createBudget({
+                month: selectedMonth.value,
+                year: selectedYear.value,
+                budgetedIncome: payload.budgetedIncome,
+                categories: payload.categories,
+            });
+            isCreateDialogOpen.value = false;
+        }
+        await loadData();
+        await loadAvailableMonths();
+    } finally {
+        isSavingBudget.value = false;
     }
-    await loadData();
-    await loadAvailableMonths();
 }
 
 async function handleDelete() {
@@ -446,6 +508,9 @@ async function handleDelete() {
 }
 
 onMounted(async () => {
+    if (typeof route.query.period !== "string" || !/^\d{4}-\d{2}$/.test(route.query.period)) {
+        setPeriod(now.getFullYear(), now.getMonth() + 1, {replace: true});
+    }
     await referenceStore.fetchReferences();
     await familyStore.fetchFamily();
     await loadData();
@@ -464,9 +529,17 @@ watch([selectedMonth, selectedYear], async () => {
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
-                        <Icon class="icon-lg text-primary shrink-0" name="iconoir:piggy-bank" />
+                        <div class="relative">
+                            <span
+                                aria-hidden="true"
+                                class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
+                            <div
+                                class="bg-brand-gradient-soft border-border/60 relative flex size-12 items-center justify-center rounded-xl border">
+                                <Icon class="text-primary size-6" name="iconoir:piggy-bank" />
+                            </div>
+                        </div>
                         <div>
-                            <h1 class="text-2xl font-bold tracking-tight">
+                            <h1 class="font-heading text-2xl font-semibold tracking-tight">
                                 {{ t("budget.page.title") }}
                             </h1>
                             <p class="text-muted-foreground text-sm">
@@ -554,15 +627,15 @@ watch([selectedMonth, selectedYear], async () => {
                         </div>
                     </div>
 
-                    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
-                        <div class="space-y-2">
+                    <ScrollArea class="min-h-0 flex-1">
+                        <div class="w-full space-y-2 pb-6 md:pr-4">
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                             <Skeleton class="h-16 w-full rounded-lg" />
                         </div>
-                    </div>
+                    </ScrollArea>
                 </div>
 
                 <!-- Main content: always visible (nav + donut + categories) -->
@@ -622,10 +695,10 @@ watch([selectedMonth, selectedYear], async () => {
                         </div>
 
                         <!-- Right panel: Category list -->
-                        <div class="flex min-h-0 flex-1 flex-col overflow-y-auto pr-2">
-                            <div v-if="categoryRows.length > 0" class="space-y-2">
+                        <ScrollArea class="min-h-0 flex-1">
+                            <div v-if="categoryRows.length > 0" class="stagger-children w-full space-y-2 pb-6 md:pr-4">
                                 <BudgetCategoryRow
-                                    v-for="cat in categoryRows"
+                                    v-for="(cat, idx) in categoryRows"
                                     :id="cat.id"
                                     :key="cat.id"
                                     :budgeted="cat.budgeted"
@@ -635,9 +708,10 @@ watch([selectedMonth, selectedYear], async () => {
                                     :month="selectedMonth"
                                     :name="cat.name"
                                     :spent="cat.spent"
+                                    :style="{'--stagger-index': idx}"
                                     :year="selectedYear" />
                             </div>
-                            <div v-else class="flex flex-1 items-center justify-center text-center">
+                            <div v-else class="flex h-full w-full items-center justify-center text-center">
                                 <div>
                                     <Icon class="text-muted-foreground mb-2 h-8 w-8" name="iconoir:journal-page" />
                                     <p class="text-muted-foreground text-sm">
@@ -648,7 +722,7 @@ watch([selectedMonth, selectedYear], async () => {
                                     </p>
                                 </div>
                             </div>
-                        </div>
+                        </ScrollArea>
                     </div>
                 </template>
             </div>
@@ -663,10 +737,14 @@ watch([selectedMonth, selectedYear], async () => {
         <!-- Create / Renew Dialog -->
         <BudgetFormDialog
             v-model:open="isCreateDialogOpen"
+            :currency="currency"
             :existing-budget="existingBudgetForDialog"
+            :is-saving="isSavingBudget"
             :mode="dialogMode"
+            :source-period-label="sourcePeriodLabel"
             :spending-categories="spending?.byCategory"
             :target-month="selectedMonth"
+            :target-period-label="periodLabel"
             :target-year="selectedYear"
             @save="handleSaveBudget" />
 
@@ -675,15 +753,18 @@ watch([selectedMonth, selectedYear], async () => {
             v-if="budget"
             v-model:open="isEditDialogOpen"
             :budget-id="budget.id"
+            :currency="currency"
             :existing-budget="{
                 month: budget.month,
                 year: budget.year,
                 budgetedIncome: budget.budgetedIncome,
                 categories: budget.budgetedCategories ?? [],
             }"
+            :is-saving="isSavingBudget"
             :mode="'edit'"
             :spending-categories="spending?.byCategory"
             :target-month="budget.month"
+            :target-period-label="editBudgetPeriodLabel"
             :target-year="budget.year"
             @save="handleSaveBudget" />
 

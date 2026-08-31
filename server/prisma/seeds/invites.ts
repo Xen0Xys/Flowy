@@ -24,6 +24,7 @@ export async function seedInvites(prisma: any, familyIds: string[] = [], faker: 
     }
 
     for (const invite of invites) {
+        // oxlint-disable-next-line no-await-in-loop
         await prisma.familyInvites.upsert({
             where: {code: invite.code},
             create: invite,

@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
+import {useFamilyStore} from "~/stores/family.store";
 import {type Transaction, useTransactionStore} from "~/stores/transaction.store";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
@@ -9,6 +10,7 @@ import {Skeleton} from "~/components/ui/skeleton";
 import {Button} from "~/components/ui/button";
 
 const accountStore = useAccountStore();
+const familyStore = useFamilyStore();
 const transactionStore = useTransactionStore();
 const {t} = useI18n();
 const isLoading = ref(true);
@@ -26,7 +28,7 @@ const availableAccounts = computed(() =>
 const loadData = async () => {
     isLoading.value = true;
     try {
-        await accountStore.fetchAccounts();
+        await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily()]);
     } catch (err) {
         console.error(err);
     } finally {
@@ -35,6 +37,9 @@ const loadData = async () => {
 };
 
 onMounted(loadData);
+
+const route = useRoute();
+const router = useRouter();
 
 const handleViewLinked = async (transactionId: string) => {
     try {
@@ -53,6 +58,18 @@ const handleNewTransaction = () => {
     isTransactionModalOpen.value = true;
 };
 
+watch(
+    () => route.query.new,
+    (value) => {
+        if (value) {
+            handleNewTransaction();
+            const {new: _drop, ...rest} = route.query;
+            router.replace({query: rest});
+        }
+    },
+    {immediate: true},
+);
+
 const onTransactionSaved = () => {
     loadData();
 };
@@ -65,9 +82,17 @@ const onTransactionSaved = () => {
                 <!-- Header -->
                 <div class="flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex items-center gap-3">
-                        <Icon class="icon-lg text-primary shrink-0" name="iconoir:credit-card" />
+                        <div class="relative">
+                            <span
+                                aria-hidden="true"
+                                class="bg-brand-gradient-soft absolute inset-0 rounded-xl blur-md"></span>
+                            <div
+                                class="bg-brand-gradient-soft border-border/60 relative flex size-12 items-center justify-center rounded-xl border">
+                                <Icon class="text-primary size-6" name="iconoir:credit-card" />
+                            </div>
+                        </div>
                         <div class="min-w-0">
-                            <h1 class="text-2xl font-bold tracking-tight">
+                            <h1 class="font-heading text-2xl font-semibold tracking-tight">
                                 {{ t("transactions.page.title") }}
                             </h1>
                             <p class="text-muted-foreground text-sm">

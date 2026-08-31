@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import {computed} from "vue";
 import {useI18n} from "vue-i18n";
+import {useCssVar} from "@vueuse/core";
 import {toCurrency} from "~/lib/currency";
 
 const {t} = useI18n();
+const destructiveVar = useCssVar("--destructive");
 
 const props = defineProps<{
     id?: string;
@@ -37,7 +39,10 @@ const percentage = computed(() => {
     return Math.round((props.spent / props.budgeted) * 100);
 });
 
-const progressColor = computed(() => (isOverBudget.value ? "#ef4444" : props.hexColor));
+const progressColor = computed(() => {
+    if (isOverBudget.value) return destructiveVar.value?.trim() || "oklch(0.6 0.22 27)";
+    return props.hexColor;
+});
 
 const formatCurrency = (value: number) => {
     return toCurrency(value, props.currency);

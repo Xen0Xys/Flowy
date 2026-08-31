@@ -1,8 +1,50 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["import", "promise", "node", "vue"],
     "categories": {
-        "correctness": "error"
+        "correctness": "error",
+        "suspicious": "error",
+        "perf": "warn"
     },
-    "rules": {},
-    "ignorePatterns": ["node_modules", "web/.nuxt", "server/prisma/generated"]
+    "rules": {
+        "eqeqeq": "error",
+        "no-throw-literal": "error",
+        "no-console": ["warn", {"allow": ["warn", "error"]}],
+        "import/no-cycle": "error",
+        "import/no-duplicates": "error",
+        "import/no-default-export": "error",
+        "unicorn/prefer-node-protocol": "error",
+        "unicorn/no-array-callback-reference": "warn",
+        "promise/no-return-wrap": "error",
+        "no-underscore-dangle": "off",
+        "typescript/consistent-type-imports": "error"
+    },
+    "overrides": [
+        {
+            "files": ["test/**", "**/*.test.ts", "**/*.spec.ts", "**/*.e2e-spec.ts"],
+            "rules": {
+                "no-console": "off"
+            }
+        },
+        {
+            "files": ["examples/**"],
+            "rules": {
+                "no-console": "off"
+            }
+        },
+        {
+            "files": ["server/prisma/seed.ts", "server/prisma/seeds/**"],
+            "rules": {
+                "no-console": "off"
+            }
+        },
+        {
+            "files": ["web/**"],
+            "rules": {
+                "import/no-default-export": "off",
+                "import/no-cycle": "off"
+            }
+        }
+    ],
+    "ignorePatterns": ["node_modules", ".git", "server/dist", "web/.nuxt", "web/.output", "server/prisma/generated"]
 }

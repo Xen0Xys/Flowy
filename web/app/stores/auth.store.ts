@@ -95,7 +95,7 @@ export const useAuthStore = defineStore("auth", {
             } catch (err: any) {
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.loginFailed");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -119,7 +119,7 @@ export const useAuthStore = defineStore("auth", {
             } catch (err: any) {
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.registrationFailed");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

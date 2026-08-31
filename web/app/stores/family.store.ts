@@ -11,6 +11,19 @@ export type Family = {
     members?: User[];
 };
 
+export type FamilyInvite = {
+    code: string;
+    email: string;
+    family_id: string;
+    created_at: string;
+    expires_at: string;
+};
+
+export type InviteMemberResponse = {
+    code: string;
+    expires_at: string;
+};
+
 export const useFamilyStore = defineStore("family", {
     state: () => ({
         family: null as Family | null,
@@ -28,7 +41,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -37,7 +50,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const family = await apiFetch<any>("/family/create", {
+                const family = await apiFetch<Family>("/family/create", {
                     method: "POST",
                     body: payload,
                 });
@@ -48,7 +61,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.createFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -57,7 +70,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const data = await apiFetch<any>("/family/invite", {
+                const data = await apiFetch<InviteMemberResponse>("/family/invite", {
                     method: "POST",
                     body: {email},
                 });
@@ -66,8 +79,38 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.createInvite");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
+        },
+
+        async inviteMembers(emails: string[]) {
+            if (!emails.length) return {sent: [] as string[], failed: [] as {email: string; error: unknown}[]};
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const results = await Promise.allSettled(
+                emails.map((email) =>
+                    apiFetch("/family/invite", {
+                        method: "POST",
+                        body: {email},
+                    }),
+                ),
+            );
+
+            const sent: string[] = [];
+            const failed: {email: string; error: unknown}[] = [];
+
+            results.forEach((result, index) => {
+                const email = emails[index]!;
+                if (result.status === "fulfilled") {
+                    sent.push(email);
+                } else {
+                    failed.push({email, error: result.reason});
+                }
+            });
+
+            return {sent, failed};
         },
 
         async getInvites() {
@@ -75,11 +118,11 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                return await apiFetch<any[]>("/family/invites");
+                return await apiFetch<FamilyInvite[]>("/family/invites");
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchInvites");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -95,7 +138,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.revokeInvite");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -113,7 +156,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.joinFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -129,7 +172,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.leaveFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -138,7 +181,7 @@ export const useFamilyStore = defineStore("family", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                const family = await apiFetch<any>("/family/settings", {
+                const family = await apiFetch<Family>("/family/settings", {
                     method: "PATCH",
                     body,
                 });
@@ -151,7 +194,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.updateFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -173,11 +216,11 @@ export const useFamilyStore = defineStore("family", {
                 if (err?.status === 404 || err?.response?.status === 404) {
                     const msg = i18nT("family.store.errors.removeMemberEndpointMissing");
                     toast.error(msg);
-                    throw new Error(msg);
+                    throw new Error(msg, {cause: err});
                 }
                 const message = err?.message ?? i18nT("family.store.errors.removeMember");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -196,11 +239,11 @@ export const useFamilyStore = defineStore("family", {
                 if (err?.status === 404 || err?.response?.status === 404) {
                     const msg = i18nT("family.store.errors.deleteFamilyEndpointMissing");
                     toast.error(msg);
-                    throw new Error(msg);
+                    throw new Error(msg, {cause: err});
                 }
                 const message = err?.message ?? i18nT("family.store.errors.deleteFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -213,7 +256,7 @@ export const useFamilyStore = defineStore("family", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.fetchFamily");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

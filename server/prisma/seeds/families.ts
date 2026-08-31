@@ -52,6 +52,7 @@ export async function seedFamilies(prisma: any, faker: Faker) {
     }
 
     for (const family of families) {
+        // oxlint-disable-next-line no-await-in-loop
         await prisma.family.upsert({
             where: {id: family.id},
             create: family,

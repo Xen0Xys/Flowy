@@ -104,16 +104,20 @@ async function main() {
 
         for (let i = 0; i < users.length; i++) {
             const user = users[i];
+            // oxlint-disable-next-line no-await-in-loop
             const merchants = await (seedUserMerchants as any)(prisma, user.id, faker);
             merchantsCount += merchants.length;
 
+            // oxlint-disable-next-line no-await-in-loop
             const categories = await (seedUserCategories as any)(prisma, user.id, faker);
             categoriesCount += categories.length;
 
+            // oxlint-disable-next-line no-await-in-loop
             const accounts = await (seedAccounts as any)(prisma, user.id, faker);
             accountsCount += accounts.length;
 
             for (const account of accounts) {
+                // oxlint-disable-next-line no-await-in-loop
                 transactionsCount += await (seedTransactionsForAccount as any)(
                     prisma,
                     account.id,
@@ -123,8 +127,10 @@ async function main() {
                 );
             }
 
+            // oxlint-disable-next-line no-await-in-loop
             transfersCount += await (seedTransfersForUser as any)(prisma, accounts, faker);
 
+            // oxlint-disable-next-line no-await-in-loop
             const budgetsSeed = await (seedBudgetsForUser as any)(prisma, user.id, categories, faker);
             budgetsCount += budgetsSeed.budgetsCount;
             budgetedCategoriesCount += budgetsSeed.budgetedCategoriesCount;
@@ -154,6 +160,7 @@ async function main() {
 // oxlint-disable-next-line no-unused-vars
 async function idSeed(table: any, data: any[], update: boolean = true): Promise<void> {
     for (let i = 0; i < data.length; i++) {
+        // oxlint-disable-next-line no-await-in-loop
         await table.upsert({
             where: {id: data[i].id},
             update: update
@@ -172,6 +179,7 @@ async function seed(table: any, data: any[], id_field: any, update: boolean = tr
     for (let i = 0; i < data.length; i++) {
         const whereClause: any = {};
         whereClause[id_field] = data[i][id_field];
+        // oxlint-disable-next-line no-await-in-loop
         await table.upsert({
             where: whereClause,
             update: update

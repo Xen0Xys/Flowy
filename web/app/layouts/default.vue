@@ -2,27 +2,22 @@
 import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
 import FlowySidebar from "~/components/sidebar/FlowySidebar.vue";
 import AppBreadcrumb from "~/components/layout/AppBreadcrumb.vue";
-import {useRoute} from "vue-router";
-import {computed} from "vue";
-
-const route = useRoute();
-const showSidebar = computed(() => {
-    const p = route.path || "";
-    return !(p.startsWith("/auth") || p.startsWith("/onboarding"));
-});
+import CommandPalette from "~/components/layout/CommandPalette.vue";
 
 const defaultOpen = useCookie<boolean>("sidebar_state");
 </script>
 
 <template>
-    <main v-if="showSidebar" class="flex h-dvh w-full grow flex-col">
+    <main class="flex h-dvh w-full grow flex-col">
         <SidebarProvider :defaultOpen="defaultOpen">
             <SidebarWatcher />
+            <CommandPalette />
             <FlowySidebar />
             <SidebarInset>
                 <div class="flex h-full flex-col">
-                    <header class="bg-background flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                        <SidebarTrigger class="-ml-1" />
+                    <header
+                        class="bg-background/80 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b px-4 backdrop-blur-md">
+                        <SidebarTrigger class="hover:bg-accent/20 -ml-1 transition-colors" />
                         <Separator class="mr-2 max-h-6" orientation="vertical" />
                         <AppBreadcrumb />
                     </header>
@@ -32,8 +27,5 @@ const defaultOpen = useCookie<boolean>("sidebar_state");
                 </div>
             </SidebarInset>
         </SidebarProvider>
-    </main>
-    <main v-else class="flex h-dvh w-full grow flex-col">
-        <slot></slot>
     </main>
 </template>

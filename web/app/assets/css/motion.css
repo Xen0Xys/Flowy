@@ -1,0 +1,255 @@
+/* ============================================================
+   Flowy motion vocabulary
+   - Discreet, functional motion
+   - Respects prefers-reduced-motion
+   ============================================================ */
+
+/* ---------- Global page transition ---------- */
+.page-enter-active,
+.page-leave-active {
+    transition:
+        opacity var(--motion-base) var(--ease-out-expo),
+        transform var(--motion-base) var(--ease-out-expo);
+}
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(6px);
+}
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+/* Prevent scrollbar flash: the translateY on the entering page briefly
+   overflows its scroll parent (e.g. the default layout's overflow-y-auto
+   region). Clipping the parent for the duration of the transition avoids
+   the momentary scrollbar without changing the motion. Covers both the
+   default `page` transition and the `fade` variant used by auth/onboarding
+   pages, on client navigation and on initial mount (appear). */
+:where(*):has(> .page-enter-active),
+:where(*):has(> .page-leave-active),
+:where(*):has(> .fade-enter-active),
+:where(*):has(> .fade-leave-active) {
+    overflow: clip;
+}
+
+/* ---------- Vue transition helpers (usable via <transition name="..."/>) ---------- */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity var(--motion-base) var(--ease-standard);
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition:
+        opacity var(--motion-base) var(--ease-out-expo),
+        transform var(--motion-base) var(--ease-out-expo);
+}
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+}
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.slide-x-enter-active,
+.slide-x-leave-active {
+    transition:
+        opacity var(--motion-base) var(--ease-out-expo),
+        transform var(--motion-base) var(--ease-out-expo);
+}
+.slide-x-enter-from {
+    opacity: 0;
+    transform: translateX(12px);
+}
+.slide-x-leave-to {
+    opacity: 0;
+    transform: translateX(-12px);
+}
+
+/* ---------- Utility classes ---------- */
+.animate-fade-in {
+    animation: flowy-fade-in var(--motion-base) var(--ease-out-expo) both;
+}
+.animate-fade-in-up {
+    animation: flowy-fade-in-up var(--motion-slow) var(--ease-out-expo) both;
+}
+.animate-fade-in-scale {
+    animation: flowy-fade-in-scale var(--motion-base) var(--ease-out-expo) both;
+}
+.animate-slide-in-right {
+    animation: flowy-slide-in-right var(--motion-slow) var(--ease-out-expo) both;
+}
+
+@keyframes flowy-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes flowy-fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes flowy-fade-in-scale {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes flowy-slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ---------- Stagger children ---------- */
+.stagger-children > * {
+    animation: flowy-fade-in-up var(--motion-slow) var(--ease-out-expo) both;
+    animation-delay: calc(var(--stagger-delay, 60ms) * var(--stagger-index, 0));
+}
+
+/* ---------- Skeleton shimmer (replaces animate-pulse for a nicer effect) ---------- */
+.flowy-shimmer {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.flowy-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        oklch(1 0 0 / 0.06) 40%,
+        oklch(1 0 0 / 0.12) 50%,
+        oklch(1 0 0 / 0.06) 60%,
+        transparent 100%
+    );
+    animation: flowy-shimmer 1.6s var(--ease-in-out) infinite;
+}
+:root .flowy-shimmer::after {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        oklch(0 0 0 / 0.03) 40%,
+        oklch(0 0 0 / 0.06) 50%,
+        oklch(0 0 0 / 0.03) 60%,
+        transparent 100%
+    );
+}
+.dark .flowy-shimmer::after {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        oklch(1 0 0 / 0.04) 40%,
+        oklch(1 0 0 / 0.08) 50%,
+        oklch(1 0 0 / 0.04) 60%,
+        transparent 100%
+    );
+}
+@keyframes flowy-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* ---------- Ambient blobs (auth surfaces) ---------- */
+.animate-blob-a {
+    animation: flowy-blob-a 26s var(--ease-in-out) infinite alternate;
+    will-change: transform;
+}
+.animate-blob-b {
+    animation: flowy-blob-b 32s var(--ease-in-out) infinite alternate;
+    will-change: transform;
+}
+.animate-blob-c {
+    animation: flowy-blob-c 38s var(--ease-in-out) infinite alternate;
+    will-change: transform;
+}
+
+@keyframes flowy-blob-a {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+        transform: translate3d(6%, -4%, 0) scale(1.08);
+    }
+}
+@keyframes flowy-blob-b {
+    from {
+        transform: translate3d(0, 0, 0) scale(1.05);
+    }
+    to {
+        transform: translate3d(-5%, 6%, 0) scale(0.95);
+    }
+}
+@keyframes flowy-blob-c {
+    from {
+        transform: translate3d(0, 0, 0) scale(0.95);
+    }
+    to {
+        transform: translate3d(4%, 5%, 0) scale(1.1);
+    }
+}
+
+/* ---------- Interactive polish ---------- */
+button,
+a,
+[role="button"] {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--ease-standard);
+}
+
+/* Focus rings: soft teal by default from token */
+:where(button, a, input, textarea, select, [role="button"]):focus-visible:not([data-slot="command-input"]) {
+    outline: 2px solid transparent;
+    box-shadow:
+        0 0 0 2px var(--background),
+        0 0 0 4px var(--ring);
+}
+
+/* Command palette input: subtle wrapper tint instead of the loud global halo */
+[data-slot="input-group"]:has([data-slot="command-input"]:focus-visible) {
+    border-color: color-mix(in oklch, var(--ring) 60%, transparent);
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .flowy-shimmer::after {
+        display: none;
+    }
+}

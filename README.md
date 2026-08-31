@@ -1,152 +1,98 @@
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](./LICENSE)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](./DEPLOYMENT.md)
+[![Nuxt 4](https://img.shields.io/badge/Nuxt-4-00DC82?logo=nuxtdotjs&logoColor=white)](https://nuxt.com)
+[![NestJS 12](https://img.shields.io/badge/NestJS-12-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+
 # Flowy
-
-**Turn household money chaos into a clear, shared financial system.**
-
-![Flowy product preview](./assets/readme/flowy-hero.webp)
 
 Flowy is a self-hosted finance platform built for people who are tired of juggling spreadsheets, disconnected banking apps, and shared Google Sheets that nobody agrees on.
 
-One place. All your accounts. Everyone in the loop.
+Think of it as a self-hosted alternative to shared spreadsheets and subscription finance apps, purpose-built for couples, families and roommates who share money.
 
----
+![Flowy preview](./assets/readme/flowy-hero.webp)
 
-## What Flowy gives you
+## Highlights
 
-### 🏠 A shared household workspace
+- Everyone sees the same picture. Invite your partner or family to a shared workspace and stop emailing exports back and forth.
+- All your money in one dashboard. Checking, savings, credit, cash, investment and custom accounts tracked side by side.
+- Categorization that fits your household. Build your own merchant and category catalog instead of adapting to a generic preset.
+- Your data stays on your server. Runs on your own PostgreSQL through Docker Compose. No third-party sync, no subscription, no telemetry.
 
-Create a family space and work on the same financial picture together. Invite your partner or family members — everyone sees what you share with them.
-
-### 🏦 All your accounts in one place
-
-Manage checking, savings, credit, cash, investment, and custom account types from a single dashboard. No more switching between apps to get the full picture.
-
-### 🧾 Transactions that actually make sense
-
-Classify each transaction with merchants and categories you define. Build your own catalog, adapted to how you actually spend money — not some generic preset list.
-
-### 🔒 Your data, your server
-
-Flowy is self-hosted. You control the deployment, the database, and who has access. No third-party sync, no subscription required, no data harvested.
-
----
-
-## Why Flowy
-
-### Who it's for
-
-**Couples and families** who want a shared view of spending without emailing each other CSV exports.
-
-**People leaving spreadsheets** who need structure without sacrificing flexibility.
-
-**Self-hosters** who want financial tooling without handing their data to a third party.
-
-**Households with multiple accounts** that need consistent categorization month after month.
-
-### How it works
-
-**Get started fast** — register, sign in, pick your onboarding path, and start tracking in minutes.
-
-**Build your household** — create a family workspace or join one through an invite link.
-
-**Track real money movement** — add accounts, monitor balances, and record transactions as they happen.
-
-**Organize your spending** — structure data with reusable categories and merchants for visibility that actually improves over time.
-
-**Manage everything from settings** — update your profile, family details, and references. Admins can configure instance-level behavior.
-
-### Flowy vs spreadsheet
-
-|                   | Flowy                                                | Spreadsheet                      |
-| ----------------- | ---------------------------------------------------- | -------------------------------- |
-| **Onboarding**    | Guided setup and family invites                      | Manual tab setup                 |
-| **Collaboration** | Shared household context                             | File links and version confusion |
-| **Structure**     | Accounts, categories, merchants, transactions        | Free-form cells                  |
-| **Consistency**   | Reusable references, standardized entries            | Ad hoc naming                    |
-| **Scale**         | Built for long-term history and multi-user workflows | Fragile growth                   |
-
----
-
-## Roadmap
-
-Features currently planned or in progress. Scope and order may evolve.
-
-### 🔁 Recurring transactions
-
-Define recurring income and expenses, visualized on a calendar view so you always know what's coming and when.
-
-### 📤 Data export & RGPD compliance
-
-Export your financial data at any time in open formats — CSV and PDF. Every account, transaction, category, and merchant you've created can be downloaded from your profile settings. Flowy also includes a full account deletion flow: remove your data from the instance completely, with no residual records left behind.
-
-### 🔗 Shared account access
-
-Allow multiple family members to access and manage the same account collaboratively — with explicit permission levels (read-only or read+write) and an activity feed that logs every change. Designed for couples and households where expenses are genuinely shared.
-
-### 🏦 Bank aggregator integration _(optional)_
-
-Connect your bank accounts through a supported third-party aggregator. Transactions are automatically imported and matched against your existing categories and merchants — reducing manual entry without compromising your self-hosted setup. Flowy never handles your banking credentials directly.
-
-### 🏦 Loan management
-
-Track active loans — personal, mortgage, or other — with repayment schedules, remaining balances, and interest visibility. Integrate them into the overall household financial picture.
-
-### 📈 Investment tracking
-
-Monitor investment portfolios alongside everyday accounts. Track asset performance, contributions, and allocation — without leaving Flowy.
-
-### 🤖 MCP server & LLM assistant _(optional)_
-
-An optional Model Context Protocol server that exposes your Flowy data to a compatible LLM. When enabled, your assistant can answer questions about your finances, surface spending patterns, and help you understand where your budget stands — using your actual data. Nothing is sent to any external model unless you explicitly configure and activate it.
-
-### 🎨 Theming
-
-A reworked visual layer with multiple themes to choose from — because a tool you use daily should feel like yours.
-
----
-
-## Deploy in minutes
-
-Flowy ships as a Docker Compose stack. Pull, configure, run.
+## 🚀 Try it in one command
 
 ```bash
 docker compose -f docker-compose.yaml up -d
 ```
 
-For full deployment instructions across all environments (standard, dev, Coolify), see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+Then open `http://localhost:3000`. For production deployments and platform-specific setups (Coolify, dev builds), see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
----
+## 📷 Screenshots
 
-## For developers
+Every transaction in one place. Filter by account, category or merchant, and categorize inline as you go.
 
-### Tech stack
+![Transactions](./assets/readme/flowy-transactions.webp)
 
-- **Runtime / tooling**: Bun 1.3+, Node 20+
-- **Frontend**: Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, shadcn-nuxt
-- **Backend**: NestJS 11, Fastify, Swagger, JWT, class-validator
-- **Database**: PostgreSQL + Prisma
+Set a budget per category and see how the household tracks against it month after month.
 
-### Repository structure
+![Budget](./assets/readme/flowy-budget.webp)
+
+## 🔗 Quick links
+
+- Deployment guide: [DEPLOYMENT.md](./DEPLOYMENT.md)
+- Development setup: [see below](#development)
+- Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
+- License: [LICENSE](./LICENSE)
+
+## 🗺️ Roadmap
+
+Actively developed. Currently planned:
+
+- Recurring transactions with calendar view
+- CSV/PDF export and GDPR-compliant account deletion
+- Shared account access with permissions and activity log
+- Bank aggregator integration (optional)
+- Loan tracking
+- Investment portfolio tracking
+- MCP server and LLM assistant (optional)
+- Theming
+
+## Tech stack
+
+- Runtime: Bun 1.3+, Node 20+
+- Frontend: Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, shadcn-nuxt
+- Backend: NestJS 12, Fastify, Prisma, JWT
+- Database: PostgreSQL (tensorchord/vchord-postgres)
+
+## Repository layout
 
 ```
-web/                        # Frontend application
-server/                     # Backend API and business logic
+web/                        # Nuxt frontend
+server/                     # NestJS backend and Prisma schema
+.github/                    # Issue and PR templates
 docker-compose.yaml         # Production stack (prebuilt images)
 docker-compose.dev.yaml     # Local dev stack (Docker builds)
-docker-compose.coolify.yaml # Coolify-oriented deployment
+docker-compose.coolify.yaml # Coolify deployment
 DEPLOYMENT.md               # Full deployment guide
+CONTRIBUTING.md             # Contribution guide
+SECURITY.md                 # Security policy and disclosure
+AGENTS.md                   # Full conventions (AI/automation reference)
 ```
+
+## Development
 
 ### Prerequisites
 
 - Bun `1.3.x`
 - Node `20+`
-- Docker + Docker Compose v2 (for containerized workflows)
-- PostgreSQL (if running without Docker)
+- Docker and Docker Compose v2 (for containerized workflows)
+- PostgreSQL if you run the backend without Docker
 
 ### Local setup (without Docker)
 
 ```bash
-# Install workspace dependencies
+# From the repo root
 bun install
 
 # Copy environment files
@@ -154,32 +100,32 @@ cp server/.env.example server/.env
 cp web/.env.example web/.env
 ```
 
-Configure required variables in `server/.env`:
+Backend variables (`server/.env`):
 
 | Variable       | Description                                |
 | -------------- | ------------------------------------------ |
 | `DATABASE_URL` | PostgreSQL connection string               |
 | `APP_NAME`     | App name used by JWT issuer and docs       |
-| `APP_SECRET`   | Secret for JWT/cookies (required)          |
-| `NODE_ENV`     | `development` \| `production` \| `test`    |
+| `APP_SECRET`   | Secret for JWT and cookies (required)      |
+| `NODE_ENV`     | `development`, `production` or `test`      |
 | `PREFIX`       | Global API prefix (optional)               |
 | `CORS_ORIGINS` | Comma-separated allowed origins (optional) |
 
-Frontend (`web/.env`):
+Frontend variables (`web/.env`):
 
 | Variable               | Description         |
 | ---------------------- | ------------------- |
 | `NUXT_PUBLIC_API_BASE` | Public API base URL |
 
+Initialize the database and start both apps:
+
 ```bash
-# Generate Prisma client and run migrations (from server/)
+# From server/
 bunx prisma generate
 bunx prisma migrate dev --name init
-
-# Start backend (from server/)
 bun run dev
 
-# Start frontend (from web/)
+# From web/ in another terminal
 bun run dev
 ```
 
@@ -192,36 +138,31 @@ Default local URLs:
 ### Docker dev setup
 
 ```bash
-# Build and run the full local stack
 docker compose -f docker-compose.dev.yaml up --build -d
-
-# Follow logs
 docker compose -f docker-compose.dev.yaml logs -f
-
-# Stop the stack
 docker compose -f docker-compose.dev.yaml down
 ```
 
 ### Scripts
 
-**Root**
+Root:
 
-- `bun run lint` — run oxlint + oxfmt check
-- `bun run lint:fix` — auto-fix lint and formatting
+- `bun run lint` runs oxlint and oxfmt in check mode
+- `bun run lint:fix` applies auto-fixes and formatting
 
-**Frontend (`web/`)**
+Frontend (`web/`):
 
-- `bun run dev` — start Nuxt dev server
-- `bun run build` — production build
-- `bun run preview` — serve production build locally
-- `bun run generate` — generate static output
+- `bun run dev` starts the Nuxt dev server
+- `bun run build` produces a production build
+- `bun run preview` serves the production build locally
+- `bun run generate` produces static output
 
-**Backend (`server/`)**
+Backend (`server/`):
 
-- `bun run dev` — run API in hot-reload mode
-- `bun run start` — start Nest via Bun
-- `bun run build` — bundle app into `dist/`
-- `bun run start:prod` — run compiled app from `dist/app`
+- `bun run dev` runs the API in hot-reload mode
+- `bun run start` starts Nest via Bun
+- `bun run build` bundles the app into `dist/`
+- `bun run start:prod` runs the compiled app from `dist/app`
 
 ### Database and seeding
 
@@ -232,10 +173,12 @@ bunx prisma migrate dev --name <migration_name>
 bunx prisma db seed
 ```
 
-> The server Docker image runs `prisma migrate deploy` then `prisma db seed` at startup. Seed includes default instance config and development data when `NODE_ENV=development`.
+The backend Docker image runs `prisma migrate deploy` then `prisma db seed` at startup. Seed data includes the default instance configuration, plus development fixtures when `NODE_ENV=development`.
 
----
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, conventions and pull request guidelines.
 
 ## License
 
-Licensed under `CC-BY-NC-SA`. See [LICENSE.md](./LICENSE) for details.
+Licensed under [CC-BY-NC-SA 4.0](./LICENSE).

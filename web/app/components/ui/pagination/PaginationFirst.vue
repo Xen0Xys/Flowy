@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type {PaginationFirstProps} from "reka-ui";
+
 import type {HTMLAttributes} from "vue";
 import type {ButtonVariants} from "@/components/ui/button";
-import {ChevronLeftIcon} from "@lucide/vue";
+import {ChevronsLeftIcon} from "@lucide/vue";
 import {reactiveOmit} from "@vueuse/core";
 import {PaginationFirst, useForwardProps} from "reka-ui";
 import {cn} from "@/lib/utils";
@@ -27,10 +28,10 @@ const forwarded = useForwardProps(delegatedProps);
 <template>
     <PaginationFirst
         data-slot="pagination-first"
-        :class="cn(buttonVariants({variant: 'ghost', size}), 'gap-1 px-2.5 sm:pr-2.5', props.class)"
+        :class="cn(buttonVariants({variant: 'ghost', size}), '', props.class)"
         v-bind="forwarded">
         <slot>
-            <ChevronLeftIcon />
+            <ChevronsLeftIcon data-icon="inline-start" />
             <span class="hidden sm:block">First</span>
         </slot>
     </PaginationFirst>

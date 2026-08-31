@@ -9,20 +9,32 @@ type CreateCategoryPayload = {
     name: string;
     hexColor: string;
     icon: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 type UpdateCategoryPayload = {
     name?: string;
     hexColor?: string;
     icon?: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 type CreateMerchantPayload = {
     name: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 type UpdateMerchantPayload = {
     name?: string;
+    keywords?: string[];
+    primaryKeyword?: string | null;
+    autoCompleteEnabled?: boolean;
 };
 
 export const useReferenceStore = defineStore("reference", {
@@ -55,7 +67,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.fetchReferences");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             } finally {
                 this.isLoading = false;
             }
@@ -84,8 +96,43 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.createCategory");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
+        },
+
+        async bulkCreateCategories(payloads: CreateCategoryPayload[]) {
+            if (!payloads.length) {
+                return {created: [] as TransactionCategory[], failed: [] as {name: string; error: unknown}[]};
+            }
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const results = await Promise.allSettled(
+                payloads.map((payload) =>
+                    apiFetch<TransactionCategory>("/reference/category", {
+                        method: "POST",
+                        body: payload,
+                    }),
+                ),
+            );
+
+            const created: TransactionCategory[] = [];
+            const failed: {name: string; error: unknown}[] = [];
+
+            results.forEach((result, index) => {
+                if (result.status === "fulfilled") {
+                    created.push(result.value);
+                } else {
+                    failed.push({name: payloads[index]!.name, error: result.reason});
+                }
+            });
+
+            if (created.length) {
+                this.categories = [...created, ...this.categories];
+            }
+
+            return {created, failed};
         },
 
         async updateCategory(categoryId: string, payload: UpdateCategoryPayload) {
@@ -108,7 +155,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.updateCategory");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -128,7 +175,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteCategory");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -150,7 +197,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.createMerchant");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -174,7 +221,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.updateMerchant");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -194,7 +241,7 @@ export const useReferenceStore = defineStore("reference", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteMerchant");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

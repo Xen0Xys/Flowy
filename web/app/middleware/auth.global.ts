@@ -30,7 +30,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     if (!userStore.hasFamily) {
         if (!to.path.startsWith("/onboarding")) {
-            return navigateTo("/onboarding/select");
+            return navigateTo("/onboarding");
         }
     }
 });

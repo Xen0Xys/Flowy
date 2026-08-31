@@ -8,6 +8,9 @@ export type TransactionMerchant = {
     id: string;
     userId: string;
     name: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -18,6 +21,9 @@ export type TransactionCategory = {
     name: string;
     hexColor: string;
     icon: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -80,6 +86,9 @@ export type BulkTransactionsCreateResult = {
     duplicates: CreateTransactionPayload[];
 };
 
+export type TransactionSortBy = "date" | "description" | "amount" | "category" | "account";
+export type TransactionSortOrder = "asc" | "desc";
+
 export type TransactionSearchFilters = {
     search?: string;
     type?: "all" | "income" | "expense";
@@ -91,6 +100,8 @@ export type TransactionSearchFilters = {
     endDate?: string;
     page?: number;
     pageSize?: number;
+    sortBy?: TransactionSortBy;
+    sortOrder?: TransactionSortOrder;
 };
 
 export type SearchTransactionsResult = {
@@ -99,45 +110,40 @@ export type SearchTransactionsResult = {
     page: number;
     pageSize: number;
     totalPages: number;
-    isPaginated: boolean;
 };
+
+export type TransactionSummary = {
+    count: number;
+    income: number;
+    expense: number;
+    net: number;
+    rebalanceCount: number;
+    rebalanceNet: number;
+};
+
+function buildTransactionSearchParams(filters: TransactionSearchFilters): URLSearchParams {
+    const params = new URLSearchParams();
+
+    if (filters.search?.trim()) params.set("search", filters.search.trim());
+    if (filters.type && filters.type !== "all") params.set("type", filters.type);
+    if (filters.accountId && filters.accountId !== "all") params.set("accountId", filters.accountId);
+    if (filters.categoryId && filters.categoryId !== "all") params.set("categoryId", filters.categoryId);
+    if (filters.merchantId && filters.merchantId !== "all") params.set("merchantId", filters.merchantId);
+    if (filters.rebalance && filters.rebalance !== "all") params.set("rebalance", filters.rebalance);
+    if (filters.startDate) params.set("startDate", filters.startDate);
+    if (filters.endDate) params.set("endDate", filters.endDate);
+    if (filters.page !== undefined) params.set("page", String(filters.page));
+    if (filters.pageSize !== undefined) params.set("pageSize", String(filters.pageSize));
+    if (filters.sortBy) params.set("sortBy", filters.sortBy);
+    if (filters.sortOrder) params.set("sortOrder", filters.sortOrder);
+
+    return params;
+}
 
 export const useTransactionStore = defineStore("transaction", {
     state: () => ({}),
 
     actions: {
-        async fetchTransactions() {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
-            const {apiFetch} = useApi();
-
-            try {
-                return await apiFetch<Transaction[]>("/transaction");
-            } catch (err: any) {
-                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
-                toast.error(message);
-                throw new Error(message);
-            }
-        },
-
-        async fetchTransactionsByAccountId(accountId: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
-            const {apiFetch} = useApi();
-
-            try {
-                const params = new URLSearchParams({accountId});
-                const endpoint = `/transaction?${params.toString()}`;
-                const result = await apiFetch<SearchTransactionsResult>(endpoint);
-
-                return result.items;
-            } catch (err: any) {
-                const message = err?.message ?? i18nT("transaction.store.errors.fetchAccountTransactions");
-                toast.error(message);
-                throw new Error(message);
-            }
-        },
-
         async fetchTransactionById(transactionId: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
@@ -148,7 +154,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -157,49 +163,7 @@ export const useTransactionStore = defineStore("transaction", {
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
-            const params = new URLSearchParams();
-
-            if (filters.search?.trim()) {
-                params.set("search", filters.search.trim());
-            }
-
-            if (filters.type && filters.type !== "all") {
-                params.set("type", filters.type);
-            }
-
-            if (filters.accountId && filters.accountId !== "all") {
-                params.set("accountId", filters.accountId);
-            }
-
-            if (filters.categoryId && filters.categoryId !== "all") {
-                params.set("categoryId", filters.categoryId);
-            }
-
-            if (filters.merchantId && filters.merchantId !== "all") {
-                params.set("merchantId", filters.merchantId);
-            }
-
-            if (filters.rebalance && filters.rebalance !== "all") {
-                params.set("rebalance", filters.rebalance);
-            }
-
-            if (filters.startDate) {
-                params.set("startDate", filters.startDate);
-            }
-
-            if (filters.endDate) {
-                params.set("endDate", filters.endDate);
-            }
-
-            if (filters.page !== undefined) {
-                params.set("page", String(filters.page));
-            }
-
-            if (filters.pageSize !== undefined) {
-                params.set("pageSize", String(filters.pageSize));
-            }
-
-            const queryString = params.toString();
+            const queryString = buildTransactionSearchParams(filters).toString();
             const endpoint = queryString ? `/transaction?${queryString}` : "/transaction";
 
             try {
@@ -207,7 +171,24 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async fetchTransactionsSummary(filters: Omit<TransactionSearchFilters, "page" | "pageSize"> = {}) {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+
+            const queryString = buildTransactionSearchParams(filters).toString();
+            const endpoint = queryString ? `/transaction/summary?${queryString}` : "/transaction/summary";
+
+            try {
+                return await apiFetch<TransactionSummary>(endpoint);
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("transaction.store.errors.fetchTransactions");
+                toast.error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -227,7 +208,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createTransaction");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -244,7 +225,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.testBulkTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -259,14 +240,12 @@ export const useTransactionStore = defineStore("transaction", {
                     body: payload,
                 });
 
-                await Promise.all([this.fetchTransactions(), this.fetchTransactionsByAccountId(accountId)]);
-
                 toast.success(i18nT("transaction.store.success.bulkTransactionsCreated", {count: result.insertedCount}));
                 return result;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createBulkTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -286,7 +265,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.updateTransaction");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -315,7 +294,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.deleteTransaction");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -335,7 +314,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.createTransfer");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -354,7 +333,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.unlinkTransfer");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -376,7 +355,7 @@ export const useTransactionStore = defineStore("transaction", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("transaction.store.errors.linkTransactions");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

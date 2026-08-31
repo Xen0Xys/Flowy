@@ -72,6 +72,7 @@ export class AccountService implements OnModuleInit {
                     `Integrity mismatch on account ${account.id} (${account.name}): current=${account.balance}, expected=${expectedBalance}. Applying fix.`,
                 );
 
+                // oxlint-disable-next-line no-await-in-loop
                 await this.prismaService.accounts.update({
                     where: {
                         id: account.id,
@@ -303,6 +304,7 @@ export class AccountService implements OnModuleInit {
             return evolution;
         }
 
+        // oxlint-disable-next-line no-unmodified-loop-condition
         while (currentDate <= endDay) {
             const dateStr = currentDate.toISOString().split("T")[0];
             if (transactionsByDate.has(dateStr)) {

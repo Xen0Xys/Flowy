@@ -19,9 +19,6 @@ export class SearchTransactionsResultEntity {
     @ApiProperty({example: 2})
     totalPages!: number;
 
-    @ApiProperty({example: true})
-    isPaginated!: boolean;
-
     constructor(partial: Partial<SearchTransactionsResultEntity>) {
         Object.assign(this, partial);
     }

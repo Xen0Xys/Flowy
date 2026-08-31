@@ -8,7 +8,11 @@ const props = defineProps<{
 </script>
 
 <template>
-    <h3 data-slot="card-title" :class="cn('leading-none font-semibold', props.class)">
+    <div
+        data-slot="card-title"
+        :class="
+            cn('cn-font-heading text-base leading-normal font-medium group-data-[size=sm]/card:text-sm', props.class)
+        ">
         <slot />
-    </h3>
+    </div>
 </template>

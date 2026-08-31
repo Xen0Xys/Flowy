@@ -26,7 +26,10 @@ export const useUserStore = defineStore("user", {
         isAuthenticated: () => useAuthStore().isAuthenticated,
         getToken: () => useAuthStore().getToken,
         isFamilyAdmin: (state) => state.user?.familyRole === "ADMIN",
-        isInstanceOwner: async () => {
+    },
+
+    actions: {
+        async fetchIsInstanceOwner(): Promise<boolean> {
             const {apiFetch} = useApi();
             try {
                 await apiFetch("/admin/instance/settings");
@@ -38,9 +41,7 @@ export const useUserStore = defineStore("user", {
                 throw err;
             }
         },
-    },
 
-    actions: {
         async fetchProfile() {
             const authStore = useAuthStore();
             if (!authStore.token) throw new Error("No token available");
@@ -57,7 +58,7 @@ export const useUserStore = defineStore("user", {
                 }
                 const message = err?.message ?? i18nT("user.store.errors.fetchProfile");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -76,7 +77,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.updateUsername");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -95,7 +96,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.updateEmail");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -115,7 +116,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.updatePassword");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -129,7 +130,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.listUsers");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -142,7 +143,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.fetchInstanceSettings");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -159,7 +160,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.updateRegistration");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -176,7 +177,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.updateInstanceOwner");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -190,7 +191,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.deleteUser");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
 
@@ -207,7 +208,7 @@ export const useUserStore = defineStore("user", {
             } catch (err: any) {
                 const message = err?.message ?? i18nT("user.store.errors.updatePassword");
                 toast.error(message);
-                throw new Error(message);
+                throw new Error(message, {cause: err});
             }
         },
     },

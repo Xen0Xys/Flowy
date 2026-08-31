@@ -2,31 +2,47 @@
 import tailwindcss from "@tailwindcss/vite";
 import pkg from "./package.json";
 
-let securityHeaders = {};
-if (process.env.NODE_ENV === "production") {
-    securityHeaders = {
-        headers: {
-            contentSecurityPolicy: {
-                "default-src": ["'self'"],
-                "script-src": ["'self'", "'unsafe-inline'"],
-                "style-src": ["'self'", "'unsafe-inline'"],
-                "img-src": ["'self'", "data:", "https:"],
-                "connect-src": ["'self'"],
-                "font-src": ["'self'"],
-                "object-src": ["'none'"],
-                "media-src": ["'none'"],
-                "frame-src": ["'none'"],
-                "upgrade-insecure-requests": true,
-            },
+const isDev = process.env.NODE_ENV !== "production";
 
-            crossOriginEmbedderPolicy: false,
-            crossOriginOpenerPolicy: "same-origin",
-            crossOriginResourcePolicy: false,
-
-            referrerPolicy: "strict-origin-when-cross-origin",
-        },
-    };
+const apiBaseEnv = process.env.NUXT_PUBLIC_API_BASE?.trim() || (isDev ? "http://localhost:4000" : "");
+const apiOrigins: string[] = [];
+if (apiBaseEnv) {
+    try {
+        apiOrigins.push(new URL(apiBaseEnv).origin);
+    } catch {
+        // ignore invalid URL
+    }
 }
+
+const devConnectExtras = isDev ? ["ws:", "wss:", "http://localhost:*"] : [];
+
+const securityHeaders = {
+    headers: {
+        // Nuxt SSR requires 'unsafe-inline' on script-src for the hydration payload script.
+        // TODO(csp): migrate to a nonce-based policy via nuxt-security's built-in nonce support
+        // to drop 'unsafe-inline' and tighten XSS protection.
+        contentSecurityPolicy: {
+            "default-src": ["'self'"],
+            "script-src": ["'self'", "'unsafe-inline'"],
+            "style-src": ["'self'", "'unsafe-inline'"],
+            "img-src": ["'self'", "data:", "https:"],
+            "connect-src": ["'self'", "https://api.github.com", ...apiOrigins, ...devConnectExtras],
+            "font-src": ["'self'"],
+            "object-src": ["'none'"],
+            "media-src": ["'none'"],
+            "frame-src": ["'none'"],
+            "worker-src": ["'self'", "blob:"],
+            "manifest-src": ["'self'"],
+            "upgrade-insecure-requests": true,
+        },
+
+        crossOriginEmbedderPolicy: false,
+        crossOriginOpenerPolicy: "same-origin",
+        crossOriginResourcePolicy: false,
+
+        referrerPolicy: "strict-origin-when-cross-origin",
+    },
+};
 
 export default defineNuxtConfig({
     runtimeConfig: {
@@ -37,7 +53,10 @@ export default defineNuxtConfig({
     },
     compatibilityDate: "2025-07-15",
     devtools: {enabled: true},
-    css: ["@/assets/css/main.css"],
+    css: ["@/assets/css/main.css", "vue-sonner/style.css"],
+    app: {
+        pageTransition: {name: "page", mode: "out-in", appear: true},
+    },
     vite: {
         plugins: [
             // @ts-ignore
@@ -51,8 +70,10 @@ export default defineNuxtConfig({
                 "@unovis/ts",
                 "@unovis/vue",
                 "@vueuse/core",
+                "canvas-confetti",
                 "class-variance-authority",
                 "clsx",
+                "dompurify",
                 "d3-shape",
                 "lucide-vue-next",
                 "reka-ui",
@@ -63,7 +84,26 @@ export default defineNuxtConfig({
             ],
         },
     },
-    modules: ["@nuxt/icon", "@nuxtjs/color-mode", "@nuxtjs/i18n", "shadcn-nuxt", "@pinia/nuxt", "nuxt-security"],
+    modules: [
+        "@nuxt/icon",
+        "@nuxt/fonts",
+        "@nuxtjs/color-mode",
+        "@nuxtjs/i18n",
+        "shadcn-nuxt",
+        "@pinia/nuxt",
+        "nuxt-security",
+    ],
+    fonts: {
+        families: [
+            {name: "Geist", provider: "google", weights: [400, 500, 600, 700], styles: ["normal"]},
+            {name: "Bricolage Grotesque", provider: "google", weights: [500, 600, 700, 800], styles: ["normal"]},
+        ],
+        defaults: {
+            weights: [400, 500, 600, 700],
+            styles: ["normal"],
+            subsets: ["latin", "latin-ext"],
+        },
+    },
     i18n: {
         strategy: "no_prefix",
         defaultLocale: "en",
@@ -91,6 +131,17 @@ export default defineNuxtConfig({
     colorMode: {
         preference: "dark",
         classSuffix: "",
+    },
+    icon: {
+        serverBundle: {
+            collections: ["iconoir", "svg-spinners"],
+        },
+        clientBundle: {
+            scan: {
+                globInclude: ["**/*.{vue,jsx,tsx,ts,js,md,mdc,mdx}"],
+            },
+            sizeLimitKb: 512,
+        },
     },
     shadcn: {
         prefix: "",

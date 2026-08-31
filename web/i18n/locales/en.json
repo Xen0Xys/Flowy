@@ -6,13 +6,13 @@
         "all": "All",
         "none": "None",
         "actions": "Actions",
+        "moreActions": "More actions",
         "save": "Save",
         "saving": "Saving...",
         "delete": "Delete",
         "deleting": "Deleting...",
         "cancel": "Cancel",
         "close": "Close",
-        "copy": "Copy",
         "edit": "Edit",
         "loading": "Loading...",
         "processing": "Processing...",
@@ -49,7 +49,6 @@
         },
         "login": {
             "title": "Login",
-            "backgroundAlt": "Login background",
             "welcome": "Welcome back",
             "subtitle": "Sign in to continue to your dashboard",
             "loading": "Logging in...",
@@ -60,7 +59,6 @@
         },
         "register": {
             "title": "Register",
-            "backgroundAlt": "Register background",
             "heading": "Create your account",
             "subtitle": "Join and start organizing with your family",
             "loading": "Registering...",
@@ -92,13 +90,43 @@
                 "title": "Welcome",
                 "description": "Get started with Flowy"
             },
-            "createJoin": {
-                "title": "Create/Join",
-                "description": "Create or join a family"
+            "select": {
+                "title": "Create or join",
+                "description": "Choose your path"
+            },
+            "createFamily": {
+                "title": "Create family",
+                "description": "Name your family"
+            },
+            "categories": {
+                "title": "Categories",
+                "description": "Configure your spending"
             },
             "invite": {
                 "title": "Invite",
-                "description": "Invite members"
+                "description": "Add members"
+            }
+        },
+        "welcome": {
+            "title": "Welcome to Flowy",
+            "tagline": "Let's set up your space in a few quick steps.",
+            "bullets": {
+                "family": {
+                    "title": "Create or join a family",
+                    "description": "Share finances with your loved ones or join an existing space."
+                },
+                "categories": {
+                    "title": "Pick your categories",
+                    "description": "Select the categories that reflect your spending habits."
+                },
+                "invite": {
+                    "title": "Invite your loved ones",
+                    "description": "Add other members to your family to collaborate."
+                }
+            },
+            "cta": {
+                "start": "Get started",
+                "logout": "Log out"
             }
         },
         "select": {
@@ -124,6 +152,7 @@
         },
         "create": {
             "title": "Create family",
+            "description": "Give your family a name and pick the default currency.",
             "familyName": "Family name",
             "currency": "Currency",
             "selectCurrency": "Select a currency",
@@ -136,16 +165,61 @@
                 "createFailed": "Failed to create family"
             }
         },
-        "invite": {
-            "title": "Invite members",
-            "memberEmail": "Member email",
-            "memberEmailPlaceholder": "member{'@'}example.org",
-            "send": "Send invite",
-            "sending": "Sending...",
+        "categories": {
+            "title": "Set up your categories",
+            "description": "Select the suggested categories and add your own. You can edit them later.",
+            "suggestedSection": "Suggestions",
+            "customSection": "Custom",
+            "customPlaceholder": "e.g. Pets, Education…",
+            "addCustom": "Add",
+            "removeCustom": "Remove {name}",
+            "selectedCount": "{count} selected",
             "continue": "Continue",
+            "creating": "Creating...",
             "skip": "Skip",
+            "summary": {
+                "success": "{count} category(ies) created",
+                "partial": "{success} created, {failed} failed",
+                "failed": "Failed to create categories"
+            },
             "errors": {
-                "sendFailed": "Failed to send invite"
+                "customDuplicate": "This custom category already exists."
+            },
+            "defaults": {
+                "food": "Groceries",
+                "housing": "Housing",
+                "transport": "Transport",
+                "restaurants": "Restaurants",
+                "leisure": "Leisure",
+                "health": "Health",
+                "subscriptions": "Subscriptions",
+                "shopping": "Shopping",
+                "salary": "Salary",
+                "savings": "Savings"
+            }
+        },
+        "invite": {
+            "title": "Invite your family",
+            "description": "Add several email addresses; they will receive an invitation to join your family.",
+            "chipInput": {
+                "label": "Email addresses",
+                "placeholder": "member{'@'}example.org",
+                "hint": "Press Enter or comma to add an address.",
+                "invalid": "Invalid email address.",
+                "duplicate": "This address has already been added.",
+                "remove": "Remove {email}"
+            },
+            "sent": {
+                "title": "Invitation(s) sent ({count})"
+            },
+            "send": "Send invites",
+            "sending": "Sending...",
+            "finish": "Finish",
+            "skip": "Skip",
+            "summary": {
+                "success": "{count} invitation(s) sent",
+                "partial": "{success} sent, {failed} failed",
+                "failed": "Failed to send invitations"
             }
         }
     },
@@ -182,6 +256,44 @@
         "wip": "WIP",
         "logOut": "Log out"
     },
+    "commandPalette": {
+        "placeholder": "Type a command or search...",
+        "empty": "No results found.",
+        "hints": {
+            "navigate": "Navigate",
+            "select": "Select",
+            "close": "Close"
+        },
+        "groups": {
+            "navigation": "Navigation",
+            "quickActions": "Quick actions",
+            "accounts": "My accounts",
+            "settings": "Settings",
+            "admin": "Administration",
+            "preferences": "Preferences",
+            "session": "Session"
+        },
+        "actions": {
+            "dashboard": "Go to dashboard",
+            "transactions": "Go to transactions",
+            "budget": "Go to budget",
+            "import": "Go to import",
+            "newTransaction": "New transaction",
+            "newAccount": "New account",
+            "newBudget": "New budget",
+            "importCsv": "Import CSV",
+            "profile": "Profile",
+            "family": "Family",
+            "references": "References",
+            "instance": "Instance",
+            "users": "Users",
+            "toggleThemeDark": "Switch to dark mode",
+            "toggleThemeLight": "Switch to light mode",
+            "switchToEnglish": "Switch to English",
+            "switchToFrench": "Passer en français",
+            "logout": "Log out"
+        }
+    },
     "dashboard": {
         "welcome": "Welcome, {name}",
         "subtitle": "Here's your financial overview",
@@ -208,25 +320,32 @@
         "form": {
             "addTitle": "Add account",
             "editTitle": "Edit account",
-            "description": "Fill in your bank account details.",
+            "addDescription": "Add a new account to start tracking your finances.",
+            "editDescription": "Update the details of this account.",
             "name": "Account name",
             "namePlaceholder": "Ex: Checking Account",
             "type": "Category / Type",
-            "selectType": "Select a type",
-            "balance": "Balance",
-            "current": "current",
-            "initial": "initial",
-            "inBudget": "Include in budget"
+            "openingBalance": "Opening balance",
+            "openingBalanceHint": "Current balance at the time of account creation.",
+            "inBudget": "Include in budget",
+            "inBudgetDescription": "Include this account's transactions when computing your monthly budgets.",
+            "errors": {
+                "nameTooShort": "Name must be at least 3 characters.",
+                "nameTooLong": "Name must be at most 50 characters.",
+                "balanceInvalid": "Enter a valid amount."
+            }
         }
     },
     "account": {
         "updatedOn": "Updated on {date}",
         "setBalance": "Set Balance",
         "currentBalance": "Current Balance",
-        "setBalanceTitle": "Set account balance",
-        "setBalanceDescription": "Set the new current balance for this account. A rebalance transaction is created automatically when the value changes.",
-        "targetBalance": "Target balance",
-        "saveBalance": "Save balance",
+        "setBalanceTitle": "Update account balance",
+        "setBalanceDescription": "Enter the actual balance from your bank. A matching transaction will be added to keep your history accurate.",
+        "newBalance": "New balance",
+        "rebalanceTransaction": "Adjustment",
+        "noChange": "No change",
+        "updateBalance": "Update balance",
         "noData": "No balance history for this period",
         "store": {
             "success": {
@@ -252,7 +371,11 @@
         "list": {
             "title": "Transactions",
             "viewAll": "View All",
-            "newTransaction": "New Transaction"
+            "newTransaction": "New Transaction",
+            "summary": {
+                "count": "{count} transactions",
+                "net": "Net"
+            }
         },
         "filters": {
             "title": "Filters",
@@ -279,7 +402,19 @@
             "rebalance": "Rebalance",
             "includeRebalance": "Include Rebalance",
             "excludeRebalance": "Exclude Rebalance",
-            "onlyRebalance": "Only Rebalance"
+            "onlyRebalance": "Only Rebalance",
+            "remove": "Remove this filter",
+            "presets": {
+                "title": "Shortcuts",
+                "today": "Today",
+                "yesterday": "Yesterday",
+                "last7": "Last 7 days",
+                "last30": "Last 30 days",
+                "thisMonth": "This month",
+                "lastMonth": "Last month",
+                "thisYear": "This year",
+                "clear": "Clear"
+            }
         },
         "table": {
             "date": "Date",
@@ -288,6 +423,8 @@
             "amount": "Amount",
             "account": "Account",
             "system": "System",
+            "today": "Today",
+            "yesterday": "Yesterday",
             "noMatch": "No transactions match your filters.",
             "noTransactions": "No transactions found."
         },
@@ -295,14 +432,13 @@
             "newTitle": "New Transaction",
             "editTitle": "Edit Transaction",
             "newDescription": "Add a new transaction. Click save when you're done.",
-            "editDescription": "Update the details of this transaction. Click save when you're done.",
             "selectAccount": "Select an account",
             "selectCategory": "Select a category",
             "selectMerchant": "Select a merchant",
             "incomeDescriptionPlaceholder": "Income",
             "expenseDescriptionPlaceholder": "Expense",
             "systemTransaction": "System Transaction",
-            "systemTransactionDescription": "This is an automatic balance adjustment. Modifying it may cause your account balance to fall out of sync.",
+            "systemTransactionDescription": "This is an automatic balance adjustment. Only the date can be modified.",
             "saveChanges": "Save changes",
             "deleteTitle": "Delete transaction",
             "deleteDescription": "Are you sure you want to delete this transaction? This action cannot be undone.",
@@ -311,15 +447,16 @@
             "keepLinked": "Keep linked transaction",
             "deleteBoth": "Delete Both",
             "linkedTransaction": "Linked Transaction",
-            "linkedTransactionDescription": "This transaction is linked to a transfer between accounts.",
             "viewLinked": "View linked transaction",
             "unlinkTransfer": "Unlink",
-            "unlinking": "Unlinking...",
             "linkTransfer": "Link as Transfer",
             "inBudget": "Include in budget",
+            "inBudgetDescription": "Include this transaction when computing budget goals.",
+            "actions": "More actions",
+            "details": "Details",
+            "noResults": "No results.",
             "errors": {
-                "loadData": "Failed to load required data",
-                "accountRequired": "Account is required to create a transaction"
+                "loadData": "Failed to load required data"
             }
         },
         "transfer": {
@@ -330,7 +467,6 @@
             "amount": "Amount",
             "descriptionPlaceholder": "Transfer",
             "create": "Create Transfer",
-            "sameAccountError": "Source and destination accounts must be different",
             "linkTitle": "Link as Transfer",
             "linkDescription": "Link this transaction with another to create a transfer between accounts.",
             "selectAccount": "Select account",
@@ -347,17 +483,23 @@
         "description": "Manage your personal information and credentials",
         "username": "Username",
         "email": "Email",
-        "save": "Save",
         "saving": "Saving...",
+        "saveChanges": "Save changes",
+        "discardChanges": "Discard",
+        "sections": {
+            "account": "Account",
+            "accountDescription": "Your account credentials",
+            "preferences": "Preferences",
+            "preferencesDescription": "Appearance and language",
+            "security": "Security"
+        },
         "appearance": "Appearance",
-        "selectTheme": "Select a theme",
         "system": "System",
         "light": "Light",
         "dark": "Dark",
         "language": "Language",
         "selectLanguage": "Select language",
         "browser": "Browser",
-        "changePassword": "Change password",
         "changePasswordDescription": "Enter your current password and choose a new password.",
         "currentPassword": "Current password",
         "newPassword": "New password",
@@ -392,34 +534,35 @@
         "instance": {
             "title": "Instance settings",
             "subtitle": "Manage global instance settings",
-            "versions": "Versions",
             "versionsDescription": "Current version of the frontend and backend",
             "web": "Web",
             "server": "Server",
             "copyVersions": "Copy versions",
-            "registration": "Registration",
-            "registrationDescription": "Allow users to register",
+            "about": "About",
+            "registration": "Public registration",
+            "registrationDescription": "Allow new users to create an account",
+            "registrationOn": "Enabled",
+            "registrationOff": "Disabled",
             "registrationEnabled": "Registration enabled",
-            "saveRegistrationTitle": "Save registration setting",
-            "saveRegistrationDescription": "Changing registration setting affects who can create accounts. Are you sure?",
             "owner": "Instance owner",
-            "ownerDescription": "Set the owner of this instance (user id)",
-            "ownerPlaceholder": "owner id",
+            "ownerDescription": "The user with administrative control of this instance",
+            "selectOwner": "Select a user...",
+            "searchOwner": "Search a user",
             "changeOwnerTitle": "Change instance owner",
             "changeOwnerDescription": "Changing the instance owner transfers administrative control. This is destructive. Proceed?",
+            "currentOwner": "Current owner",
             "unknown": "unknown",
             "toasts": {
                 "versionsCopied": "Versions copied to clipboard"
-            },
-            "errors": {
-                "ownerRequired": "Owner ID is required.",
-                "ownerInvalid": "Owner ID must be a valid UUID v7."
             }
         },
         "users": {
             "title": "Users",
             "subtitle": "Manage users on this instance",
             "searchPlaceholder": "Search by username, email or UUID...",
+            "totalUsers": "{n} user | {n} users",
+            "columns": "Columns",
+            "showUuidColumn": "Show UUID column",
             "uuid": "UUID",
             "viewDetails": "View details",
             "copyUuid": "Copy UUID",
@@ -428,6 +571,7 @@
             "noUsers": "No users found.",
             "detailsTitle": "User details",
             "detailsDescription": "Detailed information for this account.",
+            "familyInfo": "Family info",
             "familyRole": "Family role",
             "familyId": "Family ID",
             "familyName": "Family name",
@@ -435,10 +579,20 @@
             "familyOwner": "Family owner",
             "resetPasswordFor": "Set a new password for {username}.",
             "newPassword": "New password",
+            "generatePassword": "Generate",
+            "showPassword": "Show password",
+            "hidePassword": "Hide password",
             "resetting": "Resetting...",
             "deletePromptWithName": "Are you sure you want to delete {username}?",
+            "roles": {
+                "instanceOwner": "Owner",
+                "familyAdmin": "Family admin",
+                "familyMember": "Member",
+                "noFamily": "No family"
+            },
             "toasts": {
-                "uuidCopied": "UUID copied to clipboard"
+                "uuidCopied": "UUID copied to clipboard",
+                "passwordGenerated": "Password generated"
             },
             "errors": {
                 "newPasswordRequired": "Please enter a new password.",
@@ -453,7 +607,20 @@
             "owner": "Owner",
             "admin": "Admin",
             "member": "Member",
+            "you": "You",
             "memberCount": "{n} member | {n} members",
+            "pendingInvitesCount": "{n} pending | {n} pending",
+            "saveChanges": "Save",
+            "sections": {
+                "settings": "Settings",
+                "settingsDescription": "Family name and currency",
+                "members": "Members",
+                "membersDescription": "Manage current family members",
+                "invites": "Pending invites",
+                "invitesDescription": "Send invites by email"
+            },
+            "noInvites": "No pending invites",
+            "invitedBadge": "Invited",
             "deleteThis": "Delete this family",
             "leaveThis": "Leave this family",
             "deleteFamily": "Delete family",
@@ -461,25 +628,17 @@
             "leave": "Leave",
             "deleteFamilyDescription": "This action will permanently delete the family, remove all invites and unlink members. This cannot be undone.",
             "leaveFamilyDescription": "Are you sure you want to leave the family? You will no longer have access to shared data.",
-            "unableToLoad": "Unable to load family details.",
-            "info": "Family info",
-            "settings": "Family settings",
             "familyName": "Family Name",
             "currency": "Currency",
             "selectCurrency": "Select currency",
             "adminOnly": "Only family admins can update family settings.",
             "members": "Members",
-            "noMembers": "No members in the family yet.",
             "remove": "Remove",
-            "removing": "Removing...",
             "removeMember": "Remove member",
             "removeMemberDescription": "Are you sure you want to remove this member from the family? They will lose access to shared data.",
-            "invites": "Invites",
             "invite": "Invite",
             "inviting": "Inviting...",
             "invitePlaceholder": "member{'@'}example.com",
-            "code": "Code",
-            "revoke": "Revoke",
             "notMember": "You are not a member of any family. Create one or ask to be invited.",
             "toasts": {
                 "inviteCodeCopied": "Invite code copied to clipboard"
@@ -491,9 +650,6 @@
                 "currencyInvalid": "Currency must be a valid 3-letter ISO code."
             },
             "aria": {
-                "saveFamilyName": "Save family name",
-                "currency": "Currency",
-                "saveFamilyCurrency": "Save family currency",
                 "removeMember": "Remove member",
                 "inviteEmail": "Invite email",
                 "inviteMember": "Invite member",
@@ -508,16 +664,23 @@
             "addMerchant": "Add Merchant",
             "categories": "Categories",
             "merchants": "Merchants",
+            "searchCategoriesPlaceholder": "Search category...",
+            "searchMerchantsPlaceholder": "Search merchant...",
+            "categoriesCount": "{n} category | {n} categories",
+            "merchantsCount": "{n} merchant | {n} merchants",
             "name": "Name",
-            "color": "Color",
-            "icon": "Icon",
             "iconLibrary": "Icons (Iconoir)",
             "deleteCategory": "Delete category",
             "deleteMerchant": "Delete merchant",
             "deleteCategoryDescription": "Are you sure you want to delete the category \"{name}\"? Transactions using this category will lose their association.",
             "deleteMerchantDescription": "Are you sure you want to delete the merchant \"{name}\"? Transactions using this merchant will lose their association.",
-            "noCategories": "No categories found. Create one to get started.",
-            "noMerchants": "No merchants found. Create one to get started.",
+            "noSearchResults": "No results for this search.",
+            "emptyCategoriesTitle": "No categories yet",
+            "emptyCategoriesDescription": "Create your first category to organize your transactions.",
+            "emptyMerchantsTitle": "No merchants yet",
+            "emptyMerchantsDescription": "Create your first merchant to identify your transactions.",
+            "createFirstCategory": "Create your first category",
+            "createFirstMerchant": "Create your first merchant",
             "editCategory": "Edit Category",
             "createCategory": "Create Category",
             "editCategoryDescription": "Make changes to your category.",
@@ -527,17 +690,40 @@
             "editMerchantDescription": "Make changes to your merchant.",
             "createMerchantDescription": "Add a new merchant for your transactions.",
             "aria": {
-                "editCategory": "Edit category",
-                "deleteCategory": "Delete category",
-                "editMerchant": "Edit merchant",
-                "deleteMerchant": "Delete merchant",
                 "selectColor": "Select color",
-                "selectIcon": "Select icon",
-                "hexColorInput": "Hex color code"
+                "hexColorInput": "Hex color code",
+                "removeKeyword": "Remove keyword"
             },
             "findIconsAt": "Find icons at",
-            "categoryPlaceholder": "e.g. Groceries",
-            "merchantPlaceholder": "e.g. Walmart"
+            "keywords": "Keywords",
+            "keywordsPlaceholder": "Add a keyword and press Enter",
+            "autoComplete": "Auto-complete",
+            "autoCompleteHelp": "When enabled, this reference participates in transaction auto-completion.",
+            "style": "Style & color",
+            "preview": {
+                "title": "Preview",
+                "placeholder": "Category name"
+            },
+            "errors": {
+                "nameRequired": "Name is required",
+                "categoryDuplicate": "A category with this name already exists",
+                "merchantDuplicate": "A merchant with this name already exists",
+                "invalidHex": "Invalid hex color code (e.g. #ef4444)"
+            },
+            "iconPicker": {
+                "trigger": "Choose an icon",
+                "search": "Search icons...",
+                "empty": "No icons found",
+                "customLabel": "Custom slug",
+                "apply": "Apply"
+            },
+            "keywordsField": {
+                "help": "Keywords trigger auto-completion. Click the star to pick the one used as default description.",
+                "defaultLabel": "default",
+                "markAsPrimary": "Use as default description",
+                "unsetPrimary": "Remove as default description",
+                "limitReached": "Limit of {max} keywords reached"
+            }
         }
     },
     "user": {
@@ -607,7 +793,6 @@
             },
             "errors": {
                 "fetchTransactions": "Failed fetching transactions",
-                "fetchAccountTransactions": "Failed fetching account transactions",
                 "createTransaction": "Failed creating transaction",
                 "updateTransaction": "Failed updating transaction",
                 "deleteTransaction": "Failed deleting transaction",
@@ -712,10 +897,29 @@
             "renewDescription": "Adjust the amounts renewed from the selected budget.",
             "editDescription": "Modify your budget amounts.",
             "budgetedIncome": "Budgeted income",
-            "budgetedIncomePlaceholder": "e.g. 3000",
+            "budgetedIncomePlaceholder": "0.00",
             "categories": "Categories",
-            "amountPlaceholder": "Amount",
-            "totalCategories": "Total categories"
+            "targetPeriodLabel": "Target period: {period}",
+            "sourceHint": "Renewed from {period}",
+            "resetSource": "Start from scratch",
+            "allocated": "Allocated",
+            "remaining": "{amount} left to allocate",
+            "overAllocatedBy": "Over by {amount}",
+            "balanced": "Budget balanced",
+            "addCategory": "Add a category",
+            "searchCategoryPlaceholder": "Search a category…",
+            "removeCategory": "Remove this category",
+            "noCategoriesHint": "No category selected. Add one to start allocating your budget.",
+            "noCategoriesFound": "No category found.",
+            "createButton": "Create budget",
+            "updateButton": "Update",
+            "renewButton": "Renew",
+            "renewedBadge": "renewed",
+            "discardChangesTitle": "Discard changes?",
+            "discardChangesDescription": "Your inputs will be lost.",
+            "discardChangesConfirm": "Discard",
+            "needIncomeHint": "Enter a budgeted income to continue.",
+            "needCategoryHint": "Add at least one category with an amount to continue."
         },
         "category": {
             "uncategorized": "Uncategorized",
@@ -815,9 +1019,6 @@
             "readyToImport": "{count} transactions ready to import",
             "categoryPlaceholder": "Category name",
             "merchantPlaceholder": "Merchant name",
-            "createCategoryDescription": "Add a new category for your transactions.",
-            "createMerchantDescription": "Add a new merchant for your transactions.",
-            "findIcons": "Find icons at",
             "pagination": "Page {page} of {total}"
         },
         "result": {
@@ -849,5 +1050,12 @@
         "success": {
             "testComplete": "{count} transactions ready to import"
         }
+    },
+    "whatsNew": {
+        "title": "What's new in v{version}",
+        "subtitle": "Here's what changed since your last visit.",
+        "viewOnGithub": "View on GitHub",
+        "dismiss": "Got it",
+        "noBody": "No release notes available."
     }
 }

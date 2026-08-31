@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from "vue";
 import type {DateRange} from "reka-ui";
-import {useMediaQuery} from "@vueuse/core";
+import {useMediaQuery, useVModel} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
+import {getLocalTimeZone} from "@internationalized/date";
 
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -35,34 +36,122 @@ const emit = defineEmits<{
 
 const isMobile = useMediaQuery("(max-width: 768px)");
 const isReducedHeight = useMediaQuery("(max-height: 1080px)");
-const {t} = useI18n();
+const {locale, t} = useI18n();
 const DESKTOP_FILTERS_VISIBILITY_STORAGE_KEY = "flowy:transactions:desktop-filters-visible";
 
-// Local state to avoid mutating props directly
-const filters = ref<TransactionFilters>({...props.modelValue});
-
-// Initialize DateRange correctly if it's not present
-if (!filters.value.dateRange) {
-    filters.value.dateRange = {start: undefined, end: undefined};
-}
-
-if (!filters.value.accountId) {
-    filters.value.accountId = "all";
-}
-
-// Watch for changes in local state and emit to parent
-watch(
-    filters,
-    (newFilters) => {
-        emit("update:modelValue", {...newFilters});
-    },
-    {deep: true},
-);
+const filters = useVModel(props, "modelValue", emit, {passive: true, deep: true, clone: (v) => ({...v})});
 
 const isSheetOpen = ref(false);
 const areDesktopFiltersVisible = ref(true);
 const hasStoredDesktopFiltersPreference = ref(false);
 const desktopFiltersContentId = "transactions-desktop-filters-content";
+
+const dateChipFormatter = computed(
+    () =>
+        new Intl.DateTimeFormat(locale.value || "en-US", {
+            month: "short",
+            day: "numeric",
+        }),
+);
+
+const nameById = (list: {id: string; name: string}[], id: string) => list.find((entry) => entry.id === id)?.name ?? "";
+
+type ActiveChip = {
+    key: string;
+    label: string;
+    onRemove: () => void;
+};
+
+const activeChips = computed<ActiveChip[]>(() => {
+    const chips: ActiveChip[] = [];
+
+    if (filters.value.search.trim()) {
+        chips.push({
+            key: "search",
+            label: `"${filters.value.search.trim()}"`,
+            onRemove: () => {
+                filters.value.search = "";
+            },
+        });
+    }
+
+    if (filters.value.type !== "all") {
+        chips.push({
+            key: "type",
+            label:
+                filters.value.type === "income" ? t("transactions.filters.income") : t("transactions.filters.expense"),
+            onRemove: () => {
+                filters.value.type = "all";
+            },
+        });
+    }
+
+    if (props.showAccountFilter && filters.value.accountId !== "all") {
+        const name = nameById(props.availableAccounts || [], filters.value.accountId);
+        chips.push({
+            key: "account",
+            label: `${t("transactions.filters.account")}: ${name || filters.value.accountId}`,
+            onRemove: () => {
+                filters.value.accountId = "all";
+            },
+        });
+    }
+
+    if (filters.value.categoryId !== "all") {
+        const label =
+            filters.value.categoryId === "none"
+                ? t("transactions.filters.noCategory")
+                : nameById(props.availableCategories, filters.value.categoryId) || filters.value.categoryId;
+        chips.push({
+            key: "category",
+            label: `${t("transactions.filters.category")}: ${label}`,
+            onRemove: () => {
+                filters.value.categoryId = "all";
+            },
+        });
+    }
+
+    if (filters.value.merchantId !== "all") {
+        const name = nameById(props.availableMerchants, filters.value.merchantId);
+        chips.push({
+            key: "merchant",
+            label: `${t("transactions.filters.merchant")}: ${name || filters.value.merchantId}`,
+            onRemove: () => {
+                filters.value.merchantId = "all";
+            },
+        });
+    }
+
+    if (filters.value.rebalance !== "all") {
+        chips.push({
+            key: "rebalance",
+            label:
+                filters.value.rebalance === "only"
+                    ? t("transactions.filters.onlyRebalance")
+                    : t("transactions.filters.excludeRebalance"),
+            onRemove: () => {
+                filters.value.rebalance = "all";
+            },
+        });
+    }
+
+    if (filters.value.dateRange?.start || filters.value.dateRange?.end) {
+        const start = filters.value.dateRange?.start;
+        const end = filters.value.dateRange?.end;
+        const parts: string[] = [];
+        if (start) parts.push(dateChipFormatter.value.format((start as any).toDate(getLocalTimeZone())));
+        if (end) parts.push(dateChipFormatter.value.format((end as any).toDate(getLocalTimeZone())));
+        chips.push({
+            key: "date",
+            label: parts.join(" - "),
+            onRemove: () => {
+                filters.value.dateRange = {start: undefined, end: undefined};
+            },
+        });
+    }
+
+    return chips;
+});
 
 const activeFilterCount = computed(() => {
     let count = 0;
@@ -139,9 +228,9 @@ watch(isReducedHeight, (isCompact) => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-3">
         <!-- Desktop Layout -->
-        <div class="hidden md:flex md:flex-col md:gap-4">
+        <div class="hidden md:flex md:flex-col md:gap-3">
             <!-- Search & Actions Row -->
             <div class="flex items-center justify-between gap-2">
                 <div class="flex flex-1 items-center gap-2">
@@ -174,6 +263,11 @@ watch(isReducedHeight, (isCompact) => {
                             ? t("transactions.filters.hideAdvanced")
                             : t("transactions.filters.showAdvanced")
                     }}
+                    <Badge
+                        v-if="!areDesktopFiltersVisible && activeFilterCount > 0"
+                        class="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px]">
+                        {{ activeFilterCount }}
+                    </Badge>
                 </Button>
             </div>
 
@@ -399,6 +493,24 @@ watch(isReducedHeight, (isCompact) => {
                     </div>
                 </SheetContent>
             </Sheet>
+        </div>
+
+        <!-- Active filter chips (shared) -->
+        <div v-if="activeChips.length > 0" class="flex flex-wrap items-center gap-1.5">
+            <Badge
+                v-for="chip in activeChips"
+                :key="chip.key"
+                variant="secondary"
+                class="group flex items-center gap-1 py-1 pr-1 pl-2.5 font-normal">
+                <span class="max-w-[200px] truncate">{{ chip.label }}</span>
+                <button
+                    type="button"
+                    class="hover:bg-background/60 flex size-4 items-center justify-center rounded-full transition-colors"
+                    :aria-label="t('transactions.filters.remove')"
+                    @click="chip.onRemove">
+                    <Icon name="iconoir:xmark" class="size-3" />
+                </button>
+            </Badge>
         </div>
     </div>
 </template>

@@ -2,7 +2,7 @@
 import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute, useRouter} from "vue-router";
-import {useMediaQuery} from "@vueuse/core";
+import {useCssVar, useMediaQuery} from "@vueuse/core";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
 import type {TimeRange} from "~/utils/accounts";
@@ -15,8 +15,15 @@ import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
-import {Input} from "~/components/ui/input";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import {Label} from "~/components/ui/label";
+import MoneyInput from "~/components/common/MoneyInput.vue";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -52,6 +59,7 @@ const isDeleteDialogOpen = ref(false);
 const isSetBalanceDialogOpen = ref(false);
 const isSettingBalance = ref(false);
 const targetBalance = ref(0);
+const targetBalanceTouched = ref(false);
 const timeRange = ref<TimeRange>("1M");
 const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> | null>(null);
 
@@ -66,15 +74,20 @@ const accountTypeLabel = computed(() => {
     return te(key) ? t(key) : type;
 });
 
+const successVar = useCssVar("--success");
+const destructiveVar = useCssVar("--destructive");
+const mutedFgVar = useCssVar("--muted-foreground");
+
 const chartColor = computed(() => {
     const series = evolutionSeries.value;
-    if (!series || series.length === 0) return "#94a3b8"; // slate-400
+    const fallback = mutedFgVar.value?.trim() || "oklch(0.5 0.02 250)";
+    if (!series || series.length === 0) return fallback;
     const startValue = series[0].balance;
     const endValue = series[series.length - 1].balance;
 
-    if (endValue > startValue) return "#10b981"; // emerald-500
-    if (endValue < startValue) return "#ef4444"; // red-500
-    return "#94a3b8"; // slate-400
+    if (endValue > startValue) return successVar.value?.trim() || fallback;
+    if (endValue < startValue) return destructiveVar.value?.trim() || fallback;
+    return fallback;
 });
 
 const chartConfig = computed(() => ({
@@ -92,6 +105,7 @@ const loadData = async () => {
     try {
         await Promise.all([accountStore.fetchAccountById(accountId), familyStore.fetchFamily()]);
         await loadChartData();
+        animateBalance(0, account.value?.balance ?? 0);
     } catch (err) {
         console.error(err);
         router.push("/");
@@ -131,8 +145,28 @@ const openEditModal = () => {
 const openSetBalanceDialog = () => {
     if (!account.value) return;
     targetBalance.value = account.value.balance;
+    targetBalanceTouched.value = false;
     isSetBalanceDialogOpen.value = true;
 };
+
+const rebalanceDelta = computed(() => {
+    if (!account.value) return 0;
+    return Number(((targetBalance.value ?? 0) - account.value.balance).toFixed(2));
+});
+
+const hasRebalanceChange = computed(() => !Number.isNaN(targetBalance.value) && rebalanceDelta.value !== 0);
+
+const deltaClass = computed(() => {
+    if (rebalanceDelta.value > 0) return "text-success";
+    if (rebalanceDelta.value < 0) return "text-destructive";
+    return "text-muted-foreground";
+});
+
+const deltaLabel = computed(() => {
+    if (!hasRebalanceChange.value) return t("account.noChange");
+    const sign = rebalanceDelta.value > 0 ? "+" : "";
+    return `${sign}${formatCurrency(rebalanceDelta.value)}`;
+});
 
 const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
@@ -145,6 +179,7 @@ const executeDelete = async () => {
 };
 
 const onFormSaved = () => {
+    transactionListWidgetRef.value?.refreshTransactions();
     loadData();
 };
 
@@ -154,6 +189,10 @@ const onTransactionSaved = () => {
 
 const submitSetBalance = async () => {
     if (!account.value || Number.isNaN(targetBalance.value)) return;
+    if (!hasRebalanceChange.value) {
+        isSetBalanceDialogOpen.value = false;
+        return;
+    }
 
     isSettingBalance.value = true;
     try {
@@ -189,8 +228,8 @@ const formatDate = (dateString: string) => {
 };
 
 const amountClass = (value: number) => {
-    if (value < 0) return "text-red-500";
-    if (value > 0) return "text-emerald-600";
+    if (value < 0) return "text-destructive";
+    if (value > 0) return "text-success";
     return "text-foreground";
 };
 
@@ -221,7 +260,38 @@ const graphHeaderClass = computed(() =>
     cn("flex flex-col md:flex-row md:items-start md:justify-between", isVeryCompactHeight.value ? "gap-3" : "gap-4"),
 );
 
-const graphAmountClass = computed(() => cn("mt-1 font-bold", isVeryCompactHeight.value ? "text-2xl" : "text-3xl"));
+const graphAmountClass = computed(() =>
+    cn(
+        "font-heading mt-1 font-semibold tracking-tight tabular-nums",
+        isVeryCompactHeight.value ? "text-2xl" : "text-3xl",
+    ),
+);
+
+// Count-up on balance
+const displayedBalance = ref(0);
+let rafHandle: number | null = null;
+function animateBalance(from: number, to: number) {
+    if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        displayedBalance.value = to;
+        return;
+    }
+    const duration = 500;
+    const start = performance.now();
+    const step = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        displayedBalance.value = from + (to - from) * eased;
+        if (progress < 1) rafHandle = requestAnimationFrame(step);
+        else rafHandle = null;
+    };
+    rafHandle = requestAnimationFrame(step);
+}
+watch(
+    () => account.value?.balance ?? 0,
+    (v, prev) => animateBalance(prev ?? 0, v),
+    {immediate: false},
+);
 
 const graphHeightClass = computed(() =>
     cn("md:mx-0", {
@@ -250,7 +320,7 @@ const graphHeightClass = computed(() =>
                                 <Skeleton class="h-4 w-24" />
                             </div>
                             <div v-else-if="account" class="min-w-0">
-                                <h1 class="truncate text-2xl font-bold tracking-tight">
+                                <h1 class="font-heading truncate text-2xl font-semibold tracking-tight">
                                     {{ account.name }}
                                 </h1>
                                 <p class="text-muted-foreground text-sm">
@@ -266,19 +336,32 @@ const graphHeightClass = computed(() =>
                         </div>
                     </div>
 
-                    <div v-if="!isLoading && account" class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+                    <div v-if="!isLoading && account" class="flex w-full items-center gap-2 md:w-auto">
                         <Button class="flex-1 md:flex-none" variant="secondary" @click="openSetBalanceDialog">
                             <Icon class="h-4 w-4" name="iconoir:coins-swap" />
                             {{ t("account.setBalance") }}
                         </Button>
-                        <Button class="flex-1 md:flex-none" variant="outline" @click="openEditModal">
-                            <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
-                            {{ t("common.edit") }}
-                        </Button>
-                        <Button class="flex-1 md:flex-none" variant="destructive" @click="confirmDelete">
-                            <Icon class="h-4 w-4" name="iconoir:trash" />
-                            {{ t("common.delete") }}
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button class="shrink-0" size="icon" type="button" variant="outline">
+                                    <Icon class="h-4 w-4" name="iconoir:more-vert" />
+                                    <span class="sr-only">{{ t("common.moreActions") }}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-44">
+                                <DropdownMenuItem @select="openEditModal">
+                                    <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
+                                    {{ t("common.edit") }}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    class="text-destructive focus:text-destructive"
+                                    @select="confirmDelete">
+                                    <Icon class="h-4 w-4" name="iconoir:trash" />
+                                    {{ t("common.delete") }}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -296,7 +379,7 @@ const graphHeightClass = computed(() =>
                                     {{ t("account.currentBalance") }}
                                 </h3>
                                 <div :class="graphAmountClass">
-                                    {{ formatCurrency(account.balance) }}
+                                    {{ formatCurrency(displayedBalance) }}
                                 </div>
                             </div>
                             <Tabs v-model="timeRange" class="w-auto">
@@ -422,23 +505,46 @@ const graphHeightClass = computed(() =>
                             </DialogDescription>
                         </DialogHeader>
 
-                        <form class="space-y-4 py-4" @submit.prevent="submitSetBalance">
-                            <div class="space-y-2">
-                                <Label for="target-balance">{{ t("account.targetBalance") }}</Label>
-                                <Input
-                                    id="target-balance"
-                                    v-model.number="targetBalance"
-                                    required
-                                    step="0.01"
-                                    type="number" />
-                            </div>
+                        <form class="space-y-5 py-4" novalidate @submit.prevent="submitSetBalance">
+                            <fieldset :disabled="isSettingBalance" class="space-y-5">
+                                <div class="space-y-2">
+                                    <Label for="target-balance">{{ t("account.newBalance") }}</Label>
+                                    <MoneyInput
+                                        id="target-balance"
+                                        v-model="targetBalance"
+                                        allow-negative
+                                        :currency="familyStore.family?.currency || 'USD'"
+                                        :locale="locale || 'en-US'"
+                                        required
+                                        size="sm"
+                                        @blur="targetBalanceTouched = true" />
+                                </div>
+
+                                <div class="bg-muted/40 space-y-2 rounded-lg border p-3 text-sm">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-muted-foreground">{{ t("account.currentBalance") }}</span>
+                                        <span class="font-medium tabular-nums">
+                                            {{ formatCurrency(account?.balance ?? 0) }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-muted-foreground">
+                                            {{ t("account.rebalanceTransaction") }}
+                                        </span>
+                                        <span class="font-semibold tabular-nums" :class="deltaClass">
+                                            {{ deltaLabel }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </fieldset>
 
                             <DialogFooter>
                                 <Button type="button" variant="outline" @click="isSetBalanceDialogOpen = false">
                                     {{ t("common.cancel") }}
                                 </Button>
-                                <Button :disabled="isSettingBalance" type="submit">
-                                    {{ isSettingBalance ? t("common.saving") : t("account.saveBalance") }}
+                                <Button :disabled="isSettingBalance || !hasRebalanceChange" type="submit">
+                                    <Icon v-if="isSettingBalance" class="h-4 w-4 animate-spin" name="iconoir:refresh" />
+                                    {{ isSettingBalance ? t("common.saving") : t("account.updateBalance") }}
                                 </Button>
                             </DialogFooter>
                         </form>

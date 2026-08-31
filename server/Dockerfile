@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.11-alpine AS base
+FROM oven/bun:1.3.14-alpine AS base
 WORKDIR /usr/src/app
 RUN apk add --no-cache openssl
 
@@ -9,7 +9,8 @@ COPY package.json ./
 COPY tsconfig.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma
-RUN bun install --frozen-lockfile
+RUN printf '[install]\nminimumReleaseAge = 86400\nexact = true\n' > bunfig.toml
+RUN bun install
 RUN bunx prisma generate
 
 FROM base AS builder
@@ -22,6 +23,7 @@ COPY package.json ./
 COPY tsconfig.json ./
 COPY build.ts ./
 COPY src ./src
+COPY bun-plugins/swagger.ts ./bun-plugins/swagger.ts
 RUN bun run build
 
 FROM base AS runner
@@ -38,4 +40,3 @@ USER bun
 
 EXPOSE 4000
 CMD bunx prisma migrate deploy && bunx prisma db seed && bun run start:prod
-

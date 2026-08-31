@@ -1,5 +1,6 @@
 import {IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min, ValidateIf} from "class-validator";
 import {Transform, Type} from "class-transformer";
+import {ApiProperty} from "@nestjs/swagger";
 
 export enum TransactionSearchType {
     ALL = "all",
@@ -13,7 +14,20 @@ export enum TransactionSearchRebalance {
     EXCLUDE = "exclude",
 }
 
-export class SearchTransactionsDto {
+export enum TransactionSortBy {
+    DATE = "date",
+    DESCRIPTION = "description",
+    AMOUNT = "amount",
+    CATEGORY = "category",
+    ACCOUNT = "account",
+}
+
+export enum TransactionSortOrder {
+    ASC = "asc",
+    DESC = "desc",
+}
+
+export class TransactionFiltersDto {
     @IsOptional()
     @IsString()
     @Length(1, 255)
@@ -32,6 +46,11 @@ export class SearchTransactionsDto {
     @IsUUID("7")
     accountId?: string;
 
+    @ApiProperty({
+        required: false,
+        description: "UUID v7 de la catégorie, ou 'none' pour ne renvoyer que les transactions sans catégorie.",
+        example: "018f8e00-0000-7000-8000-000000000000",
+    })
     @IsOptional()
     @IsString()
     @ValidateIf((o) => o.categoryId !== "none")
@@ -53,17 +72,25 @@ export class SearchTransactionsDto {
     @IsOptional()
     @IsDateString()
     endDate?: string;
+}
 
-    @IsOptional()
+export class SearchTransactionsDto extends TransactionFiltersDto {
     @Type(() => Number)
     @IsInt()
     @Min(1)
-    page?: number;
+    page!: number;
 
-    @IsOptional()
     @Type(() => Number)
     @IsInt()
     @Min(1)
     @Max(100)
-    pageSize?: number;
+    pageSize!: number;
+
+    @IsOptional()
+    @IsEnum(TransactionSortBy)
+    sortBy?: TransactionSortBy;
+
+    @IsOptional()
+    @IsEnum(TransactionSortOrder)
+    sortOrder?: TransactionSortOrder;
 }

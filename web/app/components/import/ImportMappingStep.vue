@@ -228,7 +228,7 @@ const canProceed = computed(() => {
                     <!-- Dual column amount -->
                     <div v-else class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <Label class="text-green-600 dark:text-green-400">
+                            <Label class="text-success">
                                 {{ t("import.mapping.fields.credit") }}
                             </Label>
                             <Select
@@ -249,7 +249,7 @@ const canProceed = computed(() => {
                         </div>
 
                         <div class="space-y-2">
-                            <Label class="text-red-600 dark:text-red-400">
+                            <Label class="text-destructive">
                                 {{ t("import.mapping.fields.debit") }}
                             </Label>
                             <Select
@@ -311,10 +311,10 @@ const canProceed = computed(() => {
                                 <TableCell v-if="mapping.amount !== null">
                                     {{ row[mapping.amount] || "-" }}
                                 </TableCell>
-                                <TableCell v-if="mapping.credit !== null" class="text-green-600 dark:text-green-400">
+                                <TableCell v-if="mapping.credit !== null" class="text-success tabular-nums">
                                     {{ row[mapping.credit] || "-" }}
                                 </TableCell>
-                                <TableCell v-if="mapping.debit !== null" class="text-red-600 dark:text-red-400">
+                                <TableCell v-if="mapping.debit !== null" class="text-destructive tabular-nums">
                                     {{ row[mapping.debit] || "-" }}
                                 </TableCell>
                             </TableRow>

@@ -9,4 +9,4 @@ import {Global, Module} from "@nestjs/common";
     imports: [],
     controllers: [],
 })
-export default class HelperModule {}
+export class HelperModule {}
