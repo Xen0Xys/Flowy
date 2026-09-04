@@ -99,6 +99,10 @@ async function logout() {
                     <Icon name="iconoir:credit-card" />
                     <span>{{ t("commandPalette.actions.transactions") }}</span>
                 </CommandItem>
+                <CommandItem value="nav-recurring" @select="run(() => router.push('/recurring'))">
+                    <Icon name="iconoir:refresh-double" />
+                    <span>{{ t("commandPalette.actions.recurring") }}</span>
+                </CommandItem>
                 <CommandItem value="nav-budget" @select="run(() => router.push('/budget'))">
                     <Icon name="iconoir:piggy-bank" />
                     <span>{{ t("commandPalette.actions.budget") }}</span>
