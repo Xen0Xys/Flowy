@@ -33,6 +33,8 @@ import {
 } from "~/components/ui/combobox";
 import MoneyInput from "~/components/common/MoneyInput.vue";
 import TransactionReferenceCombobox from "~/components/transactions/TransactionReferenceCombobox.vue";
+import CategoryDialog from "~/components/references/CategoryDialog.vue";
+import MerchantDialog from "~/components/references/MerchantDialog.vue";
 
 type TransactionType = "expense" | "income";
 
@@ -54,6 +56,16 @@ const familyStore = useFamilyStore();
 
 const isSubmitting = ref(false);
 const transactionType = ref<TransactionType>("expense");
+const isCreateCategoryDialogOpen = ref(false);
+const isCreateMerchantDialogOpen = ref(false);
+
+const handleCategoryCreated = (category: {id: string}) => {
+    formData.value.categoryId = category.id;
+};
+
+const handleMerchantCreated = (merchant: {id: string}) => {
+    formData.value.merchantId = merchant.id;
+};
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
 const availableAccounts = computed(() => accountStore.accounts);
@@ -309,7 +321,7 @@ const close = () => emit("update:open", false);
                         :empty-text="t('recurring.form.categoryEmpty')"
                         :none-label="t('common.none')"
                         :create-label="t('recurring.form.createCategory')"
-                        @create="() => {}" />
+                        @create="isCreateCategoryDialogOpen = true" />
                 </div>
 
                 <div class="grid gap-2">
@@ -321,7 +333,7 @@ const close = () => emit("update:open", false);
                         :empty-text="t('recurring.form.merchantEmpty')"
                         :none-label="t('common.none')"
                         :create-label="t('recurring.form.createMerchant')"
-                        @create="() => {}" />
+                        @create="isCreateMerchantDialogOpen = true" />
                 </div>
 
                 <div class="grid gap-2">
@@ -428,4 +440,14 @@ const close = () => emit("update:open", false);
             </DialogFooter>
         </DialogContent>
     </Dialog>
+
+    <CategoryDialog
+        :open="isCreateCategoryDialogOpen"
+        @saved="handleCategoryCreated"
+        @update:open="isCreateCategoryDialogOpen = $event" />
+
+    <MerchantDialog
+        :open="isCreateMerchantDialogOpen"
+        @saved="handleMerchantCreated"
+        @update:open="isCreateMerchantDialogOpen = $event" />
 </template>
