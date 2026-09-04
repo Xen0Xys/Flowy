@@ -28,10 +28,19 @@ const router = useRouter();
 
 type ViewMode = "list" | "calendar";
 
+const VIEW_MODE_STORAGE_KEY = "flowy.recurring.viewMode";
+
 const currentView = computed<ViewMode>(() => (route.query.view === "calendar" ? "calendar" : "list"));
 
 function setView(view: ViewMode) {
     router.replace({query: {...route.query, view}});
+    if (process.client) {
+        try {
+            window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, view);
+        } catch {
+            // Ignore storage failures (e.g. disabled storage / private mode)
+        }
+    }
 }
 
 const now = new Date();
@@ -91,6 +100,16 @@ async function refreshAll() {
 }
 
 onMounted(async () => {
+    if (process.client && route.query.view !== "list" && route.query.view !== "calendar") {
+        try {
+            const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+            if (stored === "calendar") {
+                setView("calendar");
+            }
+        } catch {
+            // Ignore storage failures (e.g. disabled storage / private mode)
+        }
+    }
     await Promise.all([
         accountStore.fetchAccounts().catch(() => null),
         referenceStore.fetchReferences().catch(() => null),
