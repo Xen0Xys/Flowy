@@ -240,6 +240,7 @@
         "menu": "Menu",
         "dashboard": "Dashboard",
         "transactions": "Transactions",
+        "recurring": "Recurring",
         "import": "Import",
         "budget": "Budget",
         "accounts": "Accounts",
@@ -915,6 +916,8 @@
             "updateButton": "Update",
             "renewButton": "Renew",
             "renewedBadge": "renewed",
+            "plannedBadge": "recurring",
+            "plannedFromRecurring": "Recurring this month: {amount}",
             "discardChangesTitle": "Discard changes?",
             "discardChangesDescription": "Your inputs will be lost.",
             "discardChangesConfirm": "Discard",
@@ -1057,5 +1060,112 @@
         "viewOnGithub": "View on GitHub",
         "dismiss": "Got it",
         "noBody": "No release notes available."
+    },
+    "recurring": {
+        "page": {
+            "title": "Recurring transactions",
+            "subtitle": "Automate transactions that happen on a schedule.",
+            "new": "New recurring",
+            "viewList": "List",
+            "viewCalendar": "Calendar"
+        },
+        "frequency": {
+            "weekly": "Weekly",
+            "monthly": "Monthly",
+            "bimonthly": "Every 2 months",
+            "quarterly": "Quarterly",
+            "semiannual": "Every 6 months",
+            "yearly": "Yearly"
+        },
+        "dayOfWeek": {
+            "sunday": "Sunday",
+            "monday": "Monday",
+            "tuesday": "Tuesday",
+            "wednesday": "Wednesday",
+            "thursday": "Thursday",
+            "friday": "Friday",
+            "saturday": "Saturday"
+        },
+        "form": {
+            "createTitle": "New recurring transaction",
+            "editTitle": "Edit recurring transaction",
+            "description": "Set up the schedule and details. A transaction will be created automatically at each occurrence.",
+            "expense": "Expense",
+            "income": "Income",
+            "amount": "Amount",
+            "name": "Description",
+            "namePlaceholder": "e.g. Rent, Netflix, Salary",
+            "account": "Account",
+            "accountPlaceholder": "Select an account",
+            "category": "Category",
+            "categoryPlaceholder": "Select a category",
+            "categoryEmpty": "No category found.",
+            "createCategory": "Create category",
+            "merchant": "Merchant",
+            "merchantPlaceholder": "Select a merchant",
+            "merchantEmpty": "No merchant found.",
+            "createMerchant": "Create merchant",
+            "frequency": "Frequency",
+            "dayOfMonth": "Day of month",
+            "dayOfMonthHint": "Day 29-31 will be clamped to the last day of shorter months.",
+            "dayOfWeek": "Day of week",
+            "timezone": "Timezone",
+            "timezonePlaceholder": "Search timezone",
+            "timezoneEmpty": "No timezone found.",
+            "inBudget": "Include in budget",
+            "inBudgetHint": "Count this transaction towards budget forecasts.",
+            "enabled": "Enabled",
+            "enabledHint": "When disabled, no transaction will be created but the schedule keeps advancing."
+        },
+        "list": {
+            "empty": "No recurring transactions yet",
+            "emptyHint": "Create one to have Flowy automatically log recurring payments.",
+            "day": "Day",
+            "nextRun": "Next",
+            "failingTooltip": "Last execution failed. Edit or check history.",
+            "disabledTooltip": "Disabled",
+            "disabled": "Disabled"
+        },
+        "detail": {
+            "tabDetails": "Details",
+            "tabHistory": "History",
+            "amount": "Amount",
+            "account": "Account",
+            "category": "Category",
+            "merchant": "Merchant",
+            "frequency": "Frequency",
+            "timezone": "Timezone",
+            "nextRun": "Next run",
+            "lastRun": "Last run",
+            "inBudget": "In budget",
+            "never": "Never",
+            "noExecutions": "No executions yet",
+            "viewTransaction": "Open",
+            "deleteDescription": "This will permanently delete the recurring transaction. Existing transactions created by it will be kept.",
+            "failingTitle": "This recurring transaction is failing",
+            "failingDescription": "The last execution attempt raised an error. Review the details or open the History tab."
+        },
+        "execution": {
+            "status": {
+                "created": "Created",
+                "skipped": "Skipped",
+                "failed": "Failed"
+            }
+        },
+        "store": {
+            "success": {
+                "created": "Recurring transaction created",
+                "updated": "Recurring transaction updated",
+                "deleted": "Recurring transaction deleted"
+            },
+            "errors": {
+                "fetch": "Failed to load recurring transactions",
+                "fetchCalendar": "Failed to load recurring calendar",
+                "fetchExecutions": "Failed to load execution history",
+                "create": "Failed to create recurring transaction",
+                "update": "Failed to update recurring transaction",
+                "delete": "Failed to delete recurring transaction"
+            }
+        }
     }
 }
