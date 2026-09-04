@@ -15,6 +15,7 @@ import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entit
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {BudgetedCategories, Budgets, Prisma, UserCategories} from "../../../../prisma/generated/client";
+import {RecurringTransactionService} from "../recurring-transaction/recurring-transaction.service";
 
 type BudgetWithCategories = Budgets & {
     budgeted_categories: BudgetedCategories[];
@@ -24,7 +25,10 @@ type BudgetWithCategories = Budgets & {
 export class BudgetService {
     private readonly logger = new Logger(BudgetService.name);
 
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly recurringTransactionService: RecurringTransactionService,
+    ) {}
 
     async getBudgetByPeriod(user: UserEntity, year: number, month: number): Promise<BudgetEntity | null> {
         this.validateMonthAndYear(year, month);
@@ -168,7 +172,13 @@ export class BudgetService {
             .then((accounts) => accounts.map((a) => a.id));
 
         if (userAccountIds.length === 0) {
-            return new BudgetSpendingEntity({totalSpent: 0, actualIncome: 0, byCategory: []});
+            return new BudgetSpendingEntity({
+                totalSpent: 0,
+                totalPlanned: 0,
+                actualIncome: 0,
+                byCategory: [],
+                plannedByCategory: [],
+            });
         }
 
         const expenseTransactions = await this.prismaService.transactions.findMany({
@@ -202,11 +212,20 @@ export class BudgetService {
             categorySpending.set(key, (categorySpending.get(key) ?? 0) + Math.abs(tx.amount));
         }
 
-        const categoryIds = [...new Set([...categorySpending.keys()].filter((id): id is string => id !== null))];
+        const plannedByCategoryMap = await this.recurringTransactionService.getPlannedByCategoryForMonth(
+            user,
+            year,
+            month,
+        );
+
+        const spendingCategoryIds = [...new Set([...categorySpending.keys()].filter((id): id is string => id !== null))];
+        const plannedCategoryIds = [...plannedByCategoryMap.keys()].filter((id): id is string => id !== null);
+        const allCategoryIds = [...new Set([...spendingCategoryIds, ...plannedCategoryIds])];
+
         const categories =
-            categoryIds.length > 0
+            allCategoryIds.length > 0
                 ? await this.prismaService.userCategories.findMany({
-                      where: {id: {in: categoryIds}},
+                      where: {id: {in: allCategoryIds}},
                       select: {id: true, name: true, hex_color: true, icon: true},
                   })
                 : [];
@@ -214,15 +233,16 @@ export class BudgetService {
         const categoryMap = new Map(categories.map((c) => [c.id, {name: c.name, hexColor: c.hex_color, icon: c.icon}]));
 
         const byCategory: BudgetSpendingCategoryEntity[] = [];
-
-        for (const [catId, spent] of categorySpending.entries()) {
+        for (const [catId, rawSpent] of categorySpending.entries()) {
+            const spent = Math.round(rawSpent * 100) / 100;
             if (catId === null) {
                 byCategory.push(
                     new BudgetSpendingCategoryEntity({
                         categoryId: null,
                         hexColor: "#94a3b8",
                         icon: "iconoir:question-mark",
-                        spent: Math.round(spent * 100) / 100,
+                        spent,
+                        planned: 0,
                     }),
                 );
             } else {
@@ -234,19 +254,39 @@ export class BudgetService {
                             name: cat.name,
                             hexColor: cat.hexColor,
                             icon: cat.icon,
-                            spent: Math.round(spent * 100) / 100,
+                            spent,
+                            planned: 0,
                         }),
                     );
                 }
             }
         }
-
         byCategory.sort((a, b) => b.spent - a.spent);
 
+        const plannedByCategory: BudgetSpendingCategoryEntity[] = [];
+        for (const [catId, rawPlanned] of plannedByCategoryMap.entries()) {
+            const planned = Math.round(rawPlanned * 100) / 100;
+            if (catId === null || planned <= 0) continue;
+            const cat = categoryMap.get(catId);
+            if (!cat) continue;
+            plannedByCategory.push(
+                new BudgetSpendingCategoryEntity({
+                    categoryId: catId,
+                    name: cat.name,
+                    hexColor: cat.hexColor,
+                    icon: cat.icon,
+                    spent: 0,
+                    planned,
+                }),
+            );
+        }
+        plannedByCategory.sort((a, b) => b.planned - a.planned);
+
         const totalSpent = Math.round(byCategory.reduce((sum, c) => sum + c.spent, 0) * 100) / 100;
+        const totalPlanned = Math.round(plannedByCategory.reduce((sum, c) => sum + c.planned, 0) * 100) / 100;
         const actualIncome = Math.round(incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
 
-        return new BudgetSpendingEntity({totalSpent, actualIncome, byCategory});
+        return new BudgetSpendingEntity({totalSpent, totalPlanned, actualIncome, byCategory, plannedByCategory});
     }
 
     async getAvailableMonths(user: UserEntity): Promise<AvailableMonth[]> {

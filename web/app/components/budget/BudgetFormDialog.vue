@@ -47,6 +47,7 @@ const props = withDefaults(
             categories: BudgetedCategory[];
         } | null;
         spendingCategories?: BudgetSpendingCategory[];
+        plannedCategories?: BudgetSpendingCategory[];
     }>(),
     {
         isSaving: false,
@@ -74,6 +75,7 @@ const budgetedIncome = ref(0);
 const categoryAmounts = ref<Record<string, number>>({});
 const selectedCategoryIds = ref<Set<string>>(new Set());
 const renewedCategoryIds = ref<Set<string>>(new Set());
+const plannedCategoryIds = ref<Set<string>>(new Set());
 const isPickerOpen = ref(false);
 const isDiscardConfirmOpen = ref(false);
 const initialSnapshot = ref<string>("");
@@ -116,14 +118,26 @@ const saveButtonLabel = computed(() => {
     }
 });
 
+const plannedByCategoryId = computed<Map<string, number>>(() => {
+    const map = new Map<string, number>();
+    if (!props.plannedCategories) return map;
+    for (const pc of props.plannedCategories) {
+        if (pc.categoryId && (pc.planned ?? 0) > 0) {
+            map.set(pc.categoryId, pc.planned);
+        }
+    }
+    return map;
+});
+
 const availableCategories = computed<CategoryLike[]>(() => {
     const map = new Map<string, CategoryLike>();
     for (const c of referenceStore.categories) {
         map.set(c.id, {id: c.id, name: c.name, hexColor: c.hexColor, icon: c.icon});
     }
-    if (props.spendingCategories) {
-        for (const sc of props.spendingCategories) {
-            if (sc.categoryId && !map.has(sc.categoryId)) {
+    const addFromSpending = (list: BudgetSpendingCategory[] | undefined) => {
+        if (!list) return;
+        for (const sc of list) {
+            if (sc.categoryId && sc.name && !map.has(sc.categoryId)) {
                 map.set(sc.categoryId, {
                     id: sc.categoryId,
                     name: sc.name,
@@ -132,14 +146,22 @@ const availableCategories = computed<CategoryLike[]>(() => {
                 });
             }
         }
-    }
+    };
+    addFromSpending(props.spendingCategories);
+    addFromSpending(props.plannedCategories);
     return [...map.values()];
 });
 
 const categoryById = computed(() => new Map(availableCategories.value.map((c) => [c.id, c])));
 
 const selectedCategoryRows = computed(() => {
-    const rows: Array<{category: CategoryLike; amount: number; isRenewed: boolean}> = [];
+    const rows: Array<{
+        category: CategoryLike;
+        amount: number;
+        isRenewed: boolean;
+        isPlanned: boolean;
+        plannedAmount: number;
+    }> = [];
     for (const id of selectedCategoryIds.value) {
         const category = categoryById.value.get(id);
         if (!category) continue;
@@ -147,6 +169,8 @@ const selectedCategoryRows = computed(() => {
             category,
             amount: categoryAmounts.value[id] ?? 0,
             isRenewed: renewedCategoryIds.value.has(id),
+            isPlanned: plannedCategoryIds.value.has(id),
+            plannedAmount: plannedByCategoryId.value.get(id) ?? 0,
         });
     }
     return rows.sort((a, b) => a.category.name.localeCompare(b.category.name));
@@ -230,6 +254,7 @@ const isDirty = computed(() => {
 });
 
 function loadFromExisting() {
+    plannedCategoryIds.value = new Set();
     if (props.existingBudget) {
         budgetedIncome.value = props.existingBudget.budgetedIncome;
         categoryAmounts.value = {};
@@ -247,6 +272,13 @@ function loadFromExisting() {
         categoryAmounts.value = {};
         selectedCategoryIds.value = new Set();
         renewedCategoryIds.value = new Set();
+    }
+
+    for (const [categoryId, plannedAmount] of plannedByCategoryId.value.entries()) {
+        if (selectedCategoryIds.value.has(categoryId)) continue;
+        selectedCategoryIds.value.add(categoryId);
+        categoryAmounts.value[categoryId] = props.mode === "edit" ? 0 : plannedAmount;
+        plannedCategoryIds.value.add(categoryId);
     }
 }
 
@@ -318,6 +350,7 @@ function removeCategory(categoryId: string) {
     delete nextAmounts[categoryId];
     categoryAmounts.value = nextAmounts;
     renewedCategoryIds.value.delete(categoryId);
+    plannedCategoryIds.value.delete(categoryId);
 }
 
 function startFromScratch() {
@@ -325,7 +358,16 @@ function startFromScratch() {
     categoryAmounts.value = {};
     selectedCategoryIds.value = new Set();
     renewedCategoryIds.value = new Set();
+    plannedCategoryIds.value = new Set();
     hasStartedFresh.value = true;
+
+    if (props.mode !== "edit") {
+        for (const [categoryId, plannedAmount] of plannedByCategoryId.value.entries()) {
+            selectedCategoryIds.value.add(categoryId);
+            categoryAmounts.value[categoryId] = plannedAmount;
+            plannedCategoryIds.value.add(categoryId);
+        }
+    }
 }
 </script>
 
@@ -485,12 +527,29 @@ function startFromScratch() {
                                 </div>
                                 <label
                                     :for="'budget-cat-' + row.category.id"
-                                    class="flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm">
-                                    <span class="truncate">{{ row.category.name }}</span>
+                                    class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                    <span class="flex min-w-0 items-center gap-1.5 truncate text-sm">
+                                        <span class="truncate">{{ row.category.name }}</span>
+                                        <span
+                                            v-if="row.isRenewed && mode === 'renew'"
+                                            class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+                                            {{ t("budget.dialog.renewedBadge") }}
+                                        </span>
+                                        <span
+                                            v-if="row.isPlanned"
+                                            class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+                                            {{ t("budget.dialog.plannedBadge") }}
+                                        </span>
+                                    </span>
                                     <span
-                                        v-if="row.isRenewed && mode === 'renew'"
-                                        class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
-                                        {{ t("budget.dialog.renewedBadge") }}
+                                        v-if="row.plannedAmount > 0"
+                                        class="text-muted-foreground flex items-center gap-1 text-[11px]">
+                                        <Icon class="size-3" name="iconoir:refresh-double" />
+                                        {{
+                                            t("budget.dialog.plannedFromRecurring", {
+                                                amount: toCurrency(row.plannedAmount, currency),
+                                            })
+                                        }}
                                     </span>
                                 </label>
                                 <MoneyInput

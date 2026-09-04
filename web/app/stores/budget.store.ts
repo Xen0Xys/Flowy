@@ -29,12 +29,15 @@ export type BudgetSpendingCategory = {
     hexColor: string;
     icon: string;
     spent: number;
+    planned: number;
 };
 
 export type BudgetSpending = {
     totalSpent: number;
+    totalPlanned: number;
     actualIncome: number;
     byCategory: BudgetSpendingCategory[];
+    plannedByCategory: BudgetSpendingCategory[];
 };
 
 export type AvailableMonth = {
