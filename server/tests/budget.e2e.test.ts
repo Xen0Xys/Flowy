@@ -243,8 +243,10 @@ describe("BudgetController (e2e)", () => {
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
             totalSpent: 0,
+            totalPlanned: 0,
             actualIncome: 0,
             byCategory: [],
+            plannedByCategory: [],
         });
     });
 
@@ -336,6 +338,7 @@ describe("BudgetController (e2e)", () => {
             hexColor: "#22C55E",
             icon: "utensils",
             spent: 70,
+            planned: 0,
         });
 
         expect(response.body.byCategory[1]).toEqual({
@@ -343,6 +346,7 @@ describe("BudgetController (e2e)", () => {
             hexColor: "#94a3b8",
             icon: "iconoir:question-mark",
             spent: 30,
+            planned: 0,
         });
     });
 
