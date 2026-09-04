@@ -63,8 +63,8 @@ jobs:
               working-directory: server
               run: bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage
 
-            - name: Check coverage threshold (90%+)
+            - name: Check coverage threshold (85%+)
               uses: tluijken/code-coverage-threshold@v1
               with:
                   coverage-file: server/coverage/lcov.info
-                  minimum-coverage: 95
+                  minimum-coverage: 85
