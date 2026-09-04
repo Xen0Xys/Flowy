@@ -20,12 +20,16 @@ const {t} = useI18n();
 const accountStore = useAccountStore();
 
 const accountsById = computed(() => new Map(accountStore.accounts.map((a) => [a.id, a])));
+
+const sortedItems = computed(() =>
+    [...props.items].sort((a, b) => new Date(a.nextRunAt).getTime() - new Date(b.nextRunAt).getTime()),
+);
 </script>
 
 <template>
-    <div v-if="items.length > 0" class="flex flex-col gap-2">
+    <div v-if="sortedItems.length > 0" class="flex flex-col gap-2">
         <RecurringTransactionRow
-            v-for="rt in items"
+            v-for="rt in sortedItems"
             :key="rt.id"
             :recurring-transaction="rt"
             :currency="currency"
