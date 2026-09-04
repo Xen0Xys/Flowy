@@ -118,10 +118,13 @@ const onInput = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const value = target.value;
     const decSep = decimalSeparator.value;
-    const allowedChars = props.allowNegative
-        ? new RegExp(`[^0-9\\${decSep}\\-]`, "g")
-        : new RegExp(`[^0-9\\${decSep}]`, "g");
+    const allowedChars = props.allowNegative ? /[^0-9.,\-]/g : /[^0-9.,]/g;
     let filtered = value.replace(allowedChars, "");
+    if (decSep === ",") {
+        filtered = filtered.replace(/\./g, ",");
+    } else {
+        filtered = filtered.replace(/,/g, ".");
+    }
 
     let sign = "";
     if (props.allowNegative) {
