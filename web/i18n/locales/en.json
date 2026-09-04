@@ -277,6 +277,7 @@
         "actions": {
             "dashboard": "Go to dashboard",
             "transactions": "Go to transactions",
+            "recurring": "Go to recurring transactions",
             "budget": "Go to budget",
             "import": "Go to import",
             "newTransaction": "New transaction",
@@ -1122,6 +1123,9 @@
             "emptyHint": "Create one to have Flowy automatically log recurring payments.",
             "day": "Day",
             "nextRun": "Next",
+            "daysRemaining": "In {count} days",
+            "today": "Today",
+            "tomorrow": "Tomorrow",
             "failingTooltip": "Last execution failed. Edit or check history.",
             "disabledTooltip": "Disabled",
             "disabled": "Disabled"

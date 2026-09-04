@@ -277,6 +277,7 @@
         "actions": {
             "dashboard": "Aller au tableau de bord",
             "transactions": "Aller aux transactions",
+            "recurring": "Aller aux transactions récurrentes",
             "budget": "Aller au budget",
             "import": "Aller à l'import",
             "newTransaction": "Nouvelle transaction",
@@ -1122,6 +1123,9 @@
             "emptyHint": "Créez-en une pour laisser Flowy enregistrer automatiquement vos paiements récurrents.",
             "day": "Jour",
             "nextRun": "Prochaine",
+            "daysRemaining": "Dans {count} jours",
+            "today": "Aujourd'hui",
+            "tomorrow": "Demain",
             "failingTooltip": "La dernière exécution a échoué. Modifiez-la ou consultez l'historique.",
             "disabledTooltip": "Désactivée",
             "disabled": "Désactivée"
