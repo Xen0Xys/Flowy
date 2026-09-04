@@ -6,7 +6,7 @@ Thanks for taking the time to look into contributing. This guide covers how to s
 
 Prerequisites and the full local setup live in the [README](./README.md#development). In short:
 
-- Bun 1.3.x, Node 20+
+- Bun 1.4.x, Node 20+
 - Docker and Docker Compose v2 (optional but recommended)
 - PostgreSQL if you run the backend without Docker
 

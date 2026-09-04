@@ -5,7 +5,7 @@
 3. CONTACT — If automation cannot proceed (missing secret, failing env), leave a clear TODO in your summary.
 4. LICENSE — This project ships under CC-BY-NC-ND; keep third-party code compliant.
 5. CURSOR / COPILOT RULES — None detected (.cursor/ and .github/copilot-instructions.md absent); keep this section updated if that changes.
-6. TOOLCHAIN DEFAULTS — Use Bun 1.3.x and Node 20+; prefer Bun for scripts already defined with `bun`.
+6. TOOLCHAIN DEFAULTS — Use Bun 1.4.x and Node 20+; prefer Bun for scripts already defined with `bun`.
 7. PACKAGE MANAGERS — Do not mix npm/pnpm/yarn within the same workspace; `bun install` at repo root installs everything.
 8. MONOREPO LAYOUT — `web/` hosts the Nuxt frontend, `server/` contains the Nest backend, and shared configs live at root.
 9. WORKSPACES — The root `package.json` defines workspaces as `./*`; so `bun install` at root triggers hoisted installs for both subprojects.

@@ -61,7 +61,7 @@ Actively developed. Currently planned:
 
 ## Tech stack
 
-- Runtime: Bun 1.3+, Node 20+
+- Runtime: Bun 1.4+, Node 20+
 - Frontend: Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, shadcn-nuxt
 - Backend: NestJS 12, Fastify, Prisma, JWT
 - Database: PostgreSQL (tensorchord/vchord-postgres)
@@ -85,7 +85,7 @@ AGENTS.md                   # Full conventions (AI/automation reference)
 
 ### Prerequisites
 
-- Bun `1.3.x`
+- Bun `1.4.x`
 - Node `20+`
 - Docker and Docker Compose v2 (for containerized workflows)
 - PostgreSQL if you run the backend without Docker
