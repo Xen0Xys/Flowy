@@ -1116,6 +1116,7 @@
             "namePlaceholder": "Ex. Loyer, Netflix, Salaire",
             "account": "Compte",
             "accountPlaceholder": "Sélectionner un compte",
+            "accountChangeHint": "Le changement de compte ne s'applique qu'aux prochaines occurrences. Les transactions déjà générées restent sur le compte d'origine.",
             "category": "Catégorie",
             "categoryPlaceholder": "Sélectionner une catégorie",
             "categoryEmpty": "Aucune catégorie trouvée.",

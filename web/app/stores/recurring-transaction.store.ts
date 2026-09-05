@@ -64,6 +64,7 @@ export type CreateRecurringTransactionPayload = {
 };
 
 export type UpdateRecurringTransactionPayload = {
+    accountId?: string;
     name?: string;
     amount?: number;
     merchantId?: string | null;

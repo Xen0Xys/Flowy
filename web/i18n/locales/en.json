@@ -1116,6 +1116,7 @@
             "namePlaceholder": "e.g. Rent, Netflix, Salary",
             "account": "Account",
             "accountPlaceholder": "Select an account",
+            "accountChangeHint": "Changing the account only affects future occurrences. Already generated transactions stay on the original account.",
             "category": "Category",
             "categoryPlaceholder": "Select a category",
             "categoryEmpty": "No category found.",

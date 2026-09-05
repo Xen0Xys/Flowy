@@ -15,6 +15,10 @@ import {RecurrenceFrequency} from "../../../../../../prisma/generated/client";
 
 export class UpdateRecurringTransactionDto {
     @IsOptional()
+    @IsUUID("7")
+    accountId?: string;
+
+    @IsOptional()
     @IsString()
     @Length(1, 255)
     name?: string;

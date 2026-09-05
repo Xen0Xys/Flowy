@@ -277,6 +277,7 @@ const submit = async () => {
         if (isEditing.value && props.recurringTransaction) {
             const updatePayload: UpdateRecurringTransactionPayload = {
                 ...basePayload,
+                accountId: formData.value.accountId,
                 merchantId: formData.value.merchantId === "none" ? null : formData.value.merchantId,
                 categoryId: formData.value.categoryId === "none" ? null : formData.value.categoryId,
             };
@@ -365,7 +366,7 @@ const close = () => emit("update:open", false);
 
                         <div class="grid gap-2">
                             <Label for="recurring-account">{{ t("recurring.form.account") }}</Label>
-                            <Select v-model="formData.accountId" :disabled="isEditing">
+                            <Select v-model="formData.accountId">
                                 <SelectTrigger id="recurring-account">
                                     <SelectValue :placeholder="t('recurring.form.accountPlaceholder')" />
                                 </SelectTrigger>
@@ -375,6 +376,9 @@ const close = () => emit("update:open", false);
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
+                            <p v-if="isEditing" class="text-muted-foreground text-xs">
+                                {{ t("recurring.form.accountChangeHint") }}
+                            </p>
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">
