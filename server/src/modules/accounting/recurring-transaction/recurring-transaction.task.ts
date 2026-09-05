@@ -53,7 +53,7 @@ export class RecurringTransactionTask implements OnModuleInit {
         for (const rt of due) {
             try {
                 // oxlint-disable-next-line no-await-in-loop
-                await this.processOne(rt, now);
+                await this.processOne(rt);
                 processed += 1;
             } catch (err) {
                 failed += 1;
@@ -84,7 +84,7 @@ export class RecurringTransactionTask implements OnModuleInit {
         }
     }
 
-    private async processOne(rt: RecurringTransactions, now: Date): Promise<void> {
+    private async processOne(rt: RecurringTransactions): Promise<void> {
         const scheduled = rt.next_run_at;
 
         await this.prismaService.$transaction(async (tx) => {
@@ -145,7 +145,7 @@ export class RecurringTransactionTask implements OnModuleInit {
                 where: {id: rt.id},
                 data: {
                     next_run_at: nextRunAt,
-                    last_run_at: now,
+                    last_run_at: scheduled,
                     last_failure_at: null,
                 },
             });

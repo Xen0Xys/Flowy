@@ -91,9 +91,9 @@ const progress = computed(() => {
     const rt = props.recurringTransaction;
     const now = Date.now();
     const nextRun = new Date(rt.nextRunAt).getTime();
-    const periodStart = rt.lastRunAt
-        ? new Date(rt.lastRunAt).getTime()
-        : nextRun - FREQUENCY_DAYS[rt.frequency] * DAY_MS;
+    const fallbackStart = nextRun - FREQUENCY_DAYS[rt.frequency] * DAY_MS;
+    const lastRun = rt.lastRunAt ? new Date(rt.lastRunAt).getTime() : null;
+    const periodStart = lastRun !== null && lastRun < nextRun ? lastRun : fallbackStart;
     const total = nextRun - periodStart;
     const elapsed = now - periodStart;
     const percent = total > 0 ? Math.max(0, Math.min(100, (elapsed / total) * 100)) : 100;

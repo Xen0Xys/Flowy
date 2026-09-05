@@ -131,8 +131,34 @@ describe("RecurringTransactionTask", () => {
 
         const updatedRt = await prisma.recurringTransactions.findUnique({where: {id: rt.id}});
         expect(updatedRt?.next_run_at.getTime()).toBeGreaterThan(originalNextRun.getTime());
-        expect(updatedRt?.last_run_at).not.toBeNull();
+        expect(updatedRt?.last_run_at?.getTime()).toBe(originalNextRun.getTime());
         expect(updatedRt?.last_failure_at).toBeNull();
+    });
+
+    test("catch-up over multiple missed periods sets last_run_at to the last scheduled occurrence, not now", async () => {
+        const user = await createUserRecord();
+        const account = await createAccountRecord(user.id, 100000);
+        const threeYearsAgo = new Date();
+        threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
+        const rt = await createRecurring(user.id, account.id, {
+            amount: -10,
+            nextRunAt: threeYearsAgo,
+        });
+
+        const summary = await task.processAllDueUntilCaughtUp();
+        expect(summary.failed).toBe(0);
+        expect(summary.processed).toBeGreaterThan(1);
+
+        const updatedRt = await prisma.recurringTransactions.findUnique({where: {id: rt.id}});
+        const now = Date.now();
+        const nextRun = updatedRt!.next_run_at.getTime();
+        const lastRun = updatedRt!.last_run_at!.getTime();
+
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        expect(nextRun).toBeGreaterThan(now);
+        expect(lastRun).toBeLessThan(now);
+        expect(nextRun - lastRun).toBeGreaterThanOrEqual(28 * DAY_MS);
+        expect(nextRun - lastRun).toBeLessThanOrEqual(32 * DAY_MS);
     });
 
     test("processes a disabled recurring: logs SKIPPED without creating a transaction", async () => {
