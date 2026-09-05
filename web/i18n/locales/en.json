@@ -1071,6 +1071,9 @@
             "viewCalendar": "Calendar",
             "today": "Today"
         },
+        "calendar": {
+            "dayOccurrences": "Occurrences on {date}"
+        },
         "frequency": {
             "weekly": "Weekly",
             "monthly": "Monthly",

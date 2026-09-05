@@ -240,17 +240,27 @@ async function handleDeleted() {
                         </TabsList>
                     </Tabs>
 
-                    <div v-if="currentView === 'calendar'" class="flex items-center gap-2">
+                    <div
+                        v-if="currentView === 'calendar'"
+                        class="flex items-center justify-between gap-1 sm:justify-start sm:gap-2">
                         <Button size="icon" variant="ghost" @click="navigateMonth(-1)">
                             <Icon class="size-4" name="iconoir:nav-arrow-left" />
                         </Button>
-                        <span class="min-w-40 text-center text-sm font-medium">{{ monthLabel }}</span>
+                        <span class="flex-1 text-center text-sm font-medium sm:min-w-40 sm:flex-none">
+                            {{ monthLabel }}
+                        </span>
                         <Button size="icon" variant="ghost" @click="navigateMonth(1)">
                             <Icon class="size-4" name="iconoir:nav-arrow-right" />
                         </Button>
-                        <Button :disabled="isCurrentMonth" size="sm" variant="outline" class="ml-1" @click="goToday">
-                            <Icon class="mr-1 size-4" name="iconoir:calendar" />
-                            {{ t("recurring.page.today") }}
+                        <Button
+                            :disabled="isCurrentMonth"
+                            size="sm"
+                            variant="outline"
+                            class="ml-1"
+                            :aria-label="t('recurring.page.today')"
+                            @click="goToday">
+                            <Icon class="size-4 sm:mr-1" name="iconoir:calendar" />
+                            <span class="hidden sm:inline">{{ t("recurring.page.today") }}</span>
                         </Button>
                     </div>
                 </div>
