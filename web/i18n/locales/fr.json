@@ -42,7 +42,6 @@
             "username": "Nom d'utilisateur",
             "email": "Email",
             "password": "Mot de passe",
-            "language": "Langue",
             "changeLanguage": "Changer de langue",
             "errors": {
                 "invalidEmail": "Veuillez saisir une adresse email valide.",
@@ -1113,7 +1112,6 @@
             "description": "Définissez la planification et les détails. Une transaction sera créée automatiquement à chaque occurrence.",
             "expense": "Dépense",
             "income": "Revenu",
-            "amount": "Montant",
             "name": "Description",
             "namePlaceholder": "Ex. Loyer, Netflix, Salaire",
             "account": "Compte",

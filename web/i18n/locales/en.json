@@ -42,7 +42,6 @@
             "username": "Username",
             "email": "Email",
             "password": "Password",
-            "language": "Language",
             "changeLanguage": "Change language",
             "errors": {
                 "invalidEmail": "Please enter a valid email address.",
@@ -1113,7 +1112,6 @@
             "description": "Set up the schedule and details. A transaction will be created automatically at each occurrence.",
             "expense": "Expense",
             "income": "Income",
-            "amount": "Amount",
             "name": "Description",
             "namePlaceholder": "e.g. Rent, Netflix, Salary",
             "account": "Account",
