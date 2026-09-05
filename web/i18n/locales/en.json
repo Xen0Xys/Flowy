@@ -1138,7 +1138,10 @@
             "inBudget": "Include in budget",
             "inBudgetHint": "Count this transaction towards budget forecasts.",
             "enabled": "Enabled",
-            "enabledHint": "When disabled, no transaction will be created but the schedule keeps advancing."
+            "enabledHint": "When disabled, no transaction will be created but the schedule keeps advancing.",
+            "errors": {
+                "loadData": "Failed to load required data"
+            }
         },
         "list": {
             "empty": "No recurring transactions yet",

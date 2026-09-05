@@ -1138,7 +1138,10 @@
             "inBudget": "Inclure dans le budget",
             "inBudgetHint": "Compte cette transaction dans les prévisions du budget.",
             "enabled": "Activée",
-            "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même."
+            "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même.",
+            "errors": {
+                "loadData": "Impossible de charger les données requises"
+            }
         },
         "list": {
             "empty": "Aucune transaction récurrente",

@@ -155,7 +155,7 @@ const initForm = () => {
         formData.value = {
             name: "",
             amount: 0,
-            accountId: availableAccounts.value[0]?.id ?? "",
+            accountId: "",
             categoryId: "none",
             merchantId: "none",
             frequency: "MONTHLY",
@@ -169,10 +169,21 @@ const initForm = () => {
     }
 };
 
+const loadData = async () => {
+    try {
+        await Promise.all([referenceStore.fetchReferences(), accountStore.fetchAccounts()]);
+    } catch {
+        toast.error(t("recurring.form.errors.loadData"));
+    }
+};
+
 watch(
     () => props.open,
     (open) => {
-        if (open) initForm();
+        if (open) {
+            loadData();
+            initForm();
+        }
     },
     {immediate: true},
 );
