@@ -64,10 +64,20 @@ function formatPeriod(year: number, month: number): string {
 
 const currentPeriod = computed(() => parsePeriod(route.query.period));
 
+const isCurrentMonth = computed(() => {
+    const today = new Date();
+    return currentPeriod.value.year === today.getFullYear() && currentPeriod.value.month === today.getMonth() + 1;
+});
+
 function setPeriod(year: number, month: number) {
     const period = formatPeriod(year, month);
     if (route.query.period === period) return;
     router.replace({query: {...route.query, period}});
+}
+
+function goToday() {
+    const today = new Date();
+    setPeriod(today.getFullYear(), today.getMonth() + 1);
 }
 
 const isLoading = ref(true);
@@ -237,6 +247,10 @@ async function handleDeleted() {
                         <span class="min-w-40 text-center text-sm font-medium">{{ monthLabel }}</span>
                         <Button size="icon" variant="ghost" @click="navigateMonth(1)">
                             <Icon class="size-4" name="iconoir:nav-arrow-right" />
+                        </Button>
+                        <Button :disabled="isCurrentMonth" size="sm" variant="outline" class="ml-1" @click="goToday">
+                            <Icon class="mr-1 size-4" name="iconoir:calendar" />
+                            {{ t("recurring.page.today") }}
                         </Button>
                     </div>
                 </div>

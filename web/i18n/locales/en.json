@@ -1068,7 +1068,8 @@
             "subtitle": "Automate transactions that happen on a schedule.",
             "new": "New recurring",
             "viewList": "List",
-            "viewCalendar": "Calendar"
+            "viewCalendar": "Calendar",
+            "today": "Today"
         },
         "frequency": {
             "weekly": "Weekly",

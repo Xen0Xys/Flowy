@@ -1068,7 +1068,8 @@
             "subtitle": "Automatisez les transactions qui reviennent à intervalles réguliers.",
             "new": "Nouvelle récurrence",
             "viewList": "Liste",
-            "viewCalendar": "Calendrier"
+            "viewCalendar": "Calendrier",
+            "today": "Aujourd'hui"
         },
         "frequency": {
             "weekly": "Hebdomadaire",

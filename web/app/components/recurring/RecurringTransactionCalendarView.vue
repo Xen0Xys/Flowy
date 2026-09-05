@@ -110,13 +110,13 @@ const cells = computed<CalendarCell[]>(() => {
                 :class="[
                     'flex min-h-24 flex-col gap-1 rounded-md border p-1.5',
                     cell.inMonth ? 'bg-card' : 'bg-muted/30 border-dashed',
-                    cell.isToday && 'border-primary ring-primary/30 ring-1',
+                    cell.isToday && 'border-primary ring-primary ring-offset-background ring-2 ring-offset-1',
                 ]">
                 <span
                     v-if="cell.dayNumber !== null"
                     :class="[
-                        'text-xs font-medium tabular-nums',
-                        cell.isToday ? 'text-primary' : 'text-muted-foreground',
+                        'text-xs tabular-nums',
+                        cell.isToday ? 'text-primary font-semibold' : 'text-muted-foreground font-medium',
                     ]">
                     {{ cell.dayNumber }}
                 </span>
