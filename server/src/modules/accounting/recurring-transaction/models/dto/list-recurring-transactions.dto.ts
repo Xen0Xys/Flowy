@@ -1,4 +1,4 @@
-import {IsBooleanString, IsOptional, IsUUID} from "class-validator";
+import {IsIn, IsOptional, IsUUID} from "class-validator";
 
 export class ListRecurringTransactionsDto {
     @IsOptional()
@@ -6,6 +6,6 @@ export class ListRecurringTransactionsDto {
     accountId?: string;
 
     @IsOptional()
-    @IsBooleanString()
-    enabled?: string;
+    @IsIn(["true", "false"])
+    enabled?: "true" | "false";
 }

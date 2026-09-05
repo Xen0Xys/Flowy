@@ -417,6 +417,60 @@ describe("BudgetController (e2e)", () => {
         expect(response.body.actualIncome).toBe(2000);
     });
 
+    test("does not double-count planned recurring for East-of-UTC timezones near month boundaries", async () => {
+        // 2050-03-01 06:00 Australia/Sydney (AEDT, UTC+11) = 2050-02-28 19:00 UTC.
+        // The scheduler stores the execution at that exact UTC instant; a UTC-only
+        // "March" query would miss it and would incorrectly re-count the occurrence
+        // as still planned.
+        const user = await registerUser(server);
+
+        const account = await prisma.accounts.create({
+            data: {
+                user_id: user.user.id,
+                type: "CHECKING",
+                name: "Sydney main",
+                in_budget: true,
+            },
+        });
+        const rentCategory = await prisma.userCategories.create({
+            data: {
+                user_id: user.user.id,
+                name: "Rent",
+                hex_color: "#3B82F6",
+                icon: "iconoir:home",
+            },
+        });
+
+        const scheduledInstant = new Date(Date.UTC(2050, 1, 28, 19, 0, 0));
+        const rt = await prisma.recurringTransactions.create({
+            data: {
+                user_id: user.user.id,
+                account_id: account.id,
+                name: "Sydney rent",
+                amount: -1200,
+                frequency: "MONTHLY",
+                day_of_month: 1,
+                timezone: "Australia/Sydney",
+                in_budget: true,
+                is_enabled: true,
+                category_id: rentCategory.id,
+                next_run_at: scheduledInstant,
+            },
+        });
+        await prisma.recurringTransactionExecutions.create({
+            data: {
+                recurring_transaction_id: rt.id,
+                status: "CREATED",
+                scheduled_for: scheduledInstant,
+            },
+        });
+
+        const response = await agent.get("/budget/2050/3/spending").set("Authorization", `Bearer ${user.token}`);
+        expect(response.status).toBe(200);
+        expect(response.body.plannedByCategory).toHaveLength(0);
+        expect(response.body.totalPlanned).toBe(0);
+    });
+
     // ─── GET /budget/available-months ────────────────────────────────
 
     test("returns an empty list of available months when user has no budgets", async () => {

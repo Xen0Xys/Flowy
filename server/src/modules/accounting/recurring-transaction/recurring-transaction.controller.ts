@@ -22,13 +22,10 @@ import {UpdateRecurringTransactionDto} from "./models/dto/update-recurring-trans
 import {ListRecurringTransactionsDto} from "./models/dto/list-recurring-transactions.dto";
 import {ListExecutionsDto} from "./models/dto/list-executions.dto";
 import {CalendarQueryDto} from "./models/dto/calendar-query.dto";
+import {ToggleRecurringTransactionDto} from "./models/dto/toggle-recurring-transaction.dto";
 import {RecurringTransactionEntity} from "./models/entities/recurring-transaction.entity";
 import {ListExecutionsResultEntity} from "./models/entities/recurring-transaction-execution.entity";
 import {RecurringCalendarEntity} from "./models/entities/recurring-calendar.entity";
-
-class ToggleDto {
-    isEnabled!: boolean;
-}
 
 @Controller("recurring-transaction")
 export class RecurringTransactionController {
@@ -100,7 +97,7 @@ export class RecurringTransactionController {
     async toggle(
         @User() user: UserEntity,
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
-        @Body() body: ToggleDto,
+        @Body() body: ToggleRecurringTransactionDto,
     ): Promise<RecurringTransactionEntity> {
         return this.service.toggle(user, id, body.isEnabled);
     }

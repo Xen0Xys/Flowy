@@ -677,7 +677,7 @@ describe("RecurringTransactionController (e2e)", () => {
         expect(badMonth.status).toBe(400);
     });
 
-    test("isFailing flag is true when last_failure_at is recent", async () => {
+    test("isFailing flag is true when the latest attempt failed and no success happened since", async () => {
         const user = await registerUser(server);
         const accountId = await createAccount(user.token);
         const created = await agent
@@ -686,9 +686,13 @@ describe("RecurringTransactionController (e2e)", () => {
             .send(baseCreatePayload());
         expect(created.status).toBe(201);
 
+        // Failure recorded a long time ago, no successful run since.
         await prisma.recurringTransactions.update({
             where: {id: created.body.id},
-            data: {last_failure_at: new Date()},
+            data: {
+                last_failure_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                last_run_at: null,
+            },
         });
 
         const res = await agent
@@ -696,6 +700,58 @@ describe("RecurringTransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`);
         expect(res.status).toBe(200);
         expect(res.body.isFailing).toBe(true);
+    });
+
+    test("isFailing flag is false when a successful run happened after the last failure", async () => {
+        const user = await registerUser(server);
+        const accountId = await createAccount(user.token);
+        const created = await agent
+            .post(`/recurring-transaction/account/${accountId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send(baseCreatePayload());
+        expect(created.status).toBe(201);
+
+        const failureAt = new Date(Date.now() - 60 * 60 * 1000);
+        const runAt = new Date(Date.now() - 30 * 60 * 1000);
+        await prisma.recurringTransactions.update({
+            where: {id: created.body.id},
+            data: {last_failure_at: failureAt, last_run_at: runAt},
+        });
+
+        const res = await agent
+            .get(`/recurring-transaction/${created.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`);
+        expect(res.status).toBe(200);
+        expect(res.body.isFailing).toBe(false);
+    });
+
+    test("toggle rejects payloads missing isEnabled", async () => {
+        const user = await registerUser(server);
+        const accountId = await createAccount(user.token);
+        const created = await agent
+            .post(`/recurring-transaction/account/${accountId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send(baseCreatePayload());
+        expect(created.status).toBe(201);
+
+        const missingField = await agent
+            .patch(`/recurring-transaction/${created.body.id}/toggle`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({});
+        expect(missingField.status).toBe(400);
+
+        const nullValue = await agent
+            .patch(`/recurring-transaction/${created.body.id}/toggle`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({isEnabled: null});
+        expect(nullValue.status).toBe(400);
+    });
+
+    test("list rejects unsupported enabled filter values", async () => {
+        const user = await registerUser(server);
+
+        const invalid = await agent.get("/recurring-transaction?enabled=1").set("Authorization", `Bearer ${user.token}`);
+        expect(invalid.status).toBe(400);
     });
 
     test("rejects invalid UUID params", async () => {

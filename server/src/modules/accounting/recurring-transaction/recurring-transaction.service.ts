@@ -21,7 +21,7 @@ type RecurringWithRelations = Prisma.RecurringTransactionsGetPayload<{
     include: {merchant: true; category: true};
 }>;
 
-const FAILURE_WINDOW_MS = 6 * 60 * 60 * 1000;
+const EXECUTIONS_LOOKUP_MARGIN_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class RecurringTransactionService {
@@ -32,8 +32,7 @@ export class RecurringTransactionService {
     async list(user: UserEntity, filters: ListRecurringTransactionsDto): Promise<RecurringTransactionEntity[]> {
         const where: Prisma.RecurringTransactionsWhereInput = {user_id: user.id};
         if (filters.accountId) where.account_id = filters.accountId;
-        if (filters.enabled === "true") where.is_enabled = true;
-        else if (filters.enabled === "false") where.is_enabled = false;
+        if (filters.enabled !== undefined) where.is_enabled = filters.enabled === "true";
 
         const items = await this.prismaService.recurringTransactions.findMany({
             where,
@@ -266,12 +265,18 @@ export class RecurringTransactionService {
 
         const monthStart = new Date(Date.UTC(year, month - 1, 1));
         const monthEndExclusive = new Date(Date.UTC(year, month, 1));
+        // Widen the executed-lookup window to cover recurrences whose local
+        // occurrence sits in the target month but whose UTC instant falls in the
+        // adjacent month (far-east / far-west timezones near month boundaries).
+        // Appariement done later via the exact (recurringId, scheduled_for) key.
+        const executedFrom = new Date(monthStart.getTime() - EXECUTIONS_LOOKUP_MARGIN_MS);
+        const executedTo = new Date(monthEndExclusive.getTime() + EXECUTIONS_LOOKUP_MARGIN_MS);
 
         const ids = items.map((rt) => rt.id);
         const executed = await prisma.recurringTransactionExecutions.findMany({
             where: {
                 recurring_transaction_id: {in: ids},
-                scheduled_for: {gte: monthStart, lt: monthEndExclusive},
+                scheduled_for: {gte: executedFrom, lt: executedTo},
             },
             select: {recurring_transaction_id: true, scheduled_for: true},
         });
@@ -309,7 +314,11 @@ export class RecurringTransactionService {
     }
 
     private toEntity(rt: RecurringWithRelations): RecurringTransactionEntity {
-        const isFailing = rt.last_failure_at !== null && Date.now() - rt.last_failure_at.getTime() < FAILURE_WINDOW_MS;
+        // Failing while the latest attempt failed; clears on the next successful run
+        // (task resets last_failure_at to null on success).
+        const isFailing =
+            rt.last_failure_at !== null &&
+            (rt.last_run_at === null || rt.last_failure_at.getTime() > rt.last_run_at.getTime());
 
         return new RecurringTransactionEntity({
             id: rt.id,
