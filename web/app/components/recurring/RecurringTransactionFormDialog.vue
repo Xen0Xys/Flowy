@@ -14,6 +14,7 @@ import {
 import {useAccountStore} from "~/stores/account.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useFamilyStore} from "~/stores/family.store";
+import {useDescriptionReferenceAutoFill} from "~/composables/useDescriptionReferenceAutoFill";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
@@ -112,7 +113,25 @@ const formData = ref({
 
 const isEditing = computed(() => Boolean(props.recurringTransaction));
 
+const {reset: resetAutoFill} = useDescriptionReferenceAutoFill({
+    description: computed({
+        get: () => formData.value.name,
+        set: (value) => (formData.value.name = value),
+    }),
+    categoryId: computed({
+        get: () => formData.value.categoryId,
+        set: (value) => (formData.value.categoryId = value),
+    }),
+    merchantId: computed({
+        get: () => formData.value.merchantId,
+        set: (value) => (formData.value.merchantId = value),
+    }),
+    categories: availableCategories,
+    merchants: availableMerchants,
+});
+
 const initForm = () => {
+    resetAutoFill();
     if (props.recurringTransaction) {
         const rt = props.recurringTransaction;
         transactionType.value = rt.amount < 0 ? "expense" : "income";
@@ -136,7 +155,7 @@ const initForm = () => {
         formData.value = {
             name: "",
             amount: 0,
-            accountId: availableAccounts.value[0]?.id ?? "",
+            accountId: "",
             categoryId: "none",
             merchantId: "none",
             frequency: "MONTHLY",
@@ -150,10 +169,23 @@ const initForm = () => {
     }
 };
 
+const loadData = async () => {
+    try {
+        await Promise.all([referenceStore.fetchReferences(), accountStore.fetchAccounts()]);
+    } catch {
+        toast.error(t("recurring.form.errors.loadData"));
+    }
+};
+
 watch(
     () => props.open,
-    (open) => {
-        if (open) initForm();
+    async (open) => {
+        if (!open) return;
+        initForm();
+        await loadData();
+        if (props.recurringTransaction) {
+            formData.value.accountId = props.recurringTransaction.accountId;
+        }
     },
     {immediate: true},
 );
@@ -249,10 +281,7 @@ const isValid = computed(() => {
 
 const timezoneOpen = ref(false);
 
-const handleTimezoneSelect = (value: string | number | boolean | Array<string | number | boolean>) => {
-    formData.value.timezone = String(value);
-    timezoneOpen.value = false;
-};
+const handleTimezoneSelect = () => (timezoneOpen.value = false);
 
 const submit = async () => {
     if (!isValid.value) return;
@@ -277,6 +306,7 @@ const submit = async () => {
         if (isEditing.value && props.recurringTransaction) {
             const updatePayload: UpdateRecurringTransactionPayload = {
                 ...basePayload,
+                accountId: formData.value.accountId,
                 merchantId: formData.value.merchantId === "none" ? null : formData.value.merchantId,
                 categoryId: formData.value.categoryId === "none" ? null : formData.value.categoryId,
             };
@@ -365,7 +395,7 @@ const close = () => emit("update:open", false);
 
                         <div class="grid gap-2">
                             <Label for="recurring-account">{{ t("recurring.form.account") }}</Label>
-                            <Select v-model="formData.accountId" :disabled="isEditing">
+                            <Select v-model="formData.accountId">
                                 <SelectTrigger id="recurring-account">
                                     <SelectValue :placeholder="t('recurring.form.accountPlaceholder')" />
                                 </SelectTrigger>
@@ -375,6 +405,9 @@ const close = () => emit("update:open", false);
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
+                            <p v-if="isEditing" class="text-muted-foreground text-xs">
+                                {{ t("recurring.form.accountChangeHint") }}
+                            </p>
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">

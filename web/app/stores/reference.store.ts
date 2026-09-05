@@ -2,8 +2,31 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
 import {i18nT} from "~/utils/i18n";
+
+export type TransactionMerchant = {
+    id: string;
+    userId: string;
+    name: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type TransactionCategory = {
+    id: string;
+    userId: string;
+    name: string;
+    hexColor: string;
+    icon: string;
+    keywords: string[];
+    primaryKeyword: string | null;
+    autoCompleteEnabled: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+};
 
 type CreateCategoryPayload = {
     name: string;

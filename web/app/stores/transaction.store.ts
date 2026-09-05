@@ -3,30 +3,9 @@ import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 
-export type TransactionMerchant = {
-    id: string;
-    userId: string;
-    name: string;
-    keywords: string[];
-    primaryKeyword: string | null;
-    autoCompleteEnabled: boolean;
-    createdAt?: string;
-    updatedAt?: string;
-};
-
-export type TransactionCategory = {
-    id: string;
-    userId: string;
-    name: string;
-    hexColor: string;
-    icon: string;
-    keywords: string[];
-    primaryKeyword: string | null;
-    autoCompleteEnabled: boolean;
-    createdAt?: string;
-    updatedAt?: string;
-};
+export type {TransactionCategory, TransactionMerchant};
 
 export type Transaction = {
     id: string;

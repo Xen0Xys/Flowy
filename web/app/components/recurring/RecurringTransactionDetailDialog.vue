@@ -306,23 +306,23 @@ function goToTransaction(transactionId: string) {
                 </TabsContent>
             </Tabs>
         </DialogContent>
-
-        <AlertDialog :open="isDeleteOpen" @update:open="(v) => (isDeleteOpen = v)">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
-                    <AlertDialogDescription>{{ t("recurring.detail.deleteDescription") }}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                    <AlertDialogAction
-                        class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        :disabled="isDeleting"
-                        @click="handleDelete">
-                        {{ isDeleting ? t("common.deleting") : t("common.delete") }}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
     </Dialog>
+
+    <AlertDialog :open="isDeleteOpen" @update:open="(v) => (isDeleteOpen = v)">
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
+                <AlertDialogDescription>{{ t("recurring.detail.deleteDescription") }}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                <AlertDialogAction
+                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    :disabled="isDeleting"
+                    @click="handleDelete">
+                    {{ isDeleting ? t("common.deleting") : t("common.delete") }}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </template>

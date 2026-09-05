@@ -1116,6 +1116,7 @@
             "namePlaceholder": "Ex. Loyer, Netflix, Salaire",
             "account": "Compte",
             "accountPlaceholder": "Sélectionner un compte",
+            "accountChangeHint": "Le changement de compte ne s'applique qu'aux prochaines occurrences. Les transactions déjà générées restent sur le compte d'origine.",
             "category": "Catégorie",
             "categoryPlaceholder": "Sélectionner une catégorie",
             "categoryEmpty": "Aucune catégorie trouvée.",
@@ -1137,7 +1138,10 @@
             "inBudget": "Inclure dans le budget",
             "inBudgetHint": "Compte cette transaction dans les prévisions du budget.",
             "enabled": "Activée",
-            "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même."
+            "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même.",
+            "errors": {
+                "loadData": "Impossible de charger les données requises"
+            }
         },
         "list": {
             "empty": "Aucune transaction récurrente",
