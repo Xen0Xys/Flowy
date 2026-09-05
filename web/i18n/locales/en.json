@@ -1087,6 +1087,20 @@
             "friday": "Friday",
             "saturday": "Saturday"
         },
+        "monthOfYear": {
+            "january": "January",
+            "february": "February",
+            "march": "March",
+            "april": "April",
+            "may": "May",
+            "june": "June",
+            "july": "July",
+            "august": "August",
+            "september": "September",
+            "october": "October",
+            "november": "November",
+            "december": "December"
+        },
         "form": {
             "createTitle": "New recurring transaction",
             "editTitle": "Edit recurring transaction",
@@ -1110,6 +1124,9 @@
             "dayOfMonth": "Day of month",
             "dayOfMonthHint": "Day 29-31 will be clamped to the last day of shorter months.",
             "dayOfWeek": "Day of week",
+            "monthOfYear": "Month",
+            "monthOfYearHintYearly": "Repeats in {month}.",
+            "monthOfYearHintMulti": "Repeats in {months}.",
             "timezone": "Timezone",
             "timezonePlaceholder": "Search timezone",
             "timezoneEmpty": "No timezone found.",

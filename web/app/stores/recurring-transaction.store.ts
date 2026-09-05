@@ -19,6 +19,7 @@ export type RecurringTransaction = {
     frequency: RecurrenceFrequency;
     dayOfMonth: number | null;
     dayOfWeek: number | null;
+    monthOfYear: number | null;
     timezone: string;
     inBudget: boolean;
     isEnabled: boolean;
@@ -56,6 +57,7 @@ export type CreateRecurringTransactionPayload = {
     frequency: RecurrenceFrequency;
     dayOfMonth?: number;
     dayOfWeek?: number;
+    monthOfYear?: number;
     timezone: string;
     inBudget: boolean;
     isEnabled?: boolean;
@@ -69,6 +71,7 @@ export type UpdateRecurringTransactionPayload = {
     frequency?: RecurrenceFrequency;
     dayOfMonth?: number | null;
     dayOfWeek?: number | null;
+    monthOfYear?: number | null;
     timezone?: string;
     inBudget?: boolean;
     isEnabled?: boolean;

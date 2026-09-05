@@ -4,6 +4,7 @@ import {useI18n} from "vue-i18n";
 import {Icon} from "#components";
 import {
     type ListExecutionsResult,
+    type RecurrenceFrequency,
     type RecurringTransaction,
     useRecurringTransactionStore,
 } from "~/stores/recurring-transaction.store";
@@ -54,13 +55,46 @@ const accountName = computed(() => {
     return accountStore.accounts.find((a) => a.id === rt.value?.accountId)?.name ?? "";
 });
 
+const MONTH_KEYS = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+];
+const MONTH_INTERVAL: Record<RecurrenceFrequency, number> = {
+    WEEKLY: 0,
+    MONTHLY: 1,
+    BIMONTHLY: 2,
+    QUARTERLY: 3,
+    SEMIANNUAL: 6,
+    YEARLY: 12,
+};
+
+const monthLabel = (m: number) => t(`recurring.monthOfYear.${MONTH_KEYS[m - 1]}`);
+
 const dayLabel = computed(() => {
     if (!rt.value) return "";
-    if (rt.value.frequency === "WEEKLY") {
+    const r = rt.value;
+    if (r.frequency === "WEEKLY") {
         const keys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-        return t(`recurring.dayOfWeek.${keys[rt.value.dayOfWeek ?? 0]}`);
+        return t(`recurring.dayOfWeek.${keys[r.dayOfWeek ?? 0]}`);
     }
-    return `${t("recurring.list.day")} ${rt.value.dayOfMonth}`;
+    const interval = MONTH_INTERVAL[r.frequency];
+    if (interval > 1 && r.monthOfYear !== null) {
+        if (r.frequency === "YEARLY") return `${r.dayOfMonth} ${monthLabel(r.monthOfYear)}`;
+        const months: number[] = [];
+        for (let m = r.monthOfYear; m <= 12; m += interval) months.push(m);
+        return `${r.dayOfMonth} (${months.map(monthLabel).join(", ")})`;
+    }
+    return `${t("recurring.list.day")} ${r.dayOfMonth}`;
 });
 
 const formatDateTime = (iso: string, tz?: string) => {

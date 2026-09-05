@@ -102,6 +102,7 @@ const formData = ref({
     frequency: "MONTHLY" as RecurrenceFrequency,
     dayOfMonth: new Date().getDate(),
     dayOfWeek: new Date().getDay(),
+    monthOfYear: new Date().getMonth() + 1,
     timezone: browserTimezone(),
     inBudget: true,
     isEnabled: true,
@@ -122,6 +123,7 @@ const initForm = () => {
             frequency: rt.frequency,
             dayOfMonth: rt.dayOfMonth ?? new Date().getDate(),
             dayOfWeek: rt.dayOfWeek ?? new Date().getDay(),
+            monthOfYear: rt.monthOfYear ?? new Date().getMonth() + 1,
             timezone: rt.timezone,
             inBudget: rt.inBudget,
             isEnabled: rt.isEnabled,
@@ -138,6 +140,7 @@ const initForm = () => {
             frequency: "MONTHLY",
             dayOfMonth: now.getDate(),
             dayOfWeek: now.getDay(),
+            monthOfYear: now.getMonth() + 1,
             timezone: browserTimezone(),
             inBudget: true,
             isEnabled: true,
@@ -154,6 +157,20 @@ watch(
 );
 
 const isWeekly = computed(() => formData.value.frequency === "WEEKLY");
+
+const MONTH_INTERVAL: Record<Exclude<RecurrenceFrequency, "WEEKLY">, number> = {
+    MONTHLY: 1,
+    BIMONTHLY: 2,
+    QUARTERLY: 3,
+    SEMIANNUAL: 6,
+    YEARLY: 12,
+};
+
+const isMonthAnchored = computed(
+    () =>
+        formData.value.frequency !== "WEEKLY" &&
+        MONTH_INTERVAL[formData.value.frequency as Exclude<RecurrenceFrequency, "WEEKLY">] > 1,
+);
 
 const frequencyOptions: {value: RecurrenceFrequency; labelKey: string}[] = [
     {value: "WEEKLY", labelKey: "recurring.frequency.weekly"},
@@ -175,6 +192,45 @@ const dayOfWeekOptions = [
 ];
 
 const dayOfMonthOptions = Array.from({length: 31}, (_, i) => i + 1);
+
+const monthOfYearOptions = Array.from({length: 12}, (_, i) => ({
+    value: i + 1,
+    labelKey: `recurring.monthOfYear.${
+        [
+            "january",
+            "february",
+            "march",
+            "april",
+            "may",
+            "june",
+            "july",
+            "august",
+            "september",
+            "october",
+            "november",
+            "december",
+        ][i]
+    }`,
+}));
+
+const monthLabel = (month: number) => t(monthOfYearOptions[month - 1]!.labelKey);
+
+const firedMonthsLabels = computed<string[]>(() => {
+    if (!isMonthAnchored.value) return [];
+    const interval = MONTH_INTERVAL[formData.value.frequency as Exclude<RecurrenceFrequency, "WEEKLY">];
+    const start = formData.value.monthOfYear;
+    const months: number[] = [];
+    for (let m = start; m <= 12; m += interval) months.push(m);
+    return months.map(monthLabel);
+});
+
+const monthOfYearHint = computed(() => {
+    if (!isMonthAnchored.value) return "";
+    if (formData.value.frequency === "YEARLY") {
+        return t("recurring.form.monthOfYearHintYearly", {month: monthLabel(formData.value.monthOfYear)});
+    }
+    return t("recurring.form.monthOfYearHintMulti", {months: firedMonthsLabels.value.join(", ")});
+});
 
 const isTypePositive = computed({
     get: () => transactionType.value === "income",
@@ -210,8 +266,10 @@ const submit = async () => {
             inBudget: formData.value.inBudget,
             isEnabled: formData.value.isEnabled,
             ...(isWeekly.value
-                ? {dayOfWeek: formData.value.dayOfWeek, dayOfMonth: undefined}
+                ? {dayOfWeek: formData.value.dayOfWeek, dayOfMonth: undefined, monthOfYear: undefined}
                 : {dayOfMonth: formData.value.dayOfMonth, dayOfWeek: undefined}),
+            ...(isMonthAnchored.value ? {monthOfYear: formData.value.monthOfYear} : {}),
+            ...(!isWeekly.value && !isMonthAnchored.value ? {monthOfYear: undefined} : {}),
         };
 
         if (isEditing.value && props.recurringTransaction) {
@@ -366,22 +424,44 @@ const close = () => emit("update:open", false);
                     </Select>
                 </div>
 
-                <div v-else class="grid gap-2">
-                    <Label for="recurring-day-of-month">{{ t("recurring.form.dayOfMonth") }}</Label>
-                    <Select
-                        :model-value="String(formData.dayOfMonth)"
-                        @update:model-value="(v) => (formData.dayOfMonth = Number(v))">
-                        <SelectTrigger id="recurring-day-of-month">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent class="max-h-64">
-                            <SelectItem v-for="d in dayOfMonthOptions" :key="d" :value="String(d)">
-                                {{ d }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <p class="text-muted-foreground text-xs">{{ t("recurring.form.dayOfMonthHint") }}</p>
-                </div>
+                <template v-else>
+                    <div v-if="isMonthAnchored" class="grid gap-2">
+                        <Label for="recurring-month-of-year">{{ t("recurring.form.monthOfYear") }}</Label>
+                        <Select
+                            :model-value="String(formData.monthOfYear)"
+                            @update:model-value="(v) => (formData.monthOfYear = Number(v))">
+                            <SelectTrigger id="recurring-month-of-year">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent class="max-h-64">
+                                <SelectItem
+                                    v-for="opt in monthOfYearOptions"
+                                    :key="opt.value"
+                                    :value="String(opt.value)">
+                                    {{ t(opt.labelKey) }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p class="text-muted-foreground text-xs">{{ monthOfYearHint }}</p>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="recurring-day-of-month">{{ t("recurring.form.dayOfMonth") }}</Label>
+                        <Select
+                            :model-value="String(formData.dayOfMonth)"
+                            @update:model-value="(v) => (formData.dayOfMonth = Number(v))">
+                            <SelectTrigger id="recurring-day-of-month">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent class="max-h-64">
+                                <SelectItem v-for="d in dayOfMonthOptions" :key="d" :value="String(d)">
+                                    {{ d }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p class="text-muted-foreground text-xs">{{ t("recurring.form.dayOfMonthHint") }}</p>
+                    </div>
+                </template>
 
                 <div class="grid gap-2">
                     <Label>{{ t("recurring.form.timezone") }}</Label>

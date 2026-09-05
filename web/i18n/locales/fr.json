@@ -1087,6 +1087,20 @@
             "friday": "Vendredi",
             "saturday": "Samedi"
         },
+        "monthOfYear": {
+            "january": "Janvier",
+            "february": "Février",
+            "march": "Mars",
+            "april": "Avril",
+            "may": "Mai",
+            "june": "Juin",
+            "july": "Juillet",
+            "august": "Août",
+            "september": "Septembre",
+            "october": "Octobre",
+            "november": "Novembre",
+            "december": "Décembre"
+        },
         "form": {
             "createTitle": "Nouvelle transaction récurrente",
             "editTitle": "Modifier la transaction récurrente",
@@ -1110,6 +1124,9 @@
             "dayOfMonth": "Jour du mois",
             "dayOfMonthHint": "Les jours 29 à 31 sont ramenés au dernier jour du mois si nécessaire.",
             "dayOfWeek": "Jour de la semaine",
+            "monthOfYear": "Mois",
+            "monthOfYearHintYearly": "Se répète en {month}.",
+            "monthOfYearHintMulti": "Se répète en {months}.",
             "timezone": "Fuseau horaire",
             "timezonePlaceholder": "Rechercher un fuseau",
             "timezoneEmpty": "Aucun fuseau trouvé.",

@@ -32,11 +32,43 @@ const {t, locale} = useI18n();
 
 const isExpense = computed(() => props.recurringTransaction.amount < 0);
 
+const MONTH_KEYS = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+];
+const MONTH_INTERVAL: Record<RecurrenceFrequency, number> = {
+    WEEKLY: 0,
+    MONTHLY: 1,
+    BIMONTHLY: 2,
+    QUARTERLY: 3,
+    SEMIANNUAL: 6,
+    YEARLY: 12,
+};
+
+const monthLabel = (m: number) => t(`recurring.monthOfYear.${MONTH_KEYS[m - 1]}`);
+
 const dayLabel = computed(() => {
     const rt = props.recurringTransaction;
     if (rt.frequency === "WEEKLY") {
         const keys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
         return t(`recurring.dayOfWeek.${keys[rt.dayOfWeek ?? 0]}`);
+    }
+    const interval = MONTH_INTERVAL[rt.frequency];
+    if (interval > 1 && rt.monthOfYear !== null) {
+        if (rt.frequency === "YEARLY") return `${rt.dayOfMonth} ${monthLabel(rt.monthOfYear)}`;
+        const months: number[] = [];
+        for (let m = rt.monthOfYear; m <= 12; m += interval) months.push(m);
+        return `${rt.dayOfMonth} (${months.map(monthLabel).join(", ")})`;
     }
     return `${t("recurring.list.day")} ${rt.dayOfMonth}`;
 });
