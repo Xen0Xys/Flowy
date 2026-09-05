@@ -1,4 +1,4 @@
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 
 type Matchable = {
     id: string;

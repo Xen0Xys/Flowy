@@ -1,6 +1,6 @@
 import {computed, ref, watch, type ComputedRef, type Ref, type WritableComputedRef} from "vue";
 import {watchDebounced} from "@vueuse/core";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {useReferenceMatcher} from "~/composables/useReferenceMatcher";
 
 type StringSource = Ref<string> | WritableComputedRef<string>;

@@ -100,8 +100,10 @@ export class RecurringTransactionService {
             await this.validateReferencesOwnership(user, dto.merchantId ?? undefined, dto.categoryId ?? undefined);
         }
         if (dto.timezone !== undefined) this.validateTimezone(dto.timezone);
-        if (dto.accountId !== undefined && dto.accountId !== rt.account_id) {
-            await this.getOwnedAccountOrThrow(user, dto.accountId);
+
+        const accountChanged = dto.accountId !== undefined && dto.accountId !== rt.account_id;
+        if (accountChanged) {
+            await this.getOwnedAccountOrThrow(user, dto.accountId!);
         }
 
         const merged = {
@@ -126,7 +128,7 @@ export class RecurringTransactionService {
             dto.timezone !== undefined;
 
         const data: Prisma.RecurringTransactionsUncheckedUpdateInput = {};
-        if (dto.accountId !== undefined && dto.accountId !== rt.account_id) data.account_id = dto.accountId;
+        if (accountChanged) data.account_id = dto.accountId;
         if (dto.name !== undefined) data.name = dto.name;
         if (dto.amount !== undefined) data.amount = this.toDecimal(dto.amount);
         if (dto.merchantId !== undefined) data.merchant_id = dto.merchantId;

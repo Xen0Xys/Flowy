@@ -179,10 +179,12 @@ const loadData = async () => {
 
 watch(
     () => props.open,
-    (open) => {
-        if (open) {
-            loadData();
-            initForm();
+    async (open) => {
+        if (!open) return;
+        initForm();
+        await loadData();
+        if (props.recurringTransaction) {
+            formData.value.accountId = props.recurringTransaction.accountId;
         }
     },
     {immediate: true},
@@ -279,10 +281,7 @@ const isValid = computed(() => {
 
 const timezoneOpen = ref(false);
 
-const handleTimezoneSelect = (value: string | number | boolean | Array<string | number | boolean>) => {
-    formData.value.timezone = String(value);
-    timezoneOpen.value = false;
-};
+const handleTimezoneSelect = () => (timezoneOpen.value = false);
 
 const submit = async () => {
     if (!isValid.value) return;
