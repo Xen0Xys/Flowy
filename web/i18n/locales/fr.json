@@ -42,6 +42,8 @@
             "username": "Nom d'utilisateur",
             "email": "Email",
             "password": "Mot de passe",
+            "language": "Langue",
+            "changeLanguage": "Changer de langue",
             "errors": {
                 "invalidEmail": "Veuillez saisir une adresse email valide.",
                 "emailRequired": "L'email est requis."

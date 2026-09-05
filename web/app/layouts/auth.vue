@@ -2,6 +2,7 @@
 import {computed} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute} from "vue-router";
+import LanguageSwitcher from "~/components/common/LanguageSwitcher.vue";
 import {cn} from "@/lib/utils";
 
 const route = useRoute();
@@ -16,6 +17,10 @@ const isLogin = computed(() => route.path.startsWith("/auth/login"));
             <div class="bg-brand-gradient absolute -top-40 -left-40 h-96 w-96 rounded-full opacity-20 blur-3xl"></div>
             <div
                 class="bg-brand-gradient absolute -right-40 -bottom-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
+        </div>
+
+        <div class="absolute top-4 right-4 z-10">
+            <LanguageSwitcher />
         </div>
 
         <div class="flex w-full max-w-5xl flex-col gap-8">
