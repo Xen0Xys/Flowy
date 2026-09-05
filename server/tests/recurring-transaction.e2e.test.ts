@@ -431,6 +431,7 @@ describe("RecurringTransactionController (e2e)", () => {
                 categoryId: newCategoryId,
                 frequency: "QUARTERLY",
                 dayOfMonth: 10,
+                monthOfYear: 2,
                 timezone: "UTC",
                 inBudget: false,
                 isEnabled: true,
@@ -443,6 +444,7 @@ describe("RecurringTransactionController (e2e)", () => {
         expect(update.body.category.id).toBe(newCategoryId);
         expect(update.body.frequency).toBe("QUARTERLY");
         expect(update.body.dayOfMonth).toBe(10);
+        expect(update.body.monthOfYear).toBe(2);
         expect(update.body.timezone).toBe("UTC");
         expect(update.body.inBudget).toBe(false);
         expect(update.body.lastFailureAt).toBeNull();

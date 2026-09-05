@@ -65,6 +65,7 @@ export class RecurringTransactionService {
                 frequency: dto.frequency,
                 day_of_month: dto.dayOfMonth ?? null,
                 day_of_week: dto.dayOfWeek ?? null,
+                month_of_year: dto.monthOfYear ?? null,
                 timezone: dto.timezone,
             },
             initialAnchor,
@@ -81,6 +82,7 @@ export class RecurringTransactionService {
                 frequency: dto.frequency,
                 day_of_month: dto.dayOfMonth ?? null,
                 day_of_week: dto.dayOfWeek ?? null,
+                month_of_year: dto.monthOfYear ?? null,
                 timezone: dto.timezone,
                 in_budget: dto.inBudget,
                 is_enabled: dto.isEnabled ?? true,
@@ -104,18 +106,21 @@ export class RecurringTransactionService {
             frequency: dto.frequency ?? rt.frequency,
             day_of_month: dto.dayOfMonth !== undefined ? dto.dayOfMonth : rt.day_of_month,
             day_of_week: dto.dayOfWeek !== undefined ? dto.dayOfWeek : rt.day_of_week,
+            month_of_year: dto.monthOfYear !== undefined ? dto.monthOfYear : rt.month_of_year,
             timezone: dto.timezone ?? rt.timezone,
         };
         this.validateFrequencyDayCombination({
             frequency: merged.frequency,
             dayOfMonth: merged.day_of_month ?? undefined,
             dayOfWeek: merged.day_of_week ?? undefined,
+            monthOfYear: merged.month_of_year ?? undefined,
         });
 
         const schedulingChanged =
             dto.frequency !== undefined ||
             dto.dayOfMonth !== undefined ||
             dto.dayOfWeek !== undefined ||
+            dto.monthOfYear !== undefined ||
             dto.timezone !== undefined;
 
         const data: Prisma.RecurringTransactionsUncheckedUpdateInput = {};
@@ -126,6 +131,7 @@ export class RecurringTransactionService {
         if (dto.frequency !== undefined) data.frequency = dto.frequency;
         if (dto.dayOfMonth !== undefined) data.day_of_month = dto.dayOfMonth;
         if (dto.dayOfWeek !== undefined) data.day_of_week = dto.dayOfWeek;
+        if (dto.monthOfYear !== undefined) data.month_of_year = dto.monthOfYear;
         if (dto.timezone !== undefined) data.timezone = dto.timezone;
         if (dto.inBudget !== undefined) data.in_budget = dto.inBudget;
         if (dto.isEnabled !== undefined) data.is_enabled = dto.isEnabled;
@@ -137,6 +143,7 @@ export class RecurringTransactionService {
                     frequency: merged.frequency,
                     day_of_month: merged.day_of_month,
                     day_of_week: merged.day_of_week,
+                    month_of_year: merged.month_of_year,
                     timezone: merged.timezone,
                 },
                 anchor,
@@ -214,9 +221,9 @@ export class RecurringTransactionService {
                     frequency: rt.frequency,
                     day_of_month: rt.day_of_month,
                     day_of_week: rt.day_of_week,
+                    month_of_year: rt.month_of_year,
                     timezone: rt.timezone,
                 },
-                rt.next_run_at,
                 query.year,
                 query.month,
             );
@@ -282,9 +289,9 @@ export class RecurringTransactionService {
                     frequency: rt.frequency,
                     day_of_month: rt.day_of_month,
                     day_of_week: rt.day_of_week,
+                    month_of_year: rt.month_of_year,
                     timezone: rt.timezone,
                 },
-                rt.next_run_at,
                 year,
                 month,
             );
@@ -339,6 +346,7 @@ export class RecurringTransactionService {
             frequency: rt.frequency,
             dayOfMonth: rt.day_of_month,
             dayOfWeek: rt.day_of_week,
+            monthOfYear: rt.month_of_year,
             timezone: rt.timezone,
             inBudget: rt.in_budget,
             isEnabled: rt.is_enabled,
@@ -390,13 +398,22 @@ export class RecurringTransactionService {
         frequency: RecurringTransactions["frequency"];
         dayOfMonth?: number | null;
         dayOfWeek?: number | null;
+        monthOfYear?: number | null;
     }): void {
         if (dto.frequency === "WEEKLY") {
             if (dto.dayOfWeek === null || dto.dayOfWeek === undefined) {
                 throw new BadRequestException("dayOfWeek is required for WEEKLY frequency");
             }
-        } else if (dto.dayOfMonth === null || dto.dayOfMonth === undefined) {
+            return;
+        }
+        if (dto.dayOfMonth === null || dto.dayOfMonth === undefined) {
             throw new BadRequestException("dayOfMonth is required for monthly-based frequencies");
+        }
+        if (dto.frequency === "MONTHLY") return;
+        if (dto.monthOfYear === null || dto.monthOfYear === undefined) {
+            throw new BadRequestException(
+                "monthOfYear is required for BIMONTHLY, QUARTERLY, SEMIANNUAL and YEARLY frequencies",
+            );
         }
     }
 

@@ -236,6 +236,7 @@ model RecurringTransactions {
   frequency       RecurrenceFrequency
   day_of_month    Int?
   day_of_week     Int?
+  month_of_year   Int?
   timezone        String                           @db.VarChar(64)
   in_budget       Boolean                          @default(true)
   is_enabled      Boolean                          @default(true)

@@ -52,6 +52,19 @@ export class CreateRecurringTransactionDto {
     @Max(6)
     dayOfWeek?: number;
 
+    @ValidateIf(
+        (o: CreateRecurringTransactionDto) =>
+            o.frequency === RecurrenceFrequency.BIMONTHLY ||
+            o.frequency === RecurrenceFrequency.QUARTERLY ||
+            o.frequency === RecurrenceFrequency.SEMIANNUAL ||
+            o.frequency === RecurrenceFrequency.YEARLY,
+    )
+    @IsNotEmpty()
+    @IsInt()
+    @Min(1)
+    @Max(12)
+    monthOfYear?: number;
+
     @IsNotEmpty()
     @IsString()
     @Length(1, 64)

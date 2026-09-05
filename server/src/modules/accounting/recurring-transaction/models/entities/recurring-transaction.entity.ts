@@ -13,6 +13,7 @@ export class RecurringTransactionEntity {
     frequency!: RecurrenceFrequency;
     dayOfMonth!: number | null;
     dayOfWeek!: number | null;
+    monthOfYear!: number | null;
     timezone!: string;
     inBudget!: boolean;
     isEnabled!: boolean;

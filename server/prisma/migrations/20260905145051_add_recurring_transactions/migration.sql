@@ -16,6 +16,7 @@ CREATE TABLE "recurring_transactions" (
     "frequency" "recurrence_frequency" NOT NULL,
     "day_of_month" INTEGER,
     "day_of_week" INTEGER,
+    "month_of_year" INTEGER,
     "timezone" VARCHAR(64) NOT NULL,
     "in_budget" BOOLEAN NOT NULL DEFAULT true,
     "is_enabled" BOOLEAN NOT NULL DEFAULT true,

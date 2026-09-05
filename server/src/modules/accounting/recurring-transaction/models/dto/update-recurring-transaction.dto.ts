@@ -49,6 +49,12 @@ export class UpdateRecurringTransactionDto {
     dayOfWeek?: number | null;
 
     @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(12)
+    monthOfYear?: number | null;
+
+    @IsOptional()
     @IsString()
     @Length(1, 64)
     timezone?: string;

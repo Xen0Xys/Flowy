@@ -15,6 +15,7 @@ export interface RecurrenceInput {
     frequency: RecurrenceFrequency;
     day_of_month: number | null;
     day_of_week: number | null;
+    month_of_year: number | null;
     timezone: string;
 }
 
@@ -97,13 +98,26 @@ export function computeNextRunAt(rt: RecurrenceInput, after: Date): Date {
         throw new Error("day_of_month is required for monthly-based frequencies");
     }
     const interval = MONTHLY_INTERVAL[rt.frequency];
-    return computeNextMonthly(rt.day_of_month, interval, rt.timezone, after);
+    if (interval > 1 && (rt.month_of_year === null || rt.month_of_year === undefined)) {
+        throw new Error("month_of_year is required for BIMONTHLY, QUARTERLY, SEMIANNUAL and YEARLY frequencies");
+    }
+    return computeNextMonthly(rt.day_of_month, interval, rt.month_of_year, rt.timezone, after);
 }
 
-function computeNextMonthly(day: number, interval: number, tz: string, after: Date): Date {
+function computeNextMonthly(day: number, interval: number, monthOfYear: number | null, tz: string, after: Date): Date {
     const local = getLocalParts(after, tz);
     let year = local.year;
     let month = local.month;
+
+    if (interval > 1 && monthOfYear !== null) {
+        const advance = (((monthOfYear - month) % interval) + interval) % interval;
+        month += advance;
+        while (month > 12) {
+            month -= 12;
+            year += 1;
+        }
+    }
+
     for (let i = 0; i < 24; i++) {
         const clampedDay = Math.min(day, daysInMonth(year, month));
         const candidate = zonedTimeToUtc(year, month, clampedDay, TARGET_HOUR, TARGET_MINUTE, tz);
@@ -136,7 +150,7 @@ function computeNextWeekly(dayOfWeek: number, tz: string, after: Date): Date {
     throw new Error("Could not compute next weekly run within 14 iterations");
 }
 
-export function enumerateOccurrencesInMonth(rt: RecurrenceInput, anchor: Date, year: number, month: number): Date[] {
+export function enumerateOccurrencesInMonth(rt: RecurrenceInput, year: number, month: number): Date[] {
     if (!isValidTimezone(rt.timezone)) return [];
 
     if (rt.frequency === "WEEKLY") {
@@ -147,10 +161,11 @@ export function enumerateOccurrencesInMonth(rt: RecurrenceInput, anchor: Date, y
     if (rt.day_of_month === null || rt.day_of_month === undefined) return [];
     const interval = MONTHLY_INTERVAL[rt.frequency];
 
-    const anchorLocal = getLocalParts(anchor, rt.timezone);
-    const monthDiff = (year - anchorLocal.year) * 12 + (month - anchorLocal.month);
-    const remainder = ((monthDiff % interval) + interval) % interval;
-    if (remainder !== 0) return [];
+    if (interval > 1) {
+        if (rt.month_of_year === null || rt.month_of_year === undefined) return [];
+        const remainder = (((month - rt.month_of_year) % interval) + interval) % interval;
+        if (remainder !== 0) return [];
+    }
 
     const clampedDay = Math.min(rt.day_of_month, daysInMonth(year, month));
     return [zonedTimeToUtc(year, month, clampedDay, TARGET_HOUR, TARGET_MINUTE, rt.timezone)];

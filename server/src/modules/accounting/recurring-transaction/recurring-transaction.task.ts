@@ -135,6 +135,7 @@ export class RecurringTransactionTask implements OnModuleInit {
                     frequency: rt.frequency,
                     day_of_month: rt.day_of_month,
                     day_of_week: rt.day_of_week,
+                    month_of_year: rt.month_of_year,
                     timezone: rt.timezone,
                 },
                 scheduled,
