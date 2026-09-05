@@ -174,6 +174,14 @@ const isMac = computed(() => {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
+                                    <SidebarMenuButton :is-active="isActiveFunction('/recurring')" as-child>
+                                        <NuxtLink to="/recurring">
+                                            <Icon name="iconoir:refresh-double"></Icon>
+                                            <span>{{ t("sidebar.recurring") }}</span>
+                                        </NuxtLink>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
                                     <SidebarMenuButton :is-active="isActiveFunction('/budget')" as-child>
                                         <NuxtLink to="/budget">
                                             <Icon name="iconoir:piggy-bank"></Icon>

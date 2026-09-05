@@ -70,6 +70,18 @@ watch(
     {immediate: true},
 );
 
+watch(
+    () => route.query.highlight,
+    async (value) => {
+        if (typeof value === "string" && value) {
+            await handleViewLinked(value);
+            const {highlight: _drop, ...rest} = route.query;
+            router.replace({query: rest});
+        }
+    },
+    {immediate: true},
+);
+
 const onTransactionSaved = () => {
     loadData();
 };

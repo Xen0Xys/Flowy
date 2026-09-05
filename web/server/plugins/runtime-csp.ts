@@ -25,6 +25,7 @@ export default defineNitroPlugin((nitroApp) => {
         const headers = (globalRule.headers ??= {});
         const csp = (headers.contentSecurityPolicy ??= {});
 
-        csp["connect-src"] = connectSrc;
+        const existing = Array.isArray(csp["connect-src"]) ? csp["connect-src"] : [];
+        csp["connect-src"] = Array.from(new Set([...existing, ...connectSrc]));
     });
 });

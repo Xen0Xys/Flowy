@@ -4,6 +4,7 @@ export class BudgetSpendingCategoryEntity {
     hexColor!: string;
     icon!: string;
     spent!: number;
+    planned!: number;
 
     constructor(partial: Partial<BudgetSpendingCategoryEntity>) {
         Object.assign(this, partial);
@@ -12,8 +13,10 @@ export class BudgetSpendingCategoryEntity {
 
 export class BudgetSpendingEntity {
     totalSpent!: number;
+    totalPlanned!: number;
     actualIncome!: number;
     byCategory!: BudgetSpendingCategoryEntity[];
+    plannedByCategory!: BudgetSpendingCategoryEntity[];
 
     constructor(partial: Partial<BudgetSpendingEntity>) {
         Object.assign(this, partial);

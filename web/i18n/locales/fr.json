@@ -42,6 +42,7 @@
             "username": "Nom d'utilisateur",
             "email": "Email",
             "password": "Mot de passe",
+            "changeLanguage": "Changer de langue",
             "errors": {
                 "invalidEmail": "Veuillez saisir une adresse email valide.",
                 "emailRequired": "L'email est requis."
@@ -238,9 +239,10 @@
     },
     "sidebar": {
         "menu": "Menu",
-        "dashboard": "Tableau de bord",
+        "dashboard": "Dashboard",
         "transactions": "Transactions",
-        "import": "Importer",
+        "recurring": "Récurrentes",
+        "import": "Import",
         "budget": "Budget",
         "accounts": "Comptes",
         "settings": "Paramètres",
@@ -276,6 +278,7 @@
         "actions": {
             "dashboard": "Aller au tableau de bord",
             "transactions": "Aller aux transactions",
+            "recurring": "Aller aux transactions récurrentes",
             "budget": "Aller au budget",
             "import": "Aller à l'import",
             "newTransaction": "Nouvelle transaction",
@@ -915,6 +918,8 @@
             "updateButton": "Mettre à jour",
             "renewButton": "Reconduire",
             "renewedBadge": "reconduit",
+            "plannedBadge": "récurrence",
+            "plannedFromRecurring": "Récurrences ce mois : {amount}",
             "discardChangesTitle": "Abandonner les modifications ?",
             "discardChangesDescription": "Vos saisies seront perdues.",
             "discardChangesConfirm": "Abandonner",
@@ -1057,5 +1062,135 @@
         "viewOnGithub": "Voir sur GitHub",
         "dismiss": "Compris",
         "noBody": "Aucune note de version disponible."
+    },
+    "recurring": {
+        "page": {
+            "title": "Transactions récurrentes",
+            "subtitle": "Automatisez les transactions qui reviennent à intervalles réguliers.",
+            "new": "Nouvelle récurrence",
+            "viewList": "Liste",
+            "viewCalendar": "Calendrier",
+            "today": "Aujourd'hui"
+        },
+        "calendar": {
+            "dayOccurrences": "Occurrences du {date}"
+        },
+        "frequency": {
+            "weekly": "Hebdomadaire",
+            "monthly": "Mensuelle",
+            "bimonthly": "Tous les 2 mois",
+            "quarterly": "Trimestrielle",
+            "semiannual": "Tous les 6 mois",
+            "yearly": "Annuelle"
+        },
+        "dayOfWeek": {
+            "sunday": "Dimanche",
+            "monday": "Lundi",
+            "tuesday": "Mardi",
+            "wednesday": "Mercredi",
+            "thursday": "Jeudi",
+            "friday": "Vendredi",
+            "saturday": "Samedi"
+        },
+        "monthOfYear": {
+            "january": "Janvier",
+            "february": "Février",
+            "march": "Mars",
+            "april": "Avril",
+            "may": "Mai",
+            "june": "Juin",
+            "july": "Juillet",
+            "august": "Août",
+            "september": "Septembre",
+            "october": "Octobre",
+            "november": "Novembre",
+            "december": "Décembre"
+        },
+        "form": {
+            "createTitle": "Nouvelle transaction récurrente",
+            "editTitle": "Modifier la transaction récurrente",
+            "description": "Définissez la planification et les détails. Une transaction sera créée automatiquement à chaque occurrence.",
+            "expense": "Dépense",
+            "income": "Revenu",
+            "name": "Description",
+            "namePlaceholder": "Ex. Loyer, Netflix, Salaire",
+            "account": "Compte",
+            "accountPlaceholder": "Sélectionner un compte",
+            "category": "Catégorie",
+            "categoryPlaceholder": "Sélectionner une catégorie",
+            "categoryEmpty": "Aucune catégorie trouvée.",
+            "createCategory": "Créer une catégorie",
+            "merchant": "Marchand",
+            "merchantPlaceholder": "Sélectionner un marchand",
+            "merchantEmpty": "Aucun marchand trouvé.",
+            "createMerchant": "Créer un marchand",
+            "frequency": "Fréquence",
+            "dayOfMonth": "Jour du mois",
+            "dayOfMonthHint": "Les jours 29 à 31 sont ramenés au dernier jour du mois si nécessaire.",
+            "dayOfWeek": "Jour de la semaine",
+            "monthOfYear": "Mois",
+            "monthOfYearHintYearly": "Se répète en {month}.",
+            "monthOfYearHintMulti": "Se répète en {months}.",
+            "timezone": "Fuseau horaire",
+            "timezonePlaceholder": "Rechercher un fuseau",
+            "timezoneEmpty": "Aucun fuseau trouvé.",
+            "inBudget": "Inclure dans le budget",
+            "inBudgetHint": "Compte cette transaction dans les prévisions du budget.",
+            "enabled": "Activée",
+            "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même."
+        },
+        "list": {
+            "empty": "Aucune transaction récurrente",
+            "emptyHint": "Créez-en une pour laisser Flowy enregistrer automatiquement vos paiements récurrents.",
+            "day": "Jour",
+            "nextRun": "Prochaine",
+            "daysRemaining": "Dans {count} jours",
+            "today": "Aujourd'hui",
+            "tomorrow": "Demain",
+            "failingTooltip": "La dernière exécution a échoué. Modifiez-la ou consultez l'historique.",
+            "disabledTooltip": "Désactivée",
+            "disabled": "Désactivée"
+        },
+        "detail": {
+            "tabDetails": "Détails",
+            "tabHistory": "Historique",
+            "amount": "Montant",
+            "account": "Compte",
+            "category": "Catégorie",
+            "merchant": "Marchand",
+            "frequency": "Fréquence",
+            "timezone": "Fuseau horaire",
+            "nextRun": "Prochaine exécution",
+            "lastRun": "Dernière exécution",
+            "inBudget": "Dans le budget",
+            "never": "Jamais",
+            "noExecutions": "Aucune exécution",
+            "viewTransaction": "Ouvrir",
+            "deleteDescription": "La récurrence sera supprimée définitivement. Les transactions déjà créées sont conservées.",
+            "failingTitle": "Cette récurrence est en erreur",
+            "failingDescription": "La dernière tentative d'exécution a échoué. Consultez les détails ou l'onglet Historique."
+        },
+        "execution": {
+            "status": {
+                "created": "Créée",
+                "skipped": "Ignorée",
+                "failed": "Échec"
+            }
+        },
+        "store": {
+            "success": {
+                "created": "Transaction récurrente créée",
+                "updated": "Transaction récurrente mise à jour",
+                "deleted": "Transaction récurrente supprimée"
+            },
+            "errors": {
+                "fetch": "Impossible de charger les transactions récurrentes",
+                "fetchCalendar": "Impossible de charger le calendrier",
+                "fetchExecutions": "Impossible de charger l'historique",
+                "create": "Impossible de créer la transaction récurrente",
+                "update": "Impossible de mettre à jour la transaction récurrente",
+                "delete": "Impossible de supprimer la transaction récurrente"
+            }
+        }
     }
 }

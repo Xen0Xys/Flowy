@@ -37,21 +37,22 @@ enum UserRoles {
 }
 
 model Users {
-  id            String           @id @default(uuid(7)) @db.Uuid
-  username      String           @db.VarChar(30)
-  email         String           @unique
-  password      String
-  jwt_id        String           @unique
-  user_settings UserSettings?
-  family_role   UserRoles?
-  family_id     String?          @db.Uuid
-  family        Family?          @relation(fields: [family_id], references: [id], onDelete: SetNull)
-  created_at    DateTime         @default(now())
-  updated_at    DateTime         @updatedAt
-  accounts      Accounts[]
-  merchants     UserMerchants[]
-  categories    UserCategories[]
-  budgets       Budgets[]
+  id                     String                  @id @default(uuid(7)) @db.Uuid
+  username               String                  @db.VarChar(30)
+  email                  String                  @unique
+  password               String
+  jwt_id                 String                  @unique
+  user_settings          UserSettings?
+  family_role            UserRoles?
+  family_id              String?                 @db.Uuid
+  family                 Family?                 @relation(fields: [family_id], references: [id], onDelete: SetNull)
+  created_at             DateTime                @default(now())
+  updated_at             DateTime                @updatedAt
+  accounts               Accounts[]
+  merchants              UserMerchants[]
+  categories             UserCategories[]
+  budgets                Budgets[]
+  recurring_transactions RecurringTransactions[]
 
   @@map("users")
 }
@@ -91,37 +92,39 @@ enum AccountTypes {
 }
 
 model Accounts {
-  id           String         @id @default(uuid(7)) @db.Uuid
-  user_id      String         @db.Uuid
-  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  type         AccountTypes
-  name         String         @db.VarChar(50)
-  balance      Float          @default(0)
-  in_budget    Boolean        @default(true)
-  transactions Transactions[]
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
+  id                     String                  @id @default(uuid(7)) @db.Uuid
+  user_id                String                  @db.Uuid
+  user                   Users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type                   AccountTypes
+  name                   String                  @db.VarChar(50)
+  balance                Float                   @default(0)
+  in_budget              Boolean                 @default(true)
+  transactions           Transactions[]
+  recurring_transactions RecurringTransactions[]
+  created_at             DateTime                @default(now())
+  updated_at             DateTime                @updatedAt
 
   @@map("accounts")
 }
 
 model Transactions {
-  id              String          @id @default(uuid(7)) @db.Uuid
-  account_id      String          @db.Uuid
-  account         Accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade)
-  amount          Float
-  description     String          @db.VarChar(255)
-  date            DateTime        @default(now())
-  merchant_id     String?         @db.Uuid
-  merchant        UserMerchants?  @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
-  category_id     String?         @db.Uuid
-  category        UserCategories? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  debit_transfer  Transfers?      @relation("TransferDebitTransaction")
-  credit_transfer Transfers?      @relation("TransferCreditTransaction")
-  is_rebalance    Boolean         @default(false)
-  in_budget       Boolean         @default(true)
-  created_at      DateTime        @default(now())
-  updated_at      DateTime        @updatedAt
+  id                  String                          @id @default(uuid(7)) @db.Uuid
+  account_id          String                          @db.Uuid
+  account             Accounts                        @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  amount              Float
+  description         String                          @db.VarChar(255)
+  date                DateTime                        @default(now())
+  merchant_id         String?                         @db.Uuid
+  merchant            UserMerchants?                  @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
+  category_id         String?                         @db.Uuid
+  category            UserCategories?                 @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  debit_transfer      Transfers?                      @relation("TransferDebitTransaction")
+  credit_transfer     Transfers?                      @relation("TransferCreditTransaction")
+  recurring_execution RecurringTransactionExecutions?
+  is_rebalance        Boolean                         @default(false)
+  in_budget           Boolean                         @default(true)
+  created_at          DateTime                        @default(now())
+  updated_at          DateTime                        @updatedAt
 
   @@index([account_id, date(sort: Desc), created_at(sort: Desc)])
   @@index([date(sort: Desc)])
@@ -143,35 +146,37 @@ model Transfers {
 }
 
 model UserMerchants {
-  id                    String         @id @default(uuid(7)) @db.Uuid
-  user_id               String         @db.Uuid
-  user                  Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name                  String         @db.VarChar(50)
-  keywords              String[]       @default([])
-  primary_keyword       String?        @db.VarChar(50)
-  auto_complete_enabled Boolean        @default(true)
-  transactions          Transactions[]
-  created_at            DateTime       @default(now())
-  updated_at            DateTime       @updatedAt
+  id                     String                  @id @default(uuid(7)) @db.Uuid
+  user_id                String                  @db.Uuid
+  user                   Users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                   String                  @db.VarChar(50)
+  keywords               String[]                @default([])
+  primary_keyword        String?                 @db.VarChar(50)
+  auto_complete_enabled  Boolean                 @default(true)
+  transactions           Transactions[]
+  recurring_transactions RecurringTransactions[]
+  created_at             DateTime                @default(now())
+  updated_at             DateTime                @updatedAt
 
   @@unique([user_id, name])
   @@map("user_merchants")
 }
 
 model UserCategories {
-  id                    String               @id @default(uuid(7)) @db.Uuid
-  user_id               String               @db.Uuid
-  user                  Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  name                  String               @db.VarChar(50)
-  hex_color             String               @db.VarChar(7)
-  icon                  String               @db.VarChar(50)
-  keywords              String[]             @default([])
-  primary_keyword       String?              @db.VarChar(50)
-  auto_complete_enabled Boolean              @default(true)
-  created_at            DateTime             @default(now())
-  updated_at            DateTime             @updatedAt
-  transactions          Transactions[]
-  budgeted_categories   BudgetedCategories[]
+  id                     String                  @id @default(uuid(7)) @db.Uuid
+  user_id                String                  @db.Uuid
+  user                   Users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                   String                  @db.VarChar(50)
+  hex_color              String                  @db.VarChar(7)
+  icon                   String                  @db.VarChar(50)
+  keywords               String[]                @default([])
+  primary_keyword        String?                 @db.VarChar(50)
+  auto_complete_enabled  Boolean                 @default(true)
+  created_at             DateTime                @default(now())
+  updated_at             DateTime                @updatedAt
+  transactions           Transactions[]
+  budgeted_categories    BudgetedCategories[]
+  recurring_transactions RecurringTransactions[]
 
   @@unique([user_id, name])
   @@map("user_categories")
@@ -203,4 +208,70 @@ model BudgetedCategories {
 
   @@id([budget_id, category_id])
   @@map("budgeted_categories")
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+  BIMONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  YEARLY
+
+  @@map("recurrence_frequency")
+}
+
+model RecurringTransactions {
+  id              String                           @id @default(uuid(7)) @db.Uuid
+  user_id         String                           @db.Uuid
+  user            Users                            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account_id      String                           @db.Uuid
+  account         Accounts                         @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  name            String                           @db.VarChar(255)
+  amount          Float
+  merchant_id     String?                          @db.Uuid
+  merchant        UserMerchants?                   @relation(fields: [merchant_id], references: [id], onDelete: SetNull)
+  category_id     String?                          @db.Uuid
+  category        UserCategories?                  @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  frequency       RecurrenceFrequency
+  day_of_month    Int?
+  day_of_week     Int?
+  month_of_year   Int?
+  timezone        String                           @db.VarChar(64)
+  in_budget       Boolean                          @default(true)
+  is_enabled      Boolean                          @default(true)
+  next_run_at     DateTime
+  last_run_at     DateTime?
+  last_failure_at DateTime?
+  executions      RecurringTransactionExecutions[]
+  created_at      DateTime                         @default(now())
+  updated_at      DateTime                         @updatedAt
+
+  @@index([user_id])
+  @@index([account_id])
+  @@index([next_run_at])
+  @@map("recurring_transactions")
+}
+
+enum RecurringExecutionStatus {
+  CREATED
+  SKIPPED
+  FAILED
+
+  @@map("recurring_execution_status")
+}
+
+model RecurringTransactionExecutions {
+  id                       String                   @id @default(uuid(7)) @db.Uuid
+  recurring_transaction_id String                   @db.Uuid
+  recurring_transaction    RecurringTransactions    @relation(fields: [recurring_transaction_id], references: [id], onDelete: Cascade)
+  transaction_id           String?                  @unique @db.Uuid
+  transaction              Transactions?            @relation(fields: [transaction_id], references: [id], onDelete: SetNull)
+  status                   RecurringExecutionStatus
+  error_message            String?
+  scheduled_for            DateTime
+  executed_at              DateTime                 @default(now())
+
+  @@index([recurring_transaction_id, executed_at(sort: Desc)])
+  @@map("recurring_transaction_executions")
 }

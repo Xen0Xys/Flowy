@@ -1,4 +1,5 @@
 import {TransactionModule} from "./modules/accounting/transaction/transaction.module";
+import {RecurringTransactionModule} from "./modules/accounting/recurring-transaction/recurring-transaction.module";
 import {ReferenceModule} from "./modules/accounting/reference/reference.module";
 import {TransferModule} from "./modules/accounting/transfer/transfer.module";
 import {AccountModule} from "./modules/accounting/account/account.module";
@@ -62,6 +63,7 @@ import Joi from "joi";
         TransferModule,
         ReferenceModule,
         BudgetModule,
+        RecurringTransactionModule,
     ],
     controllers: [AppController],
     providers: [
