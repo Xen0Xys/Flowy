@@ -196,7 +196,8 @@ export function useWhatsNew() {
         let list: GithubRelease[] = [];
         try {
             list = await fetchReleases();
-        } catch {
+        } catch (err) {
+            if (import.meta.dev) console.warn("[useWhatsNew] fetchReleases failed", err);
             return;
         }
 
