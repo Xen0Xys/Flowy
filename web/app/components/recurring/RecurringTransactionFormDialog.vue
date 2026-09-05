@@ -14,6 +14,7 @@ import {
 import {useAccountStore} from "~/stores/account.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useFamilyStore} from "~/stores/family.store";
+import {useDescriptionReferenceAutoFill} from "~/composables/useDescriptionReferenceAutoFill";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
@@ -112,7 +113,25 @@ const formData = ref({
 
 const isEditing = computed(() => Boolean(props.recurringTransaction));
 
+const {reset: resetAutoFill} = useDescriptionReferenceAutoFill({
+    description: computed({
+        get: () => formData.value.name,
+        set: (value) => (formData.value.name = value),
+    }),
+    categoryId: computed({
+        get: () => formData.value.categoryId,
+        set: (value) => (formData.value.categoryId = value),
+    }),
+    merchantId: computed({
+        get: () => formData.value.merchantId,
+        set: (value) => (formData.value.merchantId = value),
+    }),
+    categories: availableCategories,
+    merchants: availableMerchants,
+});
+
 const initForm = () => {
+    resetAutoFill();
     if (props.recurringTransaction) {
         const rt = props.recurringTransaction;
         transactionType.value = rt.amount < 0 ? "expense" : "income";

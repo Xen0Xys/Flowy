@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
-import {watchDebounced, useEventListener} from "@vueuse/core";
+import {useEventListener} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import {toast} from "vue-sonner";
 import {
@@ -13,7 +13,7 @@ import {
 import {useReferenceStore} from "~/stores/reference.store";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
-import {useReferenceMatcher} from "~/composables/useReferenceMatcher";
+import {useDescriptionReferenceAutoFill} from "~/composables/useDescriptionReferenceAutoFill";
 import {toCurrency} from "~/lib/currency";
 import {cn} from "~/lib/utils";
 import {Button} from "~/components/ui/button";
@@ -78,7 +78,6 @@ const isCreateMerchantDialogOpen = ref(false);
 const isLinkTransferSheetOpen = ref(false);
 const keepLinkedTransaction = ref(false);
 const isUnlinking = ref(false);
-const lastAutoFilledDescription = ref<string | null>(null);
 
 const currency = computed(() => familyStore.family?.currency || "USD");
 const formatCurrency = (value: number) => toCurrency(value, currency.value);
@@ -130,9 +129,27 @@ const isEditing = computed(() => Boolean(props.transaction));
 
 const today = () => new Date().toISOString().split("T")[0] || "";
 
+const {reset: resetAutoFill} = useDescriptionReferenceAutoFill({
+    description: computed({
+        get: () => formData.value.description,
+        set: (value) => (formData.value.description = value),
+    }),
+    categoryId: computed({
+        get: () => formData.value.categoryId,
+        set: (value) => (formData.value.categoryId = value),
+    }),
+    merchantId: computed({
+        get: () => formData.value.merchantId,
+        set: (value) => (formData.value.merchantId = value),
+    }),
+    categories: availableCategories,
+    merchants: availableMerchants,
+    enabled: computed(() => transactionType.value !== "transfer"),
+});
+
 const initFormFromProps = () => {
     keepLinkedTransaction.value = false;
-    lastAutoFilledDescription.value = null;
+    resetAutoFill();
 
     if (props.transaction) {
         transactionType.value = props.transaction.amount < 0 ? "expense" : "income";
@@ -192,49 +209,6 @@ watch(
 watch(() => props.transaction, initFormFromProps, {immediate: true});
 
 const onOpenChange = (open: boolean) => emit("update:open", open);
-
-const {matchDescription, primaryKeywordFor} = useReferenceMatcher();
-
-const canAutoFillDescription = () =>
-    formData.value.description === "" || formData.value.description === lastAutoFilledDescription.value;
-
-const composedAutoDescription = computed(() => {
-    if (transactionType.value === "transfer") return "";
-    const merchant =
-        formData.value.merchantId && formData.value.merchantId !== "none"
-            ? availableMerchants.value.find((m) => m.id === formData.value.merchantId)
-            : null;
-    const category =
-        formData.value.categoryId && formData.value.categoryId !== "none"
-            ? availableCategories.value.find((c) => c.id === formData.value.categoryId)
-            : null;
-    const parts: string[] = [];
-    if (category?.autoCompleteEnabled) parts.push(primaryKeywordFor(category));
-    if (merchant?.autoCompleteEnabled) parts.push(primaryKeywordFor(merchant));
-    return parts.filter((part) => part.length > 0).join(" ");
-});
-
-watchDebounced(
-    () => formData.value.description,
-    (description) => {
-        if (transactionType.value === "transfer") return;
-        if (!description || !description.trim()) return;
-        const match = matchDescription(description, availableCategories.value, availableMerchants.value);
-        if (match.categoryId && formData.value.categoryId === "none") {
-            formData.value.categoryId = match.categoryId;
-        }
-        if (match.merchantId && formData.value.merchantId === "none") {
-            formData.value.merchantId = match.merchantId;
-        }
-    },
-    {debounce: 300},
-);
-
-watch(composedAutoDescription, (auto) => {
-    if (!canAutoFillDescription()) return;
-    formData.value.description = auto;
-    lastAutoFilledDescription.value = auto || null;
-});
 
 const canSubmitStandard = computed(() => {
     if (transactionType.value === "transfer") return false;
