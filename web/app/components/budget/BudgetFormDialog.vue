@@ -19,7 +19,7 @@ import {
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import {Button} from "~/components/ui/button";
-import {Checkbox} from "~/components/ui/checkbox";
+import {Switch} from "~/components/ui/switch";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "~/components/ui/command";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {Input} from "~/components/ui/input";
@@ -521,11 +521,12 @@ function startFromScratch() {
                                         'hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md p-1.5 transition-colors',
                                         isAccountDisabled(group.ownerId) ? 'cursor-not-allowed opacity-50' : '',
                                     ]">
-                                    <Checkbox
+                                    <span class="flex-1 text-sm">{{ account.name }}</span>
+                                    <Switch
+                                        size="sm"
                                         :model-value="selectedAccountIds.has(account.id)"
                                         :disabled="isAccountDisabled(group.ownerId)"
                                         @update:model-value="toggleAccount(account.id, group.ownerId)" />
-                                    <span class="text-sm">{{ account.name }}</span>
                                 </label>
                             </div>
                         </div>
