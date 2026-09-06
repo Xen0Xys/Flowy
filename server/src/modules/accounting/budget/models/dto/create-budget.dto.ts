@@ -1,8 +1,25 @@
-import {ArrayMinSize, IsArray, IsNotEmpty, IsNumber, Max, Min, ValidateNested} from "class-validator";
+import {
+    ArrayMinSize,
+    IsArray,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    IsUUID,
+    Length,
+    Max,
+    Min,
+    ValidateNested,
+} from "class-validator";
 import {Type} from "class-transformer";
 import {BudgetedCategoryDto} from "./budgeted-category.dto";
 
 export class CreateBudgetDto {
+    @IsOptional()
+    @IsString()
+    @Length(1, 50)
+    name?: string;
+
     @IsNotEmpty()
     @IsNumber({allowNaN: false, allowInfinity: false, maxDecimalPlaces: 0})
     @Min(1)
@@ -25,4 +42,9 @@ export class CreateBudgetDto {
     @ValidateNested({each: true})
     @Type(() => BudgetedCategoryDto)
     categories!: BudgetedCategoryDto[];
+
+    @IsArray()
+    @ArrayMinSize(1)
+    @IsUUID("7", {each: true})
+    accountIds!: string[];
 }

@@ -8,10 +8,14 @@ import {CreateCategoryDto} from "./models/dto/create-category.dto";
 import {UpdateCategoryDto} from "./models/dto/update-category.dto";
 import {CreateMerchantDto} from "./models/dto/create-merchant.dto";
 import {UpdateMerchantDto} from "./models/dto/update-merchant.dto";
+import {AccountAccessService} from "../account/account-access.service";
 
 @Injectable()
 export class ReferenceService {
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly accountAccess: AccountAccessService,
+    ) {}
 
     private async getCategoryOrThrow(user: UserEntity, categoryId: string): Promise<UserCategories> {
         const category = await this.prismaService.userCategories.findUnique({
@@ -100,10 +104,11 @@ export class ReferenceService {
         });
     }
 
-    async getCategories(user: UserEntity): Promise<CategoryEntity[]> {
+    async getCategories(user: UserEntity, accountId?: string): Promise<CategoryEntity[]> {
+        const scopeUserId = await this.resolveScopeUserId(user, accountId);
         const categories = await this.prismaService.userCategories.findMany({
             where: {
-                user_id: user.id,
+                user_id: scopeUserId,
             },
             orderBy: {
                 name: "asc",
@@ -191,10 +196,11 @@ export class ReferenceService {
         });
     }
 
-    async getMerchants(user: UserEntity): Promise<MerchantEntity[]> {
+    async getMerchants(user: UserEntity, accountId?: string): Promise<MerchantEntity[]> {
+        const scopeUserId = await this.resolveScopeUserId(user, accountId);
         const merchants = await this.prismaService.userMerchants.findMany({
             where: {
-                user_id: user.id,
+                user_id: scopeUserId,
             },
             orderBy: {
                 name: "asc",
@@ -202,6 +208,12 @@ export class ReferenceService {
         });
 
         return merchants.map((merchant) => this.toMerchantEntity(merchant));
+    }
+
+    private async resolveScopeUserId(user: UserEntity, accountId?: string): Promise<string> {
+        if (!accountId) return user.id;
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        return account.user_id;
     }
 
     async createMerchant(user: UserEntity, body: CreateMerchantDto): Promise<MerchantEntity> {

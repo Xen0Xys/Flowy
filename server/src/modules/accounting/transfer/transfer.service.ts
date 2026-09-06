@@ -1,17 +1,11 @@
-import {
-    BadRequestException,
-    ConflictException,
-    ForbiddenException,
-    Injectable,
-    Logger,
-    NotFoundException,
-} from "@nestjs/common";
+import {BadRequestException, ConflictException, Injectable, Logger, NotFoundException} from "@nestjs/common";
 import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {CreateTransferDto} from "./models/dto/create-transfer.dto";
 import {TransactionEntity} from "../transaction/models/entities/transaction.entity";
 import {Prisma} from "../../../../prisma/generated/client";
 import {TransactionService} from "../transaction/transaction.service";
+import {AccountAccessService} from "../account/account-access.service";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
@@ -30,6 +24,7 @@ export class TransferService {
     constructor(
         private readonly prismaService: PrismaService,
         private readonly transactionService: TransactionService,
+        private readonly accountAccess: AccountAccessService,
     ) {}
 
     async createTransfer(user: UserEntity, createTransferDto: CreateTransferDto): Promise<TransactionEntity[]> {
@@ -46,8 +41,18 @@ export class TransferService {
 
         return this.prismaService.$transaction(async (tx) => {
             const prisma = this.prismaService.withTx(tx);
-            const debitAccount = await this.getOwnedAccountOrThrow(user, createTransferDto.debitAccountId, tx);
-            const creditAccount = await this.getOwnedAccountOrThrow(user, createTransferDto.creditAccountId, tx);
+            const debitAccount = await this.accountAccess.assertAccess(
+                user,
+                createTransferDto.debitAccountId,
+                "write",
+                tx,
+            );
+            const creditAccount = await this.accountAccess.assertAccess(
+                user,
+                createTransferDto.creditAccountId,
+                "write",
+                tx,
+            );
 
             await prisma.accounts.update({
                 where: {id: debitAccount.id},
@@ -107,9 +112,7 @@ export class TransferService {
         });
 
         if (!transaction) throw new NotFoundException("Transaction not found");
-        if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to unlink this transfer");
-        }
+        await this.accountAccess.assertAccess(user, transaction.account_id, "write");
 
         const transfer = transaction.debit_transfer ?? transaction.credit_transfer;
         if (!transfer) throw new NotFoundException("Transfer link not found");
@@ -121,7 +124,7 @@ export class TransferService {
                     ? transfer.credit_transaction_id
                     : transfer.debit_transaction_id;
 
-            await this.assertTransactionOwnedByUser(user, linkedTransactionId, tx);
+            await this.assertLinkedTransactionAccessible(user, linkedTransactionId, tx);
 
             await prisma.transfers.delete({
                 where: {id: transfer.id},
@@ -145,8 +148,8 @@ export class TransferService {
         }
 
         const [transaction1, transaction2] = await Promise.all([
-            this.getOwnedTransactionOrThrow(user, transactionId1),
-            this.getOwnedTransactionOrThrow(user, transactionId2),
+            this.getAccessibleTransactionOrThrow(user, transactionId1),
+            this.getAccessibleTransactionOrThrow(user, transactionId2),
         ]);
 
         if (transaction1.amount === 0 || transaction2.amount === 0) {
@@ -197,21 +200,7 @@ export class TransferService {
         return this.hydrateTransferTransactions(this.prismaService, debitTransactionId, creditTransactionId);
     }
 
-    private async getOwnedAccountOrThrow(user: UserEntity, accountId: string, tx?: TxClient) {
-        const prisma = this.prismaService.withTx(tx);
-        const account = await prisma.accounts.findUnique({
-            where: {id: accountId},
-        });
-
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to access this account");
-        }
-
-        return account;
-    }
-
-    private async getOwnedTransactionOrThrow(
+    private async getAccessibleTransactionOrThrow(
         user: UserEntity,
         transactionId: string,
     ): Promise<TransactionWithRelations> {
@@ -227,24 +216,24 @@ export class TransferService {
         });
 
         if (!transaction) throw new NotFoundException("Transaction not found");
-        if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to access this transaction");
-        }
+        await this.accountAccess.assertAccess(user, transaction.account_id, "write");
 
         return transaction;
     }
 
-    private async assertTransactionOwnedByUser(user: UserEntity, transactionId: string, tx?: TxClient): Promise<void> {
+    private async assertLinkedTransactionAccessible(
+        user: UserEntity,
+        transactionId: string,
+        tx?: TxClient,
+    ): Promise<void> {
         const prisma = this.prismaService.withTx(tx);
         const transaction = await prisma.transactions.findUnique({
             where: {id: transactionId},
-            include: {account: true},
+            select: {account_id: true},
         });
 
         if (!transaction) throw new NotFoundException("Transaction not found");
-        if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to unlink this transfer");
-        }
+        await this.accountAccess.assertAccess(user, transaction.account_id, "write", tx);
     }
 
     private async hydrateTransferTransactions(

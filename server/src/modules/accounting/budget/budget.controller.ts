@@ -27,33 +27,42 @@ import type {AvailableMonth} from "./models/entities/budget-spending.entity";
 export class BudgetController {
     constructor(private readonly budgetService: BudgetService) {}
 
-    @Get(":year/:month")
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    async getBudgetByPeriod(
-        @User() user: UserEntity,
-        @Param("year", ParseIntPipe) year: number,
-        @Param("month", ParseIntPipe) month: number,
-    ): Promise<BudgetEntity | null> {
-        return this.budgetService.getBudgetByPeriod(user, year, month);
-    }
-
-    @Get(":year/:month/spending")
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    async getSpending(
-        @User() user: UserEntity,
-        @Param("year", ParseIntPipe) year: number,
-        @Param("month", ParseIntPipe) month: number,
-    ): Promise<BudgetSpendingEntity> {
-        return this.budgetService.getSpending(user, year, month);
-    }
-
     @Get("available-months")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async getAvailableMonths(@User() user: UserEntity): Promise<AvailableMonth[]> {
         return this.budgetService.getAvailableMonths(user);
+    }
+
+    @Get(":year/:month")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getBudgetsByPeriod(
+        @User() user: UserEntity,
+        @Param("year", ParseIntPipe) year: number,
+        @Param("month", ParseIntPipe) month: number,
+    ): Promise<BudgetEntity[]> {
+        return this.budgetService.getBudgetsByPeriod(user, year, month);
+    }
+
+    @Get(":budgetId/spending")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getSpending(
+        @User() user: UserEntity,
+        @Param("budgetId", new ParseUUIDPipe({version: "7"})) budgetId: string,
+    ): Promise<BudgetSpendingEntity> {
+        return this.budgetService.getSpending(user, budgetId);
+    }
+
+    @Get(":budgetId")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getBudgetById(
+        @User() user: UserEntity,
+        @Param("budgetId", new ParseUUIDPipe({version: "7"})) budgetId: string,
+    ): Promise<BudgetEntity> {
+        return this.budgetService.getBudgetById(user, budgetId);
     }
 
     @Post()

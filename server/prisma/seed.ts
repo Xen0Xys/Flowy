@@ -81,7 +81,9 @@ async function main() {
         await prisma.transfers.deleteMany({});
         await prisma.transactions.deleteMany({});
         await prisma.budgetedCategories.deleteMany({});
+        await prisma.budgetAccounts.deleteMany({});
         await prisma.budgets.deleteMany({});
+        await prisma.accountShares.deleteMany({});
         await prisma.accounts.deleteMany({});
         await prisma.userMerchants.deleteMany({});
         await prisma.userCategories.deleteMany({});
@@ -131,7 +133,7 @@ async function main() {
             transfersCount += await (seedTransfersForUser as any)(prisma, accounts, faker);
 
             // oxlint-disable-next-line no-await-in-loop
-            const budgetsSeed = await (seedBudgetsForUser as any)(prisma, user.id, categories, faker);
+            const budgetsSeed = await (seedBudgetsForUser as any)(prisma, user.id, categories, accounts, faker);
             budgetsCount += budgetsSeed.budgetsCount;
             budgetedCategoriesCount += budgetsSeed.budgetedCategoriesCount;
 

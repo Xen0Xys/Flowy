@@ -1,12 +1,13 @@
 import {AccountTypes} from "../../../../../../prisma/generated/enums";
+import type {AccessLevel} from "../../account-access.service";
 
 export class AccountEntity {
     id: string;
     ownerId: string;
     name: string;
     balance: number;
-    inBudget: boolean;
     type: AccountTypes;
+    access: AccessLevel;
     createdAt: Date;
     updatedAt: Date;
 
