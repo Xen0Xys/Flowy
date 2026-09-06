@@ -9,6 +9,9 @@ export type BudgetedCategory = {
     budgetId: string;
     categoryId: string;
     amount: number;
+    name: string;
+    hexColor: string;
+    icon: string;
     createdAt: string;
     updatedAt: string;
 };

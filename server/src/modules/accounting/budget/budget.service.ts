@@ -11,10 +11,18 @@ import {BudgetedCategories, Budgets, UserCategories} from "../../../../prisma/ge
 import {RecurringTransactionService} from "../recurring-transaction/recurring-transaction.service";
 import {AccessLevel, AccountAccessService} from "../account/account-access.service";
 
+type BudgetedCategoryWithCategory = BudgetedCategories & {
+    category: Pick<UserCategories, "name" | "hex_color" | "icon">;
+};
+
 type BudgetWithRelations = Budgets & {
-    budgeted_categories: BudgetedCategories[];
+    budgeted_categories: BudgetedCategoryWithCategory[];
     accounts: {account_id: string}[];
 };
+
+const BUDGETED_CATEGORY_INCLUDE = {
+    category: {select: {name: true, hex_color: true, icon: true}},
+} as const;
 
 @Injectable()
 export class BudgetService {
@@ -39,7 +47,7 @@ export class BudgetService {
                 OR: [{user_id: user.id}, {accounts: {some: {account_id: {in: accessibleAccountIds}}}}],
             },
             include: {
-                budgeted_categories: true,
+                budgeted_categories: {include: BUDGETED_CATEGORY_INCLUDE},
                 accounts: {select: {account_id: true}},
             },
         });
@@ -109,7 +117,7 @@ export class BudgetService {
                     },
                 },
                 include: {
-                    budgeted_categories: true,
+                    budgeted_categories: {include: BUDGETED_CATEGORY_INCLUDE},
                     accounts: {select: {account_id: true}},
                 },
             });
@@ -193,7 +201,7 @@ export class BudgetService {
             return prisma.budgets.findUniqueOrThrow({
                 where: {id: budgetId},
                 include: {
-                    budgeted_categories: true,
+                    budgeted_categories: {include: BUDGETED_CATEGORY_INCLUDE},
                     accounts: {select: {account_id: true}},
                 },
             });
@@ -354,7 +362,7 @@ export class BudgetService {
         const budget = await this.prismaService.budgets.findUnique({
             where: {id: budgetId},
             include: {
-                budgeted_categories: true,
+                budgeted_categories: {include: BUDGETED_CATEGORY_INCLUDE},
                 accounts: {select: {account_id: true}},
             },
         });
@@ -405,11 +413,14 @@ export class BudgetService {
         });
     }
 
-    private toBudgetedCategoryEntity(bc: BudgetedCategories): BudgetedCategoryEntity {
+    private toBudgetedCategoryEntity(bc: BudgetedCategoryWithCategory): BudgetedCategoryEntity {
         return new BudgetedCategoryEntity({
             budgetId: bc.budget_id,
             categoryId: bc.category_id,
             amount: bc.amount,
+            name: bc.category.name,
+            hexColor: bc.category.hex_color,
+            icon: bc.category.icon,
             createdAt: bc.created_at,
             updatedAt: bc.updated_at,
         });

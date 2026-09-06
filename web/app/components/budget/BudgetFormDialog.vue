@@ -161,6 +161,21 @@ const availableCategories = computed<CategoryLike[]>(() => {
     for (const c of referenceStore.categories) {
         map.set(c.id, {id: c.id, name: c.name, hexColor: c.hexColor, icon: c.icon});
     }
+    // Pre-selected categories on a shared budget belong to the owner and may
+    // not be present in the sharee's reference store; seed them so the
+    // selected rows display the correct name/icon/color.
+    if (props.existingBudget?.categories) {
+        for (const bc of props.existingBudget.categories) {
+            if (!map.has(bc.categoryId)) {
+                map.set(bc.categoryId, {
+                    id: bc.categoryId,
+                    name: bc.name,
+                    hexColor: bc.hexColor,
+                    icon: bc.icon,
+                });
+            }
+        }
+    }
     const addFromSpending = (list: BudgetSpendingCategory[] | undefined) => {
         if (!list) return;
         for (const sc of list) {

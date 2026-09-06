@@ -174,14 +174,13 @@ const donutSegments = computed(() => {
         for (const bc of budget.value.budgetedCategories) {
             if (!bc.categoryId) continue;
             const spendingCat = spendingMap.get(bc.categoryId!);
-            const refCat = referenceStore.categories.find((c) => c.id === bc.categoryId);
             const spent = spendingCat?.spent ?? 0;
             if (spent <= 0.005) continue;
             segments.push({
-                label: spendingCat?.name ?? refCat?.name ?? "Unknown",
+                label: bc.name,
                 value: spent,
-                color: spendingCat?.hexColor ?? refCat?.hexColor ?? "#888",
-                icon: spendingCat?.icon ?? refCat?.icon,
+                color: bc.hexColor,
+                icon: bc.icon,
                 budgeted: bc.amount,
                 spent,
             });
@@ -241,12 +240,11 @@ const categoryRows = computed(() => {
         for (const bc of budget.value.budgetedCategories) {
             if (!bc.categoryId) continue;
             const spendingCat = spendingMap.get(bc.categoryId);
-            const refCat = referenceStore.categories.find((c) => c.id === bc.categoryId);
             budgetedCategories.push({
                 id: bc.categoryId,
-                name: spendingCat?.name ?? refCat?.name ?? "Unknown",
-                icon: spendingCat?.icon ?? refCat?.icon ?? "iconoir:question-mark",
-                hexColor: spendingCat?.hexColor ?? refCat?.hexColor ?? "#888",
+                name: bc.name,
+                icon: bc.icon,
+                hexColor: bc.hexColor,
                 spent: spendingCat?.spent ?? 0,
                 budgeted: bc.amount,
             });

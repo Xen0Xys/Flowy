@@ -267,6 +267,15 @@ describe("Account sharing (e2e)", () => {
         expect(list.body).toHaveLength(1);
         expect(list.body[0].id).toBe(budget.body.id);
         expect(list.body[0].effectivePermission).toBe("read");
+        // The sharee cannot see the owner's category catalog, so the budget
+        // response itself must carry the display metadata for its categories.
+        expect(list.body[0].budgetedCategories).toHaveLength(1);
+        expect(list.body[0].budgetedCategories[0]).toMatchObject({
+            categoryId: category.id,
+            name: "Groceries",
+            hexColor: "#ff0000",
+            icon: "iconoir:cart",
+        });
 
         const forbiddenUpdate = await agent
             .put(`/budget/${budget.body.id}`)
