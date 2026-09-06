@@ -1,3 +1,9 @@
+-- Account sharing + multi-budget + drop obsolete Accounts.in_budget.
+-- Combines three moves into a single migration:
+--   1. Introduce AccountShares (read/write permission per family member).
+--   2. Introduce BudgetAccounts + Budgets.name and drop the single-budget-per-month unique.
+--   3. Drop Accounts.in_budget now that each budget defines its own account scope.
+
 -- CreateEnum
 CREATE TYPE "account_share_permissions" AS ENUM ('READ', 'WRITE');
 
@@ -53,10 +59,14 @@ ALTER TABLE "budget_accounts" ADD CONSTRAINT "budget_accounts_budget_id_fkey" FO
 ALTER TABLE "budget_accounts" ADD CONSTRAINT "budget_accounts_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "accounts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Backfill: link every existing budget to all in-budget accounts owned by the budget owner
--- This preserves the pre-migration behavior of BudgetService.getSpending which implicitly
--- scoped to `accounts WHERE user_id = budget.user_id AND in_budget = true`.
+-- so the pre-migration behavior of BudgetService.getSpending (implicitly scoped to
+-- `accounts WHERE user_id = budget.user_id AND in_budget = true`) is preserved.
+-- The subsequent DROP COLUMN then removes the now-redundant flag.
 INSERT INTO "budget_accounts" ("budget_id", "account_id")
 SELECT b."id", a."id"
 FROM "budgets" b
 JOIN "accounts" a ON a."user_id" = b."user_id" AND a."in_budget" = true
 ON CONFLICT DO NOTHING;
+
+-- AlterTable
+ALTER TABLE "accounts" DROP COLUMN "in_budget";
