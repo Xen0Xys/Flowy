@@ -336,9 +336,7 @@ export class RecurringTransactionService {
                 year,
                 month,
             );
-            const now = new Date();
             for (const date of occurrences) {
-                if (date.getTime() < now.getTime()) continue;
                 const key = `${rt.id}|${date.toISOString()}`;
                 if (executedKey.has(key)) continue;
                 const amount = Math.abs(rt.amount);
