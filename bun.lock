@@ -15,7 +15,7 @@
     },
     "server": {
       "name": "flowy-server",
-      "version": "1.2.1",
+      "version": "1.3.1",
       "dependencies": {
         "@fastify/cookie": "11.1.2",
         "@fastify/csrf-protection": "8.0.1",
@@ -59,10 +59,10 @@
     },
     "web": {
       "name": "flowy-web",
-      "version": "1.2.1",
+      "version": "1.3.1",
       "dependencies": {
         "@internationalized/date": "3.12.4",
-        "@lucide/vue": "1.37.0",
+        "@lucide/vue": "1.41.0",
         "@nuxt/fonts": "0.14.0",
         "@nuxt/icon": "2.5.1",
         "@nuxtjs/color-mode": "4.0.1",
@@ -521,7 +521,7 @@
 
     "@kwsites/promise-deferred": ["@kwsites/promise-deferred@1.1.1", "", {}, "sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw=="],
 
-    "@lucide/vue": ["@lucide/vue@1.37.0", "", { "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-outqiaDIgg8SUANr8q27cHB0V6vAOEB0CwEDe+fyVjSuCDAscVlplHH+cRld9nNNYQ5KJ6MBRmNMICpq42pXYw=="],
+    "@lucide/vue": ["@lucide/vue@1.41.0", "", { "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-ciHtudHTeqMDzJKPI36AGboypCk8Jz3qFin3oU0nJfPc5MwXmqLXIEQvXE+yI6Sz5SnxVqREgm8rVN4KdDlnVQ=="],
 
     "@lukeed/csprng": ["@lukeed/csprng@1.1.0", "", {}, "sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA=="],
 

@@ -4,13 +4,15 @@ import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
+export type AccountAccess = "owner" | "write" | "read";
+
 export type Account = {
     id: string;
     name: string;
     type: string;
     balance: number;
-    inBudget?: boolean;
     ownerId: string;
+    access: AccountAccess;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -19,19 +21,30 @@ export type CreateAccountPayload = {
     name: string;
     type: string;
     balance: number;
-    inBudget?: boolean;
 };
 
 export type UpdateAccountPayload = {
     name?: string;
     type?: string;
     balance?: number;
-    inBudget?: boolean;
 };
 
 export type AccountBalanceEvolutionPoint = {
     date: string;
     balance: number;
+};
+
+export type AccountSharePermission = "READ" | "WRITE";
+
+export type AccountShare = {
+    id: string;
+    accountId: string;
+    sharedWithId: string;
+    sharedWithUsername: string;
+    sharedWithEmail: string;
+    permission: AccountSharePermission;
+    createdAt: string;
+    updatedAt: string;
 };
 
 export const useAccountStore = defineStore("account", {
@@ -155,6 +168,69 @@ export const useAccountStore = defineStore("account", {
                 return evolution;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.fetchEvolution");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async fetchShares(accountId: string): Promise<AccountShare[]> {
+            const {apiFetch} = useApi();
+            try {
+                return await apiFetch<AccountShare[]>(`/account/${accountId}/shares`);
+            } catch (err: any) {
+                const message = err?.message ?? "Failed to fetch shares";
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async shareAccount(
+            accountId: string,
+            memberId: string,
+            permission: AccountSharePermission,
+        ): Promise<AccountShare> {
+            const {apiFetch} = useApi();
+            try {
+                const share = await apiFetch<AccountShare>(`/account/${accountId}/shares`, {
+                    method: "POST",
+                    body: {memberId, permission},
+                });
+                toast.success("Account shared");
+                return share;
+            } catch (err: any) {
+                const message = err?.message ?? "Failed to share account";
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async updateShare(
+            accountId: string,
+            memberId: string,
+            permission: AccountSharePermission,
+        ): Promise<AccountShare> {
+            const {apiFetch} = useApi();
+            try {
+                const share = await apiFetch<AccountShare>(`/account/${accountId}/shares/${memberId}`, {
+                    method: "PATCH",
+                    body: {permission},
+                });
+                toast.success("Share updated");
+                return share;
+            } catch (err: any) {
+                const message = err?.message ?? "Failed to update share";
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async revokeShare(accountId: string, memberId: string): Promise<void> {
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch(`/account/${accountId}/shares/${memberId}`, {method: "DELETE"});
+                toast.success("Share revoked");
+            } catch (err: any) {
+                const message = err?.message ?? "Failed to revoke share";
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

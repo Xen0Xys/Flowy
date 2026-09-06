@@ -3,6 +3,7 @@ import {useMediaQuery} from "@vueuse/core";
 import {computed, nextTick, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import type {BudgetedCategory, BudgetSpendingCategory} from "~/stores/budget.store";
+import type {Account} from "~/stores/account.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import type {TransactionCategory} from "~/stores/transaction.store";
 import MoneyInput from "~/components/common/MoneyInput.vue";
@@ -18,8 +19,10 @@ import {
     AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import {Button} from "~/components/ui/button";
+import {Checkbox} from "~/components/ui/checkbox";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "~/components/ui/command";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "~/components/ui/dialog";
+import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
 import {ScrollArea} from "~/components/ui/scroll-area";
@@ -28,6 +31,7 @@ import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle} from "~/
 import {toCurrency} from "~/lib/currency";
 
 type CategoryLike = Pick<TransactionCategory, "id" | "name" | "hexColor" | "icon">;
+type OwnerGroup = {ownerId: string; ownerLabel: string; accounts: Account[]};
 
 const props = withDefaults(
     defineProps<{
@@ -43,14 +47,21 @@ const props = withDefaults(
         existingBudget?: {
             month: number;
             year: number;
+            name?: string | null;
             budgetedIncome: number;
             categories: BudgetedCategory[];
+            accountIds?: string[];
         } | null;
         spendingCategories?: BudgetSpendingCategory[];
         plannedCategories?: BudgetSpendingCategory[];
+        // Accounts the user can put in a budget (min WRITE access), grouped by owner.
+        accountGroups: OwnerGroup[];
+        // Whether the sharee (non-owner) is editing: locks the account picker.
+        lockAccounts?: boolean;
     }>(),
     {
         isSaving: false,
+        lockAccounts: false,
     },
 );
 
@@ -58,10 +69,12 @@ const emit = defineEmits<{
     "update:open": [value: boolean];
     save: [
         payload: {
+            name: string | null;
             month: number;
             year: number;
             budgetedIncome: number;
             categories: {categoryId: string; amount: number}[];
+            accountIds: string[];
         },
     ];
 }>();
@@ -71,15 +84,29 @@ const referenceStore = useReferenceStore();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
 
+const budgetName = ref<string>("");
 const budgetedIncome = ref(0);
 const categoryAmounts = ref<Record<string, number>>({});
 const selectedCategoryIds = ref<Set<string>>(new Set());
+const selectedAccountIds = ref<Set<string>>(new Set());
 const renewedCategoryIds = ref<Set<string>>(new Set());
 const plannedCategoryIds = ref<Set<string>>(new Set());
 const isPickerOpen = ref(false);
 const isDiscardConfirmOpen = ref(false);
 const initialSnapshot = ref<string>("");
 const hasStartedFresh = ref(false);
+
+const activeOwnerId = computed<string | null>(() => {
+    for (const group of props.accountGroups) {
+        for (const account of group.accounts) {
+            if (selectedAccountIds.value.has(account.id)) return group.ownerId;
+        }
+    }
+    return null;
+});
+
+const hasSelectedAccounts = computed(() => selectedAccountIds.value.size > 0);
+const hasWritableAccounts = computed(() => props.accountGroups.some((g) => g.accounts.length > 0));
 
 const dialogTitle = computed(() => {
     switch (props.mode) {
@@ -227,28 +254,34 @@ const hasAtLeastOneCategory = computed(() => {
 
 const canSave = computed(() => {
     if (budgetedIncome.value < 0.01) return false;
+    if (!hasSelectedAccounts.value) return false;
     if (props.mode === "edit") return true;
     return hasAtLeastOneCategory.value;
 });
 
 const disabledReason = computed(() => {
     if (budgetedIncome.value < 0.01) return t("budget.dialog.needIncomeHint");
+    if (!hasSelectedAccounts.value) return t("budget.dialog.needAccountsHint");
     if (props.mode !== "edit" && !hasAtLeastOneCategory.value) return t("budget.dialog.needCategoryHint");
     return "";
 });
 
 function captureSnapshot() {
     initialSnapshot.value = JSON.stringify({
+        name: budgetName.value,
         income: budgetedIncome.value,
         amounts: Object.fromEntries([...selectedCategoryIds.value].map((id) => [id, categoryAmounts.value[id] ?? 0])),
+        accountIds: [...selectedAccountIds.value].sort(),
     });
 }
 
 const isDirty = computed(() => {
     if (!props.open) return false;
     const current = JSON.stringify({
+        name: budgetName.value,
         income: budgetedIncome.value,
         amounts: Object.fromEntries([...selectedCategoryIds.value].map((id) => [id, categoryAmounts.value[id] ?? 0])),
+        accountIds: [...selectedAccountIds.value].sort(),
     });
     return current !== initialSnapshot.value;
 });
@@ -256,9 +289,11 @@ const isDirty = computed(() => {
 function loadFromExisting() {
     plannedCategoryIds.value = new Set();
     if (props.existingBudget) {
+        budgetName.value = props.existingBudget.name ?? "";
         budgetedIncome.value = props.existingBudget.budgetedIncome;
         categoryAmounts.value = {};
         selectedCategoryIds.value = new Set();
+        selectedAccountIds.value = new Set(props.existingBudget.accountIds ?? []);
         renewedCategoryIds.value = new Set();
         for (const cat of props.existingBudget.categories) {
             categoryAmounts.value[cat.categoryId] = cat.amount;
@@ -268,9 +303,11 @@ function loadFromExisting() {
             }
         }
     } else {
+        budgetName.value = "";
         budgetedIncome.value = 0;
         categoryAmounts.value = {};
         selectedCategoryIds.value = new Set();
+        selectedAccountIds.value = new Set();
         renewedCategoryIds.value = new Set();
     }
 
@@ -280,6 +317,24 @@ function loadFromExisting() {
         categoryAmounts.value[categoryId] = props.mode === "edit" ? 0 : plannedAmount;
         plannedCategoryIds.value.add(categoryId);
     }
+}
+
+function toggleAccount(accountId: string, ownerId: string) {
+    // Enforce mono-owner scope: selecting the first account of a different owner
+    // wipes the previous selection instead of silently mixing scopes.
+    const next = new Set(selectedAccountIds.value);
+    if (next.has(accountId)) {
+        next.delete(accountId);
+    } else {
+        if (activeOwnerId.value && activeOwnerId.value !== ownerId) return;
+        next.add(accountId);
+    }
+    selectedAccountIds.value = next;
+}
+
+function isAccountDisabled(ownerId: string): boolean {
+    if (props.lockAccounts) return true;
+    return activeOwnerId.value !== null && activeOwnerId.value !== ownerId;
 }
 
 watch(
@@ -300,12 +355,16 @@ function handleSave() {
         .filter((c) => c.amount >= 0.01);
 
     if (props.mode !== "edit" && categories.length === 0) return;
+    if (selectedAccountIds.value.size === 0) return;
 
+    const trimmedName = budgetName.value.trim();
     emit("save", {
+        name: trimmedName.length === 0 ? null : trimmedName,
         month: props.targetMonth,
         year: props.targetYear,
         budgetedIncome: budgetedIncome.value,
         categories,
+        accountIds: [...selectedAccountIds.value],
     });
 }
 
@@ -409,6 +468,60 @@ function startFromScratch() {
                         {{ t("budget.dialog.resetSource") }}
                     </Button>
                 </Alert>
+
+                <!-- Name (optional) -->
+                <div class="flex shrink-0 flex-col gap-2">
+                    <Label class="text-sm font-medium" for="budgetName">
+                        {{ t("budget.dialog.name.label") }}
+                    </Label>
+                    <Input
+                        id="budgetName"
+                        v-model="budgetName"
+                        maxlength="50"
+                        :placeholder="t('budget.dialog.name.placeholder')" />
+                    <p class="text-muted-foreground text-xs">{{ t("budget.dialog.name.hint") }}</p>
+                </div>
+
+                <!-- Accounts scope -->
+                <div class="flex shrink-0 flex-col gap-2">
+                    <Label class="text-sm font-medium">{{ t("budget.dialog.accounts.label") }}</Label>
+                    <div
+                        v-if="!hasWritableAccounts"
+                        class="border-border/60 text-muted-foreground rounded-md border border-dashed py-4 text-center text-xs">
+                        {{ t("budget.dialog.accounts.noWritable") }}
+                    </div>
+                    <div v-else class="flex flex-col gap-3">
+                        <div
+                            v-for="group in accountGroups"
+                            :key="group.ownerId"
+                            class="border-border/60 rounded-md border p-2">
+                            <div class="text-muted-foreground mb-2 px-1 text-xs font-medium tracking-wide uppercase">
+                                {{ group.ownerLabel }}
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label
+                                    v-for="account in group.accounts"
+                                    :key="account.id"
+                                    :class="[
+                                        'hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md p-1.5 transition-colors',
+                                        isAccountDisabled(group.ownerId) ? 'cursor-not-allowed opacity-50' : '',
+                                    ]">
+                                    <Checkbox
+                                        :model-value="selectedAccountIds.has(account.id)"
+                                        :disabled="isAccountDisabled(group.ownerId)"
+                                        @update:model-value="toggleAccount(account.id, group.ownerId)" />
+                                    <span class="text-sm">{{ account.name }}</span>
+                                </label>
+                            </div>
+                        </div>
+                        <p v-if="lockAccounts" class="text-muted-foreground text-xs">
+                            {{ t("budget.dialog.accounts.lockedHint") }}
+                        </p>
+                        <p v-else class="text-muted-foreground text-xs">
+                            {{ t("budget.dialog.accounts.singleOwnerHint") }}
+                        </p>
+                    </div>
+                </div>
 
                 <!-- Hero income -->
                 <div class="flex shrink-0 flex-col gap-2">

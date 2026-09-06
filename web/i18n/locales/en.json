@@ -330,8 +330,6 @@
             "type": "Category / Type",
             "openingBalance": "Opening balance",
             "openingBalanceHint": "Current balance at the time of account creation.",
-            "inBudget": "Include in budget",
-            "inBudgetDescription": "Include this account's transactions when computing your monthly budgets.",
             "errors": {
                 "nameTooShort": "Name must be at least 3 characters.",
                 "nameTooLong": "Name must be at most 50 characters.",
@@ -350,6 +348,25 @@
         "noChange": "No change",
         "updateBalance": "Update balance",
         "noData": "No balance history for this period",
+        "share": {
+            "action": "Share account",
+            "title": "Share this account",
+            "description": "Give another member of your family access to this account.",
+            "currentShares": "People with access",
+            "noShares": "This account is not shared yet.",
+            "addShare": "Grant access",
+            "selectMember": "Select a family member",
+            "add": "Share",
+            "noMembers": "You need family members before sharing.",
+            "permission": {
+                "read": "Read",
+                "write": "Read + Write"
+            },
+            "badge": {
+                "read": "Shared (read)",
+                "write": "Shared (write)"
+            }
+        },
         "store": {
             "success": {
                 "accountCreated": "Account created",
@@ -848,9 +865,13 @@
             "title": "Budget",
             "subtitle": "Track your monthly goals and spending by category.",
             "createBudget": "Create budget",
+            "newBudget": "New budget",
             "renewBudget": "Renew",
             "editBudget": "Edit",
             "deleteBudget": "Delete",
+            "tabs": {
+                "fallbackName": "Budget #{index}"
+            },
             "noPreviousBudget": "No budget to renew",
             "noSpending": "No spending this month",
             "noSpendingDescription": "Spent categories will appear here.",
@@ -924,7 +945,22 @@
             "discardChangesDescription": "Your inputs will be lost.",
             "discardChangesConfirm": "Discard",
             "needIncomeHint": "Enter a budgeted income to continue.",
-            "needCategoryHint": "Add at least one category with an amount to continue."
+            "needCategoryHint": "Add at least one category with an amount to continue.",
+            "needAccountsHint": "Select at least one account for this budget.",
+            "name": {
+                "label": "Name (optional)",
+                "placeholder": "e.g. Personal, Joint",
+                "hint": "Useful when you have several budgets for the same month."
+            },
+            "accounts": {
+                "label": "Accounts",
+                "groupOwn": "My accounts",
+                "groupShared": "Shared by {name}",
+                "someone": "another member",
+                "singleOwnerHint": "A budget can only cover accounts belonging to a single person.",
+                "lockedHint": "Only the account owner can change which accounts this budget covers.",
+                "noWritable": "You need at least one account (owned or shared with write access) before you can create a budget."
+            }
         },
         "category": {
             "uncategorized": "Uncategorized",

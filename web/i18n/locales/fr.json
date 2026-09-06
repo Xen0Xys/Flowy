@@ -330,8 +330,6 @@
             "type": "Catégorie / Type",
             "openingBalance": "Solde d'ouverture",
             "openingBalanceHint": "Solde actuel au moment de la création du compte.",
-            "inBudget": "Inclure dans le budget",
-            "inBudgetDescription": "Prendre en compte les transactions de ce compte dans le calcul de vos budgets mensuels.",
             "errors": {
                 "nameTooShort": "Le nom doit contenir au moins 3 caractères.",
                 "nameTooLong": "Le nom ne peut pas dépasser 50 caractères.",
@@ -350,6 +348,25 @@
         "noChange": "Aucun changement",
         "updateBalance": "Mettre à jour",
         "noData": "Aucun historique de solde pour cette période",
+        "share": {
+            "action": "Partager le compte",
+            "title": "Partager ce compte",
+            "description": "Donnez accès à ce compte à un autre membre de votre famille.",
+            "currentShares": "Personnes ayant accès",
+            "noShares": "Ce compte n'est pas encore partagé.",
+            "addShare": "Accorder un accès",
+            "selectMember": "Choisir un membre",
+            "add": "Partager",
+            "noMembers": "Il faut des membres de famille pour partager.",
+            "permission": {
+                "read": "Lecture",
+                "write": "Lecture + écriture"
+            },
+            "badge": {
+                "read": "Partagé (lecture)",
+                "write": "Partagé (écriture)"
+            }
+        },
         "store": {
             "success": {
                 "accountCreated": "Compte créé",
@@ -848,9 +865,13 @@
             "title": "Budget",
             "subtitle": "Suivez vos objectifs mensuels et vos dépenses par catégorie.",
             "createBudget": "Créer le budget",
+            "newBudget": "Nouveau budget",
             "renewBudget": "Reconduire",
             "editBudget": "Modifier",
             "deleteBudget": "Supprimer",
+            "tabs": {
+                "fallbackName": "Budget n°{index}"
+            },
             "noPreviousBudget": "Aucun budget à reconduire",
             "noSpending": "Aucune dépense ce mois-ci",
             "noSpendingDescription": "Les catégories dépensées apparaîtront ici.",
@@ -924,7 +945,22 @@
             "discardChangesDescription": "Vos saisies seront perdues.",
             "discardChangesConfirm": "Abandonner",
             "needIncomeHint": "Renseignez un revenu budgété pour continuer.",
-            "needCategoryHint": "Ajoutez au moins une catégorie avec un montant pour continuer."
+            "needCategoryHint": "Ajoutez au moins une catégorie avec un montant pour continuer.",
+            "needAccountsHint": "Sélectionnez au moins un compte pour ce budget.",
+            "name": {
+                "label": "Nom (optionnel)",
+                "placeholder": "Ex : Perso, Commun",
+                "hint": "Utile lorsque vous avez plusieurs budgets pour le même mois."
+            },
+            "accounts": {
+                "label": "Comptes",
+                "groupOwn": "Mes comptes",
+                "groupShared": "Partagés par {name}",
+                "someone": "un autre membre",
+                "singleOwnerHint": "Un budget ne peut couvrir que les comptes d'une seule personne.",
+                "lockedHint": "Seul le propriétaire du compte peut modifier les comptes couverts par ce budget.",
+                "noWritable": "Vous avez besoin d'au moins un compte (possédé ou partagé en écriture) pour créer un budget."
+            }
         },
         "category": {
             "uncategorized": "Non catégorisé",

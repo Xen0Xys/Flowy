@@ -101,6 +101,36 @@ export const useReferenceStore = defineStore("reference", {
             await this.fetchReferences();
         },
 
+        async fetchCategoriesForAccount(accountId: string): Promise<TransactionCategory[]> {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                return await apiFetch<TransactionCategory[]>(
+                    `/reference/categories?accountId=${encodeURIComponent(accountId)}`,
+                );
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("reference.store.errors.fetchReferences");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async fetchMerchantsForAccount(accountId: string): Promise<TransactionMerchant[]> {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                return await apiFetch<TransactionMerchant[]>(
+                    `/reference/merchants?accountId=${encodeURIComponent(accountId)}`,
+                );
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("reference.store.errors.fetchReferences");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
         async createCategory(payload: CreateCategoryPayload) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");

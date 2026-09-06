@@ -9,6 +9,7 @@ import type {TimeRange} from "~/utils/accounts";
 import {buildDateRange} from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import AccountShareDialog from "~/components/accounts/AccountShareDialog.vue";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 
 import {Button} from "~/components/ui/button";
@@ -57,6 +58,7 @@ const isLoading = ref(true);
 const isFormModalOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isSetBalanceDialogOpen = ref(false);
+const isShareDialogOpen = ref(false);
 const isSettingBalance = ref(false);
 const targetBalance = ref(0);
 const targetBalanceTouched = ref(false);
@@ -65,6 +67,7 @@ const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> 
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
+const isOwner = computed(() => account.value?.access === "owner");
 const accountTypeLabel = computed(() => {
     const type = account.value?.type;
     if (!type) return "";
@@ -337,11 +340,24 @@ const graphHeightClass = computed(() =>
                     </div>
 
                     <div v-if="!isLoading && account" class="flex w-full items-center gap-2 md:w-auto">
-                        <Button class="flex-1 md:flex-none" variant="secondary" @click="openSetBalanceDialog">
+                        <span
+                            v-if="account.access !== 'owner'"
+                            class="border-primary/40 bg-primary/10 text-primary rounded-full border px-2 py-0.5 text-xs">
+                            {{
+                                account.access === "write"
+                                    ? t("account.share.badge.write")
+                                    : t("account.share.badge.read")
+                            }}
+                        </span>
+                        <Button
+                            v-if="isOwner"
+                            class="flex-1 md:flex-none"
+                            variant="secondary"
+                            @click="openSetBalanceDialog">
                             <Icon class="h-4 w-4" name="iconoir:coins-swap" />
                             {{ t("account.setBalance") }}
                         </Button>
-                        <DropdownMenu>
+                        <DropdownMenu v-if="isOwner">
                             <DropdownMenuTrigger as-child>
                                 <Button class="shrink-0" size="icon" type="button" variant="outline">
                                     <Icon class="h-4 w-4" name="iconoir:more-vert" />
@@ -352,6 +368,10 @@ const graphHeightClass = computed(() =>
                                 <DropdownMenuItem @select="openEditModal">
                                     <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
                                     {{ t("common.edit") }}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem @select="isShareDialogOpen = true">
+                                    <Icon class="h-4 w-4" name="iconoir:share-android" />
+                                    {{ t("account.share.action") }}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -495,6 +515,8 @@ const graphHeightClass = computed(() =>
 
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />
+
+                <AccountShareDialog v-model:open="isShareDialogOpen" :account-id="accountId" />
 
                 <Dialog :open="isSetBalanceDialogOpen" @update:open="isSetBalanceDialogOpen = $event">
                     <DialogContent class="sm:max-w-[425px]">
