@@ -475,6 +475,8 @@
             "actions": "Plus d'actions",
             "details": "Détails",
             "noResults": "Aucun résultat.",
+            "readOnlyBadge": "Lecture seule",
+            "readOnlyDescription": "Ce compte vous est partagé en lecture seule. Vous ne pouvez pas modifier ses transactions.",
             "errors": {
                 "loadData": "Impossible de charger les données requises"
             }

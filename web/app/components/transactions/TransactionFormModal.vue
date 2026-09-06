@@ -85,6 +85,8 @@ const formatCurrency = (value: number) => toCurrency(value, currency.value);
 const availableCategories = computed(() => referenceStore.categories);
 const availableMerchants = computed(() => referenceStore.merchants);
 const availableAccounts = computed(() => accountStore.accounts);
+const writableAccounts = computed(() => accountStore.writableAccounts);
+const canTransfer = computed(() => writableAccounts.value.length >= 2);
 
 const categoryItems = computed(() =>
     availableCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
@@ -113,7 +115,7 @@ const transferFormData = ref({
 const transactionType = ref<TransactionType>("expense");
 
 const destinationAccounts = computed(() =>
-    availableAccounts.value.filter((acc) => acc.id !== transferFormData.value.sourceAccountId),
+    writableAccounts.value.filter((acc) => acc.id !== transferFormData.value.sourceAccountId),
 );
 
 const sourceAccount = computed(
@@ -126,6 +128,25 @@ const destinationAccount = computed(
 const isRebalance = computed(() => props.transaction?.isRebalance ?? false);
 const isLinkedTransfer = computed(() => Boolean(props.transaction?.linkedTransactionId));
 const isEditing = computed(() => Boolean(props.transaction));
+
+const activeAccountId = computed(() => {
+    if (props.transaction) return props.transaction.accountId;
+    return props.accountId || formData.value.selectedAccountId || null;
+});
+
+const isAccountReadOnly = computed(() => {
+    if (transactionType.value === "transfer") {
+        const src = transferFormData.value.sourceAccountId;
+        const dst = transferFormData.value.destinationAccountId;
+        if (src && !accountStore.canWriteAccount(src)) return true;
+        if (dst && !accountStore.canWriteAccount(dst)) return true;
+        return false;
+    }
+    if (!activeAccountId.value) return false;
+    return !accountStore.canWriteAccount(activeAccountId.value);
+});
+
+const isDisabled = computed(() => isRebalance.value || isAccountReadOnly.value);
 
 const today = () => new Date().toISOString().split("T")[0] || "";
 
@@ -243,6 +264,7 @@ const canSubmit = computed(() => {
 
 const save = async () => {
     if (!canSubmit.value) return;
+    if (isAccountReadOnly.value) return;
 
     isSubmitting.value = true;
     try {
@@ -380,7 +402,7 @@ const typeOptions = computed(() => {
             label: t("transactions.transfer.tab"),
             icon: "iconoir:refresh-double",
             activeClass: "bg-primary/10 text-primary border-primary/30",
-            hidden: isEditing.value,
+            hidden: isEditing.value || !canTransfer.value,
         },
     ];
     return opts.filter((o) => !o.hidden);
@@ -412,8 +434,12 @@ const hasHeaderActions = computed(() => isEditing.value);
                             <Icon class="h-3 w-3" name="iconoir:link" />
                             {{ t("transactions.form.linkedTransaction") }}
                         </Badge>
+                        <Badge v-if="isAccountReadOnly" variant="secondary" class="mt-1 gap-1">
+                            <Icon class="h-3 w-3" name="iconoir:lock" />
+                            {{ t("transactions.form.readOnlyBadge") }}
+                        </Badge>
                     </div>
-                    <DropdownMenu v-if="hasHeaderActions">
+                    <DropdownMenu v-if="hasHeaderActions && !isAccountReadOnly">
                         <DropdownMenuTrigger as-child>
                             <Button variant="ghost" size="icon-sm" type="button" class="shrink-0">
                                 <Icon name="iconoir:more-vert" class="h-4 w-4" />
@@ -459,6 +485,16 @@ const hasHeaderActions = computed(() => isEditing.value);
                         </AlertDescription>
                     </Alert>
 
+                    <Alert v-if="isAccountReadOnly && !isRebalance" variant="default" class="bg-muted/50">
+                        <AlertTitle class="flex items-center gap-2">
+                            <Icon class="h-4 w-4" name="iconoir:lock" />
+                            {{ t("transactions.form.readOnlyBadge") }}
+                        </AlertTitle>
+                        <AlertDescription>
+                            {{ t("transactions.form.readOnlyDescription") }}
+                        </AlertDescription>
+                    </Alert>
+
                     <div
                         role="tablist"
                         :aria-label="t('transactions.filters.type')"
@@ -470,7 +506,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                             type="button"
                             role="tab"
                             :aria-selected="transactionType === opt.value"
-                            :disabled="isRebalance"
+                            :disabled="isDisabled"
                             :class="
                                 cn(
                                     'flex items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-all',
@@ -495,7 +531,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                 :currency="currency"
                                 :locale="locale || 'en-US'"
                                 :variant="amountVariant"
-                                :disabled="isRebalance"
+                                :disabled="isDisabled"
                                 required />
                         </div>
 
@@ -509,7 +545,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                         ? t('transactions.form.incomeDescriptionPlaceholder')
                                         : t('transactions.form.expenseDescriptionPlaceholder')
                                 "
-                                :disabled="isRebalance"
+                                :disabled="isDisabled"
                                 required />
                         </div>
 
@@ -531,7 +567,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                     <SelectContent>
                                         <SelectGroup>
                                             <SelectItem
-                                                v-for="account in availableAccounts"
+                                                v-for="account in writableAccounts"
                                                 :key="account.id"
                                                 :value="account.id">
                                                 {{ account.name }}
@@ -559,7 +595,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                     :empty-text="t('transactions.form.noResults')"
                                     :none-label="t('common.none')"
                                     :create-label="t('settings.references.addCategory')"
-                                    :disabled="isRebalance"
+                                    :disabled="isDisabled"
                                     @create="isCreateCategoryDialogOpen = true" />
                             </div>
 
@@ -573,7 +609,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                     :empty-text="t('transactions.form.noResults')"
                                     :none-label="t('common.none')"
                                     :create-label="t('settings.references.addMerchant')"
-                                    :disabled="isRebalance"
+                                    :disabled="isDisabled"
                                     @create="isCreateMerchantDialogOpen = true" />
                             </div>
 
@@ -586,7 +622,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                         {{ t("transactions.form.inBudgetDescription") }}
                                     </p>
                                 </div>
-                                <Switch id="txInBudget" v-model="formData.inBudget" :disabled="isRebalance" />
+                                <Switch id="txInBudget" v-model="formData.inBudget" :disabled="isDisabled" />
                             </div>
                         </div>
                     </form>
@@ -619,7 +655,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                     <SelectContent>
                                         <SelectGroup>
                                             <SelectItem
-                                                v-for="account in availableAccounts"
+                                                v-for="account in writableAccounts"
                                                 :key="account.id"
                                                 :value="account.id">
                                                 <div class="flex w-full items-center justify-between gap-4">
@@ -713,9 +749,13 @@ const hasHeaderActions = computed(() => isEditing.value);
 
             <DialogFooter class="border-t p-4">
                 <Button type="button" variant="outline" @click="emit('update:open', false)">
-                    {{ t("common.cancel") }}
+                    {{ isAccountReadOnly ? t("common.close") : t("common.cancel") }}
                 </Button>
-                <Button :disabled="isSubmitting || isDeleting || !canSubmit" type="button" @click="save">
+                <Button
+                    v-if="!isAccountReadOnly"
+                    :disabled="isSubmitting || isDeleting || !canSubmit"
+                    type="button"
+                    @click="save">
                     {{
                         isSubmitting
                             ? t("common.saving")

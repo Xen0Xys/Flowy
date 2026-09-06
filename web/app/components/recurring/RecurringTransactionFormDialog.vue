@@ -71,7 +71,7 @@ const handleMerchantCreated = (merchant: {id: string}) => {
 };
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
-const availableAccounts = computed(() => accountStore.accounts);
+const availableAccounts = computed(() => accountStore.writableAccounts);
 const availableCategories = computed(() => referenceStore.categories);
 const availableMerchants = computed(() => referenceStore.merchants);
 

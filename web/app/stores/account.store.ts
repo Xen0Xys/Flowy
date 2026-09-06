@@ -54,6 +54,20 @@ export const useAccountStore = defineStore("account", {
         currentAccountEvolution: [] as AccountBalanceEvolutionPoint[],
     }),
 
+    getters: {
+        writableAccounts(state): Account[] {
+            return state.accounts.filter((a) => a.access === "owner" || a.access === "write");
+        },
+        canWriteAccount(state) {
+            return (accountId?: string | null): boolean => {
+                if (!accountId) return false;
+                const account = state.accounts.find((a) => a.id === accountId);
+                if (!account) return false;
+                return account.access === "owner" || account.access === "write";
+            };
+        },
+    },
+
     actions: {
         async fetchAccounts() {
             const userStore = useUserStore();

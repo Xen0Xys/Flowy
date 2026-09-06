@@ -15,6 +15,7 @@ import {
 } from "~/stores/transaction.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useFamilyStore} from "~/stores/family.store";
+import {useAccountStore} from "~/stores/account.store";
 import {toCurrency} from "~/lib/currency";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
@@ -48,8 +49,14 @@ const {t} = useI18n();
 const transactionStore = useTransactionStore();
 const referenceStore = useReferenceStore();
 const familyStore = useFamilyStore();
+const accountStore = useAccountStore();
 const route = useRoute();
 const router = useRouter();
+
+const canCreateHere = computed(() => {
+    if (props.accountId) return accountStore.canWriteAccount(props.accountId);
+    return accountStore.writableAccounts.length > 0;
+});
 
 const isTransactionModalOpen = ref(false);
 const selectedTransaction = ref<Transaction | null>(null);
@@ -472,7 +479,7 @@ defineExpose({
                         {{ t("transactions.list.viewAll") }}
                     </NuxtLink>
                 </div>
-                <template v-if="accountId">
+                <template v-if="accountId && canCreateHere">
                     <Button
                         :aria-label="t('transactions.list.newTransaction')"
                         class="shrink-0 md:hidden"

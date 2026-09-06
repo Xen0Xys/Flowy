@@ -25,6 +25,8 @@ const availableAccounts = computed(() =>
     })),
 );
 
+const hasWritableAccount = computed(() => accountStore.writableAccounts.length > 0);
+
 const loadData = async () => {
     isLoading.value = true;
     try {
@@ -54,6 +56,7 @@ const handleViewLinked = async (transactionId: string) => {
 };
 
 const handleNewTransaction = () => {
+    if (!hasWritableAccount.value) return;
     selectedTransaction.value = null;
     isTransactionModalOpen.value = true;
 };
@@ -112,7 +115,7 @@ const onTransactionSaved = () => {
                             </p>
                         </div>
                     </div>
-                    <Button class="w-full md:w-auto" @click="handleNewTransaction">
+                    <Button v-if="hasWritableAccount" class="w-full md:w-auto" @click="handleNewTransaction">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
                         {{ t("transactions.list.newTransaction") }}
                     </Button>

@@ -475,6 +475,8 @@
             "actions": "More actions",
             "details": "Details",
             "noResults": "No results.",
+            "readOnlyBadge": "Read only",
+            "readOnlyDescription": "This account is shared with you in read-only mode. You cannot modify its transactions.",
             "errors": {
                 "loadData": "Failed to load required data"
             }

@@ -67,6 +67,7 @@ function run(action: () => void | Promise<void>) {
 
 const accounts = computed(() => accountStore.accounts);
 const currency = computed(() => familyStore.family?.currency ?? "USD");
+const hasWritableAccount = computed(() => accountStore.writableAccounts.length > 0);
 
 const isDark = computed(() => colorMode.value === "dark");
 
@@ -117,6 +118,7 @@ async function logout() {
 
             <CommandGroup :heading="t('commandPalette.groups.quickActions')">
                 <CommandItem
+                    v-if="hasWritableAccount"
                     value="new-transaction"
                     @select="run(() => router.push({path: '/transactions', query: {new: '1'}}))">
                     <Icon name="iconoir:plus" />
