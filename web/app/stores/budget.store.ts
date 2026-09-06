@@ -47,9 +47,12 @@ export type BudgetSpending = {
     plannedByCategory: BudgetSpendingCategory[];
 };
 
-export type AvailableMonth = {
+export type RenewableBudget = {
+    id: string;
     month: number;
     year: number;
+    name: string | null;
+    effectivePermission: "owner" | "write";
 };
 
 export type CreateBudgetPayload = {
@@ -203,16 +206,16 @@ export const useBudgetStore = defineStore("budget", {
             }
         },
 
-        async getAvailableMonths(): Promise<AvailableMonth[]> {
+        async getRenewableBudgets(): Promise<RenewableBudget[]> {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
-                const months = await apiFetch<AvailableMonth[]>("/budget/available-months");
-                return months;
+                const budgets = await apiFetch<RenewableBudget[]>("/budget/renewable");
+                return budgets;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("budget.store.errors.fetchAvailableMonths");
+                const message = err?.message ?? i18nT("budget.store.errors.fetchRenewableBudgets");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

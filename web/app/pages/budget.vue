@@ -3,8 +3,9 @@ import {getLocalTimeZone, today} from "@internationalized/date";
 import type {DateValue} from "reka-ui";
 import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
+import {toast} from "vue-sonner";
 import {useFamilyStore} from "~/stores/family.store";
-import {type AvailableMonth, type Budget, type BudgetSpending, useBudgetStore} from "~/stores/budget.store";
+import {type Budget, type BudgetSpending, type RenewableBudget, useBudgetStore} from "~/stores/budget.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import BudgetDonutChart from "~/components/budget/BudgetDonutChart.vue";
 import BudgetCategoryRow from "~/components/budget/BudgetCategoryRow.vue";
@@ -72,7 +73,7 @@ function setPeriod(year: number, month: number, options?: {replace?: boolean}) {
 const budget = ref<Budget | null>(null);
 const budgets = ref<Budget[]>([]);
 const spending = ref<BudgetSpending | null>(null);
-const availableMonths = ref<AvailableMonth[]>([]);
+const renewableBudgets = ref<RenewableBudget[]>([]);
 const isLoading = ref(true);
 const latestLoadRequestId = ref(0);
 
@@ -100,6 +101,7 @@ const isDeleteDialogOpen = ref(false);
 const isRenewDialogOpen = ref(false);
 const dialogMode = ref<"create" | "edit" | "renew">("create");
 const renewSourceBudget = ref<Budget | null>(null);
+const renewSourceAccountIds = ref<string[]>([]);
 const isPeriodPickerOpen = ref(false);
 const draftPeriodDate = ref<DateValue>();
 const draftPeriodPlaceholder = ref<DateValue>();
@@ -346,8 +348,8 @@ const monthOptions = computed(() => {
 
 const availableYears = computed(() => {
     const years = new Set<number>([selectedYear.value, now.getFullYear()]);
-    for (const month of availableMonths.value) {
-        years.add(month.year);
+    for (const renewable of renewableBudgets.value) {
+        years.add(renewable.year);
     }
 
     const sortedYears = [...years].sort((a, b) => a - b);
@@ -388,7 +390,7 @@ const existingBudgetForDialog = computed(() => {
             name: renewSourceBudget.value.name,
             budgetedIncome: renewSourceBudget.value.budgetedIncome,
             categories: renewSourceBudget.value.budgetedCategories ?? [],
-            accountIds: renewSourceBudget.value.accountIds,
+            accountIds: renewSourceAccountIds.value,
         };
     }
     return null;
@@ -471,11 +473,11 @@ async function selectBudget(id: string) {
     spending.value = await loadSpending(target.id);
 }
 
-async function loadAvailableMonths() {
+async function loadRenewableBudgets() {
     try {
-        availableMonths.value = await budgetStore.getAvailableMonths();
+        renewableBudgets.value = await budgetStore.getRenewableBudgets();
     } catch {
-        availableMonths.value = [];
+        renewableBudgets.value = [];
     }
 }
 
@@ -517,6 +519,7 @@ function applySelectedPeriod() {
 function openCreateDialog() {
     dialogMode.value = "create";
     renewSourceBudget.value = null;
+    renewSourceAccountIds.value = [];
     isCreateDialogOpen.value = true;
 }
 
@@ -542,8 +545,15 @@ function openRenewDialog() {
 }
 
 function handleRenewBudget(sourceBudget: Budget) {
+    const writableIds = new Set(writableAccounts.value.map((a) => a.id));
+    const filtered = sourceBudget.accountIds.filter((id) => writableIds.has(id));
+    if (filtered.length === 0) {
+        toast.error(t("budget.renewDialog.errors.noWritableAccounts"));
+        return;
+    }
     dialogMode.value = "renew";
     renewSourceBudget.value = sourceBudget;
+    renewSourceAccountIds.value = filtered;
     isCreateDialogOpen.value = true;
 }
 
@@ -582,7 +592,7 @@ async function handleSaveBudget(payload: {
             await loadData();
             setActiveBudgetId(created.id, {replace: true});
         }
-        await loadAvailableMonths();
+        await loadRenewableBudgets();
     } finally {
         isSavingBudget.value = false;
     }
@@ -593,7 +603,7 @@ async function handleDelete() {
         await budgetStore.deleteBudget(budget.value.id);
         isDeleteDialogOpen.value = false;
         await loadData();
-        await loadAvailableMonths();
+        await loadRenewableBudgets();
     }
 }
 
@@ -603,7 +613,7 @@ onMounted(async () => {
     }
     await Promise.all([referenceStore.fetchReferences(), familyStore.fetchFamily(), accountStore.fetchAccounts()]);
     await loadData();
-    await loadAvailableMonths();
+    await loadRenewableBudgets();
 });
 
 watch([selectedMonth, selectedYear], async () => {
@@ -638,7 +648,7 @@ watch([selectedMonth, selectedYear], async () => {
                     </div>
                     <div class="flex items-center gap-2">
                         <Button
-                            v-if="!budgetExists && availableMonths.length > 0"
+                            v-if="!budgetExists && renewableBudgets.length > 0 && hasWritableAccount"
                             variant="outline"
                             @click="openRenewDialog">
                             <Icon class="h-4 w-4" name="iconoir:data-transfer-both" />
@@ -842,7 +852,7 @@ watch([selectedMonth, selectedYear], async () => {
         <!-- Renew Dialog -->
         <BudgetRenewDialog
             v-model:open="isRenewDialogOpen"
-            :available-months="availableMonths"
+            :renewable-budgets="renewableBudgets"
             @renew="handleRenewBudget" />
 
         <!-- Create / Renew Dialog -->

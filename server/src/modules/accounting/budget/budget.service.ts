@@ -3,7 +3,7 @@ import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {BudgetEntity} from "./models/entities/budget.entity";
 import {BudgetedCategoryEntity} from "./models/entities/budgeted-category.entity";
-import type {AvailableMonth} from "./models/entities/budget-spending.entity";
+import type {RenewableBudget} from "./models/entities/budget-spending.entity";
 import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
 import {GetPlannedByAccountsDto} from "./models/dto/get-planned-by-accounts.dto";
@@ -397,21 +397,60 @@ export class BudgetService {
         return result;
     }
 
-    async getAvailableMonths(user: UserEntity): Promise<AvailableMonth[]> {
+    async getRenewableBudgets(user: UserEntity): Promise<RenewableBudget[]> {
         const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
-        // "Available" here means any visible budget in that (year, month). We rely
-        // on the DB for the coarse selection then leave stricter permission checks
-        // to getBudgetsByPeriod on demand.
-        const months = await this.prismaService.budgets.findMany({
+        // Only expose budgets the user can actually copy from: owner or write.
+        // Read-only budgets are filtered out so the renew flow never lands on a
+        // source the user cannot reuse.
+        const candidates = await this.prismaService.budgets.findMany({
             where: {
                 OR: [{user_id: user.id}, {accounts: {some: {account_id: {in: accessibleAccountIds}}}}],
             },
-            select: {month: true, year: true},
-            distinct: ["month", "year"],
-            orderBy: [{year: "desc"}, {month: "desc"}],
+            select: {
+                id: true,
+                name: true,
+                month: true,
+                year: true,
+                user_id: true,
+                accounts: {select: {account_id: true}},
+            },
         });
 
-        return months.map((m) => ({month: m.month, year: m.year}));
+        const renewable = await Promise.all(
+            candidates.map(async (budget): Promise<RenewableBudget | null> => {
+                if (budget.user_id === user.id) {
+                    return {
+                        id: budget.id,
+                        month: budget.month,
+                        year: budget.year,
+                        name: budget.name,
+                        effectivePermission: "owner",
+                    };
+                }
+                const accountIds = budget.accounts.map((a) => a.account_id);
+                if (accountIds.length === 0) return null;
+                const accessMap = await this.accountAccess.getAccessMap(user, accountIds);
+                if (accessMap.size !== accountIds.length) return null;
+                for (const level of accessMap.values()) {
+                    if (level === "read") return null;
+                }
+                return {
+                    id: budget.id,
+                    month: budget.month,
+                    year: budget.year,
+                    name: budget.name,
+                    effectivePermission: "write",
+                };
+            }),
+        );
+
+        return renewable
+            .filter((b): b is RenewableBudget => b !== null)
+            .sort((a, b) => {
+                if (a.year !== b.year) return b.year - a.year;
+                if (a.month !== b.month) return b.month - a.month;
+                return (a.name ?? "").localeCompare(b.name ?? "");
+            });
     }
 
     private async getBudgetAndPermissionOrThrow(

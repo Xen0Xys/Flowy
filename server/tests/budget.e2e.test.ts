@@ -91,8 +91,8 @@ describe("BudgetController (e2e)", () => {
         const getResponse = await agent.get("/budget/2026/3");
         expect(getResponse.status).toBe(401);
 
-        const availableMonthsResponse = await agent.get("/budget/available-months");
-        expect(availableMonthsResponse.status).toBe(401);
+        const renewableResponse = await agent.get("/budget/renewable");
+        expect(renewableResponse.status).toBe(401);
 
         const postResponse = await agent.post("/budget").send({
             month: 3,
@@ -432,7 +432,7 @@ describe("BudgetController (e2e)", () => {
         expect(spending.body.totalSpent).toBeCloseTo(120, 2);
     });
 
-    // ─── available-months ──────────────────────────────────────────────
+    // ─── renewable ─────────────────────────────────────────────────────
 
     test("deletes an orphan budget when its last account is deleted", async () => {
         const user = await registerUser(server);
@@ -486,12 +486,12 @@ describe("BudgetController (e2e)", () => {
         expect(list.body[0].accountIds).toEqual([account1.id]);
     });
 
-    test("returns distinct months with visible budgets", async () => {
+    test("returns each renewable budget in a period", async () => {
         const user = await registerUser(server);
         const account = await createAccount(user.token);
         const category = await createCategory(user.token);
 
-        await agent
+        const first = await agent
             .post("/budget")
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -501,8 +501,9 @@ describe("BudgetController (e2e)", () => {
                 categories: [{categoryId: category.id, amount: 100}],
                 accountIds: [account.id],
             });
+        expect(first.status).toBe(201);
 
-        await agent
+        const second = await agent
             .post("/budget")
             .set("Authorization", `Bearer ${user.token}`)
             .send({
@@ -513,9 +514,17 @@ describe("BudgetController (e2e)", () => {
                 categories: [{categoryId: category.id, amount: 200}],
                 accountIds: [account.id],
             });
+        expect(second.status).toBe(201);
 
-        const months = await agent.get("/budget/available-months").set("Authorization", `Bearer ${user.token}`);
-        expect(months.status).toBe(200);
-        expect(months.body).toEqual([{month: 2, year: 2026}]);
+        const renewable = await agent.get("/budget/renewable").set("Authorization", `Bearer ${user.token}`);
+        expect(renewable.status).toBe(200);
+        expect(renewable.body).toHaveLength(2);
+        const ids = renewable.body.map((b: {id: string}) => b.id).sort();
+        expect(ids).toEqual([first.body.id, second.body.id].sort());
+        for (const entry of renewable.body) {
+            expect(entry.month).toBe(2);
+            expect(entry.year).toBe(2026);
+            expect(entry.effectivePermission).toBe("owner");
+        }
     });
 });

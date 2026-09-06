@@ -869,7 +869,7 @@
                 "updateBudget": "Échec de mise à jour du budget",
                 "deleteBudget": "Échec de suppression du budget",
                 "fetchSpending": "Échec du chargement des dépenses",
-                "fetchAvailableMonths": "Échec du chargement des mois disponibles"
+                "fetchRenewableBudgets": "Échec du chargement des budgets à reconduire"
             }
         },
         "page": {
@@ -921,7 +921,13 @@
             "title": "Reconduire le budget",
             "description": "Sélectionnez un budget précédent à reconduire pour la période actuelle.",
             "selectPlaceholder": "Sélectionner un budget…",
-            "continue": "Continuer"
+            "continue": "Continuer",
+            "unnamedBudget": "Budget sans nom",
+            "sharedSuffix": " (partagé)",
+            "errors": {
+                "readOnlySource": "Ce budget est partagé en lecture seule et ne peut pas être reconduit.",
+                "noWritableAccounts": "Aucun des comptes de ce budget ne vous est modifiable."
+            }
         },
         "dialog": {
             "deleteDescription": "Êtes-vous sûr de vouloir supprimer ce budget ? Les catégories budgétisées seront également supprimées.",

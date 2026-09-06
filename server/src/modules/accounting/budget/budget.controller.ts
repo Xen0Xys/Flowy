@@ -23,17 +23,17 @@ import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {BudgetEntity} from "./models/entities/budget.entity";
 import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
-import type {AvailableMonth} from "./models/entities/budget-spending.entity";
+import type {RenewableBudget} from "./models/entities/budget-spending.entity";
 
 @Controller("budget")
 export class BudgetController {
     constructor(private readonly budgetService: BudgetService) {}
 
-    @Get("available-months")
+    @Get("renewable")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getAvailableMonths(@User() user: UserEntity): Promise<AvailableMonth[]> {
-        return this.budgetService.getAvailableMonths(user);
+    async getRenewableBudgets(@User() user: UserEntity): Promise<RenewableBudget[]> {
+        return this.budgetService.getRenewableBudgets(user);
     }
 
     @Get("planned")

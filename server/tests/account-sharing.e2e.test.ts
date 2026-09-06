@@ -468,4 +468,115 @@ describe("Account sharing (e2e)", () => {
         const del = await agent.delete(`/account/${account.id}`).set("Authorization", `Bearer ${member.token}`);
         expect(del.status).toBe(403);
     });
+
+    test("renewable excludes READ-only budgets for the sharee", async () => {
+        const {owner, member} = await setupFamily();
+        const account = await createAccount(owner.token);
+        const category = await createCategory(owner.token);
+
+        await agent
+            .post(`/account/${account.id}/shares`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({memberId: member.user.id, permission: "READ"});
+
+        const budget = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({
+                month: 5,
+                year: 2026,
+                budgetedIncome: 2000,
+                categories: [{categoryId: category.id, amount: 300}],
+                accountIds: [account.id],
+            });
+        expect(budget.status).toBe(201);
+
+        const renewable = await agent.get("/budget/renewable").set("Authorization", `Bearer ${member.token}`);
+        expect(renewable.status).toBe(200);
+        expect(renewable.body).toEqual([]);
+    });
+
+    test("renewable exposes WRITE budgets to the sharee with write permission", async () => {
+        const {owner, member} = await setupFamily();
+        const account = await createAccount(owner.token);
+        const category = await createCategory(owner.token);
+
+        await agent
+            .post(`/account/${account.id}/shares`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({memberId: member.user.id, permission: "WRITE"});
+
+        const budget = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({
+                name: "Shared budget",
+                month: 5,
+                year: 2026,
+                budgetedIncome: 2000,
+                categories: [{categoryId: category.id, amount: 300}],
+                accountIds: [account.id],
+            });
+        expect(budget.status).toBe(201);
+
+        const renewable = await agent.get("/budget/renewable").set("Authorization", `Bearer ${member.token}`);
+        expect(renewable.status).toBe(200);
+        expect(renewable.body).toEqual([
+            {
+                id: budget.body.id,
+                month: 5,
+                year: 2026,
+                name: "Shared budget",
+                effectivePermission: "write",
+            },
+        ]);
+    });
+
+    test("renewable returns both personal and shared budgets in the same period", async () => {
+        const {owner, member} = await setupFamily();
+        const ownerAccount = await createAccount(owner.token, "Owner shared");
+        const memberAccount = await createAccount(member.token, "Member own");
+        const ownerCategory = await createCategory(owner.token, "Shared cat");
+        const memberCategory = await createCategory(member.token, "Own cat");
+
+        await agent
+            .post(`/account/${ownerAccount.id}/shares`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({memberId: member.user.id, permission: "WRITE"});
+
+        const personal = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({
+                name: "Personal",
+                month: 9,
+                year: 2026,
+                budgetedIncome: 1000,
+                categories: [{categoryId: memberCategory.id, amount: 200}],
+                accountIds: [memberAccount.id],
+            });
+        expect(personal.status).toBe(201);
+
+        const shared = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({
+                name: "Shared",
+                month: 9,
+                year: 2026,
+                budgetedIncome: 3000,
+                categories: [{categoryId: ownerCategory.id, amount: 500}],
+                accountIds: [ownerAccount.id],
+            });
+        expect(shared.status).toBe(201);
+
+        const renewable = await agent.get("/budget/renewable").set("Authorization", `Bearer ${member.token}`);
+        expect(renewable.status).toBe(200);
+        expect(renewable.body).toHaveLength(2);
+        const byId = new Map<string, {id: string; effectivePermission: string; name: string | null}>(
+            renewable.body.map((b: {id: string; effectivePermission: string; name: string | null}) => [b.id, b]),
+        );
+        expect(byId.get(personal.body.id)?.effectivePermission).toBe("owner");
+        expect(byId.get(shared.body.id)?.effectivePermission).toBe("write");
+    });
 });

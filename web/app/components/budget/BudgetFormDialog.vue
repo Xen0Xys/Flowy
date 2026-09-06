@@ -167,10 +167,10 @@ const plannedByCategoryId = computed<Map<string, number>>(() => {
 
 const availableCategories = computed<CategoryLike[]>(() => {
     const map = new Map<string, CategoryLike>();
-    // Owner-scoped categories fetched from the API drive the picker; falling
-    // back to the current user's reference store when no owner is resolved yet
-    // (e.g. edit dialog opening before the watcher fires).
-    const primary = ownerCategories.value.length > 0 ? ownerCategories.value : referenceStore.categories;
+    // Owner-scoped categories fetched from the API drive display; the current
+    // user's reference store is only used as a hint when no account (and thus
+    // no owner) is selected yet.
+    const primary = activeOwnerId.value ? ownerCategories.value : referenceStore.categories;
     for (const c of primary) {
         map.set(c.id, {id: c.id, name: c.name, hexColor: c.hexColor, icon: c.icon});
     }
@@ -241,8 +241,16 @@ const selectedCategoryRows = computed(() => {
     return rows.sort((a, b) => a.category.name.localeCompare(b.category.name));
 });
 
+const pickerCatalog = computed<CategoryLike[]>(() => {
+    // The picker must never surface categories that don't belong to the active
+    // account owner: backend validation would reject them and mixing owners is
+    // a source of confusion.
+    if (!activeOwnerId.value) return referenceStore.categories;
+    return ownerCategories.value;
+});
+
 const pickerCategories = computed(() => {
-    return availableCategories.value
+    return pickerCatalog.value
         .filter((c) => !selectedCategoryIds.value.has(c.id))
         .sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -404,17 +412,15 @@ watch(activeOwnerId, async (nextOwnerId, prevOwnerId) => {
         plannedCategoryIds.value = new Set();
     }
 
-    if (!nextOwnerId) {
-        ownerCategories.value = [];
-        return;
-    }
+    // Reset upfront so the picker never shows stale cats from the previous
+    // owner while the new fetch is in flight.
+    ownerCategories.value = [];
+
+    if (!nextOwnerId) return;
 
     const group = props.accountGroups.find((g) => g.ownerId === nextOwnerId);
     const anchorAccountId = group?.accounts[0]?.id;
-    if (!anchorAccountId) {
-        ownerCategories.value = [];
-        return;
-    }
+    if (!anchorAccountId) return;
 
     const requestId = ++scopeRequestId.value;
     try {

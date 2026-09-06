@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
-import type {AvailableMonth, Budget} from "~/stores/budget.store";
+import {toast} from "vue-sonner";
+import type {Budget, RenewableBudget} from "~/stores/budget.store";
 import {useBudgetStore} from "~/stores/budget.store";
 import {Button} from "~/components/ui/button";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
@@ -9,7 +10,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "~/c
 
 const props = defineProps<{
     open: boolean;
-    availableMonths: AvailableMonth[];
+    renewableBudgets: RenewableBudget[];
 }>();
 
 const emit = defineEmits<{
@@ -20,45 +21,48 @@ const emit = defineEmits<{
 const {t, locale} = useI18n();
 const budgetStore = useBudgetStore();
 
-const selectedPeriod = ref<string>("");
+const selectedBudgetId = ref<string>("");
 const isLoading = ref(false);
 
 const monthFormatter = computed(() => {
     return new Intl.DateTimeFormat(locale.value ?? "en-US", {month: "long"});
 });
 
-const formattedMonths = computed(() => {
-    return props.availableMonths.map((m) => ({
-        ...m,
-        label: `${monthFormatter.value.format(new Date(m.year, m.month - 1, 1))} ${m.year}`,
-        value: `${m.year}-${m.month}`,
-    }));
+const formattedBudgets = computed(() => {
+    return props.renewableBudgets.map((b) => {
+        const period = `${monthFormatter.value.format(new Date(b.year, b.month - 1, 1))} ${b.year}`;
+        const name = b.name && b.name.trim().length > 0 ? b.name : t("budget.renewDialog.unnamedBudget");
+        const suffix = b.effectivePermission === "owner" ? "" : t("budget.renewDialog.sharedSuffix");
+        return {
+            id: b.id,
+            label: `${period} · ${name}${suffix}`,
+        };
+    });
 });
 
 watch(
     () => props.open,
     (open) => {
         if (open) {
-            selectedPeriod.value = "";
+            selectedBudgetId.value = "";
         }
     },
 );
 
 async function handleRenew() {
-    if (!selectedPeriod.value) return;
-    const [yearStr, monthStr] = selectedPeriod.value.split("-");
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
+    if (!selectedBudgetId.value) return;
 
     isLoading.value = true;
     try {
-        const budget = await budgetStore.getBudgetByPeriod(year, month);
-        if (budget) {
-            emit("renew", budget);
-            emit("update:open", false);
+        const source = await budgetStore.getBudgetById(selectedBudgetId.value);
+        if (source.effectivePermission === "read") {
+            toast.error(t("budget.renewDialog.errors.readOnlySource"));
+            return;
         }
-    } catch {
-        // Error already handled by store
+        emit("renew", source);
+        emit("update:open", false);
+    } catch (err) {
+        console.error(err);
     } finally {
         isLoading.value = false;
     }
@@ -75,16 +79,16 @@ async function handleRenew() {
 
             <div class="grid gap-4 py-4">
                 <div class="grid gap-2">
-                    <Select v-model="selectedPeriod">
+                    <Select v-model="selectedBudgetId">
                         <SelectTrigger>
                             <SelectValue :placeholder="t('budget.renewDialog.selectPlaceholder')" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem v-if="formattedMonths.length === 0" value="__none__" disabled>
+                            <SelectItem v-if="formattedBudgets.length === 0" value="__none__" disabled>
                                 {{ t("budget.page.noPreviousBudget") }}
                             </SelectItem>
-                            <SelectItem v-for="m in formattedMonths" :key="m.value" :value="m.value">
-                                {{ m.label }}
+                            <SelectItem v-for="b in formattedBudgets" :key="b.id" :value="b.id">
+                                {{ b.label }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -93,7 +97,7 @@ async function handleRenew() {
 
             <DialogFooter>
                 <Button variant="outline" @click="emit('update:open', false)">{{ t("common.cancel") }}</Button>
-                <Button :disabled="!selectedPeriod || isLoading" @click="handleRenew">
+                <Button :disabled="!selectedBudgetId || isLoading" @click="handleRenew">
                     {{ t("budget.renewDialog.continue") }}
                 </Button>
             </DialogFooter>
