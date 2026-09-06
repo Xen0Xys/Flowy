@@ -217,5 +217,28 @@ export const useBudgetStore = defineStore("budget", {
                 throw new Error(message, {cause: err});
             }
         },
+
+        async getPlannedForAccounts(params: {
+            year: number;
+            month: number;
+            accountIds: string[];
+        }): Promise<BudgetSpendingCategory[]> {
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+            if (params.accountIds.length === 0) return [];
+            const {apiFetch} = useApi();
+
+            const query = new URLSearchParams({
+                year: String(params.year),
+                month: String(params.month),
+                accountIds: params.accountIds.join(","),
+            });
+            try {
+                return await apiFetch<BudgetSpendingCategory[]>(`/budget/planned?${query.toString()}`);
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("budget.store.errors.fetchSpending");
+                throw new Error(message, {cause: err});
+            }
+        },
     },
 });

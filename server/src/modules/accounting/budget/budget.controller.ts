@@ -10,6 +10,7 @@ import {
     ParseUUIDPipe,
     Post,
     Put,
+    Query,
     UseGuards,
 } from "@nestjs/common";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
@@ -17,10 +18,11 @@ import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {User} from "../../../common/decorators/user.decorator";
 import {BudgetService} from "./budget.service";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
+import {GetPlannedByAccountsDto} from "./models/dto/get-planned-by-accounts.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {BudgetEntity} from "./models/entities/budget.entity";
-import {BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
+import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
 import type {AvailableMonth} from "./models/entities/budget-spending.entity";
 
 @Controller("budget")
@@ -32,6 +34,16 @@ export class BudgetController {
     @ApiBearerAuth()
     async getAvailableMonths(@User() user: UserEntity): Promise<AvailableMonth[]> {
         return this.budgetService.getAvailableMonths(user);
+    }
+
+    @Get("planned")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getPlannedForAccounts(
+        @User() user: UserEntity,
+        @Query() query: GetPlannedByAccountsDto,
+    ): Promise<BudgetSpendingCategoryEntity[]> {
+        return this.budgetService.getPlannedForAccounts(user, query);
     }
 
     @Get(":year/:month")

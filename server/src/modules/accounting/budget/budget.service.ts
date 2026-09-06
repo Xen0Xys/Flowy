@@ -6,6 +6,7 @@ import {BudgetedCategoryEntity} from "./models/entities/budgeted-category.entity
 import type {AvailableMonth} from "./models/entities/budget-spending.entity";
 import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
+import {GetPlannedByAccountsDto} from "./models/dto/get-planned-by-accounts.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {BudgetedCategories, Budgets, UserCategories} from "../../../../prisma/generated/client";
 import {RecurringTransactionService} from "../recurring-transaction/recurring-transaction.service";
@@ -335,6 +336,65 @@ export class BudgetService {
         const actualIncome = Math.round(incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
 
         return new BudgetSpendingEntity({totalSpent, totalPlanned, actualIncome, byCategory, plannedByCategory});
+    }
+
+    async getPlannedForAccounts(
+        user: UserEntity,
+        dto: GetPlannedByAccountsDto,
+    ): Promise<BudgetSpendingCategoryEntity[]> {
+        this.validateMonthAndYear(dto.year, dto.month);
+
+        const uniqueAccountIds = Array.from(new Set(dto.accountIds));
+        const accessMap = await this.accountAccess.getAccessMap(user, uniqueAccountIds);
+        if (accessMap.size !== uniqueAccountIds.length) {
+            throw new BadRequestException("One or more accounts are not accessible");
+        }
+
+        const accounts = await this.prismaService.accounts.findMany({
+            where: {id: {in: uniqueAccountIds}},
+            select: {id: true, user_id: true},
+        });
+        const ownerIds = new Set(accounts.map((a) => a.user_id));
+        if (ownerIds.size !== 1) {
+            throw new BadRequestException("All accounts must belong to the same owner");
+        }
+
+        const plannedByCategoryMap = await this.recurringTransactionService.getPlannedByCategoryForMonth(
+            user,
+            dto.year,
+            dto.month,
+            undefined,
+            uniqueAccountIds,
+        );
+
+        const categoryIds = [...plannedByCategoryMap.keys()].filter((id): id is string => id !== null);
+        const categories = categoryIds.length
+            ? await this.prismaService.userCategories.findMany({
+                  where: {id: {in: categoryIds}},
+                  select: {id: true, name: true, hex_color: true, icon: true},
+              })
+            : [];
+        const categoryMap = new Map(categories.map((c) => [c.id, {name: c.name, hexColor: c.hex_color, icon: c.icon}]));
+
+        const result: BudgetSpendingCategoryEntity[] = [];
+        for (const [catId, rawPlanned] of plannedByCategoryMap.entries()) {
+            const planned = Math.round(rawPlanned * 100) / 100;
+            if (catId === null || planned <= 0) continue;
+            const cat = categoryMap.get(catId);
+            if (!cat) continue;
+            result.push(
+                new BudgetSpendingCategoryEntity({
+                    categoryId: catId,
+                    name: cat.name,
+                    hexColor: cat.hexColor,
+                    icon: cat.icon,
+                    spent: 0,
+                    planned,
+                }),
+            );
+        }
+        result.sort((a, b) => b.planned - a.planned);
+        return result;
     }
 
     async getAvailableMonths(user: UserEntity): Promise<AvailableMonth[]> {

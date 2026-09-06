@@ -2,7 +2,7 @@
 import {useMediaQuery} from "@vueuse/core";
 import {computed, nextTick, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
-import type {BudgetedCategory, BudgetSpendingCategory} from "~/stores/budget.store";
+import {type BudgetedCategory, type BudgetSpendingCategory, useBudgetStore} from "~/stores/budget.store";
 import type {Account} from "~/stores/account.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import type {TransactionCategory} from "~/stores/transaction.store";
@@ -29,6 +29,7 @@ import {ScrollArea} from "~/components/ui/scroll-area";
 import {Separator} from "~/components/ui/separator";
 import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle} from "~/components/ui/sheet";
 import {toCurrency} from "~/lib/currency";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 type CategoryLike = Pick<TransactionCategory, "id" | "name" | "hexColor" | "icon">;
 type OwnerGroup = {ownerId: string; ownerLabel: string; accounts: Account[]};
@@ -81,6 +82,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n();
 const referenceStore = useReferenceStore();
+const budgetStore = useBudgetStore();
 
 const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -95,6 +97,10 @@ const isPickerOpen = ref(false);
 const isDiscardConfirmOpen = ref(false);
 const initialSnapshot = ref<string>("");
 const hasStartedFresh = ref(false);
+const ownerCategories = ref<CategoryLike[]>([]);
+const scopedPlannedCategories = ref<BudgetSpendingCategory[]>([]);
+const scopeRequestId = ref(0);
+const plannedRequestId = ref(0);
 
 const activeOwnerId = computed<string | null>(() => {
     for (const group of props.accountGroups) {
@@ -147,8 +153,11 @@ const saveButtonLabel = computed(() => {
 
 const plannedByCategoryId = computed<Map<string, number>>(() => {
     const map = new Map<string, number>();
-    if (!props.plannedCategories) return map;
-    for (const pc of props.plannedCategories) {
+    // In create mode the planned list is fetched dynamically for the selected
+    // account scope; in edit/renew we still rely on the props from the parent.
+    const source = props.mode === "create" ? scopedPlannedCategories.value : props.plannedCategories;
+    if (!source) return map;
+    for (const pc of source) {
         if (pc.categoryId && (pc.planned ?? 0) > 0) {
             map.set(pc.categoryId, pc.planned);
         }
@@ -158,7 +167,11 @@ const plannedByCategoryId = computed<Map<string, number>>(() => {
 
 const availableCategories = computed<CategoryLike[]>(() => {
     const map = new Map<string, CategoryLike>();
-    for (const c of referenceStore.categories) {
+    // Owner-scoped categories fetched from the API drive the picker; falling
+    // back to the current user's reference store when no owner is resolved yet
+    // (e.g. edit dialog opening before the watcher fires).
+    const primary = ownerCategories.value.length > 0 ? ownerCategories.value : referenceStore.categories;
+    for (const c of primary) {
         map.set(c.id, {id: c.id, name: c.name, hexColor: c.hexColor, icon: c.icon});
     }
     // Pre-selected categories on a shared budget belong to the owner and may
@@ -191,6 +204,16 @@ const availableCategories = computed<CategoryLike[]>(() => {
     };
     addFromSpending(props.spendingCategories);
     addFromSpending(props.plannedCategories);
+    for (const sc of scopedPlannedCategories.value) {
+        if (sc.categoryId && sc.name && !map.has(sc.categoryId)) {
+            map.set(sc.categoryId, {
+                id: sc.categoryId,
+                name: sc.name,
+                hexColor: sc.hexColor,
+                icon: sc.icon,
+            });
+        }
+    }
     return [...map.values()];
 });
 
@@ -326,6 +349,10 @@ function loadFromExisting() {
         renewedCategoryIds.value = new Set();
     }
 
+    injectPlannedCategories();
+}
+
+function injectPlannedCategories() {
     for (const [categoryId, plannedAmount] of plannedByCategoryId.value.entries()) {
         if (selectedCategoryIds.value.has(categoryId)) continue;
         selectedCategoryIds.value.add(categoryId);
@@ -357,11 +384,78 @@ watch(
     (open) => {
         if (open) {
             hasStartedFresh.value = false;
+            ownerCategories.value = [];
+            scopedPlannedCategories.value = [];
             loadFromExisting();
             nextTick(() => captureSnapshot());
         }
     },
     {immediate: true},
+);
+
+watch(activeOwnerId, async (nextOwnerId, prevOwnerId) => {
+    if (!props.open) return;
+
+    // Owner switch invalidates every selection (categories belong to an owner).
+    if (prevOwnerId !== null && nextOwnerId !== prevOwnerId) {
+        selectedCategoryIds.value = new Set();
+        categoryAmounts.value = {};
+        renewedCategoryIds.value = new Set();
+        plannedCategoryIds.value = new Set();
+    }
+
+    if (!nextOwnerId) {
+        ownerCategories.value = [];
+        return;
+    }
+
+    const group = props.accountGroups.find((g) => g.ownerId === nextOwnerId);
+    const anchorAccountId = group?.accounts[0]?.id;
+    if (!anchorAccountId) {
+        ownerCategories.value = [];
+        return;
+    }
+
+    const requestId = ++scopeRequestId.value;
+    try {
+        const cats = await referenceStore.fetchCategoriesForAccount(anchorAccountId);
+        if (requestId !== scopeRequestId.value) return;
+        ownerCategories.value = cats.map((c) => ({id: c.id, name: c.name, hexColor: c.hexColor, icon: c.icon}));
+        nextTick(() => captureSnapshot());
+    } catch {
+        if (requestId === scopeRequestId.value) ownerCategories.value = [];
+    }
+});
+
+watch(
+    () => [...selectedAccountIds.value].sort().join(","),
+    async (nextKey) => {
+        if (!props.open) return;
+        if (props.mode !== "create") return;
+
+        const accountIds = nextKey ? nextKey.split(",") : [];
+        if (accountIds.length === 0) {
+            scopedPlannedCategories.value = [];
+            return;
+        }
+
+        const requestId = ++plannedRequestId.value;
+        try {
+            const planned = await budgetStore.getPlannedForAccounts({
+                year: props.targetYear,
+                month: props.targetMonth,
+                accountIds,
+            });
+            if (requestId !== plannedRequestId.value) return;
+            scopedPlannedCategories.value = planned;
+            if (!hasStartedFresh.value) {
+                injectPlannedCategories();
+                nextTick(() => captureSnapshot());
+            }
+        } catch {
+            if (requestId === plannedRequestId.value) scopedPlannedCategories.value = [];
+        }
+    },
 );
 
 function handleSave() {
@@ -521,7 +615,10 @@ function startFromScratch() {
                                         'hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md p-1.5 transition-colors',
                                         isAccountDisabled(group.ownerId) ? 'cursor-not-allowed opacity-50' : '',
                                     ]">
-                                    <span class="flex-1 text-sm">{{ account.name }}</span>
+                                    <span class="flex flex-1 items-center gap-2 text-sm">
+                                        <span class="truncate">{{ account.name }}</span>
+                                        <AccountSharedBadge :access="account.access" variant="icon" />
+                                    </span>
                                     <Switch
                                         size="sm"
                                         :model-value="selectedAccountIds.has(account.id)"

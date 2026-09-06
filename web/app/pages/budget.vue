@@ -391,16 +391,6 @@ const existingBudgetForDialog = computed(() => {
             accountIds: renewSourceBudget.value.accountIds,
         };
     }
-    if (budget.value) {
-        return {
-            month: budget.value.month,
-            year: budget.value.year,
-            name: budget.value.name,
-            budgetedIncome: budget.value.budgetedIncome,
-            categories: budget.value.budgetedCategories ?? [],
-            accountIds: budget.value.accountIds,
-        };
-    }
     return null;
 });
 
@@ -863,9 +853,7 @@ watch([selectedMonth, selectedYear], async () => {
             :existing-budget="existingBudgetForDialog"
             :is-saving="isSavingBudget"
             :mode="dialogMode"
-            :planned-categories="spending?.plannedByCategory"
             :source-period-label="sourcePeriodLabel"
-            :spending-categories="spending?.byCategory"
             :target-month="selectedMonth"
             :target-period-label="periodLabel"
             :target-year="selectedYear"

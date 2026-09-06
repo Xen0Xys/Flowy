@@ -358,6 +358,98 @@ describe("Account sharing (e2e)", () => {
         expect(transfersLeft).toBe(0);
     });
 
+    test("WRITE member can create a budget on a shared account using the owner's categories", async () => {
+        const {owner, member} = await setupFamily();
+        const account = await createAccount(owner.token);
+        const ownerCategory = await createCategory(owner.token, "OwnerCat");
+        const memberCategory = await createCategory(member.token, "MemberCat");
+
+        await agent
+            .post(`/account/${account.id}/shares`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({memberId: member.user.id, permission: "WRITE"});
+
+        // Using the sharee's own category must fail (mismatch with account owner).
+        const withMemberCategory = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({
+                month: 4,
+                year: 2026,
+                budgetedIncome: 2000,
+                categories: [{categoryId: memberCategory.id, amount: 300}],
+                accountIds: [account.id],
+            });
+        expect(withMemberCategory.status).toBe(400);
+
+        // Using the owner's category succeeds.
+        const withOwnerCategory = await agent
+            .post("/budget")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({
+                month: 4,
+                year: 2026,
+                budgetedIncome: 2000,
+                categories: [{categoryId: ownerCategory.id, amount: 300}],
+                accountIds: [account.id],
+            });
+        expect(withOwnerCategory.status).toBe(201);
+        expect(withOwnerCategory.body.effectivePermission).toBe("write");
+    });
+
+    test("GET /budget/planned returns owner-scoped recurring planned for a WRITE sharee", async () => {
+        const {owner, member} = await setupFamily();
+        const account = await createAccount(owner.token);
+        const category = await createCategory(owner.token, "Rent");
+
+        await agent
+            .post(`/account/${account.id}/shares`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({memberId: member.user.id, permission: "WRITE"});
+
+        const recurring = await agent
+            .post(`/recurring-transaction/account/${account.id}`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({
+                amount: -800,
+                name: "Rent",
+                categoryId: category.id,
+                inBudget: true,
+                isEnabled: true,
+                frequency: "MONTHLY",
+                dayOfMonth: 5,
+                timezone: "UTC",
+            });
+        expect(recurring.status).toBe(201);
+
+        const planned = await agent
+            .get(`/budget/planned?year=2026&month=4&accountIds=${account.id}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(planned.status).toBe(200);
+        expect(planned.body).toHaveLength(1);
+        expect(planned.body[0]).toMatchObject({
+            categoryId: category.id,
+            name: "Rent",
+            planned: 800,
+        });
+    });
+
+    test("GET /budget/planned refuses accounts belonging to different owners", async () => {
+        const {owner, member} = await setupFamily();
+        const ownerAccount = await createAccount(owner.token, "Owner");
+        const memberAccount = await createAccount(member.token, "Member");
+
+        await agent
+            .post(`/account/${ownerAccount.id}/shares`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({memberId: member.user.id, permission: "WRITE"});
+
+        const res = await agent
+            .get(`/budget/planned?year=2026&month=4&accountIds=${ownerAccount.id},${memberAccount.id}`)
+            .set("Authorization", `Bearer ${member.token}`);
+        expect(res.status).toBe(400);
+    });
+
     test("owner-only actions on the account itself are refused to a WRITE member", async () => {
         const {owner, member} = await setupFamily();
         const account = await createAccount(owner.token);
