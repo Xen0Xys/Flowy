@@ -8,6 +8,7 @@ export class AccountEntity {
     balance: number;
     type: AccountTypes;
     access: AccessLevel;
+    sharesCount: number;
     createdAt: Date;
     updatedAt: Date;
 

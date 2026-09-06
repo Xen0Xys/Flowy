@@ -18,7 +18,8 @@
         "processing": "Traitement...",
         "areYouSure": "Êtes-vous sûr ?",
         "yes": "Oui",
-        "no": "Non"
+        "no": "Non",
+        "noResults": "Aucun résultat."
     },
     "app": {
         "head": {
@@ -360,20 +361,53 @@
             "noShares": "Ce compte n'est pas encore partagé.",
             "addShare": "Accorder un accès",
             "selectMember": "Choisir un membre",
+            "searchMembers": "Rechercher un membre...",
             "add": "Partager",
             "noMembers": "Il faut des membres de famille pour partager.",
+            "membersCountZero": "Aucun accès",
+            "membersCountOne": "1 personne a accès",
+            "membersCountMany": "{count} personnes ont accès",
             "permission": {
                 "read": "Lecture",
                 "write": "Lecture + écriture"
             },
             "badge": {
-                "read": "Partagé (lecture)",
-                "write": "Partagé (écriture)",
+                "read": "Lecture",
+                "write": "Écriture",
                 "short": "Partagé"
             },
             "tooltip": {
-                "read": "Ce compte vous a été partagé en lecture. Il n'est pas inclus dans votre patrimoine personnel.",
-                "write": "Ce compte vous a été partagé en écriture. Il n'est pas inclus dans votre patrimoine personnel."
+                "read": "Ce compte vous a été partagé en lecture. Il est exclu de votre patrimoine personnel.",
+                "write": "Ce compte vous a été partagé en écriture. Il est exclu de votre patrimoine personnel."
+            },
+            "excluded": "Exclu du patrimoine personnel",
+            "revoke": {
+                "action": "Retirer",
+                "title": "Retirer l'accès ?",
+                "description": "{name} n'aura plus accès à ce compte. Vous pourrez le partager à nouveau plus tard.",
+                "confirm": "Retirer l'accès"
+            },
+            "empty": {
+                "title": "Compte non partagé",
+                "description": "Invitez un membre de votre famille pour lui donner accès en lecture ou en écriture."
+            },
+            "invite": {
+                "title": "Inviter un membre",
+                "noAvailable": "Tous les membres de votre famille ont déjà accès."
+            },
+            "ownerBadge": {
+                "short": "Partagé",
+                "count": "Partagé avec {count}",
+                "tooltip": "Vous partagez ce compte avec {count} membre(s) de votre famille"
+            },
+            "toast": {
+                "shared": "Compte partagé",
+                "updated": "Accès mis à jour",
+                "revoked": "Accès révoqué",
+                "fetchError": "Échec du chargement des accès",
+                "shareError": "Échec du partage",
+                "updateError": "Échec de la mise à jour de l'accès",
+                "revokeError": "Échec de la révocation"
             }
         },
         "store": {

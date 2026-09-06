@@ -9,7 +9,9 @@ import type {TimeRange} from "~/utils/accounts";
 import {buildDateRange} from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import AccountOwnerSharesBadge from "~/components/accounts/AccountOwnerSharesBadge.vue";
 import AccountShareDialog from "~/components/accounts/AccountShareDialog.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 
 import {Button} from "~/components/ui/button";
@@ -186,6 +188,14 @@ const onFormSaved = () => {
     loadData();
 };
 
+const onSharesChanged = (count: number) => {
+    if (accountStore.currentAccount) {
+        accountStore.currentAccount = {...accountStore.currentAccount, sharesCount: count};
+    }
+    const cached = accountStore.accounts.find((a) => a.id === accountId);
+    if (cached) cached.sharesCount = count;
+};
+
 const onTransactionSaved = () => {
     loadData();
 };
@@ -340,15 +350,13 @@ const graphHeightClass = computed(() =>
                     </div>
 
                     <div v-if="!isLoading && account" class="flex w-full items-center gap-2 md:w-auto">
-                        <span
-                            v-if="account.access !== 'owner'"
-                            class="border-primary/40 bg-primary/10 text-primary rounded-full border px-2 py-0.5 text-xs">
-                            {{
-                                account.access === "write"
-                                    ? t("account.share.badge.write")
-                                    : t("account.share.badge.read")
-                            }}
-                        </span>
+                        <AccountSharedBadge :access="account.access" variant="full" />
+                        <AccountOwnerSharesBadge
+                            v-if="isOwner"
+                            :shares-count="account.sharesCount ?? 0"
+                            variant="full"
+                            clickable
+                            @click="isShareDialogOpen = true" />
                         <Button
                             v-if="isOwner"
                             class="flex-1 md:flex-none"
@@ -370,7 +378,7 @@ const graphHeightClass = computed(() =>
                                     {{ t("common.edit") }}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem @select="isShareDialogOpen = true">
-                                    <Icon class="h-4 w-4" name="iconoir:share-android" />
+                                    <Icon class="h-4 w-4" name="iconoir:community" />
                                     {{ t("account.share.action") }}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -516,7 +524,10 @@ const graphHeightClass = computed(() =>
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />
 
-                <AccountShareDialog v-model:open="isShareDialogOpen" :account-id="accountId" />
+                <AccountShareDialog
+                    v-model:open="isShareDialogOpen"
+                    :account-id="accountId"
+                    @shares-changed="onSharesChanged" />
 
                 <Dialog :open="isSetBalanceDialogOpen" @update:open="isSetBalanceDialogOpen = $event">
                     <DialogContent class="sm:max-w-[425px]">

@@ -18,6 +18,7 @@ import {
 } from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import AccountOwnerSharesBadge from "~/components/accounts/AccountOwnerSharesBadge.vue";
 import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
@@ -311,7 +312,7 @@ const formatCompactCurrency = (value: number) => {
                                 <p
                                     v-if="sharedAccounts.length > 0"
                                     class="text-muted-foreground/80 mt-1 flex items-center gap-1.5 text-xs">
-                                    <Icon class="size-3" name="iconoir:share-android" />
+                                    <Icon class="size-3" name="iconoir:community" />
                                     {{
                                         t("dashboard.sharedAccountsNote", {
                                             count: sharedAccounts.length,
@@ -460,8 +461,13 @@ const formatCompactCurrency = (value: number) => {
                                             :key="account.id"
                                             class="hover:bg-muted/40 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
                                             @click="goToDetails(account.id)">
-                                            <div class="flex flex-col">
-                                                <span class="font-medium">{{ account.name }}</span>
+                                            <div class="flex min-w-0 flex-col">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="truncate font-medium">{{ account.name }}</span>
+                                                    <AccountOwnerSharesBadge
+                                                        :shares-count="account.sharesCount ?? 0"
+                                                        variant="icon" />
+                                                </div>
                                                 <span class="text-muted-foreground mt-1 text-xs tabular-nums">
                                                     {{
                                                         t("dashboard.percentOfCategory", {
@@ -522,7 +528,7 @@ const formatCompactCurrency = (value: number) => {
                                             "
                                             class="text-muted-foreground h-5 w-5 transition-transform duration-200" />
                                         <h3 class="font-heading flex items-center gap-2 text-lg font-semibold">
-                                            <Icon class="text-primary h-5 w-5" name="iconoir:share-android" />
+                                            <Icon class="text-primary h-5 w-5" name="iconoir:community" />
                                             {{ t("dashboard.sharedAccountsSection") }}
                                         </h3>
                                     </div>
@@ -538,7 +544,7 @@ const formatCompactCurrency = (value: number) => {
                                         <div
                                             v-for="account in sortedSharedAccounts"
                                             :key="account.id"
-                                            class="hover:bg-muted/40 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
+                                            class="hover:bg-muted/40 border-primary/60 flex cursor-pointer items-center justify-between border-b border-l-2 border-dashed p-4 transition-colors last:border-b-0"
                                             @click="goToDetails(account.id)">
                                             <div class="flex min-w-0 flex-col gap-1">
                                                 <div class="flex items-center gap-2">
@@ -546,7 +552,8 @@ const formatCompactCurrency = (value: number) => {
                                                     <AccountSharedBadge :access="account.access" variant="full" />
                                                 </div>
                                                 <span class="text-muted-foreground text-xs">
-                                                    {{ t(`accounts.types.${account.type.toLowerCase()}`) }}
+                                                    {{ t(`accounts.types.${account.type.toLowerCase()}`) }} ·
+                                                    {{ t("account.share.excluded") }}
                                                 </span>
                                             </div>
                                             <span class="font-semibold tabular-nums">

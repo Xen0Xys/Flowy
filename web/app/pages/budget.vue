@@ -7,6 +7,7 @@ import {toast} from "vue-sonner";
 import {useFamilyStore} from "~/stores/family.store";
 import {type Budget, type BudgetSpending, type RenewableBudget, useBudgetStore} from "~/stores/budget.store";
 import {useReferenceStore} from "~/stores/reference.store";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import BudgetDonutChart from "~/components/budget/BudgetDonutChart.vue";
 import BudgetCategoryRow from "~/components/budget/BudgetCategoryRow.vue";
 import BudgetFormDialog from "~/components/budget/BudgetFormDialog.vue";
@@ -666,11 +667,10 @@ watch([selectedMonth, selectedYear], async () => {
                             <Icon class="h-4 w-4" name="iconoir:trash" />
                             {{ t("budget.page.deleteBudget") }}
                         </Button>
-                        <span
-                            v-if="budget?.effectivePermission === 'read'"
-                            class="border-primary/40 bg-primary/10 text-primary rounded-full border px-2 py-0.5 text-xs">
-                            {{ t("account.share.badge.read") }}
-                        </span>
+                        <AccountSharedBadge
+                            v-if="budget && budget.effectivePermission !== 'owner'"
+                            :access="budget.effectivePermission"
+                            variant="full" />
                         <Button v-if="hasWritableAccount" @click="openCreateDialog">
                             <Icon class="h-4 w-4" name="iconoir:plus" />
                             {{ t("budget.page.newBudget") }}

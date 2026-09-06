@@ -13,6 +13,7 @@ export type Account = {
     balance: number;
     ownerId: string;
     access: AccountAccess;
+    sharesCount: number;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -198,7 +199,7 @@ export const useAccountStore = defineStore("account", {
             try {
                 return await apiFetch<AccountShare[]>(`/account/${accountId}/shares`);
             } catch (err: any) {
-                const message = err?.message ?? "Failed to fetch shares";
+                const message = err?.message ?? i18nT("account.share.toast.fetchError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -215,10 +216,10 @@ export const useAccountStore = defineStore("account", {
                     method: "POST",
                     body: {memberId, permission},
                 });
-                toast.success("Account shared");
+                toast.success(i18nT("account.share.toast.shared"));
                 return share;
             } catch (err: any) {
-                const message = err?.message ?? "Failed to share account";
+                const message = err?.message ?? i18nT("account.share.toast.shareError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -235,10 +236,10 @@ export const useAccountStore = defineStore("account", {
                     method: "PATCH",
                     body: {permission},
                 });
-                toast.success("Share updated");
+                toast.success(i18nT("account.share.toast.updated"));
                 return share;
             } catch (err: any) {
-                const message = err?.message ?? "Failed to update share";
+                const message = err?.message ?? i18nT("account.share.toast.updateError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -248,9 +249,9 @@ export const useAccountStore = defineStore("account", {
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/account/${accountId}/shares/${memberId}`, {method: "DELETE"});
-                toast.success("Share revoked");
+                toast.success(i18nT("account.share.toast.revoked"));
             } catch (err: any) {
-                const message = err?.message ?? "Failed to revoke share";
+                const message = err?.message ?? i18nT("account.share.toast.revokeError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

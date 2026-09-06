@@ -17,17 +17,22 @@ const props = withDefaults(
 const {t} = useI18n();
 
 const isShared = computed(() => props.access !== "owner");
+const isWrite = computed(() => props.access === "write");
+
+const iconName = computed(() => (isWrite.value ? "iconoir:edit-pencil" : "iconoir:eye"));
 
 const label = computed(() => {
     if (!isShared.value) return "";
     if (props.variant === "full") {
-        return props.access === "write" ? t("account.share.badge.write") : t("account.share.badge.read");
+        return isWrite.value ? t("account.share.badge.write") : t("account.share.badge.read");
     }
     return t("account.share.badge.short");
 });
 
-const tooltipText = computed(() =>
-    props.access === "write" ? t("account.share.tooltip.write") : t("account.share.tooltip.read"),
+const tooltipText = computed(() => (isWrite.value ? t("account.share.tooltip.write") : t("account.share.tooltip.read")));
+
+const pillClass = computed(() =>
+    isWrite.value ? "border-primary/50 bg-primary/15 text-primary" : "border-border bg-muted text-muted-foreground",
 );
 </script>
 
@@ -37,8 +42,11 @@ const tooltipText = computed(() =>
             <TooltipTrigger as-child>
                 <span
                     :aria-label="tooltipText"
-                    class="border-primary/40 bg-primary/10 text-primary inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-1.5 text-[0.65rem] leading-none font-medium">
-                    <Icon class="size-3" name="iconoir:share-android" />
+                    :class="[
+                        pillClass,
+                        'inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-1.5 text-[0.65rem] leading-none font-medium',
+                    ]">
+                    <Icon class="size-3" :name="iconName" />
                     <span v-if="variant !== 'icon'">{{ label }}</span>
                 </span>
             </TooltipTrigger>

@@ -18,7 +18,8 @@
         "processing": "Processing...",
         "areYouSure": "Are you sure?",
         "yes": "Yes",
-        "no": "No"
+        "no": "No",
+        "noResults": "No results."
     },
     "app": {
         "head": {
@@ -360,20 +361,53 @@
             "noShares": "This account is not shared yet.",
             "addShare": "Grant access",
             "selectMember": "Select a family member",
+            "searchMembers": "Search a member...",
             "add": "Share",
             "noMembers": "You need family members before sharing.",
+            "membersCountZero": "No access",
+            "membersCountOne": "1 person has access",
+            "membersCountMany": "{count} people have access",
             "permission": {
                 "read": "Read",
                 "write": "Read + Write"
             },
             "badge": {
-                "read": "Shared (read)",
-                "write": "Shared (write)",
+                "read": "Read",
+                "write": "Write",
                 "short": "Shared"
             },
             "tooltip": {
                 "read": "This account was shared with you (read). It's excluded from your personal net worth.",
                 "write": "This account was shared with you (write). It's excluded from your personal net worth."
+            },
+            "excluded": "Excluded from personal net worth",
+            "revoke": {
+                "action": "Revoke",
+                "title": "Revoke access?",
+                "description": "{name} will no longer have access to this account. You can share it again later.",
+                "confirm": "Revoke access"
+            },
+            "empty": {
+                "title": "Account not shared",
+                "description": "Invite a family member to give them read or write access."
+            },
+            "invite": {
+                "title": "Invite a member",
+                "noAvailable": "All your family members already have access."
+            },
+            "ownerBadge": {
+                "short": "Shared",
+                "count": "Shared with {count}",
+                "tooltip": "You share this account with {count} member(s) of your family"
+            },
+            "toast": {
+                "shared": "Account shared",
+                "updated": "Access updated",
+                "revoked": "Access revoked",
+                "fetchError": "Failed to fetch access list",
+                "shareError": "Failed to share account",
+                "updateError": "Failed to update access",
+                "revokeError": "Failed to revoke access"
             }
         },
         "store": {
