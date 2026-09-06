@@ -460,8 +460,12 @@
             "category": "Catégorie",
             "allCategories": "Toutes les catégories",
             "noCategory": "Sans catégorie",
+            "myCategories": "Mes catégories",
+            "categoriesOfOwner": "Catégories de {owner}",
             "merchant": "Marchand",
             "allMerchants": "Tous les marchands",
+            "myMerchants": "Mes marchands",
+            "merchantsOfOwner": "Marchands de {owner}",
             "rebalance": "Rééquilibrage",
             "includeRebalance": "Inclure les rééquilibrages",
             "excludeRebalance": "Exclure les rééquilibrages",
@@ -520,6 +524,7 @@
             "noResults": "Aucun résultat.",
             "readOnlyBadge": "Lecture seule",
             "readOnlyDescription": "Ce compte vous est partagé en lecture seule. Vous ne pouvez pas modifier ses transactions.",
+            "sharedAccountReferencesHint": "Seul {owner} peut ajouter des catégories ou marchands à ce compte partagé.",
             "errors": {
                 "loadData": "Impossible de charger les données requises"
             }
@@ -1226,6 +1231,7 @@
             "inBudgetHint": "Compte cette transaction dans les prévisions du budget.",
             "enabled": "Activée",
             "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même.",
+            "sharedAccountReferencesHint": "Seul {owner} peut ajouter des catégories ou marchands à ce compte partagé.",
             "errors": {
                 "loadData": "Impossible de charger les données requises"
             }

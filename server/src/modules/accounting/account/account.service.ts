@@ -25,10 +25,11 @@ export class AccountService implements OnModuleInit {
         return Math.round(nb * 100) / 100;
     }
 
-    toAccountEntity(account: Accounts, access: AccessLevel = "owner", sharesCount = 0) {
+    toAccountEntity(account: Accounts, ownerUsername: string, access: AccessLevel = "owner", sharesCount = 0) {
         return new AccountEntity({
             id: account.id,
             ownerId: account.user_id,
+            ownerUsername,
             name: account.name,
             balance: account.balance,
             type: account.type,
@@ -122,7 +123,7 @@ export class AccountService implements OnModuleInit {
                     in_budget: false,
                 },
             });
-        return this.toAccountEntity(account);
+        return this.toAccountEntity(account, user.username);
     }
 
     async getAccounts(user: UserEntity): Promise<AccountEntity[]> {
@@ -133,24 +134,39 @@ export class AccountService implements OnModuleInit {
             }),
             this.prismaService.accountShares.findMany({
                 where: {shared_with_id: user.id},
-                include: {account: {include: {_count: {select: {shares: true}}}}},
+                include: {
+                    account: {
+                        include: {
+                            _count: {select: {shares: true}},
+                            user: {select: {username: true}},
+                        },
+                    },
+                },
             }),
         ]);
-        const ownedEntities = owned.map(({_count, ...account}) => this.toAccountEntity(account, "owner", _count.shares));
+        const ownedEntities = owned.map(({_count, ...account}) =>
+            this.toAccountEntity(account, user.username, "owner", _count.shares),
+        );
         const sharedEntities = shared.map(({account, permission}) => {
-            const {_count, ...rest} = account;
-            return this.toAccountEntity(rest, permission === "WRITE" ? "write" : "read", _count.shares);
+            const {_count, user: owner, ...rest} = account;
+            return this.toAccountEntity(rest, owner.username, permission === "WRITE" ? "write" : "read", _count.shares);
         });
         return [...ownedEntities, ...sharedEntities];
     }
 
     async getAccount(user: UserEntity, id: string): Promise<AccountEntity> {
         const account = await this.accountAccess.assertAccess(user, id, "read");
-        const [level, sharesCount] = await Promise.all([
+        const [level, sharesCount, owner] = await Promise.all([
             this.accountAccess.getAccessLevel(user, id),
             this.prismaService.accountShares.count({where: {account_id: id}}),
+            account.user_id === user.id
+                ? Promise.resolve({username: user.username})
+                : this.prismaService.users.findUniqueOrThrow({
+                      where: {id: account.user_id},
+                      select: {username: true},
+                  }),
         ]);
-        return this.toAccountEntity(account, level ?? "read", sharesCount);
+        return this.toAccountEntity(account, owner.username, level ?? "read", sharesCount);
     }
 
     async deleteAccount(user: UserEntity, accountId: string): Promise<void> {
@@ -208,7 +224,7 @@ export class AccountService implements OnModuleInit {
         });
 
         const {_count, ...updated} = updatedAccount;
-        return this.toAccountEntity(updated, "owner", _count.shares);
+        return this.toAccountEntity(updated, user.username, "owner", _count.shares);
     }
 
     async getAccountBalanceEvolution(

@@ -460,8 +460,12 @@
             "category": "Category",
             "allCategories": "All Categories",
             "noCategory": "No category",
+            "myCategories": "My categories",
+            "categoriesOfOwner": "Categories from {owner}",
             "merchant": "Merchant",
             "allMerchants": "All Merchants",
+            "myMerchants": "My merchants",
+            "merchantsOfOwner": "Merchants from {owner}",
             "rebalance": "Rebalance",
             "includeRebalance": "Include Rebalance",
             "excludeRebalance": "Exclude Rebalance",
@@ -520,6 +524,7 @@
             "noResults": "No results.",
             "readOnlyBadge": "Read only",
             "readOnlyDescription": "This account is shared with you in read-only mode. You cannot modify its transactions.",
+            "sharedAccountReferencesHint": "Only {owner} can add categories or merchants to this shared account.",
             "errors": {
                 "loadData": "Failed to load required data"
             }
@@ -1226,6 +1231,7 @@
             "inBudgetHint": "Count this transaction towards budget forecasts.",
             "enabled": "Enabled",
             "enabledHint": "When disabled, no transaction will be created but the schedule keeps advancing.",
+            "sharedAccountReferencesHint": "Only {owner} can add categories or merchants to this shared account.",
             "errors": {
                 "loadData": "Failed to load required data"
             }

@@ -14,6 +14,7 @@ import {useReferenceStore} from "~/stores/reference.store";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {useDescriptionReferenceAutoFill} from "~/composables/useDescriptionReferenceAutoFill";
+import {useAccountScopedReferences} from "~/composables/useAccountScopedReferences";
 import {toCurrency} from "~/lib/currency";
 import {cn} from "~/lib/utils";
 import {Button} from "~/components/ui/button";
@@ -83,16 +84,9 @@ const isUnlinking = ref(false);
 const currency = computed(() => familyStore.family?.currency || "USD");
 const formatCurrency = (value: number) => toCurrency(value, currency.value);
 
-const availableCategories = computed(() => referenceStore.categories);
-const availableMerchants = computed(() => referenceStore.merchants);
 const availableAccounts = computed(() => accountStore.accounts);
 const writableAccounts = computed(() => accountStore.writableAccounts);
 const canTransfer = computed(() => writableAccounts.value.length >= 2);
-
-const categoryItems = computed(() =>
-    availableCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
-);
-const merchantItems = computed(() => availableMerchants.value.map((m) => ({id: m.id, name: m.name})));
 
 const formData = ref({
     amount: 0,
@@ -133,6 +127,29 @@ const isEditing = computed(() => Boolean(props.transaction));
 const activeAccountId = computed(() => {
     if (props.transaction) return props.transaction.accountId;
     return props.accountId || formData.value.selectedAccountId || null;
+});
+
+const {categories: availableCategories, merchants: availableMerchants} = useAccountScopedReferences(
+    () => activeAccountId.value,
+);
+
+const categoryItems = computed(() =>
+    availableCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
+);
+const merchantItems = computed(() => availableMerchants.value.map((m) => ({id: m.id, name: m.name})));
+
+const activeAccount = computed(() => {
+    if (!activeAccountId.value) return null;
+    return accountStore.accounts.find((account) => account.id === activeAccountId.value) ?? null;
+});
+
+const canCreateReferences = computed(() => (activeAccount.value ? activeAccount.value.access === "owner" : true));
+
+watch(activeAccountId, (nextId, previousId) => {
+    if (nextId === previousId) return;
+    if (isEditing.value) return;
+    formData.value.categoryId = "none";
+    formData.value.merchantId = "none";
 });
 
 const isAccountReadOnly = computed(() => {
@@ -600,6 +617,7 @@ const hasHeaderActions = computed(() => isEditing.value);
                                     :none-label="t('common.none')"
                                     :create-label="t('settings.references.addCategory')"
                                     :disabled="isDisabled"
+                                    :can-create="canCreateReferences"
                                     @create="isCreateCategoryDialogOpen = true" />
                             </div>
 
@@ -614,8 +632,17 @@ const hasHeaderActions = computed(() => isEditing.value);
                                     :none-label="t('common.none')"
                                     :create-label="t('settings.references.addMerchant')"
                                     :disabled="isDisabled"
+                                    :can-create="canCreateReferences"
                                     @create="isCreateMerchantDialogOpen = true" />
                             </div>
+
+                            <p v-if="!canCreateReferences && activeAccount" class="text-muted-foreground text-xs">
+                                {{
+                                    t("transactions.form.sharedAccountReferencesHint", {
+                                        owner: activeAccount.ownerUsername,
+                                    })
+                                }}
+                            </p>
 
                             <div class="flex items-start justify-between gap-4 pt-2">
                                 <div class="flex flex-col">

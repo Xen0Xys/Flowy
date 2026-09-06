@@ -4,6 +4,7 @@ import type {AccessLevel} from "../../account-access.service";
 export class AccountEntity {
     id: string;
     ownerId: string;
+    ownerUsername: string;
     name: string;
     balance: number;
     type: AccountTypes;

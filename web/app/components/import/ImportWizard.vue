@@ -41,6 +41,10 @@ const selectedAccountId = ref<string | null>(null);
 const isLoadingAccounts = ref(false);
 const isInitializing = ref(true);
 
+const {categories: scopedCategories, merchants: scopedMerchants} = useAccountScopedReferences(
+    () => selectedAccountId.value,
+);
+
 // State
 const importState = ref<ImportState>(createDefaultState());
 const isLoading = ref(false);
@@ -245,7 +249,7 @@ function applyMappingAndParse() {
             continue;
         }
 
-        const match = matchDescription(description, referenceStore.categories, referenceStore.merchants);
+        const match = matchDescription(description, scopedCategories.value, scopedMerchants.value);
 
         transactions.push({
             id: generateId(),
@@ -563,6 +567,7 @@ const stats = computed(() => {
             <!-- Preview Step -->
             <ImportPreviewStep
                 v-else-if="currentStep === 'preview'"
+                :account-id="selectedAccountId"
                 :duplicate-groups="internalDuplicateGroups"
                 :is-importing="isImporting"
                 :is-testing="isTesting"

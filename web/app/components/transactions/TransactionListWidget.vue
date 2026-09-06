@@ -16,10 +16,14 @@ import {
 import {useReferenceStore} from "~/stores/reference.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {type AccountAccess, useAccountStore} from "~/stores/account.store";
+import {useAccountScopedReferences, useAccountsGroupedReferences} from "~/composables/useAccountScopedReferences";
 import {toCurrency} from "~/lib/currency";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
-import TransactionFiltersBar, {type TransactionFilters} from "~/components/transactions/TransactionFiltersBar.vue";
+import TransactionFiltersBar, {
+    type FilterOptionGroup,
+    type TransactionFilters,
+} from "~/components/transactions/TransactionFiltersBar.vue";
 import {Button} from "~/components/ui/button";
 import {ScrollArea} from "~/components/ui/scroll-area";
 import {Skeleton} from "~/components/ui/skeleton";
@@ -77,17 +81,68 @@ let requestSeq = 0;
 let lastSyncedQuery = "";
 let hasMounted = false;
 
-const availableCategories = computed(() =>
-    referenceStore.categories
-        .map((category) => ({id: category.id, name: category.name}))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+const {categories: singleScopeCategories, merchants: singleScopeMerchants} = useAccountScopedReferences(
+    () => props.accountId ?? null,
 );
 
-const availableMerchants = computed(() =>
-    referenceStore.merchants
-        .map((merchant) => ({id: merchant.id, name: merchant.name}))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-);
+const accessibleAccountsForGrouping = computed(() => (props.accountId ? [] : accountStore.accounts));
+const {groups: ownerReferenceGroups} = useAccountsGroupedReferences(() => accessibleAccountsForGrouping.value);
+
+const availableCategories = computed(() => {
+    if (props.accountId) {
+        return [...singleScopeCategories.value]
+            .map((category) => ({id: category.id, name: category.name}))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const seen = new Map<string, {id: string; name: string}>();
+    for (const group of ownerReferenceGroups.value) {
+        for (const category of group.categories) {
+            if (seen.has(category.id)) continue;
+            seen.set(category.id, {id: category.id, name: category.name});
+        }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const availableMerchants = computed(() => {
+    if (props.accountId) {
+        return [...singleScopeMerchants.value]
+            .map((merchant) => ({id: merchant.id, name: merchant.name}))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const seen = new Map<string, {id: string; name: string}>();
+    for (const group of ownerReferenceGroups.value) {
+        for (const merchant of group.merchants) {
+            if (seen.has(merchant.id)) continue;
+            seen.set(merchant.id, {id: merchant.id, name: merchant.name});
+        }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const categoryGroups = computed<FilterOptionGroup[]>(() => {
+    if (props.accountId) return [];
+    return ownerReferenceGroups.value.map((group) => ({
+        ownerId: group.ownerId,
+        ownerUsername: group.ownerUsername,
+        isCurrentUser: group.isCurrentUser,
+        items: [...group.categories]
+            .map((category) => ({id: category.id, name: category.name}))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+});
+
+const merchantGroups = computed<FilterOptionGroup[]>(() => {
+    if (props.accountId) return [];
+    return ownerReferenceGroups.value.map((group) => ({
+        ownerId: group.ownerId,
+        ownerUsername: group.ownerUsername,
+        isCurrentUser: group.isCurrentUser,
+        items: [...group.merchants]
+            .map((merchant) => ({id: merchant.id, name: merchant.name}))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+});
 
 const accountNameById = computed(() => {
     return Object.fromEntries((props.availableAccounts || []).map((account) => [account.id, account.name]));
@@ -499,6 +554,8 @@ defineExpose({
                 :available-accounts="props.availableAccounts"
                 :available-categories="availableCategories"
                 :available-merchants="availableMerchants"
+                :category-groups="categoryGroups"
+                :merchant-groups="merchantGroups"
                 :show-account-filter="props.showAccountFilter" />
         </div>
 

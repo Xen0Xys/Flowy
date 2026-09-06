@@ -12,6 +12,7 @@ export type Account = {
     type: string;
     balance: number;
     ownerId: string;
+    ownerUsername: string;
     access: AccountAccess;
     sharesCount: number;
     createdAt?: string;

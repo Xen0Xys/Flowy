@@ -15,6 +15,7 @@ import {useAccountStore} from "~/stores/account.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {useDescriptionReferenceAutoFill} from "~/composables/useDescriptionReferenceAutoFill";
+import {useAccountScopedReferences} from "~/composables/useAccountScopedReferences";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
@@ -73,13 +74,6 @@ const handleMerchantCreated = (merchant: {id: string}) => {
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
 const availableAccounts = computed(() => accountStore.writableAccounts);
-const availableCategories = computed(() => referenceStore.categories);
-const availableMerchants = computed(() => referenceStore.merchants);
-
-const categoryItems = computed(() =>
-    availableCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
-);
-const merchantItems = computed(() => availableMerchants.value.map((m) => ({id: m.id, name: m.name})));
 
 const supportedTimezones = computed<string[]>(() => {
     try {
@@ -113,6 +107,31 @@ const formData = ref({
 });
 
 const isEditing = computed(() => Boolean(props.recurringTransaction));
+
+const activeAccountId = computed(() => formData.value.accountId || null);
+
+const {categories: availableCategories, merchants: availableMerchants} = useAccountScopedReferences(
+    () => activeAccountId.value,
+);
+
+const categoryItems = computed(() =>
+    availableCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
+);
+const merchantItems = computed(() => availableMerchants.value.map((m) => ({id: m.id, name: m.name})));
+
+const activeAccount = computed(() => {
+    if (!activeAccountId.value) return null;
+    return accountStore.accounts.find((account) => account.id === activeAccountId.value) ?? null;
+});
+
+const canCreateReferences = computed(() => (activeAccount.value ? activeAccount.value.access === "owner" : true));
+
+watch(activeAccountId, (nextId, previousId) => {
+    if (nextId === previousId) return;
+    if (isEditing.value) return;
+    formData.value.categoryId = "none";
+    formData.value.merchantId = "none";
+});
 
 const {reset: resetAutoFill} = useDescriptionReferenceAutoFill({
     description: computed({
@@ -424,6 +443,7 @@ const close = () => emit("update:open", false);
                                     :empty-text="t('recurring.form.categoryEmpty')"
                                     :none-label="t('common.none')"
                                     :create-label="t('recurring.form.createCategory')"
+                                    :can-create="canCreateReferences"
                                     @create="isCreateCategoryDialogOpen = true" />
                             </div>
 
@@ -436,9 +456,18 @@ const close = () => emit("update:open", false);
                                     :empty-text="t('recurring.form.merchantEmpty')"
                                     :none-label="t('common.none')"
                                     :create-label="t('recurring.form.createMerchant')"
+                                    :can-create="canCreateReferences"
                                     @create="isCreateMerchantDialogOpen = true" />
                             </div>
                         </div>
+
+                        <p v-if="!canCreateReferences && activeAccount" class="text-muted-foreground text-xs">
+                            {{
+                                t("recurring.form.sharedAccountReferencesHint", {
+                                    owner: activeAccount.ownerUsername,
+                                })
+                            }}
+                        </p>
                     </div>
 
                     <Separator />
