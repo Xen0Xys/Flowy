@@ -307,11 +307,9 @@
         "createFirstAccount": "Create my first account",
         "totalBalance": "Personal Net Worth",
         "balance": "Balance",
-        "acrossAccounts": "Across {count} account(s)",
         "acrossOwnedAccounts": "Across {count} personal account(s)",
         "sharedAccountsSection": "Accounts shared with me",
         "sharedAccountsNote": "+ {count} shared account(s) ({amount}) — excluded from personal net worth",
-        "noOwnedAccountsWithShared": "No personal accounts. You have access to {count} shared account(s).",
         "percentOfTotal": "{value}% of total",
         "percentOfCategory": "{value}% of category",
         "deleteAccountDescription": "This action cannot be undone. The account \"{name}\" and all its associated data will be deleted."
@@ -358,8 +356,6 @@
             "title": "Share this account",
             "description": "Give another member of your family access to this account.",
             "currentShares": "People with access",
-            "noShares": "This account is not shared yet.",
-            "addShare": "Grant access",
             "selectMember": "Select a family member",
             "searchMembers": "Search a member...",
             "add": "Share",
@@ -914,7 +910,6 @@
         "page": {
             "title": "Budget",
             "subtitle": "Track your monthly goals and spending by category.",
-            "createBudget": "Create budget",
             "newBudget": "New budget",
             "renewBudget": "Renew",
             "editBudget": "Edit",
