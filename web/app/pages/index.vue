@@ -18,6 +18,7 @@ import {
 } from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
@@ -94,9 +95,13 @@ const chartColor = computed(() => {
     return fallback;
 });
 
-const totalBalance = computed(() => computeTotalBalance(accountStore.accounts));
-const groupedAccounts = computed(() => groupAccountsByType(accountStore.accounts));
+const ownedAccounts = computed(() => accountStore.ownedAccounts);
+const sharedAccounts = computed(() => accountStore.sharedAccounts);
+const totalBalance = computed(() => computeTotalBalance(ownedAccounts.value));
+const sharedBalance = computed(() => computeTotalBalance(sharedAccounts.value));
+const groupedAccounts = computed(() => groupAccountsByType(ownedAccounts.value));
 const categoryStats = computed(() => computeCategoryStats(groupedAccounts.value));
+const sortedSharedAccounts = computed(() => [...sharedAccounts.value].sort((a, b) => b.balance - a.balance));
 
 // KPI count-up animation
 const displayedBalance = ref(0);
@@ -139,7 +144,7 @@ const loadChartData = async () => {
     const seriesByAccount: Record<string, {date: string; balance: number}[]> = {};
 
     await Promise.all(
-        accountStore.accounts.map(async (account) => {
+        ownedAccounts.value.map(async (account) => {
             seriesByAccount[account.id] = await accountStore.fetchAccountBalanceEvolution(
                 account.id,
                 startDate,
@@ -301,7 +306,18 @@ const formatCompactCurrency = (value: number) => {
                                     {{ formatCurrency(displayedBalance) }}
                                 </div>
                                 <p class="text-muted-foreground mt-1 text-sm">
-                                    {{ t("dashboard.acrossAccounts", {count: accountStore.accounts.length}) }}
+                                    {{ t("dashboard.acrossOwnedAccounts", {count: ownedAccounts.length}) }}
+                                </p>
+                                <p
+                                    v-if="sharedAccounts.length > 0"
+                                    class="text-muted-foreground/80 mt-1 flex items-center gap-1.5 text-xs">
+                                    <Icon class="size-3" name="iconoir:share-android" />
+                                    {{
+                                        t("dashboard.sharedAccountsNote", {
+                                            count: sharedAccounts.length,
+                                            amount: formatCurrency(sharedBalance),
+                                        })
+                                    }}
                                 </p>
                             </div>
                             <Tabs v-model="timeRange" class="w-auto">
@@ -484,6 +500,58 @@ const formatCompactCurrency = (value: number) => {
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
+                                        </div>
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
+
+                            <Collapsible
+                                v-if="sortedSharedAccounts.length > 0"
+                                :open="!collapsedCategories['__shared__']"
+                                :style="{'--stagger-index': categoryStats.length}"
+                                class="bg-card text-card-foreground border-border/60 overflow-hidden rounded-2xl border shadow-sm transition-shadow hover:shadow-md"
+                                @update:open="(val) => (collapsedCategories['__shared__'] = !val)">
+                                <CollapsibleTrigger
+                                    class="hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <Icon
+                                            :name="
+                                                !collapsedCategories['__shared__']
+                                                    ? 'iconoir:nav-arrow-down'
+                                                    : 'iconoir:nav-arrow-right'
+                                            "
+                                            class="text-muted-foreground h-5 w-5 transition-transform duration-200" />
+                                        <h3 class="font-heading flex items-center gap-2 text-lg font-semibold">
+                                            <Icon class="text-primary h-5 w-5" name="iconoir:share-android" />
+                                            {{ t("dashboard.sharedAccountsSection") }}
+                                        </h3>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-sm">
+                                        <span class="font-heading text-base font-semibold tabular-nums">
+                                            {{ formatCurrency(sharedBalance) }}
+                                        </span>
+                                    </div>
+                                </CollapsibleTrigger>
+
+                                <CollapsibleContent>
+                                    <div class="flex flex-col border-t">
+                                        <div
+                                            v-for="account in sortedSharedAccounts"
+                                            :key="account.id"
+                                            class="hover:bg-muted/40 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
+                                            @click="goToDetails(account.id)">
+                                            <div class="flex min-w-0 flex-col gap-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="truncate font-medium">{{ account.name }}</span>
+                                                    <AccountSharedBadge :access="account.access" variant="full" />
+                                                </div>
+                                                <span class="text-muted-foreground text-xs">
+                                                    {{ t(`accounts.types.${account.type.toLowerCase()}`) }}
+                                                </span>
+                                            </div>
+                                            <span class="font-semibold tabular-nums">
+                                                {{ formatCurrency(account.balance) }}
+                                            </span>
                                         </div>
                                     </div>
                                 </CollapsibleContent>

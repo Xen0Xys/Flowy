@@ -15,7 +15,7 @@ import {
 } from "~/stores/transaction.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useFamilyStore} from "~/stores/family.store";
-import {useAccountStore} from "~/stores/account.store";
+import {type AccountAccess, useAccountStore} from "~/stores/account.store";
 import {toCurrency} from "~/lib/currency";
 import TransactionTable from "~/components/transactions/TransactionTable.vue";
 import TransactionFormModal from "~/components/transactions/TransactionFormModal.vue";
@@ -38,7 +38,7 @@ const props = defineProps<{
     viewAllLink?: string;
     showAccountColumn?: boolean;
     showAccountFilter?: boolean;
-    availableAccounts?: {id: string; name: string}[];
+    availableAccounts?: {id: string; name: string; access?: AccountAccess}[];
 }>();
 
 const emit = defineEmits<{

@@ -17,6 +17,7 @@ import {useAuthStore} from "~/stores/auth.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {useUserStore} from "~/stores/user.store";
 import {toCurrency} from "~/lib/currency";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 const {t, locale, setLocale} = useI18n();
 const router = useRouter();
@@ -150,6 +151,7 @@ async function logout() {
                         @select="run(() => router.push(`/account/${account.id}`))">
                         <Icon name="iconoir:wallet" />
                         <span class="truncate">{{ account.name }}</span>
+                        <AccountSharedBadge :access="account.access" variant="icon" />
                         <span class="text-muted-foreground ml-auto text-xs tabular-nums">
                             {{ toCurrency(account.balance, currency) }}
                         </span>

@@ -304,9 +304,13 @@
         "noAccountsTitle": "Aucun compte pour le moment",
         "noAccountsDescription": "Créez votre premier compte bancaire pour commencer à suivre vos finances.",
         "createFirstAccount": "Créer mon premier compte",
-        "totalBalance": "Solde total",
+        "totalBalance": "Patrimoine personnel",
         "balance": "Solde",
         "acrossAccounts": "Sur {count} compte(s)",
+        "acrossOwnedAccounts": "Sur {count} compte(s) personnel(s)",
+        "sharedAccountsSection": "Comptes partagés avec moi",
+        "sharedAccountsNote": "+ {count} compte(s) partagé(s) ({amount}) — exclu du patrimoine personnel",
+        "noOwnedAccountsWithShared": "Aucun compte personnel. Vous avez accès à {count} compte(s) partagé(s).",
         "percentOfTotal": "{value}% du total",
         "percentOfCategory": "{value}% de la catégorie",
         "deleteAccountDescription": "Cette action est irréversible. Le compte \"{name}\" et toutes ses données associées seront supprimés."
@@ -364,7 +368,12 @@
             },
             "badge": {
                 "read": "Partagé (lecture)",
-                "write": "Partagé (écriture)"
+                "write": "Partagé (écriture)",
+                "short": "Partagé"
+            },
+            "tooltip": {
+                "read": "Ce compte vous a été partagé en lecture. Il n'est pas inclus dans votre patrimoine personnel.",
+                "write": "Ce compte vous a été partagé en écriture. Il n'est pas inclus dans votre patrimoine personnel."
             }
         },
         "store": {

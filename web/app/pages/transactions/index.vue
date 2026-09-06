@@ -22,6 +22,7 @@ const availableAccounts = computed(() =>
     accountStore.accounts.map((account) => ({
         id: account.id,
         name: account.name,
+        access: account.access,
     })),
 );
 

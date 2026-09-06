@@ -58,6 +58,12 @@ export const useAccountStore = defineStore("account", {
         writableAccounts(state): Account[] {
             return state.accounts.filter((a) => a.access === "owner" || a.access === "write");
         },
+        ownedAccounts(state): Account[] {
+            return state.accounts.filter((a) => a.access === "owner");
+        },
+        sharedAccounts(state): Account[] {
+            return state.accounts.filter((a) => a.access !== "owner");
+        },
         canWriteAccount(state) {
             return (accountId?: string | null): boolean => {
                 if (!accountId) return false;

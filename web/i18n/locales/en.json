@@ -304,9 +304,13 @@
         "noAccountsTitle": "No accounts yet",
         "noAccountsDescription": "Create your first bank account to start tracking your finances.",
         "createFirstAccount": "Create my first account",
-        "totalBalance": "Total Balance",
+        "totalBalance": "Personal Net Worth",
         "balance": "Balance",
         "acrossAccounts": "Across {count} account(s)",
+        "acrossOwnedAccounts": "Across {count} personal account(s)",
+        "sharedAccountsSection": "Accounts shared with me",
+        "sharedAccountsNote": "+ {count} shared account(s) ({amount}) — excluded from personal net worth",
+        "noOwnedAccountsWithShared": "No personal accounts. You have access to {count} shared account(s).",
         "percentOfTotal": "{value}% of total",
         "percentOfCategory": "{value}% of category",
         "deleteAccountDescription": "This action cannot be undone. The account \"{name}\" and all its associated data will be deleted."
@@ -364,7 +368,12 @@
             },
             "badge": {
                 "read": "Shared (read)",
-                "write": "Shared (write)"
+                "write": "Shared (write)",
+                "short": "Shared"
+            },
+            "tooltip": {
+                "read": "This account was shared with you (read). It's excluded from your personal net worth.",
+                "write": "This account was shared with you (write). It's excluded from your personal net worth."
             }
         },
         "store": {

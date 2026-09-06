@@ -13,6 +13,7 @@ import {Alert, AlertDescription, AlertTitle} from "~/components/ui/alert";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
 import {Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle} from "~/components/ui/sheet";
 import {Icon} from "#components";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 const props = defineProps<{
     open: boolean;
@@ -178,7 +179,10 @@ const executeLink = async () => {
                                         v-for="account in linkableAccounts"
                                         :key="account.id"
                                         :value="account.id">
-                                        {{ account.name }}
+                                        <div class="flex w-full items-center gap-2">
+                                            <span class="truncate">{{ account.name }}</span>
+                                            <AccountSharedBadge :access="account.access" variant="icon" />
+                                        </div>
                                     </SelectItem>
                                 </SelectGroup>
                             </SelectContent>

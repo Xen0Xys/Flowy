@@ -2,6 +2,7 @@
 import type {Delimiter} from "~/composables/useCsvParser";
 import type {Account} from "~/stores/account.store";
 import {cn} from "~/lib/utils";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 const props = defineProps<{
     rows: string[][];
@@ -126,12 +127,15 @@ function handleNext() {
                             )
                         "
                         @click="handleAccountSelect(account.id)">
-                        <div class="flex w-full items-center justify-between">
-                            <span class="font-medium">{{ account.name }}</span>
+                        <div class="flex w-full items-center justify-between gap-2">
+                            <div class="flex min-w-0 items-center gap-2">
+                                <span class="truncate font-medium">{{ account.name }}</span>
+                                <AccountSharedBadge :access="account.access" variant="icon" />
+                            </div>
                             <Icon
                                 v-if="localSelectedAccountId === account.id"
                                 name="iconoir:check-circle"
-                                class="text-primary h-5 w-5" />
+                                class="text-primary h-5 w-5 shrink-0" />
                         </div>
                         <span class="text-muted-foreground text-sm">{{ getAccountTypeLabel(account.type) }}</span>
                     </button>

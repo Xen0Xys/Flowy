@@ -30,6 +30,7 @@ import {
 import {Badge} from "~/components/ui/badge";
 import {Kbd, KbdGroup} from "~/components/ui/kbd";
 import {CATEGORY_ORDER, groupAccountsByType} from "~/utils/accounts";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 const route = useRoute();
 const {t} = useI18n();
@@ -223,6 +224,10 @@ const isMac = computed(() => {
                                                     <NuxtLink :to="`/account/${account.id}`">
                                                         <Icon name="iconoir:wallet"></Icon>
                                                         <span class="truncate">{{ account.name }}</span>
+                                                        <AccountSharedBadge
+                                                            :access="account.access"
+                                                            class="ml-auto"
+                                                            variant="icon" />
                                                     </NuxtLink>
                                                 </SidebarMenuButton>
                                             </SidebarMenuItem>

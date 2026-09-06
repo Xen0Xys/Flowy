@@ -38,6 +38,7 @@ import MoneyInput from "~/components/common/MoneyInput.vue";
 import TransactionReferenceCombobox from "~/components/transactions/TransactionReferenceCombobox.vue";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 type TransactionType = "expense" | "income";
 
@@ -401,7 +402,10 @@ const close = () => emit("update:open", false);
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem v-for="acc in availableAccounts" :key="acc.id" :value="acc.id">
-                                        {{ acc.name }}
+                                        <div class="flex w-full items-center gap-2">
+                                            <span class="truncate">{{ acc.name }}</span>
+                                            <AccountSharedBadge :access="acc.access" variant="icon" />
+                                        </div>
                                     </SelectItem>
                                 </SelectContent>
                             </Select>

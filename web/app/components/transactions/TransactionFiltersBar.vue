@@ -11,6 +11,8 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet";
 import {Badge} from "@/components/ui/badge";
 import TransactionDateRangePicker from "./TransactionDateRangePicker.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
+import type {AccountAccess} from "~/stores/account.store";
 
 export type TransactionFilters = {
     search: string;
@@ -26,7 +28,7 @@ const props = defineProps<{
     modelValue: TransactionFilters;
     availableCategories: {id: string; name: string}[];
     availableMerchants: {id: string; name: string}[];
-    availableAccounts?: {id: string; name: string}[];
+    availableAccounts?: {id: string; name: string; access?: AccountAccess}[];
     showAccountFilter?: boolean;
 }>();
 
@@ -297,7 +299,10 @@ watch(isReducedHeight, (isCompact) => {
                             v-for="account in props.availableAccounts || []"
                             :key="account.id"
                             :value="account.id">
-                            {{ account.name }}
+                            <div class="flex w-full items-center gap-2">
+                                <span class="truncate">{{ account.name }}</span>
+                                <AccountSharedBadge v-if="account.access" :access="account.access" variant="icon" />
+                            </div>
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -417,7 +422,13 @@ watch(isReducedHeight, (isCompact) => {
                                         v-for="account in props.availableAccounts || []"
                                         :key="account.id"
                                         :value="account.id">
-                                        {{ account.name }}
+                                        <div class="flex w-full items-center gap-2">
+                                            <span class="truncate">{{ account.name }}</span>
+                                            <AccountSharedBadge
+                                                v-if="account.access"
+                                                :access="account.access"
+                                                variant="icon" />
+                                        </div>
                                     </SelectItem>
                                 </SelectContent>
                             </Select>

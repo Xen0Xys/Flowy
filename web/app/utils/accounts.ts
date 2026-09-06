@@ -40,6 +40,14 @@ export function computeTotalBalance(accounts: Account[]): number {
     return accounts.reduce((sum, account) => sum + account.balance, 0);
 }
 
+export function getOwnedAccounts(accounts: Account[]): Account[] {
+    return accounts.filter((a) => a.access === "owner");
+}
+
+export function getSharedAccounts(accounts: Account[]): Account[] {
+    return accounts.filter((a) => a.access !== "owner");
+}
+
 export function groupAccountsByType(accounts: Account[]): Record<string, Account[]> {
     return accounts.reduce(
         (acc, account) => {

@@ -48,6 +48,7 @@ import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
 import TransactionLinkTransferSheet from "~/components/transactions/TransactionLinkTransferSheet.vue";
 import TransactionReferenceCombobox from "~/components/transactions/TransactionReferenceCombobox.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import {Icon} from "#components";
 
 type TransactionType = "expense" | "income" | "transfer";
@@ -570,7 +571,10 @@ const hasHeaderActions = computed(() => isEditing.value);
                                                 v-for="account in writableAccounts"
                                                 :key="account.id"
                                                 :value="account.id">
-                                                {{ account.name }}
+                                                <div class="flex w-full items-center gap-2">
+                                                    <span class="truncate">{{ account.name }}</span>
+                                                    <AccountSharedBadge :access="account.access" variant="icon" />
+                                                </div>
                                             </SelectItem>
                                         </SelectGroup>
                                     </SelectContent>
@@ -659,7 +663,10 @@ const hasHeaderActions = computed(() => isEditing.value);
                                                 :key="account.id"
                                                 :value="account.id">
                                                 <div class="flex w-full items-center justify-between gap-4">
-                                                    <span>{{ account.name }}</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span>{{ account.name }}</span>
+                                                        <AccountSharedBadge :access="account.access" variant="icon" />
+                                                    </div>
                                                     <span class="text-muted-foreground text-xs tabular-nums">
                                                         {{ formatCurrency(account.balance) }}
                                                     </span>
@@ -695,7 +702,10 @@ const hasHeaderActions = computed(() => isEditing.value);
                                                 :key="account.id"
                                                 :value="account.id">
                                                 <div class="flex w-full items-center justify-between gap-4">
-                                                    <span>{{ account.name }}</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span>{{ account.name }}</span>
+                                                        <AccountSharedBadge :access="account.access" variant="icon" />
+                                                    </div>
                                                     <span class="text-muted-foreground text-xs tabular-nums">
                                                         {{ formatCurrency(account.balance) }}
                                                     </span>
