@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref, watch} from "vue";
+import {nextTick, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {
     AlertDialog,
@@ -37,14 +37,22 @@ const emit = defineEmits<{
 const {t} = useI18n();
 const password = ref("");
 const showPassword = ref(false);
+const passwordInput = ref<HTMLInputElement | null>(null);
 
 watch(
     () => props.open,
-    (value) => {
+    async (value) => {
         if (!value) {
             password.value = "";
             showPassword.value = false;
+            return;
         }
+        // AlertDialog defaults focus to the Cancel button; move it to the
+        // password field so keyboard users can start typing immediately.
+        await nextTick();
+        const el = passwordInput.value as unknown as {$el?: HTMLElement} | HTMLElement | null;
+        const target = (el && "$el" in el ? el.$el : el) as HTMLElement | null;
+        target?.querySelector<HTMLInputElement>("input")?.focus();
     },
 );
 
@@ -54,9 +62,11 @@ function handleUpdateOpen(next: boolean) {
 }
 
 function handleConfirm() {
-    const value = password.value.trim();
-    if (!value || props.loading) return;
-    emit("confirm", value);
+    // Never trim: passwords may legitimately contain leading/trailing spaces
+    // and login accepts them raw, so trimming here would silently break auth
+    // on destructive actions only. Trim is used solely for the disable check.
+    if (!password.value || props.loading) return;
+    emit("confirm", password.value);
 }
 </script>
 
@@ -72,6 +82,7 @@ function handleConfirm() {
                 <div class="relative">
                     <Input
                         :id="inputId"
+                        ref="passwordInput"
                         v-model="password"
                         :placeholder="t('common.currentPasswordPlaceholder')"
                         :type="showPassword ? 'text' : 'password'"

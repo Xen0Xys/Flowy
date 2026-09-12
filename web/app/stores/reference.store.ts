@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
+import {invalidateAccountScopedReferences} from "~/composables/useAccountScopedReferences";
 import {i18nT} from "~/utils/i18n";
 
 export type TransactionMerchant = {
@@ -144,6 +145,7 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.categories = [newCategory, ...this.categories];
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.categoryCreated"));
                 return newCategory;
             } catch (err: any) {
@@ -183,6 +185,7 @@ export const useReferenceStore = defineStore("reference", {
 
             if (created.length) {
                 this.categories = [...created, ...this.categories];
+                invalidateAccountScopedReferences();
             }
 
             return {created, failed};
@@ -203,6 +206,7 @@ export const useReferenceStore = defineStore("reference", {
                 this.categories = this.categories.map((category) =>
                     category.id === categoryId ? updatedCategory : category,
                 );
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.categoryUpdated"));
                 return updatedCategory;
             } catch (err: any) {
@@ -224,6 +228,7 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.categories = this.categories.filter((category) => category.id !== categoryId);
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.categoryDeleted"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteCategory");
@@ -247,10 +252,12 @@ export const useReferenceStore = defineStore("reference", {
 
                 const removed = new Set(ids);
                 this.categories = this.categories.filter((category) => !removed.has(category.id));
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.categoriesBulkDeleted", {count: result.deletedCount}));
                 return result;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("reference.store.errors.bulkDeleteCategories");
+                const message =
+                    err?.data?.message ?? err?.message ?? i18nT("reference.store.errors.bulkDeleteCategories");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -269,6 +276,7 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.merchants = [newMerchant, ...this.merchants];
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.merchantCreated"));
                 return newMerchant;
             } catch (err: any) {
@@ -293,6 +301,7 @@ export const useReferenceStore = defineStore("reference", {
                 this.merchants = this.merchants.map((merchant) =>
                     merchant.id === merchantId ? updatedMerchant : merchant,
                 );
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.merchantUpdated"));
                 return updatedMerchant;
             } catch (err: any) {
@@ -314,6 +323,7 @@ export const useReferenceStore = defineStore("reference", {
                 });
 
                 this.merchants = this.merchants.filter((merchant) => merchant.id !== merchantId);
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.merchantDeleted"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteMerchant");
@@ -337,10 +347,12 @@ export const useReferenceStore = defineStore("reference", {
 
                 const removed = new Set(ids);
                 this.merchants = this.merchants.filter((merchant) => !removed.has(merchant.id));
+                invalidateAccountScopedReferences();
                 toast.success(i18nT("reference.store.success.merchantsBulkDeleted", {count: result.deletedCount}));
                 return result;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("reference.store.errors.bulkDeleteMerchants");
+                const message =
+                    err?.data?.message ?? err?.message ?? i18nT("reference.store.errors.bulkDeleteMerchants");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

@@ -114,7 +114,7 @@ describe("UserController (e2e)", () => {
         expect(conflict.body.message).toContain("Username or email already exists");
     });
 
-    test("changes password and keeps existing tokens valid", async () => {
+    test("changes password, rotates jwt_id and returns a fresh token", async () => {
         const payload = buildRegisterPayload({password: `Old${PASSWORD_BASE}`});
         const reg = await agent.post("/auth/register").send(payload);
         expect(reg.status).toBe(201);
@@ -129,9 +129,16 @@ describe("UserController (e2e)", () => {
                 newPassword: `New${PASSWORD_BASE}`,
             });
         expect(change.status).toBe(200);
+        expect(typeof change.body.token).toBe("string");
+        expect(change.body.token).not.toBe(oldToken);
+        expect(change.body.user?.email).toBe(payload.email);
 
-        // old token should still be valid (we no longer rotate jwt_id on password change)
-        const now = await agent.get("/user/me").set("Authorization", `Bearer ${oldToken}`);
+        // old token must now be invalid (jwt_id rotated on password change)
+        const oldTokenCheck = await agent.get("/user/me").set("Authorization", `Bearer ${oldToken}`);
+        expect(oldTokenCheck.status).toBe(401);
+
+        // fresh token from the response is valid
+        const now = await agent.get("/user/me").set("Authorization", `Bearer ${change.body.token}`);
         expect(now.status).toBe(200);
         expect(now.body.email).toBe(payload.email);
 

@@ -116,7 +116,11 @@ const onTransactionSaved = () => {
                             </p>
                         </div>
                     </div>
-                    <Button v-if="hasWritableAccount" class="w-full md:w-auto" @click="handleNewTransaction">
+                    <Button
+                        v-if="!accountStore.hasFetched || hasWritableAccount"
+                        :disabled="!accountStore.hasFetched"
+                        class="w-full md:w-auto"
+                        @click="handleNewTransaction">
                         <Icon class="mr-2 h-4 w-4" name="iconoir:plus" />
                         {{ t("transactions.list.newTransaction") }}
                     </Button>

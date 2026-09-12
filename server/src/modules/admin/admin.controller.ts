@@ -11,6 +11,7 @@ import {
     Post,
     UseGuards,
 } from "@nestjs/common";
+import {Throttle} from "@nestjs/throttler";
 import {JwtAuthGuard} from "../../common/guards/jwt-auth.guard";
 import {InstanceOwnerGuard} from "../../common/guards/instance-owner.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
@@ -67,6 +68,7 @@ export class AdminController {
     @Delete("users/:id")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async deleteUser(
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
@@ -78,6 +80,7 @@ export class AdminController {
 
     @Patch("instance/owner")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiBearerAuth()
     async updateInstanceOwner(@User() user: UserEntity, @Body() body: UpdateOwnerDto): Promise<void> {
@@ -86,6 +89,7 @@ export class AdminController {
 
     @Patch("users/:id/password")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async adminUpdateUserPassword(
         @User() user: UserEntity,

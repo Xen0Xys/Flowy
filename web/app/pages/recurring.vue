@@ -225,7 +225,11 @@ async function handleDeleted() {
                             <p class="text-muted-foreground text-sm">{{ t("recurring.page.subtitle") }}</p>
                         </div>
                     </div>
-                    <Button v-if="hasWritableAccount" class="w-full md:w-auto" @click="openCreate">
+                    <Button
+                        v-if="!accountStore.hasFetched || hasWritableAccount"
+                        :disabled="!accountStore.hasFetched"
+                        class="w-full md:w-auto"
+                        @click="openCreate">
                         <Icon class="mr-2 size-4" name="iconoir:plus" />
                         {{ t("recurring.page.new") }}
                     </Button>

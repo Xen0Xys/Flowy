@@ -116,6 +116,14 @@ export class RecurringTransactionService {
             ? await this.accountAccess.assertAccess(user, dto.accountId!, "write")
             : currentAccount;
 
+        // Refuse moving a recurring transaction across owners. A sharee with
+        // WRITE on both sides could otherwise transfer the RT (and its future
+        // executions) to another owner without their consent or any audit
+        // trail.
+        if (accountChanged && targetAccount.user_id !== rt.user_id) {
+            throw new BadRequestException("Cannot move a recurring transaction across owners");
+        }
+
         // References must always belong to the target account's owner.
         if (dto.merchantId !== undefined || dto.categoryId !== undefined || accountChanged) {
             await this.validateReferencesOwnership(
@@ -150,7 +158,6 @@ export class RecurringTransactionService {
         const data: Prisma.RecurringTransactionsUncheckedUpdateInput = {};
         if (accountChanged) {
             data.account_id = dto.accountId;
-            data.user_id = targetAccount.user_id;
         }
         if (dto.name !== undefined) data.name = dto.name;
         if (dto.amount !== undefined) data.amount = this.toDecimal(dto.amount);
@@ -279,19 +286,15 @@ export class RecurringTransactionService {
         user: UserEntity,
         year: number,
         month: number,
+        scopeAccountIds: string[],
         tx?: TxClient,
-        scopeAccountIds?: string[],
     ): Promise<Map<string | null, number>> {
         const prisma = this.prismaService.withTx(tx);
 
-        let accountIds: string[];
-        if (scopeAccountIds) {
-            accountIds = scopeAccountIds;
-        } else {
-            accountIds = await prisma.accounts
-                .findMany({where: {user_id: user.id, in_budget: true}, select: {id: true}})
-                .then((accs) => accs.map((a) => a.id));
-        }
+        // Callers always know which accounts scope the planned computation
+        // (the budget's own account set). The old fallback filtered on the
+        // now-dropped Accounts.in_budget column and would crash at runtime.
+        const accountIds = scopeAccountIds;
         if (accountIds.length === 0) return new Map();
 
         const items = await prisma.recurringTransactions.findMany({

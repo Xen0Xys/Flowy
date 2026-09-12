@@ -38,14 +38,31 @@ export class BudgetService {
     async getBudgetsByPeriod(user: UserEntity, year: number, month: number): Promise<BudgetEntity[]> {
         this.validateMonthAndYear(year, month);
 
-        const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
-        // Budgets are visible if the current user is the owner, OR every one of the
-        // budget's accounts is accessible to them. Filtered further in code.
+        // Fetch the read + write account sets once so effective permission is
+        // computed in memory rather than firing 2 Prisma queries per budget.
+        const [readableAccountIds, writableAccountIds] = await Promise.all([
+            this.accountAccess.getAccessibleAccountIds(user, "read"),
+            this.accountAccess.getAccessibleAccountIds(user, "write"),
+        ]);
+        const writableSet = new Set(writableAccountIds);
+
+        // Budgets surface either because the caller owns them, or because
+        // every one of their accounts is at least readable. Doing the second
+        // check at the DB level avoids over-fetching hydrated rows we would
+        // just discard in code.
         const candidates = await this.prismaService.budgets.findMany({
             where: {
                 month,
                 year,
-                OR: [{user_id: user.id}, {accounts: {some: {account_id: {in: accessibleAccountIds}}}}],
+                OR: [
+                    {user_id: user.id},
+                    {
+                        AND: [
+                            {accounts: {some: {account_id: {in: readableAccountIds}}}},
+                            {NOT: {accounts: {some: {account_id: {notIn: readableAccountIds}}}}},
+                        ],
+                    },
+                ],
             },
             include: {
                 budgeted_categories: {include: BUDGETED_CATEGORY_INCLUDE},
@@ -53,11 +70,24 @@ export class BudgetService {
             },
         });
 
-        const permissions = await Promise.all(candidates.map((budget) => this.resolveEffectivePermission(user, budget)));
-        return candidates
-            .map((budget, index) => ({budget, perm: permissions[index]}))
-            .filter((entry): entry is {budget: (typeof candidates)[number]; perm: AccessLevel} => entry.perm !== null)
-            .map((entry) => this.toBudgetEntity(entry.budget, entry.perm));
+        return candidates.map((budget) => {
+            const permission = this.effectivePermissionFromSets(user, budget, writableSet);
+            return this.toBudgetEntity(budget, permission);
+        });
+    }
+
+    // In-memory permission derivation for a budget whose accounts are known
+    // to be at least readable by the caller.
+    private effectivePermissionFromSets(
+        user: UserEntity,
+        budget: BudgetWithRelations,
+        writableSet: Set<string>,
+    ): AccessLevel {
+        if (budget.user_id === user.id) return "owner";
+        for (const link of budget.accounts) {
+            if (!writableSet.has(link.account_id)) return "read";
+        }
+        return "write";
     }
 
     async getBudgetById(user: UserEntity, budgetId: string): Promise<BudgetEntity> {
@@ -126,6 +156,7 @@ export class BudgetService {
         });
 
         const effectivePermission: AccessLevel = ownerUserId === user.id ? "owner" : "write";
+        this.logger.log(`actor=${user.id} action=budget.create budget=${budget.id} owner=${ownerUserId}`);
         return this.toBudgetEntity(budget, effectivePermission);
     }
 
@@ -208,12 +239,14 @@ export class BudgetService {
             });
         });
 
+        this.logger.log(`actor=${user.id} action=budget.update budget=${budgetId}`);
         return this.toBudgetEntity(updated, permission);
     }
 
     async deleteBudget(user: UserEntity, budgetId: string): Promise<void> {
         await this.getBudgetAndPermissionOrThrow(user, budgetId, "write");
         await this.prismaService.budgets.delete({where: {id: budgetId}});
+        this.logger.log(`actor=${user.id} action=budget.delete budget=${budgetId}`);
     }
 
     async getSpending(user: UserEntity, budgetId: string): Promise<BudgetSpendingEntity> {
@@ -263,7 +296,6 @@ export class BudgetService {
             user,
             budget.year,
             budget.month,
-            undefined,
             accountIds,
         );
 
@@ -363,7 +395,6 @@ export class BudgetService {
             user,
             dto.year,
             dto.month,
-            undefined,
             uniqueAccountIds,
         );
 
@@ -398,13 +429,23 @@ export class BudgetService {
     }
 
     async getRenewableBudgets(user: UserEntity): Promise<RenewableBudget[]> {
-        const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
-        // Only expose budgets the user can actually copy from: owner or write.
-        // Read-only budgets are filtered out so the renew flow never lands on a
-        // source the user cannot reuse.
+        // Only budgets the user can actually copy from show up: owner or full
+        // write access on every account. Fetch the write set once and let the
+        // DB filter out anything that has a non-writable account, so we never
+        // pay the "load then filter" tax we used to.
+        const writableAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "write");
+
         const candidates = await this.prismaService.budgets.findMany({
             where: {
-                OR: [{user_id: user.id}, {accounts: {some: {account_id: {in: accessibleAccountIds}}}}],
+                OR: [
+                    {user_id: user.id},
+                    {
+                        AND: [
+                            {accounts: {some: {account_id: {in: writableAccountIds}}}},
+                            {NOT: {accounts: {some: {account_id: {notIn: writableAccountIds}}}}},
+                        ],
+                    },
+                ],
             },
             select: {
                 id: true,
@@ -416,36 +457,15 @@ export class BudgetService {
             },
         });
 
-        const renewable = await Promise.all(
-            candidates.map(async (budget): Promise<RenewableBudget | null> => {
-                if (budget.user_id === user.id) {
-                    return {
-                        id: budget.id,
-                        month: budget.month,
-                        year: budget.year,
-                        name: budget.name,
-                        effectivePermission: "owner",
-                    };
-                }
-                const accountIds = budget.accounts.map((a) => a.account_id);
-                if (accountIds.length === 0) return null;
-                const accessMap = await this.accountAccess.getAccessMap(user, accountIds);
-                if (accessMap.size !== accountIds.length) return null;
-                for (const level of accessMap.values()) {
-                    if (level === "read") return null;
-                }
-                return {
-                    id: budget.id,
-                    month: budget.month,
-                    year: budget.year,
-                    name: budget.name,
-                    effectivePermission: "write",
-                };
-            }),
-        );
-
-        return renewable
-            .filter((b): b is RenewableBudget => b !== null)
+        return candidates
+            .filter((budget) => budget.user_id === user.id || budget.accounts.length > 0)
+            .map<RenewableBudget>((budget) => ({
+                id: budget.id,
+                month: budget.month,
+                year: budget.year,
+                name: budget.name,
+                effectivePermission: budget.user_id === user.id ? "owner" : "write",
+            }))
             .sort((a, b) => {
                 if (a.year !== b.year) return b.year - a.year;
                 if (a.month !== b.month) return b.month - a.month;

@@ -119,7 +119,8 @@ async function logout() {
 
             <CommandGroup :heading="t('commandPalette.groups.quickActions')">
                 <CommandItem
-                    v-if="hasWritableAccount"
+                    v-if="!accountStore.hasFetched || hasWritableAccount"
+                    :disabled="!accountStore.hasFetched"
                     value="new-transaction"
                     @select="run(() => router.push({path: '/transactions', query: {new: '1'}}))">
                     <Icon name="iconoir:plus" />

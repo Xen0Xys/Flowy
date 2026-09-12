@@ -29,7 +29,7 @@ import {
 import {Edit, MoreHorizontal, Trash2} from "lucide-vue-next";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {Icon} from "#components";
 
 const referenceStore = useReferenceStore();

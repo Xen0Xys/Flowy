@@ -40,6 +40,8 @@ import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, Di
 import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import {valueUpdater} from "@/lib/table";
 import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
+import type {Family} from "~/stores/family.store";
+import type {User} from "~/stores/user.store";
 
 type AdminUser = {
     id: string;

@@ -339,6 +339,14 @@ describe("AdminController (e2e)", () => {
             .send({password: newPass, currentPassword: ownerPayload.password});
         expect(reset.status).toBe(200);
 
+        // target's previously-issued token must be invalidated
+        const otherOldTokenCheck = await agent.get("/user/me").set("Authorization", `Bearer ${other.token}`);
+        expect(otherOldTokenCheck.status).toBe(401);
+
+        // owner's session is untouched
+        const ownerTokenCheck = await agent.get("/user/me").set("Authorization", `Bearer ${owner.token}`);
+        expect(ownerTokenCheck.status).toBe(200);
+
         // login with old password fails
         const oldLogin = await agent
             .post("/auth/login")

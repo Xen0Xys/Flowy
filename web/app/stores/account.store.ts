@@ -54,6 +54,10 @@ export const useAccountStore = defineStore("account", {
         accounts: [] as Account[],
         currentAccount: null as Account | null,
         currentAccountEvolution: [] as AccountBalanceEvolutionPoint[],
+        // Turns true once the first fetchAccounts settles; consumers use it to
+        // distinguish "no writable accounts" from "still loading" and avoid
+        // hiding CTAs during the initial network round-trip.
+        hasFetched: false,
     }),
 
     getters: {
@@ -85,9 +89,10 @@ export const useAccountStore = defineStore("account", {
             try {
                 const accounts = await apiFetch<Account[]>("/account");
                 this.accounts = accounts;
+                this.hasFetched = true;
                 return accounts;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.store.errors.fetchAccounts");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.store.errors.fetchAccounts");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -201,7 +206,7 @@ export const useAccountStore = defineStore("account", {
             try {
                 return await apiFetch<AccountShare[]>(`/account/${accountId}/shares`);
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.share.toast.fetchError");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.fetchError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -221,7 +226,7 @@ export const useAccountStore = defineStore("account", {
                 toast.success(i18nT("account.share.toast.shared"));
                 return share;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.share.toast.shareError");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.shareError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -241,7 +246,7 @@ export const useAccountStore = defineStore("account", {
                 toast.success(i18nT("account.share.toast.updated"));
                 return share;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.share.toast.updateError");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.updateError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -253,7 +258,7 @@ export const useAccountStore = defineStore("account", {
                 await apiFetch(`/account/${accountId}/shares/${memberId}`, {method: "DELETE"});
                 toast.success(i18nT("account.share.toast.revoked"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.share.toast.revokeError");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.revokeError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

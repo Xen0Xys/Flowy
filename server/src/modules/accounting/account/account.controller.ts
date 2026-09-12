@@ -12,6 +12,7 @@ import {
     Query,
     UseGuards,
 } from "@nestjs/common";
+import {Throttle} from "@nestjs/throttler";
 import {AccountService} from "./account.service";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
@@ -81,6 +82,7 @@ export class AccountController {
 
     @Delete(":id")
     @UseGuards(JwtAuthGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async deleteAccount(
         @User() user: UserEntity,
@@ -102,6 +104,8 @@ export class AccountController {
 
     @Post(":id/shares")
     @UseGuards(JwtAuthGuard)
+    // Guard against member-id enumeration via the 404 vs 403 vs 201 shape.
+    @Throttle({default: {limit: 10, ttl: 60_000}})
     @ApiBearerAuth()
     async shareAccount(
         @User() user: UserEntity,

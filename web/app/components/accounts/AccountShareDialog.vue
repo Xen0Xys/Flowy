@@ -54,6 +54,12 @@ const selectedPermission = ref<AccountSharePermission>("READ");
 const shareToRevoke = ref<AccountShare | null>(null);
 const isRevokeDialogOpen = ref(false);
 const isRevoking = ref(false);
+// Per-row lock so rapid READ<>WRITE toggles cannot let a slower response
+// overwrite the newer server state.
+const pendingShareIds = ref<Set<string>>(new Set());
+function isSharePending(shareId: string) {
+    return pendingShareIds.value.has(shareId);
+}
 
 const familyMembers = computed<User[]>(() => {
     const family = familyStore.family;
@@ -128,8 +134,18 @@ const submitShare = async () => {
 
 const updatePermission = async (share: AccountShare, next: AccountSharePermission) => {
     if (share.permission === next) return;
-    const updated = await accountStore.updateShare(share.accountId, share.sharedWithId, next);
-    shares.value = shares.value.map((s) => (s.id === updated.id ? updated : s));
+    if (isSharePending(share.id)) return;
+    pendingShareIds.value = new Set([...pendingShareIds.value, share.id]);
+    try {
+        const updated = await accountStore.updateShare(share.accountId, share.sharedWithId, next);
+        shares.value = shares.value.map((s) => (s.id === updated.id ? updated : s));
+    } catch {
+        // store already toasts; swallow to keep the promise chain clean.
+    } finally {
+        const nextSet = new Set(pendingShareIds.value);
+        nextSet.delete(share.id);
+        pendingShareIds.value = nextSet;
+    }
 };
 
 const requestRevoke = (share: AccountShare) => {
@@ -220,33 +236,46 @@ const close = () => emit("update:open", false);
                             </div>
 
                             <!-- Segmented permission control -->
-                            <div class="bg-muted flex shrink-0 items-center rounded-lg p-0.5">
+                            <div
+                                :aria-label="
+                                    t('account.share.permission.read') + ' / ' + t('account.share.permission.write')
+                                "
+                                class="bg-muted flex shrink-0 items-center rounded-lg p-0.5"
+                                role="radiogroup">
                                 <button
                                     type="button"
+                                    role="radio"
+                                    :aria-checked="share.permission === 'READ'"
+                                    :tabindex="share.permission === 'READ' ? 0 : -1"
+                                    :disabled="isSharePending(share.id)"
                                     :class="
                                         cn(
                                             'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
                                             share.permission === 'READ'
                                                 ? 'bg-background text-foreground shadow-sm'
                                                 : 'text-muted-foreground hover:text-foreground',
+                                            isSharePending(share.id) ? 'cursor-not-allowed opacity-60' : '',
                                         )
                                     "
-                                    :aria-pressed="share.permission === 'READ'"
                                     @click="updatePermission(share, 'READ')">
                                     <Icon class="size-3" name="iconoir:eye" />
                                     <span class="hidden sm:inline">{{ t("account.share.permission.read") }}</span>
                                 </button>
                                 <button
                                     type="button"
+                                    role="radio"
+                                    :aria-checked="share.permission === 'WRITE'"
+                                    :tabindex="share.permission === 'WRITE' ? 0 : -1"
+                                    :disabled="isSharePending(share.id)"
                                     :class="
                                         cn(
                                             'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
                                             share.permission === 'WRITE'
                                                 ? 'bg-background text-foreground shadow-sm'
                                                 : 'text-muted-foreground hover:text-foreground',
+                                            isSharePending(share.id) ? 'cursor-not-allowed opacity-60' : '',
                                         )
                                     "
-                                    :aria-pressed="share.permission === 'WRITE'"
                                     @click="updatePermission(share, 'WRITE')">
                                     <Icon class="size-3" name="iconoir:edit-pencil" />
                                     <span class="hidden sm:inline">{{ t("account.share.permission.write") }}</span>
@@ -339,9 +368,17 @@ const close = () => emit("update:open", false);
 
                             <div class="flex items-center justify-between gap-2">
                                 <!-- Permission segmented control -->
-                                <div class="bg-muted flex items-center rounded-lg p-0.5">
+                                <div
+                                    :aria-label="
+                                        t('account.share.permission.read') + ' / ' + t('account.share.permission.write')
+                                    "
+                                    class="bg-muted flex items-center rounded-lg p-0.5"
+                                    role="radiogroup">
                                     <button
                                         type="button"
+                                        role="radio"
+                                        :aria-checked="selectedPermission === 'READ'"
+                                        :tabindex="selectedPermission === 'READ' ? 0 : -1"
                                         :class="
                                             cn(
                                                 'flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
@@ -350,13 +387,15 @@ const close = () => emit("update:open", false);
                                                     : 'text-muted-foreground hover:text-foreground',
                                             )
                                         "
-                                        :aria-pressed="selectedPermission === 'READ'"
                                         @click="selectedPermission = 'READ'">
                                         <Icon class="size-3" name="iconoir:eye" />
                                         {{ t("account.share.permission.read") }}
                                     </button>
                                     <button
                                         type="button"
+                                        role="radio"
+                                        :aria-checked="selectedPermission === 'WRITE'"
+                                        :tabindex="selectedPermission === 'WRITE' ? 0 : -1"
                                         :class="
                                             cn(
                                                 'flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
@@ -365,7 +404,6 @@ const close = () => emit("update:open", false);
                                                     : 'text-muted-foreground hover:text-foreground',
                                             )
                                         "
-                                        :aria-pressed="selectedPermission === 'WRITE'"
                                         @click="selectedPermission = 'WRITE'">
                                         <Icon class="size-3" name="iconoir:edit-pencil" />
                                         {{ t("account.share.permission.write") }}

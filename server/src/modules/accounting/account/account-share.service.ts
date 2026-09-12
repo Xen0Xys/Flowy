@@ -21,7 +21,7 @@ export class AccountShareService {
         await this.assertOwner(user, accountId);
         const shares = await this.prismaService.accountShares.findMany({
             where: {account_id: accountId},
-            include: {shared_with: true},
+            include: {shared_with: {select: {username: true, email: true}}},
             orderBy: {created_at: "asc"},
         });
         return shares.map((share) => this.toEntity(share));
@@ -39,15 +39,7 @@ export class AccountShareService {
             throw new BadRequestException("You cannot share an account with yourself");
         }
 
-        const member = await this.prismaService.users.findUnique({
-            where: {id: memberId},
-            select: {id: true, family_id: true, username: true, email: true},
-        });
-        if (!member) throw new NotFoundException("Member not found");
-
-        if (!user.familyId || member.family_id !== user.familyId) {
-            throw new ForbiddenException("Member must belong to the same family");
-        }
+        await this.assertSameFamily(user, memberId);
 
         try {
             const share = await this.prismaService.accountShares.create({
@@ -56,7 +48,7 @@ export class AccountShareService {
                     shared_with_id: memberId,
                     permission,
                 },
-                include: {shared_with: true},
+                include: {shared_with: {select: {username: true, email: true}}},
             });
             this.logger.log(`Account ${accountId} shared with user ${memberId} (${permission})`);
             return this.toEntity(share);
@@ -75,6 +67,10 @@ export class AccountShareService {
         permission: AccountSharePermission,
     ): Promise<AccountShareEntity> {
         await this.assertOwner(user, accountId);
+        // Family membership can drift after the initial share (member quits or
+        // is removed). Re-validate here so upgrades never grant WRITE to an
+        // ex-family-member.
+        await this.assertSameFamily(user, memberId);
 
         const existing = await this.prismaService.accountShares.findUnique({
             where: {
@@ -85,7 +81,7 @@ export class AccountShareService {
         if (existing.permission === permission) {
             const share = await this.prismaService.accountShares.findUniqueOrThrow({
                 where: {id: existing.id},
-                include: {shared_with: true},
+                include: {shared_with: {select: {username: true, email: true}}},
             });
             return this.toEntity(share);
         }
@@ -94,7 +90,7 @@ export class AccountShareService {
             const share = await tx.accountShares.update({
                 where: {id: existing.id},
                 data: {permission},
-                include: {shared_with: true},
+                include: {shared_with: {select: {username: true, email: true}}},
             });
 
             // Downgrading from WRITE to READ can strand cross-owner transfers
@@ -137,6 +133,66 @@ export class AccountShareService {
             throw new ForbiddenException("Only the account owner can manage its shares");
         }
         return account;
+    }
+
+    private async assertSameFamily(user: UserEntity, memberId: string): Promise<void> {
+        const member = await this.prismaService.users.findUnique({
+            where: {id: memberId},
+            select: {id: true, family_id: true},
+        });
+        if (!member) throw new NotFoundException("Member not found");
+        if (!user.familyId || member.family_id !== user.familyId) {
+            throw new ForbiddenException("Member must belong to the same family");
+        }
+    }
+
+    // Public: called by FamilyService to revoke every share involving a user
+    // that is about to leave (or be removed from) the family. Detaches cross-
+    // owner transfers first so no transaction pair silently persists.
+    async revokeSharesForFamilyExit(memberId: string, familyMemberIds: string[], tx: TxClient): Promise<void> {
+        if (familyMemberIds.length === 0) return;
+        const shares = await tx.accountShares.findMany({
+            where: {
+                OR: [
+                    // Shares where the leaving user is the sharee and the owner
+                    // stays in the family.
+                    {shared_with_id: memberId, account: {user_id: {in: familyMemberIds}}},
+                    // Shares where the leaving user owns the account and the
+                    // sharee stays in the family.
+                    {shared_with_id: {in: familyMemberIds}, account: {user_id: memberId}},
+                ],
+            },
+            select: {id: true, account_id: true, shared_with_id: true},
+        });
+        if (shares.length === 0) return;
+
+        for (const share of shares) {
+            // oxlint-disable-next-line no-await-in-loop
+            await this.detachCrossOwnerTransfersFor(share.shared_with_id, share.account_id, tx);
+        }
+        await tx.accountShares.deleteMany({where: {id: {in: shares.map((s) => s.id)}}});
+        this.logger.log(`Revoked ${shares.length} share(s) tied to family exit of user ${memberId}`);
+    }
+
+    // Public: called by FamilyService when a family is deleted; drops every
+    // share whose owner AND sharee both belong to the destroyed family.
+    async revokeAllSharesWithinFamily(familyMemberIds: string[], tx: TxClient): Promise<void> {
+        if (familyMemberIds.length === 0) return;
+        const shares = await tx.accountShares.findMany({
+            where: {
+                shared_with_id: {in: familyMemberIds},
+                account: {user_id: {in: familyMemberIds}},
+            },
+            select: {id: true, account_id: true, shared_with_id: true},
+        });
+        if (shares.length === 0) return;
+
+        for (const share of shares) {
+            // oxlint-disable-next-line no-await-in-loop
+            await this.detachCrossOwnerTransfersFor(share.shared_with_id, share.account_id, tx);
+        }
+        await tx.accountShares.deleteMany({where: {id: {in: shares.map((s) => s.id)}}});
+        this.logger.log(`Revoked ${shares.length} share(s) tied to family deletion`);
     }
 
     private async detachCrossOwnerTransfersFor(exSharedWithId: string, accountId: string, tx: TxClient): Promise<void> {

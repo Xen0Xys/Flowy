@@ -671,7 +671,10 @@ watch([selectedMonth, selectedYear], async () => {
                             v-if="budget && budget.effectivePermission !== 'owner'"
                             :access="budget.effectivePermission"
                             variant="full" />
-                        <Button v-if="hasWritableAccount" @click="openCreateDialog">
+                        <Button
+                            v-if="!accountStore.hasFetched || hasWritableAccount"
+                            :disabled="!accountStore.hasFetched"
+                            @click="openCreateDialog">
                             <Icon class="h-4 w-4" name="iconoir:plus" />
                             {{ t("budget.page.newBudget") }}
                         </Button>

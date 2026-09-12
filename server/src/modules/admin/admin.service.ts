@@ -1,4 +1,4 @@
-import {Injectable, NotFoundException, UnauthorizedException} from "@nestjs/common";
+import {Injectable, Logger, NotFoundException, UnauthorizedException} from "@nestjs/common";
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
 import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
@@ -7,6 +7,8 @@ import {UserEntity} from "../users/user/models/entities/user.entity";
 
 @Injectable()
 export class AdminService {
+    private readonly logger = new Logger(AdminService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly userService: UserService,
@@ -69,6 +71,7 @@ export class AdminService {
 
             await tx.users.delete({where: {id: user.id}});
         });
+        this.logger.log(`actor=${currentUser.id} action=admin.deleteUser target=${id}`);
     }
 
     async updateInstanceOwner(currentUser: UserEntity, newOwnerId: string, currentPassword: string): Promise<void> {
@@ -83,6 +86,7 @@ export class AdminService {
             create: {key: ConfigKey.INSTANCE_OWNER, value: newOwnerId},
             update: {value: newOwnerId},
         });
+        this.logger.log(`actor=${currentUser.id} action=admin.updateInstanceOwner target=${newOwnerId}`);
     }
 
     async setUserPassword(
@@ -93,5 +97,6 @@ export class AdminService {
     ): Promise<void> {
         await this.userService.verifyPassword(currentUser, currentPassword);
         await this.userService.updatePassword(targetUserId, newPassword);
+        this.logger.log(`actor=${currentUser.id} action=admin.setUserPassword target=${targetUserId}`);
     }
 }

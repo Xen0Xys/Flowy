@@ -41,12 +41,12 @@ export class TransactionService {
         private readonly accountAccess: AccountAccessService,
     ) {}
 
-    async suggestReferences(user: UserEntity, description: string, accountId?: string): Promise<ReferenceSuggestion> {
-        if (accountId) {
-            const account = await this.accountAccess.assertAccess(user, accountId, "read");
-            return this.referenceMatcher.suggestForDescriptionByOwner(account.user_id, description);
-        }
-        return this.referenceMatcher.suggestForDescription(user, description);
+    async suggestReferences(user: UserEntity, description: string, accountId: string): Promise<ReferenceSuggestion> {
+        // accountId is required by the DTO: suggestions are always scoped to
+        // the account owner's references so a subsequent transaction create
+        // never gets rejected as owner-mismatched.
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        return this.referenceMatcher.suggestForDescriptionByOwner(account.user_id, description);
     }
 
     async getTransactionById(user: UserEntity, transactionId: string): Promise<TransactionEntity> {

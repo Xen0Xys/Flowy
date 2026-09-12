@@ -69,6 +69,11 @@ export async function seedBudgetsForUser(
     let budgetedCategoriesCount = 0;
 
     await prisma.$transaction(async (tx) => {
+        // Idempotent standalone use: without this, re-running the seed for
+        // the same user accumulates budgets since the unique
+        // (user_id, month, year) constraint was dropped for multi-budget scope.
+        await tx.budgets.deleteMany({where: {user_id: userId}});
+
         for (const period of periods) {
             const budgetedIncome = faker.number.float({
                 min: MIN_BUDGETED_INCOME,

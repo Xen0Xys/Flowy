@@ -11,6 +11,7 @@ import {
     Post,
     UseGuards,
 } from "@nestjs/common";
+import {Throttle} from "@nestjs/throttler";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
 import {FamilyAdminGuard} from "../../../common/guards/family-admin.guard";
@@ -73,6 +74,7 @@ export class FamilyController {
     @Delete("quit")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async quitFamily(@User() user: UserEntity, @Body() body: QuitFamilyDto): Promise<void> {
         return await this.familyService.quitFamily(user, body.currentPassword);
@@ -95,6 +97,7 @@ export class FamilyController {
     @Delete("members/:id")
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async removeMember(
         @User() user: UserEntity,
@@ -107,6 +110,7 @@ export class FamilyController {
     @Delete()
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async deleteFamily(@User() user: UserEntity, @Body() body: DeleteFamilyDto): Promise<void> {
         return await this.familyService.deleteFamily(user, body.currentPassword);

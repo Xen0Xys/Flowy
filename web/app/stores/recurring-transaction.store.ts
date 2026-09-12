@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {i18nT} from "~/utils/i18n";
 
 export type RecurrenceFrequency = "WEEKLY" | "MONTHLY" | "BIMONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "YEARLY";

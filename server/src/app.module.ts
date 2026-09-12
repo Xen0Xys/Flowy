@@ -10,9 +10,11 @@ import {HelperModule} from "./modules/helper/helper.module";
 import {UserModule} from "./modules/users/user/user.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import {AdminModule} from "./modules/admin/admin.module";
-import {APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
+import {APP_FILTER, APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthModule} from "./modules/auth/auth.module";
 import {CsrfGuard} from "./common/guards/csrf.guard";
+import {AppThrottlerGuard} from "./common/guards/app-throttler.guard";
+import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
 import {ThrottlerModule} from "@nestjs/throttler";
 import {ScheduleModule} from "@nestjs/schedule";
 import {AppController} from "./app.controller";
@@ -67,6 +69,12 @@ import Joi from "joi";
     ],
     controllers: [AppController],
     providers: [
+        // Throttler runs before Csrf so flooders are rejected without paying
+        // the cost of CSRF token verification.
+        {
+            provide: APP_GUARD,
+            useClass: AppThrottlerGuard,
+        },
         {
             provide: APP_GUARD,
             useClass: CsrfGuard,
@@ -74,6 +82,10 @@ import Joi from "joi";
         {
             provide: APP_INTERCEPTOR,
             useClass: ClassSerializerInterceptor,
+        },
+        {
+            provide: APP_FILTER,
+            useClass: PrismaExceptionFilter,
         },
     ],
 })

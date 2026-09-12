@@ -46,21 +46,27 @@ export function useAccountScopedReferences(accountIdSource: MaybeRefOrGetter<str
     const referenceStore = useReferenceStore();
     const scoped = ref<ScopedReferences | null>(null);
     const isLoading = ref(false);
+    // Rapid account switches can race; only the latest issued request may
+    // commit its result to `scoped`.
+    let latestRequestId = 0;
 
     watch(
         () => toValue(accountIdSource),
         async (accountId) => {
+            const currentRequest = ++latestRequestId;
             if (!accountId) {
                 scoped.value = null;
                 return;
             }
             isLoading.value = true;
             try {
-                scoped.value = await fetchScopedReferences(accountId);
+                const refs = await fetchScopedReferences(accountId);
+                if (currentRequest !== latestRequestId) return;
+                scoped.value = refs;
             } catch {
-                scoped.value = null;
+                if (currentRequest === latestRequestId) scoped.value = null;
             } finally {
-                isLoading.value = false;
+                if (currentRequest === latestRequestId) isLoading.value = false;
             }
         },
         {immediate: true},
@@ -80,6 +86,7 @@ export function useAccountsGroupedReferences(accountsSource: MaybeRefOrGetter<Ac
     const userStore = useUserStore();
     const groupsState = ref<OwnerReferenceGroup[]>([]);
     const isLoading = ref(false);
+    let latestRequestId = 0;
 
     watch(
         () => {
@@ -96,6 +103,7 @@ export function useAccountsGroupedReferences(accountsSource: MaybeRefOrGetter<Ac
             }));
         },
         async (owners) => {
+            const currentRequest = ++latestRequestId;
             if (owners.length === 0) {
                 groupsState.value = [];
                 return;
@@ -114,18 +122,19 @@ export function useAccountsGroupedReferences(accountsSource: MaybeRefOrGetter<Ac
                         } satisfies OwnerReferenceGroup;
                     }),
                 );
+                if (currentRequest !== latestRequestId) return;
                 results.sort((a, b) => {
                     if (a.isCurrentUser !== b.isCurrentUser) return a.isCurrentUser ? -1 : 1;
                     return a.ownerUsername.localeCompare(b.ownerUsername);
                 });
                 groupsState.value = results;
             } catch {
-                groupsState.value = [];
+                if (currentRequest === latestRequestId) groupsState.value = [];
             } finally {
-                isLoading.value = false;
+                if (currentRequest === latestRequestId) isLoading.value = false;
             }
         },
-        {immediate: true, deep: true},
+        {immediate: true},
     );
 
     const groups: ComputedRef<OwnerReferenceGroup[]> = computed(() => groupsState.value);

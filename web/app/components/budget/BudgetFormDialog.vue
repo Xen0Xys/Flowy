@@ -5,7 +5,7 @@ import {useI18n} from "vue-i18n";
 import {type BudgetedCategory, type BudgetSpendingCategory, useBudgetStore} from "~/stores/budget.store";
 import type {Account} from "~/stores/account.store";
 import {useReferenceStore} from "~/stores/reference.store";
-import type {TransactionCategory} from "~/stores/transaction.store";
+import type {TransactionCategory} from "~/stores/reference.store";
 import MoneyInput from "~/components/common/MoneyInput.vue";
 import {Alert, AlertDescription} from "~/components/ui/alert";
 import {
@@ -101,6 +101,10 @@ const ownerCategories = ref<CategoryLike[]>([]);
 const scopedPlannedCategories = ref<BudgetSpendingCategory[]>([]);
 const scopeRequestId = ref(0);
 const plannedRequestId = ref(0);
+// While the dialog is bootstrapping async owner + planned fetches, isDirty
+// must stay false: otherwise auto-injected planned categories flip the flag
+// without any user input and the discard-confirm modal fires on Cancel.
+const isInitializing = ref(false);
 
 const activeOwnerId = computed<string | null>(() => {
     for (const group of props.accountGroups) {
@@ -323,6 +327,7 @@ function captureSnapshot() {
 
 const isDirty = computed(() => {
     if (!props.open) return false;
+    if (isInitializing.value) return false;
     const current = JSON.stringify({
         name: budgetName.value,
         income: budgetedIncome.value,
@@ -389,14 +394,20 @@ function isAccountDisabled(ownerId: string): boolean {
 
 watch(
     () => props.open,
-    (open) => {
-        if (open) {
-            hasStartedFresh.value = false;
-            ownerCategories.value = [];
-            scopedPlannedCategories.value = [];
-            loadFromExisting();
-            nextTick(() => captureSnapshot());
-        }
+    async (open) => {
+        if (!open) return;
+        isInitializing.value = true;
+        hasStartedFresh.value = false;
+        ownerCategories.value = [];
+        scopedPlannedCategories.value = [];
+        loadFromExisting();
+        await nextTick();
+        captureSnapshot();
+        // Yield one more tick so the activeOwnerId + scopeAccountIds watchers
+        // have a chance to fire (and their own captureSnapshot re-runs) before
+        // isDirty starts comparing against the initial snapshot.
+        await nextTick();
+        isInitializing.value = false;
     },
     {immediate: true},
 );

@@ -180,8 +180,10 @@ export class AccountService implements OnModuleInit {
         await this.userService.verifyPassword(user, currentPassword);
         await this.prismaService.$transaction(async (tx) => {
             await tx.accounts.delete({where: {id: accountId}});
-            // Cleanup budgets whose entire account scope disappeared.
-            await tx.budgets.deleteMany({where: {accounts: {none: {}}}});
+            // Scope to the caller: only sweep the caller's own budgets that lost
+            // their entire account scope. A DB-wide `none: {}` would delete
+            // orphan budgets across every tenant.
+            await tx.budgets.deleteMany({where: {user_id: user.id, accounts: {none: {}}}});
         });
     }
 

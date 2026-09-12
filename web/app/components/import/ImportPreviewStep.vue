@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type {ParsedTransaction} from "~/composables/useCsvParser";
 import {cn} from "~/lib/utils";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
 import TransactionReferenceCombobox from "~/components/transactions/TransactionReferenceCombobox.vue";

@@ -239,7 +239,8 @@ export const useBudgetStore = defineStore("budget", {
             try {
                 return await apiFetch<BudgetSpendingCategory[]>(`/budget/planned?${query.toString()}`);
             } catch (err: any) {
-                const message = err?.message ?? i18nT("budget.store.errors.fetchSpending");
+                const message = err?.data?.message ?? err?.message ?? i18nT("budget.store.errors.fetchSpending");
+                toast.error(message);
                 throw new Error(message, {cause: err});
             }
         },
