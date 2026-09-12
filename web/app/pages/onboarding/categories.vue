@@ -8,6 +8,7 @@ import {Input} from "@/components/ui/input";
 import {Card, CardContent} from "@/components/ui/card";
 import {cn} from "@/lib/utils";
 import {DEFAULT_CATEGORIES, type DefaultCategory} from "@/lib/onboarding-defaults";
+import {useAccountStore} from "@/stores/account.store";
 import {useReferenceStore} from "@/stores/reference.store";
 import {useOnboardingStore} from "@/stores/onboarding.store";
 import {useUserStore} from "@/stores/user.store";
@@ -30,6 +31,7 @@ const CUSTOM_DEFAULT_COLOR = "#64748B";
 
 const router = useRouter();
 const referenceStore = useReferenceStore();
+const accountStore = useAccountStore();
 const userStore = useUserStore();
 const onboardingStore = useOnboardingStore();
 const {t} = useI18n();
@@ -39,10 +41,22 @@ const customCategories = ref<CustomCategory[]>([]);
 const customName = ref("");
 const loading = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
     onboardingStore.hydrate();
     if (!userStore.hasFamily) {
         router.replace("/onboarding");
+        return;
+    }
+    await Promise.allSettled([referenceStore.fetchReferences(), accountStore.fetchAccounts()]);
+    const hasExistingData =
+        referenceStore.categories.length > 0 || referenceStore.merchants.length > 0 || accountStore.accounts.length > 0;
+    if (hasExistingData) {
+        if (userStore.isFamilyAdmin) {
+            router.replace("/onboarding/invite");
+        } else {
+            onboardingStore.reset();
+            router.replace("/");
+        }
     }
 });
 

@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import {computed, onMounted} from "vue";
+import {computed, onMounted, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute} from "vue-router";
 import LanguageSwitcher from "~/components/common/LanguageSwitcher.vue";
 import {Card, CardContent} from "@/components/ui/card";
 import {Stepper, StepperDescription, StepperIndicator, StepperItem, StepperTitle} from "@/components/ui/stepper";
 import {cn} from "@/lib/utils";
+import {useAccountStore} from "@/stores/account.store";
 import {useOnboardingStore} from "@/stores/onboarding.store";
+import {useReferenceStore} from "@/stores/reference.store";
 import {useUserStore} from "@/stores/user.store";
 
 type OnboardingKey = "welcome" | "select" | "createFamily" | "categories" | "invite";
@@ -19,13 +21,33 @@ const route = useRoute();
 const {t} = useI18n();
 const onboardingStore = useOnboardingStore();
 const userStore = useUserStore();
+const referenceStore = useReferenceStore();
+const accountStore = useAccountStore();
+
+async function loadExistingData() {
+    if (!userStore.hasFamily) return;
+    await Promise.allSettled([referenceStore.fetchReferences(), accountStore.fetchAccounts()]);
+}
 
 onMounted(() => {
     onboardingStore.hydrate();
+    void loadExistingData();
 });
+
+watch(
+    () => userStore.hasFamily,
+    (next) => {
+        if (next) void loadExistingData();
+    },
+);
 
 const isJoinerFlow = computed(
     () => onboardingStore.mode === "join" || (userStore.hasFamily && !userStore.isFamilyAdmin),
+);
+
+const hasExistingData = computed(
+    () =>
+        referenceStore.categories.length > 0 || referenceStore.merchants.length > 0 || accountStore.accounts.length > 0,
 );
 
 const stepDefs = computed<Record<OnboardingKey, {title: string; description: string}>>(() => ({
@@ -43,8 +65,12 @@ const stepDefs = computed<Record<OnboardingKey, {title: string; description: str
 }));
 
 const stepKeys = computed<OnboardingKey[]>(() => {
-    if (isJoinerFlow.value) return ["welcome", "select", "categories"];
-    return ["welcome", "select", "createFamily", "categories", "invite"];
+    const joiner = isJoinerFlow.value;
+    const skipCategories = hasExistingData.value;
+    if (joiner) return skipCategories ? ["welcome", "select"] : ["welcome", "select", "categories"];
+    return skipCategories
+        ? ["welcome", "select", "createFamily", "invite"]
+        : ["welcome", "select", "createFamily", "categories", "invite"];
 });
 
 const steps = computed(() => stepKeys.value.map((k) => stepDefs.value[k]));
