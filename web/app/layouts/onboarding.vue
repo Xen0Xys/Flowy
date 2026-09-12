@@ -2,6 +2,7 @@
 import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute} from "vue-router";
+import LanguageSwitcher from "~/components/common/LanguageSwitcher.vue";
 import {Card, CardContent} from "@/components/ui/card";
 import {Stepper, StepperDescription, StepperIndicator, StepperItem, StepperTitle} from "@/components/ui/stepper";
 import {cn} from "@/lib/utils";
@@ -37,6 +38,9 @@ const progressPercent = computed(() => Math.round(((active.value + 1) / steps.va
         <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
             <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
             <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
+        </div>
+        <div class="absolute top-4 right-4 z-10">
+            <LanguageSwitcher />
         </div>
         <div :class="cn('relative flex w-full grow flex-col justify-center gap-4 self-center px-4 py-6', 'max-w-3xl')">
             <Card class="py-0">
