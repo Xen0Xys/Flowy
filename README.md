@@ -1,4 +1,4 @@
-[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](./LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](./LICENSE)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A585%25-brightgreen)](./.github/workflows/e2e.yml)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](./DEPLOYMENT.md)
 [![Nuxt 4](https://img.shields.io/badge/Nuxt-4-00DC82?logo=nuxtdotjs&logoColor=white)](https://nuxt.com)
@@ -181,4 +181,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, conventions and pull request
 
 ## License
 
-Licensed under [CC-BY-NC-SA 4.0](./LICENSE).
+Licensed under [AGPL-3.0](./LICENSE).

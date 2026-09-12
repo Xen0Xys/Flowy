@@ -80,4 +80,4 @@ For security vulnerabilities, do not open a public issue or pull request. See [S
 
 ## License
 
-Flowy is released under CC-BY-NC-SA 4.0. By contributing, you agree that your contributions are licensed under the same terms. See [LICENSE](./LICENSE).
+Flowy is released under AGPL-3.0. By contributing, you agree that your contributions are licensed under the same terms. See [LICENSE](./LICENSE).

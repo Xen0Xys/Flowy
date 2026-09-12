@@ -3,7 +3,7 @@
 1. PURPOSE — This document defines the baseline expectations for all agentic contributors working inside this repository.
 2. SCOPE — Applies to the entire repo unless a nested AGENTS.md overrides part of it.
 3. CONTACT — If automation cannot proceed (missing secret, failing env), leave a clear TODO in your summary.
-4. LICENSE — This project ships under CC-BY-NC-ND; keep third-party code compliant.
+4. LICENSE — This project ships under AGPL-3.0; keep third-party code compliant.
 5. CURSOR / COPILOT RULES — None detected (.cursor/ and .github/copilot-instructions.md absent); keep this section updated if that changes.
 6. TOOLCHAIN DEFAULTS — Use Bun 1.4.x and Node 20+; prefer Bun for scripts already defined with `bun`.
 7. PACKAGE MANAGERS — Do not mix npm/pnpm/yarn within the same workspace; `bun install` at repo root installs everything.
