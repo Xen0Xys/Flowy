@@ -10,7 +10,6 @@ import {Button} from "~/components/ui/button";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "~/components/ui/dialog";
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -53,6 +52,8 @@ const isSubmitting = ref(false);
 const selectedMemberId = ref<string>("");
 const selectedPermission = ref<AccountSharePermission>("READ");
 const shareToRevoke = ref<AccountShare | null>(null);
+const isRevokeDialogOpen = ref(false);
+const isRevoking = ref(false);
 
 const familyMembers = computed<User[]>(() => {
     const family = familyStore.family;
@@ -133,18 +134,27 @@ const updatePermission = async (share: AccountShare, next: AccountSharePermissio
 
 const requestRevoke = (share: AccountShare) => {
     shareToRevoke.value = share;
+    isRevokeDialogOpen.value = true;
 };
 
 const confirmRevoke = async () => {
-    if (!shareToRevoke.value) return;
     const share = shareToRevoke.value;
-    await accountStore.revokeShare(share.accountId, share.sharedWithId);
-    shares.value = shares.value.filter((s) => s.id !== share.id);
-    emit("shares-changed", shares.value.length);
-    shareToRevoke.value = null;
+    if (!share || isRevoking.value) return;
+    isRevoking.value = true;
+    try {
+        await accountStore.revokeShare(share.accountId, share.sharedWithId);
+        shares.value = shares.value.filter((s) => s.id !== share.id);
+        emit("shares-changed", shares.value.length);
+        isRevokeDialogOpen.value = false;
+        shareToRevoke.value = null;
+    } finally {
+        isRevoking.value = false;
+    }
 };
 
 const cancelRevoke = () => {
+    if (isRevoking.value) return;
+    isRevokeDialogOpen.value = false;
     shareToRevoke.value = null;
 };
 
@@ -377,7 +387,7 @@ const close = () => emit("update:open", false);
     </Dialog>
 
     <!-- Confirmation dialog for revoke -->
-    <AlertDialog :open="!!shareToRevoke" @update:open="(v) => !v && cancelRevoke()">
+    <AlertDialog v-model:open="isRevokeDialogOpen" @update:open="(v) => !v && cancelRevoke()">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>{{ t("account.share.revoke.title") }}</AlertDialogTitle>
@@ -390,10 +400,16 @@ const close = () => emit("update:open", false);
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel @click="cancelRevoke">{{ t("common.cancel") }}</AlertDialogCancel>
-                <AlertDialogAction class="bg-destructive hover:bg-destructive/90 text-white" @click="confirmRevoke">
+                <AlertDialogCancel :disabled="isRevoking" @click="cancelRevoke">
+                    {{ t("common.cancel") }}
+                </AlertDialogCancel>
+                <Button
+                    class="bg-destructive hover:bg-destructive/90 text-white"
+                    :disabled="isRevoking"
+                    @click="confirmRevoke">
+                    <Icon v-if="isRevoking" class="size-4 animate-spin" name="iconoir:refresh-double" />
                     {{ t("account.share.revoke.confirm") }}
-                </AlertDialogAction>
+                </Button>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
