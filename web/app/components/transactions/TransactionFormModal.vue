@@ -516,8 +516,10 @@ const hasHeaderActions = computed(() => isEditing.value);
                     <div
                         role="tablist"
                         :aria-label="t('transactions.filters.type')"
-                        class="bg-muted/50 grid grid-cols-3 gap-1 rounded-lg p-1"
-                        :class="{'grid-cols-2': typeOptions.length === 2}">
+                        :class="[
+                            'bg-muted/50 grid gap-1 rounded-lg p-1',
+                            typeOptions.length === 2 ? 'grid-cols-2' : 'grid-cols-3',
+                        ]">
                         <button
                             v-for="opt in typeOptions"
                             :key="opt.value"
