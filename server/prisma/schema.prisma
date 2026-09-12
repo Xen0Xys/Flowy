@@ -53,6 +53,7 @@ model Users {
   categories             UserCategories[]
   budgets                Budgets[]
   recurring_transactions RecurringTransactions[]
+  shared_accounts        AccountShares[]         @relation("SharedAccounts")
 
   @@map("users")
 }
@@ -98,13 +99,36 @@ model Accounts {
   type                   AccountTypes
   name                   String                  @db.VarChar(50)
   balance                Float                   @default(0)
-  in_budget              Boolean                 @default(true)
   transactions           Transactions[]
   recurring_transactions RecurringTransactions[]
+  shares                 AccountShares[]
+  budget_links           BudgetAccounts[]
   created_at             DateTime                @default(now())
   updated_at             DateTime                @updatedAt
 
   @@map("accounts")
+}
+
+enum AccountSharePermission {
+  READ
+  WRITE
+
+  @@map("account_share_permissions")
+}
+
+model AccountShares {
+  id             String                 @id @default(uuid(7)) @db.Uuid
+  account_id     String                 @db.Uuid
+  account        Accounts               @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  shared_with_id String                 @db.Uuid
+  shared_with    Users                  @relation("SharedAccounts", fields: [shared_with_id], references: [id], onDelete: Cascade)
+  permission     AccountSharePermission
+  created_at     DateTime               @default(now())
+  updated_at     DateTime               @updatedAt
+
+  @@unique([account_id, shared_with_id])
+  @@index([shared_with_id])
+  @@map("account_shares")
 }
 
 model Transactions {
@@ -186,15 +210,29 @@ model Budgets {
   id                  String               @id @default(uuid(7)) @db.Uuid
   user_id             String               @db.Uuid
   user                Users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                String?              @db.VarChar(50)
   month               Int
   year                Int
   budgeted_income     Float
   created_at          DateTime             @default(now())
   updated_at          DateTime             @updatedAt
   budgeted_categories BudgetedCategories[]
+  accounts            BudgetAccounts[]
 
-  @@unique([user_id, month, year])
+  @@index([user_id, year, month])
   @@map("budgets")
+}
+
+model BudgetAccounts {
+  budget_id  String   @db.Uuid
+  account_id String   @db.Uuid
+  budget     Budgets  @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+  account    Accounts @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+
+  @@id([budget_id, account_id])
+  @@index([account_id])
+  @@map("budget_accounts")
 }
 
 model BudgetedCategories {

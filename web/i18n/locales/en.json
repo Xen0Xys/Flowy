@@ -18,7 +18,12 @@
         "processing": "Processing...",
         "areYouSure": "Are you sure?",
         "yes": "Yes",
-        "no": "No"
+        "no": "No",
+        "noResults": "No results.",
+        "confirmPassword": "Confirm with your password",
+        "currentPasswordPlaceholder": "Current password",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password"
     },
     "app": {
         "head": {
@@ -238,7 +243,9 @@
         "import": "Import"
     },
     "sidebar": {
-        "menu": "Menu",
+        "overview": "Overview",
+        "operations": "Operations",
+        "planning": "Planning",
         "dashboard": "Dashboard",
         "transactions": "Transactions",
         "recurring": "Recurring",
@@ -304,9 +311,11 @@
         "noAccountsTitle": "No accounts yet",
         "noAccountsDescription": "Create your first bank account to start tracking your finances.",
         "createFirstAccount": "Create my first account",
-        "totalBalance": "Total Balance",
+        "totalBalance": "Personal Net Worth",
         "balance": "Balance",
-        "acrossAccounts": "Across {count} account(s)",
+        "acrossOwnedAccounts": "Across {count} personal account(s)",
+        "sharedAccountsSection": "Accounts shared with me",
+        "sharedAccountsNote": "+ {count} shared account(s) ({amount}) — excluded from personal net worth",
         "percentOfTotal": "{value}% of total",
         "percentOfCategory": "{value}% of category",
         "deleteAccountDescription": "This action cannot be undone. The account \"{name}\" and all its associated data will be deleted."
@@ -330,8 +339,6 @@
             "type": "Category / Type",
             "openingBalance": "Opening balance",
             "openingBalanceHint": "Current balance at the time of account creation.",
-            "inBudget": "Include in budget",
-            "inBudgetDescription": "Include this account's transactions when computing your monthly budgets.",
             "errors": {
                 "nameTooShort": "Name must be at least 3 characters.",
                 "nameTooLong": "Name must be at most 50 characters.",
@@ -350,6 +357,61 @@
         "noChange": "No change",
         "updateBalance": "Update balance",
         "noData": "No balance history for this period",
+        "share": {
+            "action": "Share",
+            "title": "Share this account",
+            "description": "Give another member of your family access to this account.",
+            "currentShares": "People with access",
+            "selectMember": "Select a family member",
+            "searchMembers": "Search a member...",
+            "add": "Share",
+            "noMembers": "You need family members before sharing.",
+            "membersCountZero": "No access",
+            "membersCountOne": "1 person has access",
+            "membersCountMany": "{count} people have access",
+            "permission": {
+                "read": "Read",
+                "write": "Read + Write"
+            },
+            "badge": {
+                "read": "Read",
+                "write": "Write",
+                "short": "Shared"
+            },
+            "tooltip": {
+                "read": "This account was shared with you (read). It's excluded from your personal net worth.",
+                "write": "This account was shared with you (write). It's excluded from your personal net worth."
+            },
+            "excluded": "Excluded from personal net worth",
+            "revoke": {
+                "action": "Revoke",
+                "title": "Revoke access?",
+                "description": "{name} will no longer have access to this account. You can share it again later.",
+                "confirm": "Revoke access"
+            },
+            "empty": {
+                "title": "Account not shared",
+                "description": "Invite a family member to give them read or write access."
+            },
+            "invite": {
+                "title": "Invite a member",
+                "noAvailable": "All your family members already have access."
+            },
+            "ownerBadge": {
+                "short": "Shared",
+                "count": "Shared with {count}",
+                "tooltip": "You share this account with {count} member(s) of your family"
+            },
+            "toast": {
+                "shared": "Account shared",
+                "updated": "Access updated",
+                "revoked": "Access revoked",
+                "fetchError": "Failed to fetch access list",
+                "shareError": "Failed to share account",
+                "updateError": "Failed to update access",
+                "revokeError": "Failed to revoke access"
+            }
+        },
         "store": {
             "success": {
                 "accountCreated": "Account created",
@@ -400,8 +462,12 @@
             "category": "Category",
             "allCategories": "All Categories",
             "noCategory": "No category",
+            "myCategories": "My categories",
+            "categoriesOfOwner": "Categories from {owner}",
             "merchant": "Merchant",
             "allMerchants": "All Merchants",
+            "myMerchants": "My merchants",
+            "merchantsOfOwner": "Merchants from {owner}",
             "rebalance": "Rebalance",
             "includeRebalance": "Include Rebalance",
             "excludeRebalance": "Exclude Rebalance",
@@ -458,6 +524,9 @@
             "actions": "More actions",
             "details": "Details",
             "noResults": "No results.",
+            "readOnlyBadge": "Read only",
+            "readOnlyDescription": "This account is shared with you in read-only mode. You cannot modify its transactions.",
+            "sharedAccountReferencesHint": "Only {owner} can add categories or merchants to this shared account.",
             "errors": {
                 "loadData": "Failed to load required data"
             }
@@ -512,18 +581,17 @@
         "dangerZoneDescription": "Permanently delete your account",
         "deleteAccount": "Delete account",
         "delete": "Delete",
-        "cancel": "Cancel",
         "deleteDialogTitle": "Delete account",
         "deleteDialogDescription": "This action is irreversible. Please enter your current password to confirm.",
-        "confirmPassword": "Confirm password",
-        "deleting": "Deleting...",
+        "emailConfirmTitle": "Confirm email change",
+        "emailConfirmDescription": "You are about to change your email to {email}. Please enter your current password to confirm.",
+        "emailConfirmAction": "Change email",
         "roles": {
             "instanceOwner": "Instance Owner",
             "familyAdmin": "Family Admin",
             "familyMember": "Family Member"
         },
         "errors": {
-            "currentPasswordRequired": "Current password is required to delete your account.",
             "deleteAccountFailed": "Failed deleting account",
             "usernameLength": "Username must be between {min} and {max} characters.",
             "passwordsRequired": "Current password and new password are required.",
@@ -553,6 +621,7 @@
             "searchOwner": "Search a user",
             "changeOwnerTitle": "Change instance owner",
             "changeOwnerDescription": "Changing the instance owner transfers administrative control. This is destructive. Proceed?",
+            "changeOwnerDescriptionWithTarget": "Transferring administrative control to {username} ({email}). This is destructive and irreversible. Enter your password to confirm.",
             "currentOwner": "Current owner",
             "unknown": "unknown",
             "toasts": {
@@ -581,6 +650,8 @@
             "familyCurrency": "Family currency",
             "familyOwner": "Family owner",
             "resetPasswordFor": "Set a new password for {username}.",
+            "confirmResetTitle": "Confirm password reset",
+            "confirmResetDescription": "Enter your own password to confirm resetting {username}'s password.",
             "newPassword": "New password",
             "generatePassword": "Generate",
             "showPassword": "Show password",
@@ -639,6 +710,9 @@
             "remove": "Remove",
             "removeMember": "Remove member",
             "removeMemberDescription": "Are you sure you want to remove this member from the family? They will lose access to shared data.",
+            "revokeInviteTitle": "Revoke invitation",
+            "revokeInviteDescription": "Revoke the invitation sent to {email}? The recipient will no longer be able to join with this code.",
+            "revokeInviteConfirm": "Revoke",
             "invite": "Invite",
             "inviting": "Inviting...",
             "invitePlaceholder": "member{'@'}example.com",
@@ -677,6 +751,15 @@
             "deleteMerchant": "Delete merchant",
             "deleteCategoryDescription": "Are you sure you want to delete the category \"{name}\"? Transactions using this category will lose their association.",
             "deleteMerchantDescription": "Are you sure you want to delete the merchant \"{name}\"? Transactions using this merchant will lose their association.",
+            "selectedCount": "{count} selected | {count} selected",
+            "clearSelection": "Clear selection",
+            "bulkDelete": "Delete selected",
+            "bulkDeleteCategoriesTitle": "Delete {count} category | Delete {count} categories",
+            "bulkDeleteMerchantsTitle": "Delete {count} merchant | Delete {count} merchants",
+            "bulkDeleteCategoriesDescription": "Are you sure you want to delete {count} category? Transactions using it will lose their association and matching budget lines will be removed. | Are you sure you want to delete {count} categories? Transactions using them will lose their association and matching budget lines will be removed.",
+            "bulkDeleteMerchantsDescription": "Are you sure you want to delete {count} merchant? Transactions using it will lose their association. | Are you sure you want to delete {count} merchants? Transactions using them will lose their association.",
+            "selectRow": "Select row",
+            "selectAll": "Select all",
             "noSearchResults": "No results for this search.",
             "emptyCategoriesTitle": "No categories yet",
             "emptyCategoriesDescription": "Create your first category to organize your transactions.",
@@ -815,7 +898,9 @@
                 "categoryDeleted": "Category deleted",
                 "merchantCreated": "Merchant created",
                 "merchantUpdated": "Merchant updated",
-                "merchantDeleted": "Merchant deleted"
+                "merchantDeleted": "Merchant deleted",
+                "categoriesBulkDeleted": "{count} category deleted | {count} categories deleted",
+                "merchantsBulkDeleted": "{count} merchant deleted | {count} merchants deleted"
             },
             "errors": {
                 "fetchReferences": "Failed fetching references",
@@ -824,7 +909,9 @@
                 "deleteCategory": "Failed deleting category",
                 "createMerchant": "Failed creating merchant",
                 "updateMerchant": "Failed updating merchant",
-                "deleteMerchant": "Failed deleting merchant"
+                "deleteMerchant": "Failed deleting merchant",
+                "bulkDeleteCategories": "Failed deleting selected categories",
+                "bulkDeleteMerchants": "Failed deleting selected merchants"
             }
         }
     },
@@ -841,16 +928,19 @@
                 "updateBudget": "Failed updating budget",
                 "deleteBudget": "Failed deleting budget",
                 "fetchSpending": "Failed fetching spending",
-                "fetchAvailableMonths": "Failed fetching available months"
+                "fetchRenewableBudgets": "Failed fetching renewable budgets"
             }
         },
         "page": {
             "title": "Budget",
             "subtitle": "Track your monthly goals and spending by category.",
-            "createBudget": "Create budget",
+            "newBudget": "New budget",
             "renewBudget": "Renew",
             "editBudget": "Edit",
             "deleteBudget": "Delete",
+            "tabs": {
+                "fallbackName": "Budget #{index}"
+            },
             "noPreviousBudget": "No budget to renew",
             "noSpending": "No spending this month",
             "noSpendingDescription": "Spent categories will appear here.",
@@ -889,7 +979,13 @@
             "title": "Renew budget",
             "description": "Select a previous budget to renew for the current period.",
             "selectPlaceholder": "Select a budget…",
-            "continue": "Continue"
+            "continue": "Continue",
+            "unnamedBudget": "Untitled budget",
+            "sharedSuffix": " (shared)",
+            "errors": {
+                "readOnlySource": "This budget is shared as read-only and cannot be renewed.",
+                "noWritableAccounts": "None of this budget's accounts are writable by you."
+            }
         },
         "dialog": {
             "deleteDescription": "Are you sure you want to delete this budget? Budgeted categories will also be deleted.",
@@ -924,7 +1020,22 @@
             "discardChangesDescription": "Your inputs will be lost.",
             "discardChangesConfirm": "Discard",
             "needIncomeHint": "Enter a budgeted income to continue.",
-            "needCategoryHint": "Add at least one category with an amount to continue."
+            "needCategoryHint": "Add at least one category with an amount to continue.",
+            "needAccountsHint": "Select at least one account for this budget.",
+            "name": {
+                "label": "Name (optional)",
+                "placeholder": "e.g. Personal, Joint",
+                "hint": "Useful when you have several budgets for the same month."
+            },
+            "accounts": {
+                "label": "Accounts",
+                "groupOwn": "My accounts",
+                "groupShared": "Shared by {name}",
+                "someone": "another member",
+                "singleOwnerHint": "A budget can only cover accounts belonging to a single person.",
+                "lockedHint": "Only the account owner can change which accounts this budget covers.",
+                "noWritable": "You need at least one account (owned or shared with write access) before you can create a budget."
+            }
         },
         "category": {
             "uncategorized": "Uncategorized",
@@ -1139,6 +1250,7 @@
             "inBudgetHint": "Count this transaction towards budget forecasts.",
             "enabled": "Enabled",
             "enabledHint": "When disabled, no transaction will be created but the schedule keeps advancing.",
+            "sharedAccountReferencesHint": "Only {owner} can add categories or merchants to this shared account.",
             "errors": {
                 "loadData": "Failed to load required data"
             }

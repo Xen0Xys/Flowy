@@ -27,15 +27,14 @@ import {
 import {useClipboard} from "@vueuse/core";
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import {useRouter} from "#app";
 import {isValidCurrencyCode, isValidEmail, isValidFamilyName, normalizeCurrencyCode} from "@/lib/validation";
 import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
@@ -69,6 +68,11 @@ const savingSettings = ref(false);
 const removingMemberId = ref<string | null>(null);
 const familyActionLoading = ref(false);
 const currencyOptions = Object.keys(CURRENCY_LOCALES_MAP);
+
+const isDangerDialogOpen = ref(false);
+const memberToRemove = ref<{id: string; username: string} | null>(null);
+const inviteToRevoke = ref<{code: string; email: string} | null>(null);
+const revokingInvite = ref(false);
 
 function computeInitials(name: string | undefined | null): string {
     const trimmed = (name ?? "").trim();
@@ -159,13 +163,20 @@ async function handleInvite() {
     }
 }
 
-async function handleRevoke(code: string) {
-    if (!userStore.token) return;
+function requestRevoke(invite: {code: string; email: string}) {
+    inviteToRevoke.value = invite;
+}
+
+async function confirmRevoke() {
+    const invite = inviteToRevoke.value;
+    if (!invite || !userStore.token) return;
+    revokingInvite.value = true;
     try {
-        await familyStore.revokeInvite(code);
+        await familyStore.revokeInvite(invite.code);
         invites.value = await familyStore.getInvites();
-    } catch (err) {
-        // store toasts
+        inviteToRevoke.value = null;
+    } finally {
+        revokingInvite.value = false;
     }
 }
 
@@ -179,24 +190,17 @@ async function copyInviteCode(code: string) {
     }
 }
 
-async function handleDeleteFamily() {
-    if (!userStore.token || !userStore.isFamilyAdmin) return;
-    familyActionLoading.value = true;
-    try {
-        await familyStore.deleteFamily();
-        family.value = null;
-        await useRouter().push({path: "/onboarding/select"});
-    } finally {
-        familyActionLoading.value = false;
-    }
-}
-
-async function handleLeaveFamily() {
+async function handleDangerZoneConfirm(currentPassword: string) {
     if (!userStore.token) return;
     familyActionLoading.value = true;
     try {
-        await familyStore.quitFamily();
+        if (userStore.isFamilyAdmin) {
+            await familyStore.deleteFamily(currentPassword);
+        } else {
+            await familyStore.quitFamily(currentPassword);
+        }
         family.value = null;
+        isDangerDialogOpen.value = false;
         await useRouter().push({path: "/onboarding/select"});
     } finally {
         familyActionLoading.value = false;
@@ -245,13 +249,19 @@ async function saveSettings() {
     }
 }
 
-async function removeMember(id: string) {
-    if (!userStore.token || !userStore.isFamilyAdmin) return;
+function requestRemoveMember(member: {id: string; username: string}) {
+    memberToRemove.value = {id: member.id, username: member.username};
+}
+
+async function confirmRemoveMember(currentPassword: string) {
+    const target = memberToRemove.value;
+    if (!target || !userStore.token || !userStore.isFamilyAdmin) return;
+    removingMemberId.value = target.id;
     try {
-        removingMemberId.value = id;
-        await familyStore.removeFamilyMember(id);
+        await familyStore.removeFamilyMember(target.id, currentPassword);
         family.value = await familyStore.fetchFamily();
         invites.value = await familyStore.getInvites();
+        memberToRemove.value = null;
     } finally {
         removingMemberId.value = null;
     }
@@ -467,38 +477,19 @@ onMounted(async () => {
                                             <Badge :variant="memberRoleVariant(member)">{{
                                                 memberRoleLabel(member)
                                             }}</Badge>
-                                            <AlertDialog
+                                            <Button
                                                 v-if="
                                                     userStore.isFamilyAdmin &&
                                                     member.id !== userStore.user?.id &&
                                                     member.id !== family.owner?.id
-                                                ">
-                                                <AlertDialogTrigger asChild>
-                                                    <Button
-                                                        :aria-label="t('settings.family.aria.removeMember')"
-                                                        :disabled="removingMemberId === member.id || familyActionLoading"
-                                                        size="icon"
-                                                        variant="ghost">
-                                                        <Icon class="text-destructive size-4" name="iconoir:trash" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>
-                                                            {{ t("settings.family.removeMember") }}
-                                                        </AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            {{ t("settings.family.removeMemberDescription") }}
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                                                        <AlertDialogAction @click="() => removeMember(member.id)">
-                                                            {{ t("settings.family.remove") }}
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                                "
+                                                :aria-label="t('settings.family.aria.removeMember')"
+                                                :disabled="removingMemberId === member.id || familyActionLoading"
+                                                size="icon"
+                                                variant="ghost"
+                                                @click="requestRemoveMember(member)">
+                                                <Icon class="text-destructive size-4" name="iconoir:trash" />
+                                            </Button>
                                         </li>
                                     </ul>
                                 </CardContent>
@@ -566,7 +557,7 @@ onMounted(async () => {
                                                 :aria-label="t('settings.family.aria.revokeInvite')"
                                                 size="icon"
                                                 variant="ghost"
-                                                @click="handleRevoke(inv.code)">
+                                                @click="requestRevoke(inv)">
                                                 <Icon class="text-destructive size-4" name="iconoir:xmark" />
                                             </Button>
                                         </li>
@@ -613,55 +604,11 @@ onMounted(async () => {
                                                 }}
                                             </p>
                                         </div>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button size="sm" variant="destructive">
-                                                    {{
-                                                        userStore.isFamilyAdmin
-                                                            ? t("common.delete")
-                                                            : t("settings.family.leave")
-                                                    }}
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>
-                                                        {{
-                                                            userStore.isFamilyAdmin
-                                                                ? t("settings.family.deleteFamily")
-                                                                : t("settings.family.leaveFamily")
-                                                        }}
-                                                    </AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        <template v-if="userStore.isFamilyAdmin">
-                                                            {{ t("settings.family.deleteFamilyDescription") }}
-                                                        </template>
-                                                        <template v-else>
-                                                            {{ t("settings.family.leaveFamilyDescription") }}
-                                                        </template>
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        :disabled="familyActionLoading"
-                                                        @click="
-                                                            userStore.isFamilyAdmin
-                                                                ? handleDeleteFamily()
-                                                                : handleLeaveFamily()
-                                                        ">
-                                                        <span v-if="!familyActionLoading">
-                                                            {{
-                                                                userStore.isFamilyAdmin
-                                                                    ? t("common.delete")
-                                                                    : t("settings.family.leave")
-                                                            }}
-                                                        </span>
-                                                        <span v-else>{{ t("common.processing") }}</span>
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                        <Button size="sm" variant="destructive" @click="isDangerDialogOpen = true">
+                                            {{
+                                                userStore.isFamilyAdmin ? t("common.delete") : t("settings.family.leave")
+                                            }}
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -676,5 +623,48 @@ onMounted(async () => {
                 </CardContent>
             </Card>
         </div>
+
+        <PasswordConfirmDialog
+            :open="isDangerDialogOpen"
+            :title="userStore.isFamilyAdmin ? t('settings.family.deleteFamily') : t('settings.family.leaveFamily')"
+            :description="
+                userStore.isFamilyAdmin
+                    ? t('settings.family.deleteFamilyDescription')
+                    : t('settings.family.leaveFamilyDescription')
+            "
+            :confirm-label="userStore.isFamilyAdmin ? t('common.delete') : t('settings.family.leave')"
+            :loading="familyActionLoading"
+            input-id="family-danger-password"
+            @update:open="isDangerDialogOpen = $event"
+            @confirm="handleDangerZoneConfirm" />
+
+        <PasswordConfirmDialog
+            :open="Boolean(memberToRemove)"
+            :title="t('settings.family.removeMember')"
+            :description="t('settings.family.removeMemberDescription')"
+            :confirm-label="t('settings.family.remove')"
+            :loading="Boolean(removingMemberId)"
+            input-id="family-remove-member-password"
+            @update:open="(open) => !open && (memberToRemove = null)"
+            @confirm="confirmRemoveMember" />
+
+        <AlertDialog
+            :open="Boolean(inviteToRevoke)"
+            @update:open="(open) => !open && !revokingInvite && (inviteToRevoke = null)">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ t("settings.family.revokeInviteTitle") }}</AlertDialogTitle>
+                    <AlertDialogDescription v-if="inviteToRevoke">
+                        {{ t("settings.family.revokeInviteDescription", {email: inviteToRevoke.email}) }}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel :disabled="revokingInvite">{{ t("common.cancel") }}</AlertDialogCancel>
+                    <Button :disabled="revokingInvite" variant="destructive" @click="confirmRevoke">
+                        {{ revokingInvite ? t("common.processing") : t("settings.family.revokeInviteConfirm") }}
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
 </template>

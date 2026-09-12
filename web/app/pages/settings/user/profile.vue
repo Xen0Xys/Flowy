@@ -10,17 +10,7 @@ import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Badge} from "@/components/ui/badge";
 import {Label} from "@/components/ui/label";
 import {ScrollArea} from "@/components/ui/scroll-area";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
 import {useI18n} from "vue-i18n";
@@ -124,6 +114,10 @@ function resetAccount() {
     email.value = userStore.user?.email || "";
 }
 
+const isEmailConfirmOpen = ref(false);
+const pendingEmail = ref("");
+const savingEmail = ref(false);
+
 async function saveAccount() {
     if (!userStore.token) return;
     const nextUsername = username.value.trim();
@@ -145,11 +139,23 @@ async function saveAccount() {
             await userStore.saveUsername(nextUsername);
         }
         if (emailChanged.value) {
-            email.value = nextEmail;
-            await userStore.saveEmail(nextEmail);
+            pendingEmail.value = nextEmail;
+            isEmailConfirmOpen.value = true;
         }
     } finally {
         savingAccount.value = false;
+    }
+}
+
+async function confirmEmailChange(currentPassword: string) {
+    savingEmail.value = true;
+    try {
+        await userStore.saveEmail(pendingEmail.value, currentPassword);
+        email.value = pendingEmail.value;
+        isEmailConfirmOpen.value = false;
+        pendingEmail.value = "";
+    } finally {
+        savingEmail.value = false;
     }
 }
 
@@ -187,25 +193,23 @@ async function changePasswordNow() {
 }
 
 const deleting = ref(false);
-const confirmPassword = ref("");
+const isDeleteAccountOpen = ref(false);
 
-async function deleteAccountNow() {
+async function deleteAccountNow(passwordValue: string) {
     if (!userStore.token) return;
-    if (!confirmPassword.value.trim()) {
-        toast.error(t("profile.errors.currentPasswordRequired"));
-        return;
-    }
     deleting.value = true;
     try {
         await apiFetch("/user/me", {
             method: "DELETE",
-            body: {currentPassword: confirmPassword.value.trim()},
+            body: {currentPassword: passwordValue},
         });
         toast.success(t("profile.toasts.accountDeleted"));
         deleting.value = false;
+        isDeleteAccountOpen.value = false;
         authStore.logout();
         await useRouter().push("/auth/login");
     } catch (err: any) {
+        deleting.value = false;
         const message = err?.data?.message ?? err?.message ?? t("profile.errors.deleteAccountFailed");
         toast.error(message);
         throw new Error(message, {cause: err});
@@ -433,40 +437,9 @@ watch(locale, async () => {
                                                 {{ t("profile.deleteDialogDescription") }}
                                             </p>
                                         </div>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button size="sm" variant="destructive">
-                                                    {{ t("profile.deleteAccount") }}
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>{{
-                                                        t("profile.deleteDialogTitle")
-                                                    }}</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        {{ t("profile.deleteDialogDescription") }}
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <div class="space-y-2">
-                                                    <Label for="profile-confirm-password">
-                                                        {{ t("profile.confirmPassword") }}
-                                                    </Label>
-                                                    <Input
-                                                        id="profile-confirm-password"
-                                                        v-model="confirmPassword"
-                                                        :placeholder="t('profile.currentPassword')"
-                                                        type="password" />
-                                                </div>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>{{ t("profile.cancel") }}</AlertDialogCancel>
-                                                    <AlertDialogAction :disabled="deleting" @click="deleteAccountNow">
-                                                        <span v-if="!deleting">{{ t("profile.delete") }}</span>
-                                                        <span v-else>{{ t("profile.deleting") }}</span>
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                        <Button size="sm" variant="destructive" @click="isDeleteAccountOpen = true">
+                                            {{ t("profile.deleteAccount") }}
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -475,5 +448,30 @@ watch(locale, async () => {
                 </main>
             </div>
         </div>
+
+        <PasswordConfirmDialog
+            :open="isEmailConfirmOpen"
+            :title="t('profile.emailConfirmTitle')"
+            :description="t('profile.emailConfirmDescription', {email: pendingEmail})"
+            :confirm-label="t('profile.emailConfirmAction')"
+            :loading="savingEmail"
+            input-id="profile-email-confirm-password"
+            @update:open="
+                (value) => {
+                    isEmailConfirmOpen = value;
+                    if (!value) pendingEmail = '';
+                }
+            "
+            @confirm="confirmEmailChange" />
+
+        <PasswordConfirmDialog
+            :open="isDeleteAccountOpen"
+            :title="t('profile.deleteDialogTitle')"
+            :description="t('profile.deleteDialogDescription')"
+            :confirm-label="t('profile.delete')"
+            :loading="deleting"
+            input-id="profile-delete-account-password"
+            @update:open="isDeleteAccountOpen = $event"
+            @confirm="deleteAccountNow" />
     </div>
 </template>

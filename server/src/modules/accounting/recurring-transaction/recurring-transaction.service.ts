@@ -1,4 +1,4 @@
-import {BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException} from "@nestjs/common";
+import {BadRequestException, Injectable, Logger, NotFoundException} from "@nestjs/common";
 import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {CreateRecurringTransactionDto} from "./models/dto/create-recurring-transaction.dto";
@@ -16,6 +16,7 @@ import {MerchantEntity} from "../reference/models/entities/merchant.entity";
 import {CategoryEntity} from "../reference/models/entities/category.entity";
 import {Prisma, RecurringTransactions} from "../../../../prisma/generated/client";
 import {computeNextRunAt, enumerateOccurrencesInMonth, isValidTimezone} from "./recurring-transaction.utils";
+import {AccountAccessService} from "../account/account-access.service";
 
 type RecurringWithRelations = Prisma.RecurringTransactionsGetPayload<{
     include: {merchant: true; category: true};
@@ -27,11 +28,20 @@ const EXECUTIONS_LOOKUP_MARGIN_MS = 24 * 60 * 60 * 1000;
 export class RecurringTransactionService {
     private readonly logger = new Logger(RecurringTransactionService.name);
 
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly accountAccess: AccountAccessService,
+    ) {}
 
     async list(user: UserEntity, filters: ListRecurringTransactionsDto): Promise<RecurringTransactionEntity[]> {
-        const where: Prisma.RecurringTransactionsWhereInput = {user_id: user.id};
-        if (filters.accountId) where.account_id = filters.accountId;
+        const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
+        const where: Prisma.RecurringTransactionsWhereInput = {
+            account_id: {in: accessibleAccountIds},
+        };
+        if (filters.accountId) {
+            if (!accessibleAccountIds.includes(filters.accountId)) where.account_id = {in: []};
+            else where.account_id = filters.accountId;
+        }
         if (filters.enabled !== undefined) where.is_enabled = filters.enabled === "true";
 
         const items = await this.prismaService.recurringTransactions.findMany({
@@ -44,7 +54,7 @@ export class RecurringTransactionService {
     }
 
     async getById(user: UserEntity, id: string): Promise<RecurringTransactionEntity> {
-        const rt = await this.getOwnedOrThrow(user, id);
+        const rt = await this.getAccessibleOrThrow(user, id, "read");
         return this.toEntity(rt);
     }
 
@@ -53,8 +63,8 @@ export class RecurringTransactionService {
         accountId: string,
         dto: CreateRecurringTransactionDto,
     ): Promise<RecurringTransactionEntity> {
-        await this.getOwnedAccountOrThrow(user, accountId);
-        await this.validateReferencesOwnership(user, dto.merchantId, dto.categoryId);
+        const account = await this.accountAccess.assertAccess(user, accountId, "write");
+        await this.validateReferencesOwnership(account.user_id, dto.merchantId, dto.categoryId);
         this.validateFrequencyDayCombination(dto);
         this.validateTimezone(dto.timezone);
 
@@ -72,7 +82,9 @@ export class RecurringTransactionService {
 
         const created = await this.prismaService.recurringTransactions.create({
             data: {
-                user_id: user.id,
+                // The account owner is the effective user_id so that ownership
+                // stays consistent with the account it targets.
+                user_id: account.user_id,
                 account_id: accountId,
                 name: dto.name,
                 amount: this.toDecimal(dto.amount),
@@ -94,17 +106,33 @@ export class RecurringTransactionService {
     }
 
     async update(user: UserEntity, id: string, dto: UpdateRecurringTransactionDto): Promise<RecurringTransactionEntity> {
-        const rt = await this.getOwnedOrThrow(user, id);
-
-        if (dto.merchantId !== undefined || dto.categoryId !== undefined) {
-            await this.validateReferencesOwnership(user, dto.merchantId ?? undefined, dto.categoryId ?? undefined);
-        }
-        if (dto.timezone !== undefined) this.validateTimezone(dto.timezone);
+        const rt = await this.getAccessibleOrThrow(user, id, "write");
+        const currentAccount = await this.prismaService.accounts.findUniqueOrThrow({
+            where: {id: rt.account_id},
+        });
 
         const accountChanged = dto.accountId !== undefined && dto.accountId !== rt.account_id;
-        if (accountChanged) {
-            await this.getOwnedAccountOrThrow(user, dto.accountId!);
+        const targetAccount = accountChanged
+            ? await this.accountAccess.assertAccess(user, dto.accountId!, "write")
+            : currentAccount;
+
+        // Refuse moving a recurring transaction across owners. A sharee with
+        // WRITE on both sides could otherwise transfer the RT (and its future
+        // executions) to another owner without their consent or any audit
+        // trail.
+        if (accountChanged && targetAccount.user_id !== rt.user_id) {
+            throw new BadRequestException("Cannot move a recurring transaction across owners");
         }
+
+        // References must always belong to the target account's owner.
+        if (dto.merchantId !== undefined || dto.categoryId !== undefined || accountChanged) {
+            await this.validateReferencesOwnership(
+                targetAccount.user_id,
+                dto.merchantId ?? rt.merchant_id ?? undefined,
+                dto.categoryId ?? rt.category_id ?? undefined,
+            );
+        }
+        if (dto.timezone !== undefined) this.validateTimezone(dto.timezone);
 
         const merged = {
             frequency: dto.frequency ?? rt.frequency,
@@ -128,7 +156,9 @@ export class RecurringTransactionService {
             dto.timezone !== undefined;
 
         const data: Prisma.RecurringTransactionsUncheckedUpdateInput = {};
-        if (accountChanged) data.account_id = dto.accountId;
+        if (accountChanged) {
+            data.account_id = dto.accountId;
+        }
         if (dto.name !== undefined) data.name = dto.name;
         if (dto.amount !== undefined) data.amount = this.toDecimal(dto.amount);
         if (dto.merchantId !== undefined) data.merchant_id = dto.merchantId;
@@ -166,12 +196,12 @@ export class RecurringTransactionService {
     }
 
     async delete(user: UserEntity, id: string): Promise<void> {
-        await this.getOwnedOrThrow(user, id);
+        await this.getAccessibleOrThrow(user, id, "write");
         await this.prismaService.recurringTransactions.delete({where: {id}});
     }
 
     async toggle(user: UserEntity, id: string, isEnabled: boolean): Promise<RecurringTransactionEntity> {
-        await this.getOwnedOrThrow(user, id);
+        await this.getAccessibleOrThrow(user, id, "write");
         const updated = await this.prismaService.recurringTransactions.update({
             where: {id},
             data: {is_enabled: isEnabled},
@@ -181,7 +211,7 @@ export class RecurringTransactionService {
     }
 
     async listExecutions(user: UserEntity, id: string, query: ListExecutionsDto): Promise<ListExecutionsResultEntity> {
-        await this.getOwnedOrThrow(user, id);
+        await this.getAccessibleOrThrow(user, id, "read");
 
         const [total, items] = await this.prismaService.$transaction([
             this.prismaService.recurringTransactionExecutions.count({where: {recurring_transaction_id: id}}),
@@ -214,8 +244,9 @@ export class RecurringTransactionService {
     }
 
     async getCalendar(user: UserEntity, query: CalendarQueryDto): Promise<RecurringCalendarEntity> {
+        const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
         const items = await this.prismaService.recurringTransactions.findMany({
-            where: {user_id: user.id},
+            where: {account_id: {in: accessibleAccountIds}},
             include: {merchant: true, category: true},
         });
 
@@ -255,17 +286,19 @@ export class RecurringTransactionService {
         user: UserEntity,
         year: number,
         month: number,
+        scopeAccountIds: string[],
         tx?: TxClient,
     ): Promise<Map<string | null, number>> {
         const prisma = this.prismaService.withTx(tx);
 
-        const accountIds = await prisma.accounts
-            .findMany({where: {user_id: user.id, in_budget: true}, select: {id: true}})
-            .then((accs) => accs.map((a) => a.id));
+        // Callers always know which accounts scope the planned computation
+        // (the budget's own account set). The old fallback filtered on the
+        // now-dropped Accounts.in_budget column and would crash at runtime.
+        const accountIds = scopeAccountIds;
         if (accountIds.length === 0) return new Map();
 
         const items = await prisma.recurringTransactions.findMany({
-            where: {user_id: user.id, in_budget: true, is_enabled: true, account_id: {in: accountIds}},
+            where: {in_budget: true, is_enabled: true, account_id: {in: accountIds}},
         });
         if (items.length === 0) return new Map();
 
@@ -306,9 +339,7 @@ export class RecurringTransactionService {
                 year,
                 month,
             );
-            const now = new Date();
             for (const date of occurrences) {
-                if (date.getTime() < now.getTime()) continue;
                 const key = `${rt.id}|${date.toISOString()}`;
                 if (executedKey.has(key)) continue;
                 const amount = Math.abs(rt.amount);
@@ -374,38 +405,32 @@ export class RecurringTransactionService {
         });
     }
 
-    private async getOwnedOrThrow(user: UserEntity, id: string): Promise<RecurringWithRelations> {
+    private async getAccessibleOrThrow(
+        user: UserEntity,
+        id: string,
+        min: "read" | "write",
+    ): Promise<RecurringWithRelations> {
         const rt = await this.prismaService.recurringTransactions.findUnique({
             where: {id},
             include: {merchant: true, category: true},
         });
         if (!rt) throw new NotFoundException("Recurring transaction not found");
-        if (rt.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to access this recurring transaction");
-        }
+        await this.accountAccess.assertAccess(user, rt.account_id, min);
         return rt;
     }
 
-    private async getOwnedAccountOrThrow(user: UserEntity, accountId: string): Promise<void> {
-        const account = await this.prismaService.accounts.findUnique({where: {id: accountId}});
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to access this account");
-        }
-    }
-
     private async validateReferencesOwnership(
-        user: UserEntity,
+        ownerUserId: string,
         merchantId?: string | null,
         categoryId?: string | null,
     ): Promise<void> {
         if (merchantId) {
             const merchant = await this.prismaService.userMerchants.findUnique({where: {id: merchantId}});
-            if (!merchant || merchant.user_id !== user.id) throw new NotFoundException("Merchant not found");
+            if (!merchant || merchant.user_id !== ownerUserId) throw new NotFoundException("Merchant not found");
         }
         if (categoryId) {
             const category = await this.prismaService.userCategories.findUnique({where: {id: categoryId}});
-            if (!category || category.user_id !== user.id) throw new NotFoundException("Category not found");
+            if (!category || category.user_id !== ownerUserId) throw new NotFoundException("Category not found");
         }
     }
 

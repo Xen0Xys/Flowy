@@ -363,6 +363,160 @@ describe("ReferenceController (e2e)", () => {
         expect(badMerchantId.status).toBe(400);
     });
 
+    test("bulk deletes categories and merchants owned by the user", async () => {
+        const user = await registerUser(server);
+
+        const [foodCategory, transportCategory, healthCategory] = await Promise.all([
+            prisma.userCategories.create({
+                data: {user_id: user.user.id, name: "Food", hex_color: "#22C55E", icon: "utensils"},
+            }),
+            prisma.userCategories.create({
+                data: {user_id: user.user.id, name: "Transport", hex_color: "#3B82F6", icon: "car"},
+            }),
+            prisma.userCategories.create({
+                data: {user_id: user.user.id, name: "Health", hex_color: "#EF4444", icon: "heart"},
+            }),
+        ]);
+
+        const [amazon, ikea] = await Promise.all([
+            prisma.userMerchants.create({data: {user_id: user.user.id, name: "Amazon"}}),
+            prisma.userMerchants.create({data: {user_id: user.user.id, name: "Ikea"}}),
+        ]);
+
+        const bulkCategories = await agent
+            .post("/reference/categories/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: [foodCategory.id, transportCategory.id]});
+
+        expect(bulkCategories.status).toBe(201);
+        expect(bulkCategories.body.deletedCount).toBe(2);
+
+        const remainingCategories = await prisma.userCategories.findMany({where: {user_id: user.user.id}});
+        expect(remainingCategories.map((c) => c.id)).toEqual([healthCategory.id]);
+
+        const bulkMerchants = await agent
+            .post("/reference/merchants/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: [amazon.id, ikea.id]});
+
+        expect(bulkMerchants.status).toBe(201);
+        expect(bulkMerchants.body.deletedCount).toBe(2);
+
+        const remainingMerchants = await prisma.userMerchants.findMany({where: {user_id: user.user.id}});
+        expect(remainingMerchants).toEqual([]);
+    });
+
+    test("bulk delete is all-or-nothing when an id belongs to another user", async () => {
+        const owner = await registerUser(server);
+        const outsider = await registerUser(server);
+
+        const ownerCategory = await prisma.userCategories.create({
+            data: {user_id: owner.user.id, name: "Owner cat", hex_color: "#8B5CF6", icon: "briefcase"},
+        });
+        const outsiderCategory = await prisma.userCategories.create({
+            data: {user_id: outsider.user.id, name: "Outsider cat", hex_color: "#F97316", icon: "briefcase"},
+        });
+
+        const bulkCategories = await agent
+            .post("/reference/categories/bulk-delete")
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({ids: [ownerCategory.id, outsiderCategory.id]});
+
+        expect(bulkCategories.status).toBe(403);
+        expect(bulkCategories.body.message).toBe("You do not have permission to access this category");
+
+        const stillThere = await prisma.userCategories.findMany({
+            where: {id: {in: [ownerCategory.id, outsiderCategory.id]}},
+        });
+        expect(stillThere).toHaveLength(2);
+
+        const ownerMerchant = await prisma.userMerchants.create({
+            data: {user_id: owner.user.id, name: "Owner shop"},
+        });
+        const outsiderMerchant = await prisma.userMerchants.create({
+            data: {user_id: outsider.user.id, name: "Outsider shop"},
+        });
+
+        const bulkMerchants = await agent
+            .post("/reference/merchants/bulk-delete")
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({ids: [ownerMerchant.id, outsiderMerchant.id]});
+
+        expect(bulkMerchants.status).toBe(403);
+        expect(bulkMerchants.body.message).toBe("You do not have permission to access this merchant");
+
+        const stillThereMerchants = await prisma.userMerchants.findMany({
+            where: {id: {in: [ownerMerchant.id, outsiderMerchant.id]}},
+        });
+        expect(stillThereMerchants).toHaveLength(2);
+    });
+
+    test("bulk delete returns 404 when an id does not exist", async () => {
+        const user = await registerUser(server);
+        const category = await prisma.userCategories.create({
+            data: {user_id: user.user.id, name: "Existing", hex_color: "#22C55E", icon: "utensils"},
+        });
+        const merchant = await prisma.userMerchants.create({
+            data: {user_id: user.user.id, name: "Existing"},
+        });
+        const missingId = "0195c8dd-c263-7569-99f6-9fc20aca3050";
+
+        const bulkCategories = await agent
+            .post("/reference/categories/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: [category.id, missingId]});
+
+        expect(bulkCategories.status).toBe(404);
+        expect(bulkCategories.body.message).toBe("Category not found");
+
+        const stillCategory = await prisma.userCategories.findUnique({where: {id: category.id}});
+        expect(stillCategory).not.toBeNull();
+
+        const bulkMerchants = await agent
+            .post("/reference/merchants/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: [merchant.id, missingId]});
+
+        expect(bulkMerchants.status).toBe(404);
+        expect(bulkMerchants.body.message).toBe("Merchant not found");
+
+        const stillMerchant = await prisma.userMerchants.findUnique({where: {id: merchant.id}});
+        expect(stillMerchant).not.toBeNull();
+    });
+
+    test("bulk delete rejects invalid payloads", async () => {
+        const user = await registerUser(server);
+
+        const empty = await agent
+            .post("/reference/categories/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: []});
+        expect(empty.status).toBe(400);
+
+        const notArray = await agent
+            .post("/reference/merchants/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: "not-an-array"});
+        expect(notArray.status).toBe(400);
+
+        const badUuid = await agent
+            .post("/reference/categories/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({ids: ["not-a-uuid"]});
+        expect(badUuid.status).toBe(400);
+
+        const tooMany = await agent
+            .post("/reference/merchants/bulk-delete")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({
+                ids: Array.from(
+                    {length: 201},
+                    (_, i) => `0195c8dd-c263-7569-99f6-9fc20aca${i.toString().padStart(4, "0")}`,
+                ),
+            });
+        expect(tooMany.status).toBe(400);
+    });
+
     test("returns 404 for missing references", async () => {
         const user = await registerUser(server);
         const missingCategoryId = "0195c8dd-c263-7569-99f6-9fc20aca3050";

@@ -3,13 +3,16 @@ import {getLocalTimeZone, today} from "@internationalized/date";
 import type {DateValue} from "reka-ui";
 import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
+import {toast} from "vue-sonner";
 import {useFamilyStore} from "~/stores/family.store";
-import {type AvailableMonth, type Budget, type BudgetSpending, useBudgetStore} from "~/stores/budget.store";
+import {type Budget, type BudgetSpending, type RenewableBudget, useBudgetStore} from "~/stores/budget.store";
 import {useReferenceStore} from "~/stores/reference.store";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import BudgetDonutChart from "~/components/budget/BudgetDonutChart.vue";
 import BudgetCategoryRow from "~/components/budget/BudgetCategoryRow.vue";
 import BudgetFormDialog from "~/components/budget/BudgetFormDialog.vue";
 import BudgetRenewDialog from "~/components/budget/BudgetRenewDialog.vue";
+import {useAccountStore} from "~/stores/account.store";
 import {Button} from "~/components/ui/button";
 import {Calendar} from "~/components/ui/calendar";
 import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
@@ -30,6 +33,7 @@ const {t, locale} = useI18n();
 const budgetStore = useBudgetStore();
 const referenceStore = useReferenceStore();
 const familyStore = useFamilyStore();
+const accountStore = useAccountStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -68,10 +72,28 @@ function setPeriod(year: number, month: number, options?: {replace?: boolean}) {
 }
 
 const budget = ref<Budget | null>(null);
+const budgets = ref<Budget[]>([]);
 const spending = ref<BudgetSpending | null>(null);
-const availableMonths = ref<AvailableMonth[]>([]);
+const renewableBudgets = ref<RenewableBudget[]>([]);
 const isLoading = ref(true);
 const latestLoadRequestId = ref(0);
+
+const currentBudgetId = computed(() => {
+    const raw = Array.isArray(route.query.budgetId) ? route.query.budgetId[0] : route.query.budgetId;
+    return typeof raw === "string" ? raw : null;
+});
+
+function setActiveBudgetId(id: string | null, options?: {replace?: boolean}) {
+    const query = {...route.query};
+    if (id) query.budgetId = id;
+    else delete query.budgetId;
+    if (options?.replace) router.replace({query});
+    else router.push({query});
+}
+
+function budgetDisplayName(b: Budget, index: number): string {
+    return b.name && b.name.trim().length > 0 ? b.name : t("budget.page.tabs.fallbackName", {index: index + 1});
+}
 
 // Dialog states
 const isCreateDialogOpen = ref(false);
@@ -80,13 +102,58 @@ const isDeleteDialogOpen = ref(false);
 const isRenewDialogOpen = ref(false);
 const dialogMode = ref<"create" | "edit" | "renew">("create");
 const renewSourceBudget = ref<Budget | null>(null);
+const renewSourceAccountIds = ref<string[]>([]);
 const isPeriodPickerOpen = ref(false);
 const draftPeriodDate = ref<DateValue>();
 const draftPeriodPlaceholder = ref<DateValue>();
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
 
+const writableAccounts = computed(() =>
+    accountStore.accounts.filter((a) => a.access === "owner" || a.access === "write"),
+);
+
+const hasWritableAccount = computed(() => writableAccounts.value.length > 0);
+
+const accountGroups = computed(() => {
+    const groups = new Map<
+        string,
+        {ownerId: string; ownerLabel: string; accounts: (typeof writableAccounts.value)[number][]}
+    >();
+
+    const family = familyStore.family;
+    const familyMembers = family ? [family.owner, ...(family.members ?? [])] : [];
+    const memberNameById = new Map(familyMembers.map((m) => [m.id, m.username]));
+
+    for (const account of writableAccounts.value) {
+        const ownerId = account.ownerId;
+        const isOwn = account.access === "owner";
+        const label = isOwn
+            ? t("budget.dialog.accounts.groupOwn")
+            : t("budget.dialog.accounts.groupShared", {
+                  name: memberNameById.get(ownerId) ?? t("budget.dialog.accounts.someone"),
+              });
+        if (!groups.has(ownerId)) {
+            groups.set(ownerId, {ownerId, ownerLabel: label, accounts: []});
+        }
+        groups.get(ownerId)!.accounts.push(account);
+    }
+
+    // Ensure the user's own group appears first for a stable order.
+    const userStoreOwnerId = accountStore.accounts.find((a) => a.access === "owner")?.ownerId;
+    return [...groups.values()].sort((a, b) => {
+        if (a.ownerId === userStoreOwnerId) return -1;
+        if (b.ownerId === userStoreOwnerId) return 1;
+        return a.ownerLabel.localeCompare(b.ownerLabel);
+    });
+});
+
 const budgetExists = computed(() => !!budget.value);
+const canEditBudget = computed(() => {
+    const perm = budget.value?.effectivePermission;
+    return perm === "owner" || perm === "write";
+});
+const canDeleteBudget = computed(() => budget.value?.effectivePermission === "owner");
 
 const donutSegments = computed(() => {
     // Product decision: when no budget exists for the selected period,
@@ -110,14 +177,13 @@ const donutSegments = computed(() => {
         for (const bc of budget.value.budgetedCategories) {
             if (!bc.categoryId) continue;
             const spendingCat = spendingMap.get(bc.categoryId!);
-            const refCat = referenceStore.categories.find((c) => c.id === bc.categoryId);
             const spent = spendingCat?.spent ?? 0;
             if (spent <= 0.005) continue;
             segments.push({
-                label: spendingCat?.name ?? refCat?.name ?? "Unknown",
+                label: bc.name,
                 value: spent,
-                color: spendingCat?.hexColor ?? refCat?.hexColor ?? "#888",
-                icon: spendingCat?.icon ?? refCat?.icon,
+                color: bc.hexColor,
+                icon: bc.icon,
                 budgeted: bc.amount,
                 spent,
             });
@@ -177,12 +243,11 @@ const categoryRows = computed(() => {
         for (const bc of budget.value.budgetedCategories) {
             if (!bc.categoryId) continue;
             const spendingCat = spendingMap.get(bc.categoryId);
-            const refCat = referenceStore.categories.find((c) => c.id === bc.categoryId);
             budgetedCategories.push({
                 id: bc.categoryId,
-                name: spendingCat?.name ?? refCat?.name ?? "Unknown",
-                icon: spendingCat?.icon ?? refCat?.icon ?? "iconoir:question-mark",
-                hexColor: spendingCat?.hexColor ?? refCat?.hexColor ?? "#888",
+                name: bc.name,
+                icon: bc.icon,
+                hexColor: bc.hexColor,
                 spent: spendingCat?.spent ?? 0,
                 budgeted: bc.amount,
             });
@@ -284,8 +349,8 @@ const monthOptions = computed(() => {
 
 const availableYears = computed(() => {
     const years = new Set<number>([selectedYear.value, now.getFullYear()]);
-    for (const month of availableMonths.value) {
-        years.add(month.year);
+    for (const renewable of renewableBudgets.value) {
+        years.add(renewable.year);
     }
 
     const sortedYears = [...years].sort((a, b) => a - b);
@@ -323,16 +388,10 @@ const existingBudgetForDialog = computed(() => {
         return {
             month: renewSourceBudget.value.month,
             year: renewSourceBudget.value.year,
+            name: renewSourceBudget.value.name,
             budgetedIncome: renewSourceBudget.value.budgetedIncome,
             categories: renewSourceBudget.value.budgetedCategories ?? [],
-        };
-    }
-    if (budget.value) {
-        return {
-            month: budget.value.month,
-            year: budget.value.year,
-            budgetedIncome: budget.value.budgetedIncome,
-            categories: budget.value.budgetedCategories ?? [],
+            accountIds: renewSourceAccountIds.value,
         };
     }
     return null;
@@ -359,14 +418,28 @@ async function loadData() {
 
     isLoading.value = true;
     try {
-        const [loadedBudget, loadedSpending] = await Promise.all([loadBudget(year, month), loadSpending(year, month)]);
+        const list = await loadBudgets(year, month);
+        if (requestId !== latestLoadRequestId.value) return;
 
-        if (requestId !== latestLoadRequestId.value) {
-            return;
+        budgets.value = list;
+
+        // Resolve active budget: URL param wins if valid, else first of the list.
+        let active: Budget | null = null;
+        if (currentBudgetId.value) {
+            active = list.find((b) => b.id === currentBudgetId.value) ?? null;
+            if (!active && list.length > 0) {
+                // Stale URL — reset silently.
+                setActiveBudgetId(list[0]!.id, {replace: true});
+                active = list[0]!;
+            } else if (!active) {
+                setActiveBudgetId(null, {replace: true});
+            }
+        } else {
+            active = list[0] ?? null;
         }
 
-        budget.value = loadedBudget;
-        spending.value = loadedSpending;
+        budget.value = active;
+        spending.value = active ? await loadSpending(active.id) : null;
     } catch (err) {
         console.error(err);
     } finally {
@@ -376,27 +449,36 @@ async function loadData() {
     }
 }
 
-async function loadBudget(year: number, month: number) {
+async function loadBudgets(year: number, month: number): Promise<Budget[]> {
     try {
-        return await budgetStore.getBudgetByPeriod(year, month);
+        return await budgetStore.getBudgetsByPeriod(year, month);
+    } catch {
+        return [];
+    }
+}
+
+async function loadSpending(budgetId: string): Promise<BudgetSpending | null> {
+    try {
+        return await budgetStore.getSpending(budgetId);
     } catch {
         return null;
     }
 }
 
-async function loadSpending(year: number, month: number) {
-    try {
-        return await budgetStore.getSpending(year, month);
-    } catch {
-        return null;
-    }
+async function selectBudget(id: string) {
+    if (budget.value?.id === id) return;
+    const target = budgets.value.find((b) => b.id === id) ?? null;
+    if (!target) return;
+    setActiveBudgetId(id);
+    budget.value = target;
+    spending.value = await loadSpending(target.id);
 }
 
-async function loadAvailableMonths() {
+async function loadRenewableBudgets() {
     try {
-        availableMonths.value = await budgetStore.getAvailableMonths();
+        renewableBudgets.value = await budgetStore.getRenewableBudgets();
     } catch {
-        availableMonths.value = [];
+        renewableBudgets.value = [];
     }
 }
 
@@ -438,6 +520,7 @@ function applySelectedPeriod() {
 function openCreateDialog() {
     dialogMode.value = "create";
     renewSourceBudget.value = null;
+    renewSourceAccountIds.value = [];
     isCreateDialogOpen.value = true;
 }
 
@@ -463,36 +546,54 @@ function openRenewDialog() {
 }
 
 function handleRenewBudget(sourceBudget: Budget) {
+    const writableIds = new Set(writableAccounts.value.map((a) => a.id));
+    const filtered = sourceBudget.accountIds.filter((id) => writableIds.has(id));
+    if (filtered.length === 0) {
+        toast.error(t("budget.renewDialog.errors.noWritableAccounts"));
+        return;
+    }
     dialogMode.value = "renew";
     renewSourceBudget.value = sourceBudget;
+    renewSourceAccountIds.value = filtered;
     isCreateDialogOpen.value = true;
 }
 
 async function handleSaveBudget(payload: {
+    name: string | null;
     month: number;
     year: number;
     budgetedIncome: number;
     categories: {categoryId: string; amount: number}[];
+    accountIds: string[];
 }) {
     isSavingBudget.value = true;
     try {
         if (dialogMode.value === "edit" && budget.value) {
-            await budgetStore.updateBudget(budget.value.id, {
+            const isOwner = budget.value.effectivePermission === "owner";
+            const updated = await budgetStore.updateBudget(budget.value.id, {
+                name: payload.name,
                 budgetedIncome: payload.budgetedIncome,
                 categories: payload.categories,
+                // Only the budget owner can change the accounts.
+                ...(isOwner ? {accountIds: payload.accountIds} : {}),
             });
             isEditDialogOpen.value = false;
+            await loadData();
+            setActiveBudgetId(updated.id, {replace: true});
         } else {
-            await budgetStore.createBudget({
+            const created = await budgetStore.createBudget({
+                name: payload.name ?? undefined,
                 month: selectedMonth.value,
                 year: selectedYear.value,
                 budgetedIncome: payload.budgetedIncome,
                 categories: payload.categories,
+                accountIds: payload.accountIds,
             });
             isCreateDialogOpen.value = false;
+            await loadData();
+            setActiveBudgetId(created.id, {replace: true});
         }
-        await loadData();
-        await loadAvailableMonths();
+        await loadRenewableBudgets();
     } finally {
         isSavingBudget.value = false;
     }
@@ -503,7 +604,7 @@ async function handleDelete() {
         await budgetStore.deleteBudget(budget.value.id);
         isDeleteDialogOpen.value = false;
         await loadData();
-        await loadAvailableMonths();
+        await loadRenewableBudgets();
     }
 }
 
@@ -511,10 +612,9 @@ onMounted(async () => {
     if (typeof route.query.period !== "string" || !/^\d{4}-\d{2}$/.test(route.query.period)) {
         setPeriod(now.getFullYear(), now.getMonth() + 1, {replace: true});
     }
-    await referenceStore.fetchReferences();
-    await familyStore.fetchFamily();
+    await Promise.all([referenceStore.fetchReferences(), familyStore.fetchFamily(), accountStore.fetchAccounts()]);
     await loadData();
-    await loadAvailableMonths();
+    await loadRenewableBudgets();
 });
 
 watch([selectedMonth, selectedYear], async () => {
@@ -548,30 +648,54 @@ watch([selectedMonth, selectedYear], async () => {
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <template v-if="!budgetExists">
-                            <Button variant="outline" @click="openRenewDialog">
-                                <Icon class="h-4 w-4" name="iconoir:data-transfer-both" />
-                                {{ t("budget.page.renewBudget") }}
-                            </Button>
-                            <Button @click="openCreateDialog">
-                                <Icon class="h-4 w-4" name="iconoir:plus" />
-                                {{ t("budget.page.createBudget") }}
-                            </Button>
-                        </template>
-                        <template v-else>
-                            <Button variant="outline" @click="openEditDialog">
-                                <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
-                                {{ t("budget.page.editBudget") }}
-                            </Button>
-                            <Button
-                                class="text-destructive hover:bg-destructive/10"
-                                variant="outline"
-                                @click="isDeleteDialogOpen = true">
-                                <Icon class="h-4 w-4" name="iconoir:trash" />
-                                {{ t("budget.page.deleteBudget") }}
-                            </Button>
-                        </template>
+                        <Button
+                            v-if="!budgetExists && renewableBudgets.length > 0 && hasWritableAccount"
+                            variant="outline"
+                            @click="openRenewDialog">
+                            <Icon class="h-4 w-4" name="iconoir:data-transfer-both" />
+                            {{ t("budget.page.renewBudget") }}
+                        </Button>
+                        <Button v-if="canEditBudget" variant="outline" @click="openEditDialog">
+                            <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
+                            {{ t("budget.page.editBudget") }}
+                        </Button>
+                        <Button
+                            v-if="canDeleteBudget"
+                            class="text-destructive hover:bg-destructive/10"
+                            variant="outline"
+                            @click="isDeleteDialogOpen = true">
+                            <Icon class="h-4 w-4" name="iconoir:trash" />
+                            {{ t("budget.page.deleteBudget") }}
+                        </Button>
+                        <AccountSharedBadge
+                            v-if="budget && budget.effectivePermission !== 'owner'"
+                            :access="budget.effectivePermission"
+                            variant="full" />
+                        <Button
+                            v-if="!accountStore.hasFetched || hasWritableAccount"
+                            :disabled="!accountStore.hasFetched"
+                            @click="openCreateDialog">
+                            <Icon class="h-4 w-4" name="iconoir:plus" />
+                            {{ t("budget.page.newBudget") }}
+                        </Button>
                     </div>
+                </div>
+
+                <!-- Multi-budget tabs -->
+                <div v-if="!isLoading && budgets.length > 1" class="flex shrink-0 flex-wrap items-center gap-2">
+                    <button
+                        v-for="(b, idx) in budgets"
+                        :key="b.id"
+                        type="button"
+                        :class="[
+                            'rounded-full border px-3 py-1 text-sm transition-colors',
+                            b.id === budget?.id
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border/60 hover:bg-muted',
+                        ]"
+                        @click="selectBudget(b.id)">
+                        {{ budgetDisplayName(b, idx) }}
+                    </button>
                 </div>
 
                 <!-- Loading -->
@@ -731,19 +855,18 @@ watch([selectedMonth, selectedYear], async () => {
         <!-- Renew Dialog -->
         <BudgetRenewDialog
             v-model:open="isRenewDialogOpen"
-            :available-months="availableMonths"
+            :renewable-budgets="renewableBudgets"
             @renew="handleRenewBudget" />
 
         <!-- Create / Renew Dialog -->
         <BudgetFormDialog
             v-model:open="isCreateDialogOpen"
+            :account-groups="accountGroups"
             :currency="currency"
             :existing-budget="existingBudgetForDialog"
             :is-saving="isSavingBudget"
             :mode="dialogMode"
-            :planned-categories="spending?.plannedByCategory"
             :source-period-label="sourcePeriodLabel"
-            :spending-categories="spending?.byCategory"
             :target-month="selectedMonth"
             :target-period-label="periodLabel"
             :target-year="selectedYear"
@@ -753,15 +876,19 @@ watch([selectedMonth, selectedYear], async () => {
         <BudgetFormDialog
             v-if="budget"
             v-model:open="isEditDialogOpen"
+            :account-groups="accountGroups"
             :budget-id="budget.id"
             :currency="currency"
             :existing-budget="{
                 month: budget.month,
                 year: budget.year,
+                name: budget.name,
                 budgetedIncome: budget.budgetedIncome,
                 categories: budget.budgetedCategories ?? [],
+                accountIds: budget.accountIds,
             }"
             :is-saving="isSavingBudget"
+            :lock-accounts="budget.effectivePermission !== 'owner'"
             :mode="'edit'"
             :planned-categories="spending?.plannedByCategory"
             :spending-categories="spending?.byCategory"

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
-import type {TransactionCategory} from "~/stores/transaction.store";
+import type {TransactionCategory} from "~/stores/reference.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";

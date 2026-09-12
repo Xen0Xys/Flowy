@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type {ParsedTransaction} from "~/composables/useCsvParser";
 import {cn} from "~/lib/utils";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
 import TransactionReferenceCombobox from "~/components/transactions/TransactionReferenceCombobox.vue";
@@ -19,6 +19,7 @@ const props = defineProps<{
     };
     isTesting: boolean;
     isImporting: boolean;
+    accountId: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -31,10 +32,12 @@ const emit = defineEmits<{
 }>();
 
 const {t} = useI18n();
-const referenceStore = useReferenceStore();
+const accountStore = useAccountStore();
 const createMerchantDialog = ref(false);
 const createCategoryDialog = ref(false);
 const activeTransactionId = ref<string | null>(null);
+
+const {categories: scopedCategories, merchants: scopedMerchants} = useAccountScopedReferences(() => props.accountId);
 
 // Pagination
 const PAGE_SIZE = 100;
@@ -47,9 +50,15 @@ const paginatedTransactions = computed(() => {
 });
 
 const categoryItems = computed(() =>
-    referenceStore.categories.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
+    scopedCategories.value.map((c) => ({id: c.id, name: c.name, icon: c.icon, hexColor: c.hexColor})),
 );
-const merchantItems = computed(() => referenceStore.merchants.map((m) => ({id: m.id, name: m.name})));
+const merchantItems = computed(() => scopedMerchants.value.map((m) => ({id: m.id, name: m.name})));
+
+const canCreateReferences = computed(() => {
+    if (!props.accountId) return true;
+    const account = accountStore.accounts.find((a) => a.id === props.accountId);
+    return account ? account.access === "owner" : true;
+});
 
 // O(1) lookup for transaction by ID (for duplicate info)
 const transactionById = computed(() => {
@@ -58,13 +67,6 @@ const transactionById = computed(() => {
         map.set(tx.id, tx);
     }
     return map;
-});
-
-// Fetch references if not loaded
-onMounted(() => {
-    if (!referenceStore.isLoaded) {
-        referenceStore.fetchReferences();
-    }
 });
 
 // Reset to page 1 when transactions change
@@ -259,6 +261,7 @@ function formatDateForDisplay(date: string): string {
                                 :empty-text="t('transactions.form.noResults')"
                                 :none-label="t('common.none')"
                                 :create-label="t('settings.references.addCategory')"
+                                :can-create="canCreateReferences"
                                 @update:model-value="(v: string) => handleCategoryChange(transaction.id, v)"
                                 @create="openCreateCategory(transaction.id)" />
                         </TableCell>
@@ -270,6 +273,7 @@ function formatDateForDisplay(date: string): string {
                                 :empty-text="t('transactions.form.noResults')"
                                 :none-label="t('common.none')"
                                 :create-label="t('settings.references.addMerchant')"
+                                :can-create="canCreateReferences"
                                 @update:model-value="(v: string) => handleMerchantChange(transaction.id, v)"
                                 @create="openCreateMerchant(transaction.id)" />
                         </TableCell>

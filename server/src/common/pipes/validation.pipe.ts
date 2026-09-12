@@ -4,6 +4,11 @@ export class CustomValidationPipe extends ValidationPipe {
     constructor() {
         super({
             transform: true,
+            // Strip unknown fields before they reach the service layer.
+            // Combined with forbidNonWhitelisted, unknown fields surface as a
+            // 400 so accidental payload drift is caught in dev, not in prod.
+            whitelist: true,
+            forbidNonWhitelisted: true,
             transformOptions: {enableImplicitConversion: true},
         });
     }

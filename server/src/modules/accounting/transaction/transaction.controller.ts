@@ -49,7 +49,7 @@ export class TransactionController {
         @User() user: UserEntity,
         @Query() query: SuggestReferenceDto,
     ): Promise<ReferenceSuggestion> {
-        return this.transactionService.suggestReferences(user, query.description);
+        return this.transactionService.suggestReferences(user, query.description, query.accountId);
     }
 
     @Get("summary")

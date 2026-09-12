@@ -1,4 +1,4 @@
-import {IsString, IsStrongPassword, Length} from "class-validator";
+import {IsNotEmpty, IsString, IsStrongPassword, Length} from "class-validator";
 
 export class SetPasswordDto {
     @IsString()
@@ -11,4 +11,8 @@ export class SetPasswordDto {
         minSymbols: 0,
     })
     password: string;
+
+    @IsString()
+    @IsNotEmpty()
+    currentPassword: string;
 }

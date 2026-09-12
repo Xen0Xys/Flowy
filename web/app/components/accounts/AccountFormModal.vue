@@ -9,7 +9,6 @@ import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, Di
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
-import {Switch} from "~/components/ui/switch";
 import MoneyInput from "~/components/common/MoneyInput.vue";
 
 const props = defineProps<{
@@ -43,7 +42,6 @@ const formData = ref({
     name: "",
     type: "CHECKING" as (typeof typeOptions)[number]["value"],
     balance: 0,
-    inBudget: true,
 });
 
 const touched = ref<{name: boolean; balance: boolean}>({name: false, balance: false});
@@ -54,14 +52,12 @@ const resetForm = () => {
             name: props.account.name,
             type: props.account.type as (typeof typeOptions)[number]["value"],
             balance: props.account.balance,
-            inBudget: props.account.inBudget ?? true,
         };
     } else {
         formData.value = {
             name: "",
             type: "CHECKING",
             balance: 0,
-            inBudget: true,
         };
     }
     touched.value = {name: false, balance: false};
@@ -129,14 +125,12 @@ const submitForm = async () => {
             await accountStore.updateAccount(props.account.id, {
                 name: formData.value.name.trim(),
                 type: formData.value.type,
-                inBudget: formData.value.inBudget,
             });
         } else {
             await accountStore.createAccount({
                 name: formData.value.name.trim(),
                 type: formData.value.type,
                 balance: formData.value.balance,
-                inBudget: formData.value.inBudget,
             });
         }
         emit("saved");
@@ -236,17 +230,6 @@ const submitForm = async () => {
                             role="alert">
                             {{ balanceError }}
                         </p>
-                    </div>
-
-                    <!-- In budget -->
-                    <div class="flex items-start justify-between gap-3 rounded-lg border p-3">
-                        <div class="space-y-1">
-                            <Label class="cursor-pointer" for="inBudget">{{ t("accounts.form.inBudget") }}</Label>
-                            <p class="text-muted-foreground text-xs">
-                                {{ t("accounts.form.inBudgetDescription") }}
-                            </p>
-                        </div>
-                        <Switch id="inBudget" v-model="formData.inBudget" />
                     </div>
                 </fieldset>
 

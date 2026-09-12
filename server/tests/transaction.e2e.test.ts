@@ -490,7 +490,7 @@ describe("TransactionController (e2e)", () => {
         const byId = await agent.get(`/transaction/${created.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
 
         expect(byId.status).toBe(403);
-        expect(byId.body.message).toBe("You do not have permission to access this transaction");
+        expect(byId.body.message).toBe("You do not have permission to access this account");
     });
 
     test("searches transactions with frontend-like filters", async () => {
@@ -1299,13 +1299,13 @@ describe("TransactionController (e2e)", () => {
             .set("Authorization", `Bearer ${outsider.token}`)
             .send({description: "Hacked"});
         expect(update.status).toBe(403);
-        expect(update.body.message).toBe("You do not have permission to update this transaction");
+        expect(update.body.message).toBe("You do not have permission to access this account");
 
         const remove = await agent
             .delete(`/transaction/${create.body.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(remove.status).toBe(403);
-        expect(remove.body.message).toBe("You do not have permission to delete this transaction");
+        expect(remove.body.message).toBe("You do not have permission to access this account");
     });
 
     test("forbids creating and bulk importing transactions into another user's account", async () => {

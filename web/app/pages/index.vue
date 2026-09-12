@@ -18,20 +18,20 @@ import {
 } from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import AccountOwnerSharesBadge from "~/components/accounts/AccountOwnerSharesBadge.vue";
+import AccountShareDialog from "~/components/accounts/AccountShareDialog.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "~/components/ui/dropdown-menu";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import PasswordConfirmDialog from "~/components/common/PasswordConfirmDialog.vue";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "~/components/ui/collapsible";
 import {ScrollArea} from "~/components/ui/scroll-area";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
@@ -72,6 +72,9 @@ const isFormModalOpen = ref(false);
 const accountToDelete = ref<Account | null>(null);
 const isDeleteDialogOpen = ref(false);
 
+const accountToShare = ref<Account | null>(null);
+const isShareDialogOpen = ref(false);
+
 const timeRange = ref<TimeRange>("1M");
 const globalEvolutionSeries = ref<{date: string; balance: number}[]>([]);
 
@@ -94,9 +97,13 @@ const chartColor = computed(() => {
     return fallback;
 });
 
-const totalBalance = computed(() => computeTotalBalance(accountStore.accounts));
-const groupedAccounts = computed(() => groupAccountsByType(accountStore.accounts));
+const ownedAccounts = computed(() => accountStore.ownedAccounts);
+const sharedAccounts = computed(() => accountStore.sharedAccounts);
+const totalBalance = computed(() => computeTotalBalance(ownedAccounts.value));
+const sharedBalance = computed(() => computeTotalBalance(sharedAccounts.value));
+const groupedAccounts = computed(() => groupAccountsByType(ownedAccounts.value));
 const categoryStats = computed(() => computeCategoryStats(groupedAccounts.value));
+const sortedSharedAccounts = computed(() => [...sharedAccounts.value].sort((a, b) => b.balance - a.balance));
 
 // KPI count-up animation
 const displayedBalance = ref(0);
@@ -139,7 +146,7 @@ const loadChartData = async () => {
     const seriesByAccount: Record<string, {date: string; balance: number}[]> = {};
 
     await Promise.all(
-        accountStore.accounts.map(async (account) => {
+        ownedAccounts.value.map(async (account) => {
             seriesByAccount[account.id] = await accountStore.fetchAccountBalanceEvolution(
                 account.id,
                 startDate,
@@ -185,11 +192,26 @@ const confirmDelete = (account: Account) => {
     isDeleteDialogOpen.value = true;
 };
 
-const executeDelete = async () => {
-    if (accountToDelete.value) {
-        await accountStore.deleteAccount(accountToDelete.value.id);
+const openShareDialog = (account: Account) => {
+    accountToShare.value = account;
+    isShareDialogOpen.value = true;
+};
+
+const onSharesChanged = () => {
+    accountStore.fetchAccounts();
+};
+
+const isDeletingAccount = ref(false);
+const executeDelete = async (currentPassword: string) => {
+    if (!accountToDelete.value) return;
+    isDeletingAccount.value = true;
+    try {
+        await accountStore.deleteAccount(accountToDelete.value.id, currentPassword);
         accountToDelete.value = null;
+        isDeleteDialogOpen.value = false;
         await loadData();
+    } finally {
+        isDeletingAccount.value = false;
     }
 };
 
@@ -301,7 +323,18 @@ const formatCompactCurrency = (value: number) => {
                                     {{ formatCurrency(displayedBalance) }}
                                 </div>
                                 <p class="text-muted-foreground mt-1 text-sm">
-                                    {{ t("dashboard.acrossAccounts", {count: accountStore.accounts.length}) }}
+                                    {{ t("dashboard.acrossOwnedAccounts", {count: ownedAccounts.length}) }}
+                                </p>
+                                <p
+                                    v-if="sharedAccounts.length > 0"
+                                    class="text-muted-foreground/80 mt-1 flex items-center gap-1.5 text-xs">
+                                    <Icon class="size-3" name="iconoir:community" />
+                                    {{
+                                        t("dashboard.sharedAccountsNote", {
+                                            count: sharedAccounts.length,
+                                            amount: formatCurrency(sharedBalance),
+                                        })
+                                    }}
                                 </p>
                             </div>
                             <Tabs v-model="timeRange" class="w-auto">
@@ -444,8 +477,15 @@ const formatCompactCurrency = (value: number) => {
                                             :key="account.id"
                                             class="hover:bg-muted/40 flex cursor-pointer items-center justify-between border-b p-4 transition-colors last:border-b-0"
                                             @click="goToDetails(account.id)">
-                                            <div class="flex flex-col">
-                                                <span class="font-medium">{{ account.name }}</span>
+                                            <div class="flex min-w-0 flex-col">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="truncate font-medium">{{ account.name }}</span>
+                                                    <AccountOwnerSharesBadge
+                                                        :shares-count="account.sharesCount ?? 0"
+                                                        variant="icon"
+                                                        clickable
+                                                        @click.stop="openShareDialog(account)" />
+                                                </div>
                                                 <span class="text-muted-foreground mt-1 text-xs tabular-nums">
                                                     {{
                                                         t("dashboard.percentOfCategory", {
@@ -475,6 +515,11 @@ const formatCompactCurrency = (value: number) => {
                                                             <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
                                                             {{ t("common.edit") }}
                                                         </DropdownMenuItem>
+                                                        <DropdownMenuItem @click.stop="openShareDialog(account)">
+                                                            <Icon class="mr-2 h-4 w-4" name="iconoir:community" />
+                                                            {{ t("account.share.action") }}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuItem
                                                             class="text-destructive focus:text-destructive"
                                                             @click.stop="confirmDelete(account)">
@@ -488,6 +533,59 @@ const formatCompactCurrency = (value: number) => {
                                     </div>
                                 </CollapsibleContent>
                             </Collapsible>
+
+                            <Collapsible
+                                v-if="sortedSharedAccounts.length > 0"
+                                :open="!collapsedCategories['__shared__']"
+                                :style="{'--stagger-index': categoryStats.length}"
+                                class="bg-card text-card-foreground border-border/60 overflow-hidden rounded-2xl border shadow-sm transition-shadow hover:shadow-md"
+                                @update:open="(val) => (collapsedCategories['__shared__'] = !val)">
+                                <CollapsibleTrigger
+                                    class="hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <Icon
+                                            :name="
+                                                !collapsedCategories['__shared__']
+                                                    ? 'iconoir:nav-arrow-down'
+                                                    : 'iconoir:nav-arrow-right'
+                                            "
+                                            class="text-muted-foreground h-5 w-5 transition-transform duration-200" />
+                                        <h3 class="font-heading flex items-center gap-2 text-lg font-semibold">
+                                            <Icon class="text-primary h-5 w-5" name="iconoir:community" />
+                                            {{ t("dashboard.sharedAccountsSection") }}
+                                        </h3>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-sm">
+                                        <span class="font-heading text-base font-semibold tabular-nums">
+                                            {{ formatCurrency(sharedBalance) }}
+                                        </span>
+                                    </div>
+                                </CollapsibleTrigger>
+
+                                <CollapsibleContent>
+                                    <div class="flex flex-col border-t">
+                                        <div
+                                            v-for="account in sortedSharedAccounts"
+                                            :key="account.id"
+                                            class="hover:bg-muted/40 border-primary/60 flex cursor-pointer items-center justify-between border-b border-l-2 border-dashed p-4 transition-colors last:border-b-0"
+                                            @click="goToDetails(account.id)">
+                                            <div class="flex min-w-0 flex-col gap-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="truncate font-medium">{{ account.name }}</span>
+                                                    <AccountSharedBadge :access="account.access" variant="full" />
+                                                </div>
+                                                <span class="text-muted-foreground text-xs">
+                                                    {{ t(`accounts.types.${account.type.toLowerCase()}`) }} ·
+                                                    {{ t("account.share.excluded") }}
+                                                </span>
+                                            </div>
+                                            <span class="font-semibold tabular-nums">
+                                                {{ formatCurrency(account.balance) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
                         </div>
                     </component>
                 </template>
@@ -495,24 +593,26 @@ const formatCompactCurrency = (value: number) => {
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="accountToEdit" @saved="onFormSaved" />
 
-                <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {{ t("dashboard.deleteAccountDescription", {name: accountToDelete?.name ?? ""}) }}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                            <AlertDialogAction
-                                class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                @click="executeDelete">
-                                {{ t("common.delete") }}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <AccountShareDialog
+                    v-if="accountToShare"
+                    v-model:open="isShareDialogOpen"
+                    :account-id="accountToShare.id"
+                    @shares-changed="onSharesChanged" />
+
+                <PasswordConfirmDialog
+                    :open="isDeleteDialogOpen"
+                    :title="t('common.areYouSure')"
+                    :description="t('dashboard.deleteAccountDescription', {name: accountToDelete?.name ?? ''})"
+                    :confirm-label="t('common.delete')"
+                    :loading="isDeletingAccount"
+                    input-id="dashboard-delete-account-password"
+                    @update:open="
+                        (value) => {
+                            isDeleteDialogOpen = value;
+                            if (!value) accountToDelete = null;
+                        }
+                    "
+                    @confirm="executeDelete" />
             </div>
         </div>
     </div>

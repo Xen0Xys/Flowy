@@ -1,12 +1,13 @@
 import {FamilyController} from "./family.controller";
 import {FamilyService} from "./family.service";
 import {UserModule} from "../user/user.module";
+import {AccountModule} from "../../accounting/account/account.module";
 import {Module} from "@nestjs/common";
 
 @Module({
     controllers: [FamilyController],
     providers: [FamilyService],
-    imports: [UserModule],
+    imports: [UserModule, AccountModule],
     exports: [FamilyService],
 })
 export class FamilyModule {}

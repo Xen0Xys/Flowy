@@ -10,6 +10,7 @@ import {
     ParseUUIDPipe,
     Post,
     Put,
+    Query,
     UseGuards,
 } from "@nestjs/common";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
@@ -17,43 +18,63 @@ import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {User} from "../../../common/decorators/user.decorator";
 import {BudgetService} from "./budget.service";
 import {CreateBudgetDto} from "./models/dto/create-budget.dto";
+import {GetPlannedByAccountsDto} from "./models/dto/get-planned-by-accounts.dto";
 import {UpdateBudgetDto} from "./models/dto/update-budget.dto";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {BudgetEntity} from "./models/entities/budget.entity";
-import {BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
-import type {AvailableMonth} from "./models/entities/budget-spending.entity";
+import {BudgetSpendingCategoryEntity, BudgetSpendingEntity} from "./models/entities/budget-spending.entity";
+import type {RenewableBudget} from "./models/entities/budget-spending.entity";
 
 @Controller("budget")
 export class BudgetController {
     constructor(private readonly budgetService: BudgetService) {}
 
+    @Get("renewable")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getRenewableBudgets(@User() user: UserEntity): Promise<RenewableBudget[]> {
+        return this.budgetService.getRenewableBudgets(user);
+    }
+
+    @Get("planned")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getPlannedForAccounts(
+        @User() user: UserEntity,
+        @Query() query: GetPlannedByAccountsDto,
+    ): Promise<BudgetSpendingCategoryEntity[]> {
+        return this.budgetService.getPlannedForAccounts(user, query);
+    }
+
     @Get(":year/:month")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getBudgetByPeriod(
+    async getBudgetsByPeriod(
         @User() user: UserEntity,
         @Param("year", ParseIntPipe) year: number,
         @Param("month", ParseIntPipe) month: number,
-    ): Promise<BudgetEntity | null> {
-        return this.budgetService.getBudgetByPeriod(user, year, month);
+    ): Promise<BudgetEntity[]> {
+        return this.budgetService.getBudgetsByPeriod(user, year, month);
     }
 
-    @Get(":year/:month/spending")
+    @Get(":budgetId/spending")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async getSpending(
         @User() user: UserEntity,
-        @Param("year", ParseIntPipe) year: number,
-        @Param("month", ParseIntPipe) month: number,
+        @Param("budgetId", new ParseUUIDPipe({version: "7"})) budgetId: string,
     ): Promise<BudgetSpendingEntity> {
-        return this.budgetService.getSpending(user, year, month);
+        return this.budgetService.getSpending(user, budgetId);
     }
 
-    @Get("available-months")
+    @Get(":budgetId")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getAvailableMonths(@User() user: UserEntity): Promise<AvailableMonth[]> {
-        return this.budgetService.getAvailableMonths(user);
+    async getBudgetById(
+        @User() user: UserEntity,
+        @Param("budgetId", new ParseUUIDPipe({version: "7"})) budgetId: string,
+    ): Promise<BudgetEntity> {
+        return this.budgetService.getBudgetById(user, budgetId);
     }
 
     @Post()

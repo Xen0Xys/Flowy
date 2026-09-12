@@ -1,11 +1,12 @@
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, ref} from "vue";
+import {computed, nextTick, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Card, CardContent} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Badge} from "@/components/ui/badge";
+import {Checkbox} from "@/components/ui/checkbox";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
@@ -28,7 +29,7 @@ import {
 import {Edit, MoreHorizontal, Trash2} from "lucide-vue-next";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/transaction.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {Icon} from "#components";
 
 const referenceStore = useReferenceStore();
@@ -51,6 +52,45 @@ const editingMerchant = ref<TransactionMerchant | null>(null);
 const deletingMerchantId = ref<string | null>(null);
 const deleteMerchantDialogTarget = ref<TransactionMerchant | null>(null);
 
+const selectedCategoryIds = ref<Set<string>>(new Set());
+const selectedMerchantIds = ref<Set<string>>(new Set());
+
+const bulkDeleteCategoriesDialogOpen = ref(false);
+const bulkDeleteMerchantsDialogOpen = ref(false);
+const isBulkDeletingCategories = ref(false);
+const isBulkDeletingMerchants = ref(false);
+
+const selectedCategoryCountLabel = computed(() =>
+    t("settings.references.selectedCount", selectedCategoryIds.value.size, {
+        named: {count: selectedCategoryIds.value.size},
+    }),
+);
+const selectedMerchantCountLabel = computed(() =>
+    t("settings.references.selectedCount", selectedMerchantIds.value.size, {
+        named: {count: selectedMerchantIds.value.size},
+    }),
+);
+const bulkDeleteCategoriesTitle = computed(() =>
+    t("settings.references.bulkDeleteCategoriesTitle", selectedCategoryIds.value.size, {
+        named: {count: selectedCategoryIds.value.size},
+    }),
+);
+const bulkDeleteCategoriesDescription = computed(() =>
+    t("settings.references.bulkDeleteCategoriesDescription", selectedCategoryIds.value.size, {
+        named: {count: selectedCategoryIds.value.size},
+    }),
+);
+const bulkDeleteMerchantsTitle = computed(() =>
+    t("settings.references.bulkDeleteMerchantsTitle", selectedMerchantIds.value.size, {
+        named: {count: selectedMerchantIds.value.size},
+    }),
+);
+const bulkDeleteMerchantsDescription = computed(() =>
+    t("settings.references.bulkDeleteMerchantsDescription", selectedMerchantIds.value.size, {
+        named: {count: selectedMerchantIds.value.size},
+    }),
+);
+
 const filteredCategories = computed(() => {
     const query = searchQuery.value.trim().toLowerCase();
     if (!query) return referenceStore.categories;
@@ -69,6 +109,83 @@ const searchPlaceholder = computed(() =>
         : t("settings.references.searchMerchantsPlaceholder"),
 );
 
+type HeaderCheckboxState = boolean | "indeterminate";
+
+function headerState(filteredIds: string[], selected: Set<string>): HeaderCheckboxState {
+    if (filteredIds.length === 0) return false;
+    let selectedCount = 0;
+    for (const id of filteredIds) {
+        if (selected.has(id)) selectedCount++;
+    }
+    if (selectedCount === 0) return false;
+    if (selectedCount === filteredIds.length) return true;
+    return "indeterminate";
+}
+
+const categoryHeaderState = computed<HeaderCheckboxState>(() =>
+    headerState(
+        filteredCategories.value.map((c) => c.id),
+        selectedCategoryIds.value,
+    ),
+);
+
+const merchantHeaderState = computed<HeaderCheckboxState>(() =>
+    headerState(
+        filteredMerchants.value.map((m) => m.id),
+        selectedMerchantIds.value,
+    ),
+);
+
+function toggleAllFilteredCategories(value: boolean | "indeterminate") {
+    const filteredIds = filteredCategories.value.map((c) => c.id);
+    const next = new Set(selectedCategoryIds.value);
+    if (value === true) {
+        for (const id of filteredIds) next.add(id);
+    } else {
+        for (const id of filteredIds) next.delete(id);
+    }
+    selectedCategoryIds.value = next;
+}
+
+function toggleCategory(id: string, value: boolean | "indeterminate") {
+    const next = new Set(selectedCategoryIds.value);
+    if (value === true) next.add(id);
+    else next.delete(id);
+    selectedCategoryIds.value = next;
+}
+
+function toggleAllFilteredMerchants(value: boolean | "indeterminate") {
+    const filteredIds = filteredMerchants.value.map((m) => m.id);
+    const next = new Set(selectedMerchantIds.value);
+    if (value === true) {
+        for (const id of filteredIds) next.add(id);
+    } else {
+        for (const id of filteredIds) next.delete(id);
+    }
+    selectedMerchantIds.value = next;
+}
+
+function toggleMerchant(id: string, value: boolean | "indeterminate") {
+    const next = new Set(selectedMerchantIds.value);
+    if (value === true) next.add(id);
+    else next.delete(id);
+    selectedMerchantIds.value = next;
+}
+
+function clearCategorySelection() {
+    selectedCategoryIds.value = new Set();
+}
+
+function clearMerchantSelection() {
+    selectedMerchantIds.value = new Set();
+}
+
+watch(activeTab, () => {
+    clearCategorySelection();
+    clearMerchantSelection();
+    searchQuery.value = "";
+});
+
 function openCategoryDialog(category?: TransactionCategory) {
     editingCategory.value = category ?? null;
     categoryDialogOpen.value = true;
@@ -86,9 +203,23 @@ async function confirmDeleteCategory() {
     deletingCategoryId.value = target.id;
     try {
         await referenceStore.deleteCategory(target.id);
+        toggleCategory(target.id, false);
         deleteCategoryDialogTarget.value = null;
     } finally {
         deletingCategoryId.value = null;
+    }
+}
+
+async function confirmBulkDeleteCategories() {
+    const ids = Array.from(selectedCategoryIds.value);
+    if (!ids.length) return;
+    isBulkDeletingCategories.value = true;
+    try {
+        await referenceStore.bulkDeleteCategories(ids);
+        clearCategorySelection();
+        bulkDeleteCategoriesDialogOpen.value = false;
+    } finally {
+        isBulkDeletingCategories.value = false;
     }
 }
 
@@ -109,9 +240,23 @@ async function confirmDeleteMerchant() {
     deletingMerchantId.value = target.id;
     try {
         await referenceStore.deleteMerchant(target.id);
+        toggleMerchant(target.id, false);
         deleteMerchantDialogTarget.value = null;
     } finally {
         deletingMerchantId.value = null;
+    }
+}
+
+async function confirmBulkDeleteMerchants() {
+    const ids = Array.from(selectedMerchantIds.value);
+    if (!ids.length) return;
+    isBulkDeletingMerchants.value = true;
+    try {
+        await referenceStore.bulkDeleteMerchants(ids);
+        clearMerchantSelection();
+        bulkDeleteMerchantsDialogOpen.value = false;
+    } finally {
+        isBulkDeletingMerchants.value = false;
     }
 }
 </script>
@@ -195,17 +340,45 @@ async function confirmDeleteMerchant() {
                         </div>
 
                         <div
+                            v-if="selectedCategoryIds.size === 0"
                             class="text-muted-foreground bg-muted/30 flex shrink-0 items-center gap-2 border-t px-4 py-2.5 text-xs md:text-sm">
                             <Icon class="size-4" name="iconoir:folder" />
                             <span class="tabular-nums">
                                 {{ t("settings.references.categoriesCount", filteredCategories.length) }}
                             </span>
                         </div>
+                        <div
+                            v-else
+                            class="bg-muted/40 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-2">
+                            <span class="text-sm font-medium tabular-nums">
+                                {{ selectedCategoryCountLabel }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <Button size="sm" variant="ghost" @click="clearCategorySelection">
+                                    {{ t("settings.references.clearSelection") }}
+                                </Button>
+                                <Button
+                                    :disabled="isBulkDeletingCategories"
+                                    size="sm"
+                                    variant="destructive"
+                                    @click="bulkDeleteCategoriesDialogOpen = true">
+                                    <Trash2 class="size-4" />
+                                    {{ t("settings.references.bulkDelete") }}
+                                </Button>
+                            </div>
+                        </div>
 
                         <ScrollArea class="min-h-0 flex-1 overflow-hidden rounded-b-xl border-t">
                             <Table>
                                 <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                                     <TableRow>
+                                        <TableHead class="w-10">
+                                            <Checkbox
+                                                :aria-label="t('settings.references.selectAll')"
+                                                :disabled="filteredCategories.length === 0"
+                                                :model-value="categoryHeaderState"
+                                                @update:model-value="toggleAllFilteredCategories" />
+                                        </TableHead>
                                         <TableHead>{{ t("settings.references.name") }}</TableHead>
                                         <TableHead class="w-14 text-right"></TableHead>
                                     </TableRow>
@@ -215,7 +388,14 @@ async function confirmDeleteMerchant() {
                                         v-for="category in filteredCategories"
                                         :key="category.id"
                                         class="hover:bg-muted/50 cursor-pointer"
+                                        :data-state="selectedCategoryIds.has(category.id) ? 'selected' : undefined"
                                         @click="openCategoryDialog(category)">
+                                        <TableCell class="w-10" @click.stop>
+                                            <Checkbox
+                                                :aria-label="t('settings.references.selectRow')"
+                                                :model-value="selectedCategoryIds.has(category.id)"
+                                                @update:model-value="(v) => toggleCategory(category.id, v)" />
+                                        </TableCell>
                                         <TableCell>
                                             <div class="flex items-center gap-3">
                                                 <div
@@ -258,7 +438,7 @@ async function confirmDeleteMerchant() {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="filteredCategories.length === 0">
-                                        <TableCell :colspan="2" class="text-muted-foreground h-24 text-center">
+                                        <TableCell :colspan="3" class="text-muted-foreground h-24 text-center">
                                             {{ t("settings.references.noSearchResults") }}
                                         </TableCell>
                                     </TableRow>
@@ -302,17 +482,45 @@ async function confirmDeleteMerchant() {
                         </div>
 
                         <div
+                            v-if="selectedMerchantIds.size === 0"
                             class="text-muted-foreground bg-muted/30 flex shrink-0 items-center gap-2 border-t px-4 py-2.5 text-xs md:text-sm">
                             <Icon class="size-4" name="iconoir:shop" />
                             <span class="tabular-nums">
                                 {{ t("settings.references.merchantsCount", filteredMerchants.length) }}
                             </span>
                         </div>
+                        <div
+                            v-else
+                            class="bg-muted/40 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-2">
+                            <span class="text-sm font-medium tabular-nums">
+                                {{ selectedMerchantCountLabel }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <Button size="sm" variant="ghost" @click="clearMerchantSelection">
+                                    {{ t("settings.references.clearSelection") }}
+                                </Button>
+                                <Button
+                                    :disabled="isBulkDeletingMerchants"
+                                    size="sm"
+                                    variant="destructive"
+                                    @click="bulkDeleteMerchantsDialogOpen = true">
+                                    <Trash2 class="size-4" />
+                                    {{ t("settings.references.bulkDelete") }}
+                                </Button>
+                            </div>
+                        </div>
 
                         <ScrollArea class="min-h-0 flex-1 overflow-hidden rounded-b-xl border-t">
                             <Table>
                                 <TableHeader class="bg-muted sticky top-0 z-10 shadow-[0_1px_0_hsl(var(--border))]">
                                     <TableRow>
+                                        <TableHead class="w-10">
+                                            <Checkbox
+                                                :aria-label="t('settings.references.selectAll')"
+                                                :disabled="filteredMerchants.length === 0"
+                                                :model-value="merchantHeaderState"
+                                                @update:model-value="toggleAllFilteredMerchants" />
+                                        </TableHead>
                                         <TableHead>{{ t("settings.references.name") }}</TableHead>
                                         <TableHead class="w-14 text-right"></TableHead>
                                     </TableRow>
@@ -322,7 +530,14 @@ async function confirmDeleteMerchant() {
                                         v-for="merchant in filteredMerchants"
                                         :key="merchant.id"
                                         class="hover:bg-muted/50 cursor-pointer"
+                                        :data-state="selectedMerchantIds.has(merchant.id) ? 'selected' : undefined"
                                         @click="openMerchantDialog(merchant)">
+                                        <TableCell class="w-10" @click.stop>
+                                            <Checkbox
+                                                :aria-label="t('settings.references.selectRow')"
+                                                :model-value="selectedMerchantIds.has(merchant.id)"
+                                                @update:model-value="(v) => toggleMerchant(merchant.id, v)" />
+                                        </TableCell>
                                         <TableCell class="font-medium">{{ merchant.name }}</TableCell>
                                         <TableCell class="text-right" @click.stop>
                                             <DropdownMenu>
@@ -353,7 +568,7 @@ async function confirmDeleteMerchant() {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="filteredMerchants.length === 0">
-                                        <TableCell :colspan="2" class="text-muted-foreground h-24 text-center">
+                                        <TableCell :colspan="3" class="text-muted-foreground h-24 text-center">
                                             {{ t("settings.references.noSearchResults") }}
                                         </TableCell>
                                     </TableRow>
@@ -414,6 +629,46 @@ async function confirmDeleteMerchant() {
                         :disabled="deletingMerchantId === deleteMerchantDialogTarget?.id"
                         variant="destructive"
                         @click="confirmDeleteMerchant">
+                        {{ t("common.delete") }}
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+            :open="bulkDeleteCategoriesDialogOpen"
+            @update:open="(open) => (bulkDeleteCategoriesDialogOpen = open)">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ bulkDeleteCategoriesTitle }}</AlertDialogTitle>
+                    <AlertDialogDescription>{{ bulkDeleteCategoriesDescription }}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                    <Button
+                        :disabled="isBulkDeletingCategories"
+                        variant="destructive"
+                        @click="confirmBulkDeleteCategories">
+                        {{ t("common.delete") }}
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+            :open="bulkDeleteMerchantsDialogOpen"
+            @update:open="(open) => (bulkDeleteMerchantsDialogOpen = open)">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ bulkDeleteMerchantsTitle }}</AlertDialogTitle>
+                    <AlertDialogDescription>{{ bulkDeleteMerchantsDescription }}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
+                    <Button
+                        :disabled="isBulkDeletingMerchants"
+                        variant="destructive"
+                        @click="confirmBulkDeleteMerchants">
                         {{ t("common.delete") }}
                     </Button>
                 </AlertDialogFooter>

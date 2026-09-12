@@ -1,4 +1,18 @@
-import {Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards} from "@nestjs/common";
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    ParseUUIDPipe,
+    Patch,
+    Post,
+    Query,
+    UseGuards,
+} from "@nestjs/common";
+import {Throttle} from "@nestjs/throttler";
 import {AccountService} from "./account.service";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
@@ -6,12 +20,19 @@ import {User} from "../../../common/decorators/user.decorator";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {AccountEntity} from "./models/entities/account.entity";
 import {CreateAccountDto} from "./models/dto/create-account.dto";
+import {DeleteAccountDto} from "./models/dto/delete-account.dto";
 import {UpdateAccountDto} from "./models/dto/update-account.dto";
 import {GetAccountBalanceEvolutionDto} from "./models/dto/get-account-balance-evolution.dto";
+import {AccountShareService} from "./account-share.service";
+import {ShareAccountDto, UpdateAccountShareDto} from "./models/dto/share-account.dto";
+import {AccountShareEntity} from "./models/entities/account-share.entity";
 
 @Controller("account")
 export class AccountController {
-    constructor(private readonly accountService: AccountService) {}
+    constructor(
+        private readonly accountService: AccountService,
+        private readonly accountShareService: AccountShareService,
+    ) {}
 
     @Get()
     @UseGuards(JwtAuthGuard)
@@ -34,7 +55,7 @@ export class AccountController {
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async createAccount(@User() user: UserEntity, @Body() body: CreateAccountDto): Promise<AccountEntity> {
-        return this.accountService.createAccount(user, body.name, body.type, body.balance, body.inBudget);
+        return this.accountService.createAccount(user, body.name, body.type, body.balance);
     }
 
     @Patch(":id")
@@ -61,11 +82,60 @@ export class AccountController {
 
     @Delete(":id")
     @UseGuards(JwtAuthGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
     async deleteAccount(
         @User() user: UserEntity,
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @Body() body: DeleteAccountDto,
     ): Promise<void> {
-        return this.accountService.deleteAccount(user, id);
+        return this.accountService.deleteAccount(user, id, body.currentPassword);
+    }
+
+    @Get(":id/shares")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async listShares(
+        @User() user: UserEntity,
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+    ): Promise<AccountShareEntity[]> {
+        return this.accountShareService.listShares(user, id);
+    }
+
+    @Post(":id/shares")
+    @UseGuards(JwtAuthGuard)
+    // Guard against member-id enumeration via the 404 vs 403 vs 201 shape.
+    @Throttle({default: {limit: 10, ttl: 60_000}})
+    @ApiBearerAuth()
+    async shareAccount(
+        @User() user: UserEntity,
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @Body() body: ShareAccountDto,
+    ): Promise<AccountShareEntity> {
+        return this.accountShareService.shareAccount(user, id, body.memberId, body.permission);
+    }
+
+    @Patch(":id/shares/:memberId")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async updateShare(
+        @User() user: UserEntity,
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @Param("memberId", new ParseUUIDPipe({version: "7"})) memberId: string,
+        @Body() body: UpdateAccountShareDto,
+    ): Promise<AccountShareEntity> {
+        return this.accountShareService.updateShare(user, id, memberId, body.permission);
+    }
+
+    @Delete(":id/shares/:memberId")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async revokeShare(
+        @User() user: UserEntity,
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @Param("memberId", new ParseUUIDPipe({version: "7"})) memberId: string,
+    ): Promise<void> {
+        return this.accountShareService.revokeShare(user, id, memberId);
     }
 }

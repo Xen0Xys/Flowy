@@ -370,7 +370,7 @@ describe("RecurringTransactionController (e2e)", () => {
             .get(`/recurring-transaction/${created.body.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(forbidden.status).toBe(403);
-        expect(forbidden.body.message).toBe("You do not have permission to access this recurring transaction");
+        expect(forbidden.body.message).toBe("You do not have permission to access this account");
     });
 
     test("returns 404 for missing recurring transaction", async () => {

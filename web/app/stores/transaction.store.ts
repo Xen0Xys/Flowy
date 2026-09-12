@@ -5,8 +5,6 @@ import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 
-export type {TransactionCategory, TransactionMerchant};
-
 export type Transaction = {
     id: string;
     accountId: string;

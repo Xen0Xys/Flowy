@@ -19,7 +19,15 @@ export class ReferenceMatcherService {
     constructor(private readonly prismaService: PrismaService) {}
 
     async suggestForDescription(user: UserEntity, description: string, tx?: TxClient): Promise<ReferenceSuggestion> {
-        const [categories, merchants] = await this.loadEnabledReferences(user, tx);
+        return this.suggestForDescriptionByOwner(user.id, description, tx);
+    }
+
+    async suggestForDescriptionByOwner(
+        ownerUserId: string,
+        description: string,
+        tx?: TxClient,
+    ): Promise<ReferenceSuggestion> {
+        const [categories, merchants] = await this.loadEnabledReferencesForUserId(ownerUserId, tx);
         return {
             categoryId: this.findBestMatch(description, categories),
             merchantId: this.findBestMatch(description, merchants),
@@ -27,14 +35,21 @@ export class ReferenceMatcherService {
     }
 
     async loadEnabledReferences(user: UserEntity, tx?: TxClient): Promise<[MatchableEntity[], MatchableEntity[]]> {
+        return this.loadEnabledReferencesForUserId(user.id, tx);
+    }
+
+    async loadEnabledReferencesForUserId(
+        ownerUserId: string,
+        tx?: TxClient,
+    ): Promise<[MatchableEntity[], MatchableEntity[]]> {
         const prisma = this.prismaService.withTx(tx);
         const [categories, merchants] = await Promise.all([
             prisma.userCategories.findMany({
-                where: {user_id: user.id, auto_complete_enabled: true},
+                where: {user_id: ownerUserId, auto_complete_enabled: true},
                 select: {id: true, name: true, keywords: true, auto_complete_enabled: true},
             }),
             prisma.userMerchants.findMany({
-                where: {user_id: user.id, auto_complete_enabled: true},
+                where: {user_id: ownerUserId, auto_complete_enabled: true},
                 select: {id: true, name: true, keywords: true, auto_complete_enabled: true},
             }),
         ]);

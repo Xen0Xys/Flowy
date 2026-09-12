@@ -17,6 +17,7 @@ import {useAuthStore} from "~/stores/auth.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {useUserStore} from "~/stores/user.store";
 import {toCurrency} from "~/lib/currency";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 
 const {t, locale, setLocale} = useI18n();
 const router = useRouter();
@@ -67,6 +68,7 @@ function run(action: () => void | Promise<void>) {
 
 const accounts = computed(() => accountStore.accounts);
 const currency = computed(() => familyStore.family?.currency ?? "USD");
+const hasWritableAccount = computed(() => accountStore.writableAccounts.length > 0);
 
 const isDark = computed(() => colorMode.value === "dark");
 
@@ -117,6 +119,8 @@ async function logout() {
 
             <CommandGroup :heading="t('commandPalette.groups.quickActions')">
                 <CommandItem
+                    v-if="!accountStore.hasFetched || hasWritableAccount"
+                    :disabled="!accountStore.hasFetched"
                     value="new-transaction"
                     @select="run(() => router.push({path: '/transactions', query: {new: '1'}}))">
                     <Icon name="iconoir:plus" />
@@ -148,6 +152,7 @@ async function logout() {
                         @select="run(() => router.push(`/account/${account.id}`))">
                         <Icon name="iconoir:wallet" />
                         <span class="truncate">{{ account.name }}</span>
+                        <AccountSharedBadge :access="account.access" variant="icon" />
                         <span class="text-muted-foreground ml-auto text-xs tabular-nums">
                             {{ toCurrency(account.balance, currency) }}
                         </span>

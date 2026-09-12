@@ -107,13 +107,12 @@ describe("AccountController (e2e)", () => {
         const create = await agent
             .post("/account")
             .set("Authorization", `Bearer ${user.token}`)
-            .send({name: "Main checking", type: "CHECKING", balance: 1523.45, inBudget: false});
+            .send({name: "Main checking", type: "CHECKING", balance: 1523.45});
 
         expect(create.status).toBe(201);
         expect(create.body.name).toBe("Main checking");
         expect(create.body.type).toBe("CHECKING");
         expect(create.body.balance).toBe(1523.45);
-        expect(create.body.inBudget).toBe(false);
 
         const transactions = await prisma.transactions.findMany({
             where: {account_id: create.body.id},
@@ -201,7 +200,7 @@ describe("AccountController (e2e)", () => {
             .get(`/account/${created.body.id}`)
             .set("Authorization", `Bearer ${outsider.token}`);
         expect(forbidden.status).toBe(403);
-        expect(forbidden.body.message).toBe("You do not have permission to delete this account");
+        expect(forbidden.body.message).toBe("You do not have permission to access this account");
     });
 
     test("returns 404 when account is not found", async () => {
@@ -212,7 +211,10 @@ describe("AccountController (e2e)", () => {
         expect(byId.status).toBe(404);
         expect(byId.body.message).toBe("Account not found");
 
-        const remove = await agent.delete(`/account/${fakeId}`).set("Authorization", `Bearer ${user.token}`);
+        const remove = await agent
+            .delete(`/account/${fakeId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
         expect(remove.status).toBe(404);
         expect(remove.body.message).toBe("Account not found");
 
@@ -231,26 +233,17 @@ describe("AccountController (e2e)", () => {
             .set("Authorization", `Bearer ${user.token}`)
             .send({name: "Starter", type: "CHECKING", balance: 120});
         expect(create.status).toBe(201);
-        expect(create.body.inBudget).toBe(true);
 
         const update = await agent
             .patch(`/account/${create.body.id}`)
             .set("Authorization", `Bearer ${user.token}`)
-            .send({name: "Primary", type: "SAVINGS", inBudget: false});
+            .send({name: "Primary", type: "SAVINGS"});
 
         expect(update.status).toBe(200);
         expect(update.body.id).toBe(create.body.id);
         expect(update.body.name).toBe("Primary");
         expect(update.body.type).toBe("SAVINGS");
         expect(update.body.balance).toBe(120);
-        expect(update.body.inBudget).toBe(false);
-
-        const updateBack = await agent
-            .patch(`/account/${create.body.id}`)
-            .set("Authorization", `Bearer ${user.token}`)
-            .send({inBudget: true});
-        expect(updateBack.status).toBe(200);
-        expect(updateBack.body.inBudget).toBe(true);
     });
 
     test("updates account balance and creates rebalance transaction", async () => {
@@ -297,7 +290,7 @@ describe("AccountController (e2e)", () => {
             .send({name: "Hacked"});
 
         expect(update.status).toBe(403);
-        expect(update.body.message).toBe("You do not have permission to update this account");
+        expect(update.body.message).toBe("You do not have permission to access this account");
     });
 
     test("rejects invalid update account payloads", async () => {
@@ -441,7 +434,10 @@ describe("AccountController (e2e)", () => {
             .send({name: "Disposable", type: "OTHER", balance: 1});
         expect(create.status).toBe(201);
 
-        const remove = await agent.delete(`/account/${create.body.id}`).set("Authorization", `Bearer ${user.token}`);
+        const remove = await agent
+            .delete(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
         expect([200, 204]).toContain(remove.status);
 
         const list = await agent.get("/account").set("Authorization", `Bearer ${user.token}`);
@@ -459,9 +455,12 @@ describe("AccountController (e2e)", () => {
             .send({name: "Private", type: "CHECKING", balance: 77});
         expect(create.status).toBe(201);
 
-        const remove = await agent.delete(`/account/${create.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
+        const remove = await agent
+            .delete(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({currentPassword: outsider.password});
 
         expect(remove.status).toBe(403);
-        expect(remove.body.message).toBe("You do not have permission to delete this account");
+        expect(remove.body.message).toBe("You do not have permission to access this account");
     });
 });

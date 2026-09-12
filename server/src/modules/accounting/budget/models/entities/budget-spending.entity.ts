@@ -23,7 +23,10 @@ export class BudgetSpendingEntity {
     }
 }
 
-export type AvailableMonth = {
+export type RenewableBudget = {
+    id: string;
     month: number;
     year: number;
+    name: string | null;
+    effectivePermission: "owner" | "write";
 };

@@ -1,33 +1,86 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from "vue";
+import {computed, onMounted, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute} from "vue-router";
+import LanguageSwitcher from "~/components/common/LanguageSwitcher.vue";
 import {Card, CardContent} from "@/components/ui/card";
 import {Stepper, StepperDescription, StepperIndicator, StepperItem, StepperTitle} from "@/components/ui/stepper";
 import {cn} from "@/lib/utils";
+import {useAccountStore} from "@/stores/account.store";
+import {useOnboardingStore} from "@/stores/onboarding.store";
+import {useReferenceStore} from "@/stores/reference.store";
+import {useUserStore} from "@/stores/user.store";
+
+type OnboardingKey = "welcome" | "select" | "createFamily" | "categories" | "invite";
 
 interface OnboardingMeta {
-    step?: number;
+    key?: OnboardingKey;
 }
 
 const route = useRoute();
 const {t} = useI18n();
+const onboardingStore = useOnboardingStore();
+const userStore = useUserStore();
+const referenceStore = useReferenceStore();
+const accountStore = useAccountStore();
 
-const steps = computed(() => [
-    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
-    {title: t("onboarding.steps.select.title"), description: t("onboarding.steps.select.description")},
-    {title: t("onboarding.steps.createFamily.title"), description: t("onboarding.steps.createFamily.description")},
-    {title: t("onboarding.steps.categories.title"), description: t("onboarding.steps.categories.description")},
-    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
-]);
+async function loadExistingData() {
+    if (!userStore.hasFamily) return;
+    await Promise.allSettled([referenceStore.fetchReferences(), accountStore.fetchAccounts()]);
+}
 
-const active = ref<number>(((route.meta.onboarding ?? {}) as OnboardingMeta).step ?? 0);
+onMounted(() => {
+    onboardingStore.hydrate();
+    void loadExistingData();
+});
+
 watch(
-    () => (route.meta.onboarding as OnboardingMeta | undefined)?.step,
-    (v) => {
-        if (typeof v === "number") active.value = v;
+    () => userStore.hasFamily,
+    (next) => {
+        if (next) void loadExistingData();
     },
 );
+
+const isJoinerFlow = computed(
+    () => onboardingStore.mode === "join" || (userStore.hasFamily && !userStore.isFamilyAdmin),
+);
+
+const hasExistingData = computed(
+    () =>
+        referenceStore.categories.length > 0 || referenceStore.merchants.length > 0 || accountStore.accounts.length > 0,
+);
+
+const stepDefs = computed<Record<OnboardingKey, {title: string; description: string}>>(() => ({
+    welcome: {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
+    select: {title: t("onboarding.steps.select.title"), description: t("onboarding.steps.select.description")},
+    createFamily: {
+        title: t("onboarding.steps.createFamily.title"),
+        description: t("onboarding.steps.createFamily.description"),
+    },
+    categories: {
+        title: t("onboarding.steps.categories.title"),
+        description: t("onboarding.steps.categories.description"),
+    },
+    invite: {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
+}));
+
+const stepKeys = computed<OnboardingKey[]>(() => {
+    const joiner = isJoinerFlow.value;
+    const skipCategories = hasExistingData.value;
+    if (joiner) return skipCategories ? ["welcome", "select"] : ["welcome", "select", "categories"];
+    return skipCategories
+        ? ["welcome", "select", "createFamily", "invite"]
+        : ["welcome", "select", "createFamily", "categories", "invite"];
+});
+
+const steps = computed(() => stepKeys.value.map((k) => stepDefs.value[k]));
+
+const active = computed<number>(() => {
+    const key = (route.meta.onboarding as OnboardingMeta | undefined)?.key;
+    if (!key) return 0;
+    const idx = stepKeys.value.indexOf(key);
+    return idx >= 0 ? idx : 0;
+});
 
 const progressPercent = computed(() => Math.round(((active.value + 1) / steps.value.length) * 100));
 </script>
@@ -37,6 +90,9 @@ const progressPercent = computed(() => Math.round(((active.value + 1) / steps.va
         <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
             <div class="bg-brand-gradient absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-15 blur-3xl"></div>
             <div class="bg-brand-gradient absolute -bottom-40 -left-40 h-96 w-96 rounded-full opacity-10 blur-3xl"></div>
+        </div>
+        <div class="absolute top-4 right-4 z-10">
+            <LanguageSwitcher />
         </div>
         <div :class="cn('relative flex w-full grow flex-col justify-center gap-4 self-center px-4 py-6', 'max-w-3xl')">
             <Card class="py-0">

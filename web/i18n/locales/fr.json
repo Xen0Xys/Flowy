@@ -18,7 +18,12 @@
         "processing": "Traitement...",
         "areYouSure": "Êtes-vous sûr ?",
         "yes": "Oui",
-        "no": "Non"
+        "no": "Non",
+        "noResults": "Aucun résultat.",
+        "confirmPassword": "Confirmer avec votre mot de passe",
+        "currentPasswordPlaceholder": "Mot de passe actuel",
+        "showPassword": "Afficher le mot de passe",
+        "hidePassword": "Masquer le mot de passe"
     },
     "app": {
         "head": {
@@ -238,7 +243,9 @@
         "import": "Import"
     },
     "sidebar": {
-        "menu": "Menu",
+        "overview": "Vue d'ensemble",
+        "operations": "Opérations",
+        "planning": "Planification",
         "dashboard": "Dashboard",
         "transactions": "Transactions",
         "recurring": "Récurrentes",
@@ -304,9 +311,11 @@
         "noAccountsTitle": "Aucun compte pour le moment",
         "noAccountsDescription": "Créez votre premier compte bancaire pour commencer à suivre vos finances.",
         "createFirstAccount": "Créer mon premier compte",
-        "totalBalance": "Solde total",
+        "totalBalance": "Patrimoine personnel",
         "balance": "Solde",
-        "acrossAccounts": "Sur {count} compte(s)",
+        "acrossOwnedAccounts": "Sur {count} compte(s) personnel(s)",
+        "sharedAccountsSection": "Comptes partagés avec moi",
+        "sharedAccountsNote": "+ {count} compte(s) partagé(s) ({amount}) — exclu du patrimoine personnel",
         "percentOfTotal": "{value}% du total",
         "percentOfCategory": "{value}% de la catégorie",
         "deleteAccountDescription": "Cette action est irréversible. Le compte \"{name}\" et toutes ses données associées seront supprimés."
@@ -330,8 +339,6 @@
             "type": "Catégorie / Type",
             "openingBalance": "Solde d'ouverture",
             "openingBalanceHint": "Solde actuel au moment de la création du compte.",
-            "inBudget": "Inclure dans le budget",
-            "inBudgetDescription": "Prendre en compte les transactions de ce compte dans le calcul de vos budgets mensuels.",
             "errors": {
                 "nameTooShort": "Le nom doit contenir au moins 3 caractères.",
                 "nameTooLong": "Le nom ne peut pas dépasser 50 caractères.",
@@ -350,6 +357,61 @@
         "noChange": "Aucun changement",
         "updateBalance": "Mettre à jour",
         "noData": "Aucun historique de solde pour cette période",
+        "share": {
+            "action": "Partager",
+            "title": "Partager ce compte",
+            "description": "Donnez accès à ce compte à un autre membre de votre famille.",
+            "currentShares": "Personnes ayant accès",
+            "selectMember": "Choisir un membre",
+            "searchMembers": "Rechercher un membre...",
+            "add": "Partager",
+            "noMembers": "Il faut des membres de famille pour partager.",
+            "membersCountZero": "Aucun accès",
+            "membersCountOne": "1 personne a accès",
+            "membersCountMany": "{count} personnes ont accès",
+            "permission": {
+                "read": "Lecture",
+                "write": "Lecture + écriture"
+            },
+            "badge": {
+                "read": "Lecture",
+                "write": "Écriture",
+                "short": "Partagé"
+            },
+            "tooltip": {
+                "read": "Ce compte vous a été partagé en lecture. Il est exclu de votre patrimoine personnel.",
+                "write": "Ce compte vous a été partagé en écriture. Il est exclu de votre patrimoine personnel."
+            },
+            "excluded": "Exclu du patrimoine personnel",
+            "revoke": {
+                "action": "Retirer",
+                "title": "Retirer l'accès ?",
+                "description": "{name} n'aura plus accès à ce compte. Vous pourrez le partager à nouveau plus tard.",
+                "confirm": "Retirer l'accès"
+            },
+            "empty": {
+                "title": "Compte non partagé",
+                "description": "Invitez un membre de votre famille pour lui donner accès en lecture ou en écriture."
+            },
+            "invite": {
+                "title": "Inviter un membre",
+                "noAvailable": "Tous les membres de votre famille ont déjà accès."
+            },
+            "ownerBadge": {
+                "short": "Partagé",
+                "count": "Partagé avec {count}",
+                "tooltip": "Vous partagez ce compte avec {count} membre(s) de votre famille"
+            },
+            "toast": {
+                "shared": "Compte partagé",
+                "updated": "Accès mis à jour",
+                "revoked": "Accès révoqué",
+                "fetchError": "Échec du chargement des accès",
+                "shareError": "Échec du partage",
+                "updateError": "Échec de la mise à jour de l'accès",
+                "revokeError": "Échec de la révocation"
+            }
+        },
         "store": {
             "success": {
                 "accountCreated": "Compte créé",
@@ -400,8 +462,12 @@
             "category": "Catégorie",
             "allCategories": "Toutes les catégories",
             "noCategory": "Sans catégorie",
+            "myCategories": "Mes catégories",
+            "categoriesOfOwner": "Catégories de {owner}",
             "merchant": "Marchand",
             "allMerchants": "Tous les marchands",
+            "myMerchants": "Mes marchands",
+            "merchantsOfOwner": "Marchands de {owner}",
             "rebalance": "Rééquilibrage",
             "includeRebalance": "Inclure les rééquilibrages",
             "excludeRebalance": "Exclure les rééquilibrages",
@@ -458,6 +524,9 @@
             "actions": "Plus d'actions",
             "details": "Détails",
             "noResults": "Aucun résultat.",
+            "readOnlyBadge": "Lecture seule",
+            "readOnlyDescription": "Ce compte vous est partagé en lecture seule. Vous ne pouvez pas modifier ses transactions.",
+            "sharedAccountReferencesHint": "Seul {owner} peut ajouter des catégories ou marchands à ce compte partagé.",
             "errors": {
                 "loadData": "Impossible de charger les données requises"
             }
@@ -512,18 +581,17 @@
         "dangerZoneDescription": "Supprimez définitivement votre compte",
         "deleteAccount": "Supprimer le compte",
         "delete": "Supprimer",
-        "cancel": "Annuler",
         "deleteDialogTitle": "Supprimer le compte",
         "deleteDialogDescription": "Cette action est irréversible. Veuillez saisir votre mot de passe actuel pour confirmer.",
-        "confirmPassword": "Confirmer le mot de passe",
-        "deleting": "Suppression...",
+        "emailConfirmTitle": "Confirmer le changement d'email",
+        "emailConfirmDescription": "Vous êtes sur le point de changer votre email pour {email}. Saisissez votre mot de passe actuel pour confirmer.",
+        "emailConfirmAction": "Changer l'email",
         "roles": {
             "instanceOwner": "Propriétaire de l'instance",
             "familyAdmin": "Administrateur de la famille",
             "familyMember": "Membre de la famille"
         },
         "errors": {
-            "currentPasswordRequired": "Le mot de passe actuel est requis pour supprimer votre compte.",
             "deleteAccountFailed": "Échec de suppression du compte",
             "usernameLength": "Le nom d'utilisateur doit contenir entre {min} et {max} caractères.",
             "passwordsRequired": "Le mot de passe actuel et le nouveau mot de passe sont requis.",
@@ -553,6 +621,7 @@
             "searchOwner": "Rechercher un utilisateur",
             "changeOwnerTitle": "Changer le propriétaire de l'instance",
             "changeOwnerDescription": "Changer le propriétaire de l'instance transfère le contrôle administrateur. Cette action est destructive. Continuer ?",
+            "changeOwnerDescriptionWithTarget": "Transfert du contrôle administrateur à {username} ({email}). Cette action est destructive et irréversible. Saisissez votre mot de passe pour confirmer.",
             "currentOwner": "Propriétaire actuel",
             "unknown": "inconnu",
             "toasts": {
@@ -581,6 +650,8 @@
             "familyCurrency": "Devise familiale",
             "familyOwner": "Propriétaire de la famille",
             "resetPasswordFor": "Définir un nouveau mot de passe pour {username}.",
+            "confirmResetTitle": "Confirmer la réinitialisation",
+            "confirmResetDescription": "Saisissez votre propre mot de passe pour confirmer la réinitialisation du mot de passe de {username}.",
             "newPassword": "Nouveau mot de passe",
             "generatePassword": "Générer",
             "showPassword": "Afficher le mot de passe",
@@ -639,6 +710,9 @@
             "remove": "Retirer",
             "removeMember": "Retirer le membre",
             "removeMemberDescription": "Êtes-vous sûr de vouloir retirer ce membre de la famille ? Il perdra l'accès aux données partagées.",
+            "revokeInviteTitle": "Révoquer l'invitation",
+            "revokeInviteDescription": "Révoquer l'invitation envoyée à {email} ? Le destinataire ne pourra plus rejoindre la famille avec ce code.",
+            "revokeInviteConfirm": "Révoquer",
             "invite": "Inviter",
             "inviting": "Invitation...",
             "invitePlaceholder": "member{'@'}example.com",
@@ -677,6 +751,15 @@
             "deleteMerchant": "Supprimer le marchand",
             "deleteCategoryDescription": "Êtes-vous sûr de vouloir supprimer la catégorie \"{name}\" ? Les transactions utilisant cette catégorie perdront leur association.",
             "deleteMerchantDescription": "Êtes-vous sûr de vouloir supprimer le marchand \"{name}\" ? Les transactions utilisant ce marchand perdront leur association.",
+            "selectedCount": "{count} sélectionné | {count} sélectionnés",
+            "clearSelection": "Tout désélectionner",
+            "bulkDelete": "Supprimer la sélection",
+            "bulkDeleteCategoriesTitle": "Supprimer {count} catégorie | Supprimer {count} catégories",
+            "bulkDeleteMerchantsTitle": "Supprimer {count} marchand | Supprimer {count} marchands",
+            "bulkDeleteCategoriesDescription": "Êtes-vous sûr de vouloir supprimer {count} catégorie ? Les transactions concernées perdront leur association et les lignes de budget associées seront supprimées. | Êtes-vous sûr de vouloir supprimer {count} catégories ? Les transactions concernées perdront leur association et les lignes de budget associées seront supprimées.",
+            "bulkDeleteMerchantsDescription": "Êtes-vous sûr de vouloir supprimer {count} marchand ? Les transactions concernées perdront leur association. | Êtes-vous sûr de vouloir supprimer {count} marchands ? Les transactions concernées perdront leur association.",
+            "selectRow": "Sélectionner la ligne",
+            "selectAll": "Tout sélectionner",
             "noSearchResults": "Aucun résultat pour cette recherche.",
             "emptyCategoriesTitle": "Aucune catégorie",
             "emptyCategoriesDescription": "Créez votre première catégorie pour organiser vos transactions.",
@@ -815,7 +898,9 @@
                 "categoryDeleted": "Catégorie supprimée",
                 "merchantCreated": "Marchand créé",
                 "merchantUpdated": "Marchand mis à jour",
-                "merchantDeleted": "Marchand supprimé"
+                "merchantDeleted": "Marchand supprimé",
+                "categoriesBulkDeleted": "{count} catégorie supprimée | {count} catégories supprimées",
+                "merchantsBulkDeleted": "{count} marchand supprimé | {count} marchands supprimés"
             },
             "errors": {
                 "fetchReferences": "Échec du chargement des références",
@@ -824,7 +909,9 @@
                 "deleteCategory": "Échec de suppression de la catégorie",
                 "createMerchant": "Échec de création du marchand",
                 "updateMerchant": "Échec de mise à jour du marchand",
-                "deleteMerchant": "Échec de suppression du marchand"
+                "deleteMerchant": "Échec de suppression du marchand",
+                "bulkDeleteCategories": "Échec de suppression des catégories sélectionnées",
+                "bulkDeleteMerchants": "Échec de suppression des marchands sélectionnés"
             }
         }
     },
@@ -841,16 +928,19 @@
                 "updateBudget": "Échec de mise à jour du budget",
                 "deleteBudget": "Échec de suppression du budget",
                 "fetchSpending": "Échec du chargement des dépenses",
-                "fetchAvailableMonths": "Échec du chargement des mois disponibles"
+                "fetchRenewableBudgets": "Échec du chargement des budgets à reconduire"
             }
         },
         "page": {
             "title": "Budget",
             "subtitle": "Suivez vos objectifs mensuels et vos dépenses par catégorie.",
-            "createBudget": "Créer le budget",
+            "newBudget": "Nouveau budget",
             "renewBudget": "Reconduire",
             "editBudget": "Modifier",
             "deleteBudget": "Supprimer",
+            "tabs": {
+                "fallbackName": "Budget n°{index}"
+            },
             "noPreviousBudget": "Aucun budget à reconduire",
             "noSpending": "Aucune dépense ce mois-ci",
             "noSpendingDescription": "Les catégories dépensées apparaîtront ici.",
@@ -889,7 +979,13 @@
             "title": "Reconduire le budget",
             "description": "Sélectionnez un budget précédent à reconduire pour la période actuelle.",
             "selectPlaceholder": "Sélectionner un budget…",
-            "continue": "Continuer"
+            "continue": "Continuer",
+            "unnamedBudget": "Budget sans nom",
+            "sharedSuffix": " (partagé)",
+            "errors": {
+                "readOnlySource": "Ce budget est partagé en lecture seule et ne peut pas être reconduit.",
+                "noWritableAccounts": "Aucun des comptes de ce budget ne vous est modifiable."
+            }
         },
         "dialog": {
             "deleteDescription": "Êtes-vous sûr de vouloir supprimer ce budget ? Les catégories budgétisées seront également supprimées.",
@@ -924,7 +1020,22 @@
             "discardChangesDescription": "Vos saisies seront perdues.",
             "discardChangesConfirm": "Abandonner",
             "needIncomeHint": "Renseignez un revenu budgété pour continuer.",
-            "needCategoryHint": "Ajoutez au moins une catégorie avec un montant pour continuer."
+            "needCategoryHint": "Ajoutez au moins une catégorie avec un montant pour continuer.",
+            "needAccountsHint": "Sélectionnez au moins un compte pour ce budget.",
+            "name": {
+                "label": "Nom (optionnel)",
+                "placeholder": "Ex : Perso, Commun",
+                "hint": "Utile lorsque vous avez plusieurs budgets pour le même mois."
+            },
+            "accounts": {
+                "label": "Comptes",
+                "groupOwn": "Mes comptes",
+                "groupShared": "Partagés par {name}",
+                "someone": "un autre membre",
+                "singleOwnerHint": "Un budget ne peut couvrir que les comptes d'une seule personne.",
+                "lockedHint": "Seul le propriétaire du compte peut modifier les comptes couverts par ce budget.",
+                "noWritable": "Vous avez besoin d'au moins un compte (possédé ou partagé en écriture) pour créer un budget."
+            }
         },
         "category": {
             "uncategorized": "Non catégorisé",
@@ -1139,6 +1250,7 @@
             "inBudgetHint": "Compte cette transaction dans les prévisions du budget.",
             "enabled": "Activée",
             "enabledHint": "Désactivée, aucune transaction ne sera créée mais la planification avance quand même.",
+            "sharedAccountReferencesHint": "Seul {owner} peut ajouter des catégories ou marchands à ce compte partagé.",
             "errors": {
                 "loadData": "Impossible de charger les données requises"
             }

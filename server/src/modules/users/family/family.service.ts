@@ -7,6 +7,7 @@ import {UserRoles} from "../../../../prisma/generated/enums";
 import {FamilyEntity} from "./models/entities/family.entity";
 import {FamilyInviteCodeEntity} from "./models/entities/family-invite-code.entity";
 import {FamilyInviteEntity} from "./models/entities/family-invite.entity";
+import {AccountShareService} from "../../accounting/account/account-share.service";
 
 @Injectable()
 export class FamilyService {
@@ -15,6 +16,7 @@ export class FamilyService {
     constructor(
         private readonly prismaService: PrismaService,
         private readonly userService: UserService,
+        private readonly accountShareService: AccountShareService,
     ) {}
 
     async createFamily(name: string, currency: string, owner: UserEntity) {
@@ -140,44 +142,72 @@ export class FamilyService {
         });
     }
 
-    async quitFamily(user: UserEntity) {
+    async quitFamily(user: UserEntity, currentPassword: string) {
         // Check if user is in a family
         if (!user.familyId) throw new NotFoundException("User is not in a family");
 
-        // Update user to remove family
-        await this.prismaService.users.update({
-            where: {id: user.id},
-            data: {
-                family_id: null,
-                family_role: null,
-            },
+        await this.userService.verifyPassword(user, currentPassword);
+
+        const familyId = user.familyId;
+
+        await this.prismaService.$transaction(async (tx) => {
+            // Every share involving the leaving user and the remaining family
+            // members must be revoked, otherwise READ/WRITE access silently
+            // survives the family exit.
+            const remainingMembers = await tx.users.findMany({
+                where: {family_id: familyId, id: {not: user.id}},
+                select: {id: true},
+            });
+            await this.accountShareService.revokeSharesForFamilyExit(
+                user.id,
+                remainingMembers.map((m) => m.id),
+                tx,
+            );
+
+            await tx.users.update({
+                where: {id: user.id},
+                data: {family_id: null, family_role: null},
+            });
         });
+        this.logger.log(`User ${user.id} quit family ${familyId}`);
     }
 
-    async deleteFamily(user: UserEntity) {
+    async deleteFamily(user: UserEntity, currentPassword: string) {
         if (!user.familyId) throw new NotFoundException("User is not in a family");
 
         if (user.familyRole !== UserRoles.ADMIN) throw new UnauthorizedException("User must be a family admin");
 
+        await this.userService.verifyPassword(user, currentPassword);
+
         const familyId = user.familyId;
 
-        // Use a transaction to remove invites, unlink members and delete the family
-        await this.prismaService.$transaction([
-            this.prismaService.familyInvites.deleteMany({
+        await this.prismaService.$transaction(async (tx) => {
+            // Snapshot every member id before we unlink them so the share
+            // revoker can find shares between any two of them.
+            const members = await tx.users.findMany({
                 where: {family_id: familyId},
-            }),
-            this.prismaService.users.updateMany({
+                select: {id: true},
+            });
+            await this.accountShareService.revokeAllSharesWithinFamily(
+                members.map((m) => m.id),
+                tx,
+            );
+
+            await tx.familyInvites.deleteMany({where: {family_id: familyId}});
+            await tx.users.updateMany({
                 where: {family_id: familyId},
                 data: {family_id: null, family_role: null},
-            }),
-            this.prismaService.family.delete({where: {id: familyId}}),
-        ]);
+            });
+            await tx.family.delete({where: {id: familyId}});
+        });
 
         this.logger.log(`Family ${familyId} deleted by user ${user.id}`);
     }
 
-    async removeMember(user: UserEntity, memberId: string) {
+    async removeMember(user: UserEntity, memberId: string, currentPassword: string) {
         if (!user.familyId) throw new NotFoundException("User is not in a family");
+
+        await this.userService.verifyPassword(user, currentPassword);
 
         const member = await this.prismaService.users.findUnique({
             where: {id: memberId},
@@ -193,10 +223,25 @@ export class FamilyService {
             throw new ConflictException("Cannot remove family admin/owner");
         }
 
-        await this.prismaService.users.update({
-            where: {id: memberId},
-            data: {family_id: null, family_role: null},
+        const familyId = user.familyId;
+
+        await this.prismaService.$transaction(async (tx) => {
+            const remainingMembers = await tx.users.findMany({
+                where: {family_id: familyId, id: {not: memberId}},
+                select: {id: true},
+            });
+            await this.accountShareService.revokeSharesForFamilyExit(
+                memberId,
+                remainingMembers.map((m) => m.id),
+                tx,
+            );
+
+            await tx.users.update({
+                where: {id: memberId},
+                data: {family_id: null, family_role: null},
+            });
         });
+        this.logger.log(`Member ${memberId} removed from family ${familyId} by user ${user.id}`);
     }
 
     async updateFamilySettings(user: UserEntity, body: {name?: string; currency?: string}) {

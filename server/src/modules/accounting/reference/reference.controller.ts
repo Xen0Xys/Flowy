@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards} from "@nestjs/common";
+import {Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards} from "@nestjs/common";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {User} from "../../../common/decorators/user.decorator";
@@ -10,6 +10,14 @@ import {CreateCategoryDto} from "./models/dto/create-category.dto";
 import {UpdateCategoryDto} from "./models/dto/update-category.dto";
 import {CreateMerchantDto} from "./models/dto/create-merchant.dto";
 import {UpdateMerchantDto} from "./models/dto/update-merchant.dto";
+import {BulkDeleteReferencesDto} from "./models/dto/bulk-delete-references.dto";
+import {IsOptional, IsUUID} from "class-validator";
+
+class ReferenceScopeQueryDto {
+    @IsOptional()
+    @IsUUID("7")
+    accountId?: string;
+}
 
 @Controller("reference")
 export class ReferenceController {
@@ -18,8 +26,8 @@ export class ReferenceController {
     @Get("categories")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getCategories(@User() user: UserEntity): Promise<CategoryEntity[]> {
-        return this.referenceService.getCategories(user);
+    async getCategories(@User() user: UserEntity, @Query() query: ReferenceScopeQueryDto): Promise<CategoryEntity[]> {
+        return this.referenceService.getCategories(user, query.accountId);
     }
 
     @Post("category")
@@ -50,11 +58,21 @@ export class ReferenceController {
         await this.referenceService.deleteCategory(user, categoryId);
     }
 
+    @Post("categories/bulk-delete")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async bulkDeleteCategories(
+        @User() user: UserEntity,
+        @Body() body: BulkDeleteReferencesDto,
+    ): Promise<{deletedCount: number}> {
+        return this.referenceService.bulkDeleteCategories(user, body.ids);
+    }
+
     @Get("merchants")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async getMerchants(@User() user: UserEntity): Promise<MerchantEntity[]> {
-        return this.referenceService.getMerchants(user);
+    async getMerchants(@User() user: UserEntity, @Query() query: ReferenceScopeQueryDto): Promise<MerchantEntity[]> {
+        return this.referenceService.getMerchants(user, query.accountId);
     }
 
     @Post("merchant")
@@ -83,5 +101,15 @@ export class ReferenceController {
         @Param("merchantId", new ParseUUIDPipe({version: "7"})) merchantId: string,
     ): Promise<void> {
         await this.referenceService.deleteMerchant(user, merchantId);
+    }
+
+    @Post("merchants/bulk-delete")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async bulkDeleteMerchants(
+        @User() user: UserEntity,
+        @Body() body: BulkDeleteReferencesDto,
+    ): Promise<{deletedCount: number}> {
+        return this.referenceService.bulkDeleteMerchants(user, body.ids);
     }
 }

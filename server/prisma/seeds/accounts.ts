@@ -26,7 +26,6 @@ export async function seedAccounts(prisma: any, userId: string, faker: Faker) {
                 type: accountType,
                 name: accountName,
                 balance: 0,
-                in_budget: true,
             },
             select: {
                 id: true,

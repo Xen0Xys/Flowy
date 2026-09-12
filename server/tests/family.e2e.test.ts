@@ -305,7 +305,10 @@ describe("FamilyController (e2e)", () => {
             .set("Authorization", `Bearer ${member.token}`);
         expect(joinResponse.status).toBe(204);
 
-        const quitResponse = await agent.delete("/family/quit").set("Authorization", `Bearer ${member.token}`);
+        const quitResponse = await agent
+            .delete("/family/quit")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({currentPassword: member.password});
         expect(quitResponse.status).toBe(204);
 
         const refreshedMember = await prisma.users.findUnique({
@@ -330,7 +333,10 @@ describe("FamilyController (e2e)", () => {
         const admin = await registerUser(server);
         await createFamily(admin.token);
 
-        const quitResponse = await agent.delete("/family/quit").set("Authorization", `Bearer ${admin.token}`);
+        const quitResponse = await agent
+            .delete("/family/quit")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({currentPassword: admin.password});
         expect(quitResponse.status).toBe(204);
 
         const refreshedAdmin = await prisma.users.findUnique({
@@ -340,7 +346,10 @@ describe("FamilyController (e2e)", () => {
         expect(refreshedAdmin?.family_role).toBeNull();
 
         const stranger = await registerUser(server);
-        const invalidQuit = await agent.delete("/family/quit").set("Authorization", `Bearer ${stranger.token}`);
+        const invalidQuit = await agent
+            .delete("/family/quit")
+            .set("Authorization", `Bearer ${stranger.token}`)
+            .send({currentPassword: stranger.password});
 
         expect(invalidQuit.status).toBe(404);
         expect(invalidQuit.body.message).toBe("User is not in a family");
@@ -441,11 +450,17 @@ describe("FamilyController (e2e)", () => {
         expect(joinResponse.status).toBe(204);
 
         // Non-admin cannot delete
-        const forbidden = await agent.delete("/family").set("Authorization", `Bearer ${member.token}`);
+        const forbidden = await agent
+            .delete("/family")
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({currentPassword: member.password});
         expect(forbidden.status).toBe(403);
 
         // Admin deletes family
-        const del = await agent.delete("/family").set("Authorization", `Bearer ${admin.token}`);
+        const del = await agent
+            .delete("/family")
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({currentPassword: admin.password});
         expect(del.status).toBe(204);
 
         const stored = await prisma.family.findUnique({where: {id: family.id}});
@@ -532,7 +547,8 @@ describe("FamilyController (e2e)", () => {
         // admin removes member
         const removeResponse = await agent
             .delete(`/family/members/${member.user.id}`)
-            .set("Authorization", `Bearer ${admin.token}`);
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({currentPassword: admin.password});
         expect(removeResponse.status).toBe(204);
 
         const refreshed = await prisma.users.findUnique({
@@ -548,7 +564,8 @@ describe("FamilyController (e2e)", () => {
 
         const resp = await agent
             .delete(`/family/members/${admin.user.id}`)
-            .set("Authorization", `Bearer ${admin.token}`);
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({currentPassword: admin.password});
 
         expect(resp.status).toBe(409);
         expect(resp.body.message).toBe("Cannot remove family admin/owner");
@@ -562,7 +579,8 @@ describe("FamilyController (e2e)", () => {
 
         const resp = await agent
             .delete(`/family/members/${outsider.user.id}`)
-            .set("Authorization", `Bearer ${admin.token}`);
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({currentPassword: admin.password});
 
         expect(resp.status).toBe(401);
         expect(resp.body.message).toBe("Member is not part of your family");
@@ -589,7 +607,8 @@ describe("FamilyController (e2e)", () => {
 
         const unauthorizedRemoval = await agent
             .delete(`/family/members/${familyBMember.user.id}`)
-            .set("Authorization", `Bearer ${familyAAdmin.token}`);
+            .set("Authorization", `Bearer ${familyAAdmin.token}`)
+            .send({currentPassword: familyAAdmin.password});
 
         expect(unauthorizedRemoval.status).toBe(401);
         expect(unauthorizedRemoval.body.message).toBe("Member is not part of your family");
@@ -600,7 +619,10 @@ describe("FamilyController (e2e)", () => {
         await createFamily(admin.token);
 
         const fakeId: string = "019d2f14-e490-732f-8732-cdcbac41f0ab";
-        const resp = await agent.delete(`/family/members/${fakeId}`).set("Authorization", `Bearer ${admin.token}`);
+        const resp = await agent
+            .delete(`/family/members/${fakeId}`)
+            .set("Authorization", `Bearer ${admin.token}`)
+            .send({currentPassword: admin.password});
 
         expect(resp.status).toBe(404);
         expect(resp.body.message).toBe("Member not found");

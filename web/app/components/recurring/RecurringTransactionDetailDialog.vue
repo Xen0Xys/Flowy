@@ -54,6 +54,10 @@ const accountName = computed(() => {
     if (!rt.value) return "";
     return accountStore.accounts.find((a) => a.id === rt.value?.accountId)?.name ?? "";
 });
+const isAccountReadOnly = computed(() => {
+    if (!rt.value) return false;
+    return !accountStore.canWriteAccount(rt.value.accountId);
+});
 
 const MONTH_KEYS = [
     "january",
@@ -186,6 +190,10 @@ function goToTransaction(transactionId: string) {
                 <DialogTitle class="flex items-center gap-2">
                     <span class="truncate">{{ rt.name }}</span>
                     <Badge v-if="!rt.isEnabled" variant="secondary">{{ t("recurring.list.disabled") }}</Badge>
+                    <Badge v-if="isAccountReadOnly" variant="secondary" class="gap-1">
+                        <Icon class="size-3" name="iconoir:lock" />
+                        {{ t("transactions.form.readOnlyBadge") }}
+                    </Badge>
                 </DialogTitle>
             </DialogHeader>
 
@@ -259,7 +267,7 @@ function goToTransaction(transactionId: string) {
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-end gap-2 pt-3">
+                    <div v-if="!isAccountReadOnly" class="flex items-center justify-end gap-2 pt-3">
                         <Button
                             variant="outline"
                             class="text-destructive hover:bg-destructive/10"

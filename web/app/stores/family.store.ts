@@ -160,17 +160,17 @@ export const useFamilyStore = defineStore("family", {
             }
         },
 
-        async quitFamily() {
+        async quitFamily(currentPassword: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                await apiFetch("/family/quit", {method: "DELETE"});
+                await apiFetch("/family/quit", {method: "DELETE", body: {currentPassword}});
                 // server removed user's family; refresh profile
                 await userStore.fetchProfile();
                 toast.success(i18nT("family.store.success.leftFamily"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("family.store.errors.leaveFamily");
+                const message = err?.data?.message ?? err?.message ?? i18nT("family.store.errors.leaveFamily");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -198,14 +198,14 @@ export const useFamilyStore = defineStore("family", {
             }
         },
 
-        async removeFamilyMember(memberId: string) {
+        async removeFamilyMember(memberId: string, currentPassword: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                // Expecting backend to implement: DELETE /family/members/:id
                 await apiFetch(`/family/members/${memberId}`, {
                     method: "DELETE",
+                    body: {currentPassword},
                 });
                 // refresh profile and return success
                 await userStore.fetchProfile();
@@ -218,19 +218,18 @@ export const useFamilyStore = defineStore("family", {
                     toast.error(msg);
                     throw new Error(msg, {cause: err});
                 }
-                const message = err?.message ?? i18nT("family.store.errors.removeMember");
+                const message = err?.data?.message ?? err?.message ?? i18nT("family.store.errors.removeMember");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
         },
 
-        async deleteFamily() {
+        async deleteFamily(currentPassword: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                // Expecting backend to implement: DELETE /family
-                await apiFetch(`/family`, {method: "DELETE"});
+                await apiFetch(`/family`, {method: "DELETE", body: {currentPassword}});
                 // After deletion, clear user's family info by refreshing profile
                 await userStore.fetchProfile();
                 toast.success(i18nT("family.store.success.familyDeleted"));
@@ -241,7 +240,7 @@ export const useFamilyStore = defineStore("family", {
                     toast.error(msg);
                     throw new Error(msg, {cause: err});
                 }
-                const message = err?.message ?? i18nT("family.store.errors.deleteFamily");
+                const message = err?.data?.message ?? err?.message ?? i18nT("family.store.errors.deleteFamily");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

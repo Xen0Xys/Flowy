@@ -11,6 +11,10 @@ type SeedCategoryRef = {
     id: string;
 };
 
+type SeedAccountRef = {
+    id: string;
+};
+
 type SeedBudgetResult = {
     budgetsCount: number;
     budgetedCategoriesCount: number;
@@ -43,9 +47,12 @@ export async function seedBudgetsForUser(
     prisma: PrismaClient,
     userId: string,
     categories: SeedCategoryRef[],
+    accounts: SeedAccountRef[],
     faker: Faker,
 ): Promise<SeedBudgetResult> {
-    if (categories.length === 0) {
+    const eligibleAccountIds = accounts.map((account) => account.id);
+
+    if (categories.length === 0 || eligibleAccountIds.length === 0) {
         return {
             budgetsCount: 0,
             budgetedCategoriesCount: 0,
@@ -62,6 +69,11 @@ export async function seedBudgetsForUser(
     let budgetedCategoriesCount = 0;
 
     await prisma.$transaction(async (tx) => {
+        // Idempotent standalone use: without this, re-running the seed for
+        // the same user accumulates budgets since the unique
+        // (user_id, month, year) constraint was dropped for multi-budget scope.
+        await tx.budgets.deleteMany({where: {user_id: userId}});
+
         for (const period of periods) {
             const budgetedIncome = faker.number.float({
                 min: MIN_BUDGETED_INCOME,
@@ -70,36 +82,20 @@ export async function seedBudgetsForUser(
             });
 
             // oxlint-disable-next-line no-await-in-loop
-            const budget = await tx.budgets.upsert({
-                where: {
-                    user_id_month_year: {
-                        user_id: userId,
-                        month: period.month,
-                        year: period.year,
-                    },
-                },
-                create: {
+            const budget = await tx.budgets.create({
+                data: {
                     user_id: userId,
                     month: period.month,
                     year: period.year,
                     budgeted_income: budgetedIncome,
+                    accounts: {
+                        create: eligibleAccountIds.map((accountId) => ({account_id: accountId})),
+                    },
                 },
-                update: {
-                    budgeted_income: budgetedIncome,
-                },
-                select: {
-                    id: true,
-                },
+                select: {id: true},
             });
 
             budgetsCount += 1;
-
-            // oxlint-disable-next-line no-await-in-loop
-            await tx.budgetedCategories.deleteMany({
-                where: {
-                    budget_id: budget.id,
-                },
-            });
 
             const maxBudgetLines = Math.min(categories.length, 8);
             const linesCount = faker.number.int({

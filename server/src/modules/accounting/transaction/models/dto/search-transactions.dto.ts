@@ -72,6 +72,14 @@ export class TransactionFiltersDto {
     @IsOptional()
     @IsDateString()
     endDate?: string;
+
+    @IsOptional()
+    @IsEnum(TransactionSortBy)
+    sortBy?: TransactionSortBy;
+
+    @IsOptional()
+    @IsEnum(TransactionSortOrder)
+    sortOrder?: TransactionSortOrder;
 }
 
 export class SearchTransactionsDto extends TransactionFiltersDto {
@@ -85,12 +93,4 @@ export class SearchTransactionsDto extends TransactionFiltersDto {
     @Min(1)
     @Max(100)
     pageSize!: number;
-
-    @IsOptional()
-    @IsEnum(TransactionSortBy)
-    sortBy?: TransactionSortBy;
-
-    @IsOptional()
-    @IsEnum(TransactionSortOrder)
-    sortOrder?: TransactionSortOrder;
 }

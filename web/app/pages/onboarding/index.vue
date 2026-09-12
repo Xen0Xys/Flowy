@@ -12,7 +12,7 @@ import {cn} from "@/lib/utils";
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in", appear: true},
-    onboarding: {step: 0},
+    onboarding: {key: "welcome"},
 });
 
 const router = useRouter();

@@ -1,23 +1,22 @@
 import {PrismaService} from "../../helper/prisma.service";
-import {
-    BadRequestException,
-    ForbiddenException,
-    Injectable,
-    Logger,
-    NotFoundException,
-    OnModuleInit,
-} from "@nestjs/common";
+import {BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit} from "@nestjs/common";
 import {AccountTypes} from "../../../../prisma/generated/enums";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
+import {UserService} from "../../users/user/user.service";
 import {AccountEntity} from "./models/entities/account.entity";
 import {Accounts} from "../../../../prisma/generated/client";
 import {UpdateAccountDto} from "./models/dto/update-account.dto";
+import {AccessLevel, AccountAccessService} from "./account-access.service";
 
 @Injectable()
 export class AccountService implements OnModuleInit {
     private readonly logger = new Logger("AccountService");
 
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly accountAccess: AccountAccessService,
+        private readonly userService: UserService,
+    ) {}
 
     async onModuleInit() {
         await this.checkIntegrity();
@@ -28,14 +27,16 @@ export class AccountService implements OnModuleInit {
         return Math.round(nb * 100) / 100;
     }
 
-    toAccountEntity(account: Accounts) {
+    toAccountEntity(account: Accounts, ownerUsername: string, access: AccessLevel = "owner", sharesCount = 0) {
         return new AccountEntity({
             id: account.id,
             ownerId: account.user_id,
+            ownerUsername,
             name: account.name,
             balance: account.balance,
             type: account.type,
-            inBudget: account.in_budget,
+            access,
+            sharesCount,
             createdAt: account.created_at,
             updatedAt: account.updated_at,
         });
@@ -105,7 +106,6 @@ export class AccountService implements OnModuleInit {
         name: string,
         accountType: AccountTypes,
         balance?: number,
-        inBudget?: boolean,
     ): Promise<AccountEntity> {
         const account: Accounts = await this.prismaService.accounts.create({
             data: {
@@ -113,7 +113,6 @@ export class AccountService implements OnModuleInit {
                 name,
                 balance: this.toDecimal(balance || 0),
                 type: accountType,
-                in_budget: inBudget ?? true,
             },
         });
         if (balance)
@@ -126,62 +125,78 @@ export class AccountService implements OnModuleInit {
                     in_budget: false,
                 },
             });
-        return this.toAccountEntity(account);
+        return this.toAccountEntity(account, user.username);
     }
 
     async getAccounts(user: UserEntity): Promise<AccountEntity[]> {
-        const accounts = await this.prismaService.accounts.findMany({
-            where: {
-                user_id: user.id,
-            },
+        const [owned, shared] = await Promise.all([
+            this.prismaService.accounts.findMany({
+                where: {user_id: user.id},
+                include: {_count: {select: {shares: true}}},
+            }),
+            this.prismaService.accountShares.findMany({
+                where: {shared_with_id: user.id},
+                include: {
+                    account: {
+                        include: {
+                            _count: {select: {shares: true}},
+                            user: {select: {username: true}},
+                        },
+                    },
+                },
+            }),
+        ]);
+        const ownedEntities = owned.map(({_count, ...account}) =>
+            this.toAccountEntity(account, user.username, "owner", _count.shares),
+        );
+        const sharedEntities = shared.map(({account, permission}) => {
+            const {_count, user: owner, ...rest} = account;
+            return this.toAccountEntity(rest, owner.username, permission === "WRITE" ? "write" : "read", _count.shares);
         });
-        return accounts.map((account) => this.toAccountEntity(account));
+        return [...ownedEntities, ...sharedEntities];
     }
 
     async getAccount(user: UserEntity, id: string): Promise<AccountEntity> {
-        const account: Accounts | null = await this.prismaService.accounts.findUnique({
-            where: {
-                id,
-            },
-        });
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id)
-            throw new ForbiddenException("You do not have permission to delete this account");
-        return this.toAccountEntity(account);
+        const account = await this.accountAccess.assertAccess(user, id, "read");
+        const [level, sharesCount, owner] = await Promise.all([
+            this.accountAccess.getAccessLevel(user, id),
+            this.prismaService.accountShares.count({where: {account_id: id}}),
+            account.user_id === user.id
+                ? Promise.resolve({username: user.username})
+                : this.prismaService.users.findUniqueOrThrow({
+                      where: {id: account.user_id},
+                      select: {username: true},
+                  }),
+        ]);
+        return this.toAccountEntity(account, owner.username, level ?? "read", sharesCount);
     }
 
-    async deleteAccount(user: UserEntity, accountId: string): Promise<void> {
-        // Check if user is owner && if account exists
-        const account: Accounts | null = await this.prismaService.accounts.findUnique({
-            where: {
-                id: accountId,
-            },
-        });
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id)
+    async deleteAccount(user: UserEntity, accountId: string, currentPassword: string): Promise<void> {
+        // Owner-only: sharing does not grant delete capability.
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        if (account.user_id !== user.id) {
             throw new ForbiddenException("You do not have permission to delete this account");
-        await this.prismaService.accounts.delete({
-            where: {
-                id: accountId,
-            },
+        }
+        await this.userService.verifyPassword(user, currentPassword);
+        await this.prismaService.$transaction(async (tx) => {
+            await tx.accounts.delete({where: {id: accountId}});
+            // Scope to the caller: only sweep the caller's own budgets that lost
+            // their entire account scope. A DB-wide `none: {}` would delete
+            // orphan budgets across every tenant.
+            await tx.budgets.deleteMany({where: {user_id: user.id, accounts: {none: {}}}});
         });
     }
 
     async updateAccount(user: UserEntity, accountId: string, body: UpdateAccountDto): Promise<AccountEntity> {
-        const account = await this.prismaService.accounts.findUnique({
-            where: {
-                id: accountId,
-            },
-        });
-
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id)
+        // Owner-only: sharing does not grant edit on the account itself (name/type/balance/in_budget).
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        if (account.user_id !== user.id) {
             throw new ForbiddenException("You do not have permission to update this account");
+        }
 
-        const data: Partial<Pick<Accounts, "name" | "type" | "balance" | "in_budget">> = {};
+        const data: Partial<Pick<Accounts, "name" | "type" | "balance">> = {};
         if (body.name !== undefined) data.name = body.name;
         if (body.type !== undefined) data.type = body.type;
-        if (body.inBudget !== undefined) data.in_budget = body.inBudget;
 
         const hasBalanceUpdate = body.balance !== undefined;
         const targetBalance = hasBalanceUpdate ? this.toDecimal(body.balance as number) : account.balance;
@@ -195,6 +210,7 @@ export class AccountService implements OnModuleInit {
                     id: accountId,
                 },
                 data,
+                include: {_count: {select: {shares: true}}},
             });
 
             if (hasBalanceUpdate && rebalanceAmount !== 0) {
@@ -212,7 +228,8 @@ export class AccountService implements OnModuleInit {
             return updated;
         });
 
-        return this.toAccountEntity(updatedAccount);
+        const {_count, ...updated} = updatedAccount;
+        return this.toAccountEntity(updated, user.username, "owner", _count.shares);
     }
 
     async getAccountBalanceEvolution(
@@ -221,15 +238,7 @@ export class AccountService implements OnModuleInit {
         startDate: string,
         endDate: string,
     ): Promise<Array<{date: Date; balance: number}>> {
-        const account = await this.prismaService.accounts.findUnique({
-            where: {
-                id: accountId,
-            },
-        });
-
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id)
-            throw new ForbiddenException("You do not have permission to access this account");
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
 
         const start = new Date(startDate);
         const end = new Date(endDate);

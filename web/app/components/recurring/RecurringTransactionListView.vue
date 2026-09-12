@@ -34,6 +34,7 @@ const sortedItems = computed(() =>
             :recurring-transaction="rt"
             :currency="currency"
             :account-name="accountsById.get(rt.accountId)?.name"
+            :can-write="accountStore.canWriteAccount(rt.accountId)"
             @click="emit('select', rt)"
             @toggle="(v) => emit('toggle', rt, v)" />
     </div>

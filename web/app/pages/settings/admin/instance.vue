@@ -20,16 +20,7 @@ import {
     ComboboxTrigger,
     ComboboxViewport,
 } from "@/components/ui/combobox";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import {toast} from "vue-sonner";
 import {useClipboard} from "@vueuse/core";
 import {ChevronsUpDown} from "lucide-vue-next";
@@ -124,11 +115,11 @@ function cancelOwnerChange() {
     ownerChangeDialogOpen.value = false;
 }
 
-async function confirmOwnerChange() {
+async function confirmOwnerChange(currentPassword: string) {
     if (!pendingOwnerId.value) return;
     savingOwner.value = true;
     try {
-        await userStore.updateInstanceOwner(pendingOwnerId.value);
+        await userStore.updateInstanceOwner(pendingOwnerId.value, currentPassword);
         ownerId.value = pendingOwnerId.value;
         pendingOwnerId.value = null;
         ownerChangeDialogOpen.value = false;
@@ -305,33 +296,21 @@ async function copyVersions() {
             </Card>
         </div>
 
-        <AlertDialog v-model:open="ownerChangeDialogOpen">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{{ t("settings.instance.changeOwnerTitle") }}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {{ t("settings.instance.changeOwnerDescription") }}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div v-if="pendingOwner" class="border-border/60 flex items-center gap-3 rounded-lg border p-3">
-                    <Avatar class="size-10 shrink-0">
-                        <AvatarFallback class="text-xs font-semibold">
-                            {{ computeInitials(pendingOwner.username) }}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div class="min-w-0">
-                        <p class="truncate text-sm font-medium">{{ pendingOwner.username }}</p>
-                        <p class="text-muted-foreground truncate text-xs">{{ pendingOwner.email }}</p>
-                    </div>
-                </div>
-                <AlertDialogFooter>
-                    <AlertDialogCancel @click="cancelOwnerChange">{{ t("common.cancel") }}</AlertDialogCancel>
-                    <AlertDialogAction :disabled="savingOwner" @click="confirmOwnerChange">
-                        <span v-if="!savingOwner">{{ t("common.save") }}</span>
-                        <span v-else>{{ t("common.saving") }}</span>
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <PasswordConfirmDialog
+            :open="ownerChangeDialogOpen"
+            :title="t('settings.instance.changeOwnerTitle')"
+            :description="
+                pendingOwner
+                    ? t('settings.instance.changeOwnerDescriptionWithTarget', {
+                          username: pendingOwner.username,
+                          email: pendingOwner.email,
+                      })
+                    : t('settings.instance.changeOwnerDescription')
+            "
+            :confirm-label="t('common.save')"
+            :loading="savingOwner"
+            input-id="instance-owner-change-password"
+            @update:open="(open) => (open ? (ownerChangeDialogOpen = true) : cancelOwnerChange())"
+            @confirm="confirmOwnerChange" />
     </div>
 </template>

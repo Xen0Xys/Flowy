@@ -15,7 +15,7 @@ Think of it as a self-hosted alternative to shared spreadsheets and subscription
 
 ## Highlights
 
-- Everyone sees the same picture. Invite your partner or family to a shared workspace and stop emailing exports back and forth.
+- Share the accounts that matter. Invite your partner or family to individual accounts with read-only or read/write permissions, and stop emailing exports back and forth.
 - All your money in one dashboard. Checking, savings, credit, cash, investment and custom accounts tracked side by side.
 - Categorization that fits your household. Build your own merchant and category catalog instead of adapting to a generic preset.
 - Your data stays on your server. Runs on your own PostgreSQL through Docker Compose. No third-party sync, no subscription, no telemetry.
@@ -52,7 +52,6 @@ Actively developed. Currently planned:
 
 - Recurring transactions with calendar view
 - CSV/PDF export and GDPR-compliant account deletion
-- Shared account access with permissions and activity log
 - Bank aggregator integration (optional)
 - Loan tracking
 - Investment portfolio tracking

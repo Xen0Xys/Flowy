@@ -8,10 +8,14 @@ import {CreateCategoryDto} from "./models/dto/create-category.dto";
 import {UpdateCategoryDto} from "./models/dto/update-category.dto";
 import {CreateMerchantDto} from "./models/dto/create-merchant.dto";
 import {UpdateMerchantDto} from "./models/dto/update-merchant.dto";
+import {AccountAccessService} from "../account/account-access.service";
 
 @Injectable()
 export class ReferenceService {
-    constructor(private readonly prismaService: PrismaService) {}
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly accountAccess: AccountAccessService,
+    ) {}
 
     private async getCategoryOrThrow(user: UserEntity, categoryId: string): Promise<UserCategories> {
         const category = await this.prismaService.userCategories.findUnique({
@@ -100,10 +104,11 @@ export class ReferenceService {
         });
     }
 
-    async getCategories(user: UserEntity): Promise<CategoryEntity[]> {
+    async getCategories(user: UserEntity, accountId?: string): Promise<CategoryEntity[]> {
+        const scopeUserId = await this.resolveScopeUserId(user, accountId);
         const categories = await this.prismaService.userCategories.findMany({
             where: {
-                user_id: user.id,
+                user_id: scopeUserId,
             },
             orderBy: {
                 name: "asc",
@@ -191,10 +196,53 @@ export class ReferenceService {
         });
     }
 
-    async getMerchants(user: UserEntity): Promise<MerchantEntity[]> {
+    async bulkDeleteCategories(user: UserEntity, ids: string[]): Promise<{deletedCount: number}> {
+        const uniqueIds = Array.from(new Set(ids));
+
+        return this.prismaService.$transaction(async (tx) => {
+            const categories = await tx.userCategories.findMany({
+                where: {id: {in: uniqueIds}},
+                select: {id: true, user_id: true},
+            });
+
+            const found = new Set(categories.map((category) => category.id));
+            const missing = uniqueIds.filter((id) => !found.has(id));
+            if (missing.length > 0) {
+                throw new NotFoundException("Category not found");
+            }
+
+            if (categories.some((category) => category.user_id !== user.id)) {
+                throw new ForbiddenException("You do not have permission to access this category");
+            }
+
+            // BudgetedCategories.category_id cascades on delete. Refuse rather
+            // than silently wipe budget lines across every budget; the caller
+            // must first detach the categories from any active budget.
+            const impacted = await tx.budgetedCategories.findMany({
+                where: {category_id: {in: uniqueIds}},
+                select: {budget_id: true},
+                distinct: ["budget_id"],
+            });
+            if (impacted.length > 0) {
+                throw new ConflictException({
+                    message: "One or more categories are used by an active budget",
+                    impactedBudgetIds: impacted.map((entry) => entry.budget_id),
+                });
+            }
+
+            const result = await tx.userCategories.deleteMany({
+                where: {id: {in: uniqueIds}, user_id: user.id},
+            });
+
+            return {deletedCount: result.count};
+        });
+    }
+
+    async getMerchants(user: UserEntity, accountId?: string): Promise<MerchantEntity[]> {
+        const scopeUserId = await this.resolveScopeUserId(user, accountId);
         const merchants = await this.prismaService.userMerchants.findMany({
             where: {
-                user_id: user.id,
+                user_id: scopeUserId,
             },
             orderBy: {
                 name: "asc",
@@ -202,6 +250,12 @@ export class ReferenceService {
         });
 
         return merchants.map((merchant) => this.toMerchantEntity(merchant));
+    }
+
+    private async resolveScopeUserId(user: UserEntity, accountId?: string): Promise<string> {
+        if (!accountId) return user.id;
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        return account.user_id;
     }
 
     async createMerchant(user: UserEntity, body: CreateMerchantDto): Promise<MerchantEntity> {
@@ -275,6 +329,33 @@ export class ReferenceService {
             where: {
                 id: merchantId,
             },
+        });
+    }
+
+    async bulkDeleteMerchants(user: UserEntity, ids: string[]): Promise<{deletedCount: number}> {
+        const uniqueIds = Array.from(new Set(ids));
+
+        return this.prismaService.$transaction(async (tx) => {
+            const merchants = await tx.userMerchants.findMany({
+                where: {id: {in: uniqueIds}},
+                select: {id: true, user_id: true},
+            });
+
+            const found = new Set(merchants.map((merchant) => merchant.id));
+            const missing = uniqueIds.filter((id) => !found.has(id));
+            if (missing.length > 0) {
+                throw new NotFoundException("Merchant not found");
+            }
+
+            if (merchants.some((merchant) => merchant.user_id !== user.id)) {
+                throw new ForbiddenException("You do not have permission to access this merchant");
+            }
+
+            const result = await tx.userMerchants.deleteMany({
+                where: {id: {in: uniqueIds}, user_id: user.id},
+            });
+
+            return {deletedCount: result.count};
         });
     }
 }

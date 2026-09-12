@@ -173,6 +173,9 @@ describe("Security regression coverage (e2e)", () => {
         const payload = buildRegisterPayload();
         const attackerControlledJwtId = "attacker-fixed-jwt-id";
 
+        // Global validation pipe is now configured with whitelist +
+        // forbidNonWhitelisted so injecting fields that are not on the DTO
+        // fails fast with 400 rather than silently stripping them.
         const register = await agent.post("/auth/register").send({
             ...payload,
             family_id: "00000000-0000-0000-0000-000000000000",
@@ -182,16 +185,24 @@ describe("Security regression coverage (e2e)", () => {
             role: "OWNER",
         });
 
-        expect(register.status).toBe(201);
+        expect(register.status).toBe(400);
 
-        const stored = await prisma.users.findUniqueOrThrow({
-            where: {email: payload.email},
-        });
-        expect(stored.family_id).toBeNull();
-        expect(stored.family_role).toBeNull();
-        expect(stored.jwt_id).not.toBe(attackerControlledJwtId);
+        // The account must NOT have been created with any of the attacker-
+        // controlled attributes attached to it either.
+        const stored = await prisma.users.findUnique({where: {email: payload.email}});
+        expect(stored).toBeNull();
 
-        const adminProbe = await agent.get("/admin/users").set("Authorization", `Bearer ${register.body.token}`);
+        // A clean registration afterwards succeeds and yields no admin rights
+        // or attacker-chosen jwt_id.
+        const cleanRegister = await agent.post("/auth/register").send(payload);
+        expect(cleanRegister.status).toBe(201);
+
+        const cleanStored = await prisma.users.findUniqueOrThrow({where: {email: payload.email}});
+        expect(cleanStored.family_id).toBeNull();
+        expect(cleanStored.family_role).toBeNull();
+        expect(cleanStored.jwt_id).not.toBe(attackerControlledJwtId);
+
+        const adminProbe = await agent.get("/admin/users").set("Authorization", `Bearer ${cleanRegister.body.token}`);
         expect(adminProbe.status).toBe(401);
     });
 

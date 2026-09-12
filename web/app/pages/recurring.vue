@@ -91,6 +91,8 @@ const selectedRt = ref<RecurringTransaction | null>(null);
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
 const items = computed(() => store.items);
+const hasWritableAccount = computed(() => accountStore.writableAccounts.length > 0);
+const canEditRt = (rt: RecurringTransaction): boolean => accountStore.canWriteAccount(rt.accountId);
 
 async function loadList() {
     await store.fetchAll();
@@ -165,6 +167,7 @@ function navigateMonth(direction: -1 | 1) {
 }
 
 function openCreate() {
+    if (!hasWritableAccount.value) return;
     editingRt.value = null;
     isFormOpen.value = true;
 }
@@ -175,6 +178,7 @@ function handleSelect(rt: RecurringTransaction) {
 }
 
 async function handleToggle(rt: RecurringTransaction, value: boolean) {
+    if (!canEditRt(rt)) return;
     try {
         await store.toggle(rt.id, value);
         await loadCalendar();
@@ -184,6 +188,7 @@ async function handleToggle(rt: RecurringTransaction, value: boolean) {
 }
 
 function handleEdit(rt: RecurringTransaction) {
+    if (!canEditRt(rt)) return;
     editingRt.value = rt;
     isDetailOpen.value = false;
     isFormOpen.value = true;
@@ -220,7 +225,11 @@ async function handleDeleted() {
                             <p class="text-muted-foreground text-sm">{{ t("recurring.page.subtitle") }}</p>
                         </div>
                     </div>
-                    <Button class="w-full md:w-auto" @click="openCreate">
+                    <Button
+                        v-if="!accountStore.hasFetched || hasWritableAccount"
+                        :disabled="!accountStore.hasFetched"
+                        class="w-full md:w-auto"
+                        @click="openCreate">
                         <Icon class="mr-2 size-4" name="iconoir:plus" />
                         {{ t("recurring.page.new") }}
                     </Button>

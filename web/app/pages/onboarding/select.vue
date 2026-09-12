@@ -13,7 +13,7 @@ import {Card, CardContent} from "@/components/ui/card";
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in", appear: true},
-    onboarding: {step: 1},
+    onboarding: {key: "select"},
 });
 
 const router = useRouter();
@@ -48,6 +48,7 @@ async function joinFamily() {
         return;
     }
 
+    onboardingStore.setMode("join");
     loading.value = true;
     try {
         await apiFetch(`/family/join/${encodeURIComponent(code.value)}`, {
@@ -58,10 +59,10 @@ async function joinFamily() {
         } catch (refreshErr) {
             console.warn("[onboarding/select] profile refresh failed after join", refreshErr);
         }
-        onboardingStore.reset();
         toast.success(t("onboarding.select.toast.joined"));
-        await router.push("/");
+        await router.push("/onboarding/categories");
     } catch (err: any) {
+        onboardingStore.reset();
         const msg = err?.data?.message ?? err?.message ?? t("onboarding.select.errors.joinFailed");
         toast.error(msg);
     } finally {

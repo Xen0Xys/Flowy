@@ -27,9 +27,10 @@ const props = withDefaults(
         noneLabel: string;
         createLabel: string;
         disabled?: boolean;
+        canCreate?: boolean;
         id?: string;
     }>(),
-    {disabled: false},
+    {disabled: false, canCreate: true},
 );
 
 const emit = defineEmits<{
@@ -105,13 +106,15 @@ const displayValue = (value: string | number | boolean | Array<string | number |
                         <span>{{ item.name }}</span>
                     </ComboboxItem>
                 </ComboboxGroup>
-                <ComboboxSeparator />
-                <ComboboxGroup>
-                    <ComboboxItem value="__create__">
-                        <Plus class="text-primary" />
-                        <span>{{ createLabel }}</span>
-                    </ComboboxItem>
-                </ComboboxGroup>
+                <template v-if="canCreate">
+                    <ComboboxSeparator />
+                    <ComboboxGroup>
+                        <ComboboxItem value="__create__">
+                            <Plus class="text-primary" />
+                            <span>{{ createLabel }}</span>
+                        </ComboboxItem>
+                    </ComboboxGroup>
+                </template>
             </ComboboxViewport>
         </ComboboxList>
     </Combobox>

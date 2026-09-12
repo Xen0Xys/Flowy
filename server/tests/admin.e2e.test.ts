@@ -144,7 +144,10 @@ describe("AdminController (e2e)", () => {
         expect(Array.isArray(list.body)).toBe(true);
 
         // delete other user
-        const del = await agent.delete(`/admin/users/${user.user.id}`).set("Authorization", `Bearer ${owner.token}`);
+        const del = await agent
+            .delete(`/admin/users/${user.user.id}`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({currentPassword: PASSWORD_BASE});
         expect(del.status).toBe(204);
 
         const found = await prisma.users.findUnique({
@@ -153,7 +156,10 @@ describe("AdminController (e2e)", () => {
         expect(found).toBeNull();
 
         // cannot delete self
-        const cannot = await agent.delete(`/admin/users/${owner.user.id}`).set("Authorization", `Bearer ${owner.token}`);
+        const cannot = await agent
+            .delete(`/admin/users/${owner.user.id}`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({currentPassword: PASSWORD_BASE});
         expect(cannot.status).toBe(401);
         expect(cannot.body.message).toBe("Cannot delete yourself");
     });
@@ -297,7 +303,7 @@ describe("AdminController (e2e)", () => {
         const changeOwner = await agent
             .patch("/admin/instance/owner")
             .set("Authorization", `Bearer ${owner.token}`)
-            .send({ownerId: other.user.id});
+            .send({ownerId: other.user.id, currentPassword: ownerPayload.password});
         expect(changeOwner.status).toBe(204);
 
         const cfg = await prisma.config.findUnique({
@@ -330,8 +336,16 @@ describe("AdminController (e2e)", () => {
         const reset = await agent
             .patch(`/admin/users/${other.user.id}/password`)
             .set("Authorization", `Bearer ${owner.token}`)
-            .send({password: newPass});
+            .send({password: newPass, currentPassword: ownerPayload.password});
         expect(reset.status).toBe(200);
+
+        // target's previously-issued token must be invalidated
+        const otherOldTokenCheck = await agent.get("/user/me").set("Authorization", `Bearer ${other.token}`);
+        expect(otherOldTokenCheck.status).toBe(401);
+
+        // owner's session is untouched
+        const ownerTokenCheck = await agent.get("/user/me").set("Authorization", `Bearer ${owner.token}`);
+        expect(ownerTokenCheck.status).toBe(200);
 
         // login with old password fails
         const oldLogin = await agent
@@ -404,7 +418,8 @@ describe("AdminController (e2e)", () => {
     });
 
     test("deleting a solo family admin also deletes their family", async () => {
-        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
+        const ownerPayload = buildRegisterPayload();
+        const ownerReg = await agent.post("/auth/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -428,7 +443,10 @@ describe("AdminController (e2e)", () => {
             where: {name: "SoloFamily"},
         });
 
-        const del = await agent.delete(`/admin/users/${target.user.id}`).set("Authorization", `Bearer ${owner.token}`);
+        const del = await agent
+            .delete(`/admin/users/${target.user.id}`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({currentPassword: ownerPayload.password});
         expect(del.status).toBe(204);
 
         const deletedUser = await prisma.users.findUnique({
@@ -443,7 +461,8 @@ describe("AdminController (e2e)", () => {
     });
 
     test("deleting a family admin transfers admin role to another member", async () => {
-        const ownerReg = await agent.post("/auth/register").send(buildRegisterPayload());
+        const ownerPayload = buildRegisterPayload();
+        const ownerReg = await agent.post("/auth/register").send(ownerPayload);
         expect(ownerReg.status).toBe(201);
         const owner = ownerReg.body;
 
@@ -482,7 +501,8 @@ describe("AdminController (e2e)", () => {
 
         const del = await agent
             .delete(`/admin/users/${familyAdmin.user.id}`)
-            .set("Authorization", `Bearer ${owner.token}`);
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({currentPassword: ownerPayload.password});
         expect(del.status).toBe(204);
 
         const deletedUser = await prisma.users.findUnique({

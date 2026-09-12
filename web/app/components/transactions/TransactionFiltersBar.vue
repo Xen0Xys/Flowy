@@ -7,10 +7,27 @@ import {getLocalTimeZone} from "@internationalized/date";
 
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet";
 import {Badge} from "@/components/ui/badge";
 import TransactionDateRangePicker from "./TransactionDateRangePicker.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
+import type {AccountAccess} from "~/stores/account.store";
+
+export type FilterOptionGroup = {
+    ownerId: string;
+    ownerUsername: string;
+    isCurrentUser: boolean;
+    items: {id: string; name: string}[];
+};
 
 export type TransactionFilters = {
     search: string;
@@ -26,9 +43,51 @@ const props = defineProps<{
     modelValue: TransactionFilters;
     availableCategories: {id: string; name: string}[];
     availableMerchants: {id: string; name: string}[];
-    availableAccounts?: {id: string; name: string}[];
+    availableAccounts?: {id: string; name: string; access?: AccountAccess}[];
     showAccountFilter?: boolean;
+    categoryGroups?: FilterOptionGroup[];
+    merchantGroups?: FilterOptionGroup[];
 }>();
+
+const useCategoryGroups = computed(() => Array.isArray(props.categoryGroups) && props.categoryGroups.length > 1);
+const useMerchantGroups = computed(() => Array.isArray(props.merchantGroups) && props.merchantGroups.length > 1);
+
+const groupLabelFor = (group: FilterOptionGroup, kind: "category" | "merchant"): string => {
+    if (group.isCurrentUser) {
+        return kind === "category" ? t("transactions.filters.myCategories") : t("transactions.filters.myMerchants");
+    }
+    return kind === "category"
+        ? t("transactions.filters.categoriesOfOwner", {owner: group.ownerUsername})
+        : t("transactions.filters.merchantsOfOwner", {owner: group.ownerUsername});
+};
+
+const flattenedCategoryOptions = computed(() => {
+    if (!useCategoryGroups.value) return props.availableCategories;
+    const seen = new Set<string>();
+    const items: {id: string; name: string}[] = [];
+    for (const group of props.categoryGroups ?? []) {
+        for (const item of group.items) {
+            if (seen.has(item.id)) continue;
+            seen.add(item.id);
+            items.push(item);
+        }
+    }
+    return items;
+});
+
+const flattenedMerchantOptions = computed(() => {
+    if (!useMerchantGroups.value) return props.availableMerchants;
+    const seen = new Set<string>();
+    const items: {id: string; name: string}[] = [];
+    for (const group of props.merchantGroups ?? []) {
+        for (const item of group.items) {
+            if (seen.has(item.id)) continue;
+            seen.add(item.id);
+            items.push(item);
+        }
+    }
+    return items;
+});
 
 const emit = defineEmits<{
     (e: "update:modelValue", value: TransactionFilters): void;
@@ -101,7 +160,7 @@ const activeChips = computed<ActiveChip[]>(() => {
         const label =
             filters.value.categoryId === "none"
                 ? t("transactions.filters.noCategory")
-                : nameById(props.availableCategories, filters.value.categoryId) || filters.value.categoryId;
+                : nameById(flattenedCategoryOptions.value, filters.value.categoryId) || filters.value.categoryId;
         chips.push({
             key: "category",
             label: `${t("transactions.filters.category")}: ${label}`,
@@ -112,7 +171,7 @@ const activeChips = computed<ActiveChip[]>(() => {
     }
 
     if (filters.value.merchantId !== "all") {
-        const name = nameById(props.availableMerchants, filters.value.merchantId);
+        const name = nameById(flattenedMerchantOptions.value, filters.value.merchantId);
         chips.push({
             key: "merchant",
             label: `${t("transactions.filters.merchant")}: ${name || filters.value.merchantId}`,
@@ -297,7 +356,10 @@ watch(isReducedHeight, (isCompact) => {
                             v-for="account in props.availableAccounts || []"
                             :key="account.id"
                             :value="account.id">
-                            {{ account.name }}
+                            <div class="flex w-full items-center gap-2">
+                                <span class="truncate">{{ account.name }}</span>
+                                <AccountSharedBadge v-if="account.access" :access="account.access" variant="icon" />
+                            </div>
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -309,9 +371,19 @@ watch(isReducedHeight, (isCompact) => {
                     <SelectContent>
                         <SelectItem value="all">{{ t("transactions.filters.allCategories") }}</SelectItem>
                         <SelectItem value="none">{{ t("transactions.filters.noCategory") }}</SelectItem>
-                        <SelectItem v-for="category in availableCategories" :key="category.id" :value="category.id">
-                            {{ category.name }}
-                        </SelectItem>
+                        <template v-if="useCategoryGroups">
+                            <SelectGroup v-for="group in categoryGroups" :key="group.ownerId">
+                                <SelectLabel>{{ groupLabelFor(group, "category") }}</SelectLabel>
+                                <SelectItem v-for="category in group.items" :key="category.id" :value="category.id">
+                                    {{ category.name }}
+                                </SelectItem>
+                            </SelectGroup>
+                        </template>
+                        <template v-else>
+                            <SelectItem v-for="category in availableCategories" :key="category.id" :value="category.id">
+                                {{ category.name }}
+                            </SelectItem>
+                        </template>
                     </SelectContent>
                 </Select>
 
@@ -321,9 +393,19 @@ watch(isReducedHeight, (isCompact) => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">{{ t("transactions.filters.allMerchants") }}</SelectItem>
-                        <SelectItem v-for="merchant in availableMerchants" :key="merchant.id" :value="merchant.id">
-                            {{ merchant.name }}
-                        </SelectItem>
+                        <template v-if="useMerchantGroups">
+                            <SelectGroup v-for="group in merchantGroups" :key="group.ownerId">
+                                <SelectLabel>{{ groupLabelFor(group, "merchant") }}</SelectLabel>
+                                <SelectItem v-for="merchant in group.items" :key="merchant.id" :value="merchant.id">
+                                    {{ merchant.name }}
+                                </SelectItem>
+                            </SelectGroup>
+                        </template>
+                        <template v-else>
+                            <SelectItem v-for="merchant in availableMerchants" :key="merchant.id" :value="merchant.id">
+                                {{ merchant.name }}
+                            </SelectItem>
+                        </template>
                     </SelectContent>
                 </Select>
 
@@ -417,7 +499,13 @@ watch(isReducedHeight, (isCompact) => {
                                         v-for="account in props.availableAccounts || []"
                                         :key="account.id"
                                         :value="account.id">
-                                        {{ account.name }}
+                                        <div class="flex w-full items-center gap-2">
+                                            <span class="truncate">{{ account.name }}</span>
+                                            <AccountSharedBadge
+                                                v-if="account.access"
+                                                :access="account.access"
+                                                variant="icon" />
+                                        </div>
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -435,12 +523,25 @@ watch(isReducedHeight, (isCompact) => {
                                 <SelectContent>
                                     <SelectItem value="all">{{ t("transactions.filters.allCategories") }}</SelectItem>
                                     <SelectItem value="none">{{ t("transactions.filters.noCategory") }}</SelectItem>
-                                    <SelectItem
-                                        v-for="category in availableCategories"
-                                        :key="category.id"
-                                        :value="category.id">
-                                        {{ category.name }}
-                                    </SelectItem>
+                                    <template v-if="useCategoryGroups">
+                                        <SelectGroup v-for="group in categoryGroups" :key="group.ownerId">
+                                            <SelectLabel>{{ groupLabelFor(group, "category") }}</SelectLabel>
+                                            <SelectItem
+                                                v-for="category in group.items"
+                                                :key="category.id"
+                                                :value="category.id">
+                                                {{ category.name }}
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    </template>
+                                    <template v-else>
+                                        <SelectItem
+                                            v-for="category in availableCategories"
+                                            :key="category.id"
+                                            :value="category.id">
+                                            {{ category.name }}
+                                        </SelectItem>
+                                    </template>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -456,12 +557,25 @@ watch(isReducedHeight, (isCompact) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">{{ t("transactions.filters.allMerchants") }}</SelectItem>
-                                    <SelectItem
-                                        v-for="merchant in availableMerchants"
-                                        :key="merchant.id"
-                                        :value="merchant.id">
-                                        {{ merchant.name }}
-                                    </SelectItem>
+                                    <template v-if="useMerchantGroups">
+                                        <SelectGroup v-for="group in merchantGroups" :key="group.ownerId">
+                                            <SelectLabel>{{ groupLabelFor(group, "merchant") }}</SelectLabel>
+                                            <SelectItem
+                                                v-for="merchant in group.items"
+                                                :key="merchant.id"
+                                                :value="merchant.id">
+                                                {{ merchant.name }}
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    </template>
+                                    <template v-else>
+                                        <SelectItem
+                                            v-for="merchant in availableMerchants"
+                                            :key="merchant.id"
+                                            :value="merchant.id">
+                                            {{ merchant.name }}
+                                        </SelectItem>
+                                    </template>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -9,6 +9,9 @@ import type {TimeRange} from "~/utils/accounts";
 import {buildDateRange} from "~/utils/accounts";
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
+import AccountOwnerSharesBadge from "~/components/accounts/AccountOwnerSharesBadge.vue";
+import AccountShareDialog from "~/components/accounts/AccountShareDialog.vue";
+import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import TransactionListWidget from "~/components/transactions/TransactionListWidget.vue";
 
 import {Button} from "~/components/ui/button";
@@ -24,16 +27,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import {Label} from "~/components/ui/label";
 import MoneyInput from "~/components/common/MoneyInput.vue";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+import PasswordConfirmDialog from "~/components/common/PasswordConfirmDialog.vue";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
@@ -57,6 +51,7 @@ const isLoading = ref(true);
 const isFormModalOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isSetBalanceDialogOpen = ref(false);
+const isShareDialogOpen = ref(false);
 const isSettingBalance = ref(false);
 const targetBalance = ref(0);
 const targetBalanceTouched = ref(false);
@@ -65,6 +60,7 @@ const transactionListWidgetRef = ref<InstanceType<typeof TransactionListWidget> 
 
 const account = computed(() => accountStore.currentAccount);
 const evolutionSeries = computed(() => accountStore.currentAccountEvolution);
+const isOwner = computed(() => account.value?.access === "owner");
 const accountTypeLabel = computed(() => {
     const type = account.value?.type;
     if (!type) return "";
@@ -168,19 +164,33 @@ const deltaLabel = computed(() => {
     return `${sign}${formatCurrency(rebalanceDelta.value)}`;
 });
 
+const isDeletingAccount = ref(false);
 const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
 };
 
-const executeDelete = async () => {
-    await accountStore.deleteAccount(accountId);
-    isDeleteDialogOpen.value = false;
-    router.push("/");
+const executeDelete = async (currentPassword: string) => {
+    isDeletingAccount.value = true;
+    try {
+        await accountStore.deleteAccount(accountId, currentPassword);
+        isDeleteDialogOpen.value = false;
+        router.push("/");
+    } finally {
+        isDeletingAccount.value = false;
+    }
 };
 
 const onFormSaved = () => {
     transactionListWidgetRef.value?.refreshTransactions();
     loadData();
+};
+
+const onSharesChanged = (count: number) => {
+    if (accountStore.currentAccount) {
+        accountStore.currentAccount = {...accountStore.currentAccount, sharesCount: count};
+    }
+    const cached = accountStore.accounts.find((a) => a.id === accountId);
+    if (cached) cached.sharesCount = count;
 };
 
 const onTransactionSaved = () => {
@@ -337,11 +347,22 @@ const graphHeightClass = computed(() =>
                     </div>
 
                     <div v-if="!isLoading && account" class="flex w-full items-center gap-2 md:w-auto">
-                        <Button class="flex-1 md:flex-none" variant="secondary" @click="openSetBalanceDialog">
+                        <AccountSharedBadge :access="account.access" variant="full" />
+                        <AccountOwnerSharesBadge
+                            v-if="isOwner"
+                            :shares-count="account.sharesCount ?? 0"
+                            variant="full"
+                            clickable
+                            @click="isShareDialogOpen = true" />
+                        <Button
+                            v-if="isOwner"
+                            class="flex-1 md:flex-none"
+                            variant="secondary"
+                            @click="openSetBalanceDialog">
                             <Icon class="h-4 w-4" name="iconoir:coins-swap" />
                             {{ t("account.setBalance") }}
                         </Button>
-                        <DropdownMenu>
+                        <DropdownMenu v-if="isOwner">
                             <DropdownMenuTrigger as-child>
                                 <Button class="shrink-0" size="icon" type="button" variant="outline">
                                     <Icon class="h-4 w-4" name="iconoir:more-vert" />
@@ -352,6 +373,10 @@ const graphHeightClass = computed(() =>
                                 <DropdownMenuItem @select="openEditModal">
                                     <Icon class="h-4 w-4" name="iconoir:edit-pencil" />
                                     {{ t("common.edit") }}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem @select="isShareDialogOpen = true">
+                                    <Icon class="h-4 w-4" name="iconoir:community" />
+                                    {{ t("account.share.action") }}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -496,6 +521,11 @@ const graphHeightClass = computed(() =>
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="account" @saved="onFormSaved" />
 
+                <AccountShareDialog
+                    v-model:open="isShareDialogOpen"
+                    :account-id="accountId"
+                    @shares-changed="onSharesChanged" />
+
                 <Dialog :open="isSetBalanceDialogOpen" @update:open="isSetBalanceDialogOpen = $event">
                     <DialogContent class="sm:max-w-[425px]">
                         <DialogHeader>
@@ -551,24 +581,15 @@ const graphHeightClass = computed(() =>
                     </DialogContent>
                 </Dialog>
 
-                <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {{ t("dashboard.deleteAccountDescription", {name: account?.name ?? ""}) }}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                            <AlertDialogAction
-                                class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                @click="executeDelete">
-                                {{ t("common.delete") }}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <PasswordConfirmDialog
+                    :open="isDeleteDialogOpen"
+                    :title="t('common.areYouSure')"
+                    :description="t('dashboard.deleteAccountDescription', {name: account?.name ?? ''})"
+                    :confirm-label="t('common.delete')"
+                    :loading="isDeletingAccount"
+                    input-id="account-delete-password"
+                    @update:open="isDeleteDialogOpen = $event"
+                    @confirm="executeDelete" />
             </div>
         </div>
     </div>

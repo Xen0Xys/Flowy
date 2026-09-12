@@ -23,7 +23,7 @@ import {useUserStore} from "@/stores/user.store";
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in", appear: true},
-    onboarding: {step: 2},
+    onboarding: {key: "createFamily"},
 });
 
 const router = useRouter();

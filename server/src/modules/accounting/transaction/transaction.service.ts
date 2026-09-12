@@ -1,4 +1,4 @@
-import {BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException} from "@nestjs/common";
+import {BadRequestException, Injectable, Logger, NotFoundException} from "@nestjs/common";
 import {PrismaService, TxClient} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {TransactionEntity} from "./models/entities/transaction.entity";
@@ -20,6 +20,7 @@ import {SearchTransactionsResultEntity} from "./models/entities/search-transacti
 import {TransactionSummaryEntity} from "./models/entities/transaction-summary.entity";
 import {DeleteTransactionQueryDto} from "./models/dto/delete-transaction-query.dto";
 import {ReferenceMatcherService, ReferenceSuggestion} from "../reference/reference-matcher.service";
+import {AccountAccessService} from "../account/account-access.service";
 
 type TransactionWithRelations = Prisma.TransactionsGetPayload<{
     include: {
@@ -37,10 +38,15 @@ export class TransactionService {
     constructor(
         private readonly prismaService: PrismaService,
         private readonly referenceMatcher: ReferenceMatcherService,
+        private readonly accountAccess: AccountAccessService,
     ) {}
 
-    async suggestReferences(user: UserEntity, description: string): Promise<ReferenceSuggestion> {
-        return this.referenceMatcher.suggestForDescription(user, description);
+    async suggestReferences(user: UserEntity, description: string, accountId: string): Promise<ReferenceSuggestion> {
+        // accountId is required by the DTO: suggestions are always scoped to
+        // the account owner's references so a subsequent transaction create
+        // never gets rejected as owner-mismatched.
+        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        return this.referenceMatcher.suggestForDescriptionByOwner(account.user_id, description);
     }
 
     async getTransactionById(user: UserEntity, transactionId: string): Promise<TransactionEntity> {
@@ -59,15 +65,14 @@ export class TransactionService {
             throw new NotFoundException("Transaction not found");
         }
 
-        if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to access this transaction");
-        }
+        await this.accountAccess.assertAccess(user, transaction.account_id, "read");
 
         return this.toTransactionEntity(transaction);
     }
 
     async searchTransactions(user: UserEntity, query: SearchTransactionsDto): Promise<SearchTransactionsResultEntity> {
-        const where = this.buildSearchWhere(user, query);
+        const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
+        const where = this.buildSearchWhere(accessibleAccountIds, query);
         const orderBy = this.buildSearchOrderBy(query.sortBy, query.sortOrder);
 
         const page = query.page;
@@ -106,7 +111,8 @@ export class TransactionService {
     }
 
     async getTransactionsSummary(user: UserEntity, filters: TransactionFiltersDto): Promise<TransactionSummaryEntity> {
-        const where = this.buildSearchWhere(user, filters);
+        const accessibleAccountIds = await this.accountAccess.getAccessibleAccountIds(user, "read");
+        const where = this.buildSearchWhere(accessibleAccountIds, filters);
         const withFilter = (extra: Prisma.TransactionsWhereInput): Prisma.TransactionsWhereInput => ({
             AND: [where, extra],
         });
@@ -148,8 +154,12 @@ export class TransactionService {
         accountId: string,
         createTransactionDto: CreateTransactionDto,
     ): Promise<TransactionEntity> {
-        await this.getOwnedAccountOrThrow(user, accountId);
-        await this.validateReferencesOwnership(user, createTransactionDto.merchantId, createTransactionDto.categoryId);
+        const account = await this.accountAccess.assertAccess(user, accountId, "write");
+        await this.validateReferencesOwnership(
+            account.user_id,
+            createTransactionDto.merchantId,
+            createTransactionDto.categoryId,
+        );
 
         const transaction = await this.prismaService.$transaction(async (tx) => {
             await tx.accounts.update({
@@ -277,11 +287,12 @@ export class TransactionService {
             throw new NotFoundException("Transaction not found");
         }
 
-        if (transaction.account.user_id !== user.id) {
-            throw new ForbiddenException("You do not have permission to update this transaction");
-        }
-
-        await this.validateReferencesOwnership(user, updateTransactionDto.merchantId, updateTransactionDto.categoryId);
+        await this.accountAccess.assertAccess(user, transaction.account_id, "write");
+        await this.validateReferencesOwnership(
+            transaction.account.user_id,
+            updateTransactionDto.merchantId,
+            updateTransactionDto.categoryId,
+        );
 
         const transfer = transaction.debit_transfer ?? transaction.credit_transfer;
         const nextAmount = updateTransactionDto.amount !== undefined ? updateTransactionDto.amount : transaction.amount;
@@ -318,9 +329,7 @@ export class TransactionService {
                     throw new NotFoundException("Linked transfer transaction not found");
                 }
 
-                if (linkedTransaction.account.user_id !== user.id) {
-                    throw new ForbiddenException("You do not have permission to update this transaction");
-                }
+                await this.accountAccess.assertAccess(user, linkedTransaction.account_id, "write", tx);
 
                 // IMPORTANT: When updating a transfer-linked transaction, ONLY `amount` (mirrored as
                 // its exact opposite) and `date` are synchronized with the linked counterpart.
@@ -403,8 +412,7 @@ export class TransactionService {
         });
 
         if (!transaction) throw new NotFoundException("Transaction not found");
-        if (transaction.account.user_id !== user.id)
-            throw new ForbiddenException("You do not have permission to delete this transaction");
+        await this.accountAccess.assertAccess(user, transaction.account_id, "write");
 
         const transfer = transaction.debit_transfer ?? transaction.credit_transfer;
         const shouldDeleteLinkedTransaction = query.keepLinkedTransaction === "false";
@@ -443,9 +451,7 @@ export class TransactionService {
                 throw new NotFoundException("Transaction not found");
             }
 
-            if (linkedTransaction.account.user_id !== user.id) {
-                throw new ForbiddenException("You do not have permission to delete this transaction");
-            }
+            await this.accountAccess.assertAccess(user, linkedTransaction.account_id, "write", tx);
 
             await tx.transactions.delete({
                 where: {id: linkedTransactionId},
@@ -526,14 +532,22 @@ export class TransactionService {
         }
     }
 
-    private buildSearchWhere(user: UserEntity, filters: TransactionFiltersDto): Prisma.TransactionsWhereInput {
+    private buildSearchWhere(
+        accessibleAccountIds: string[],
+        filters: TransactionFiltersDto,
+    ): Prisma.TransactionsWhereInput {
         const where: Prisma.TransactionsWhereInput = {
-            account: {
-                user_id: user.id,
-            },
+            account_id: {in: accessibleAccountIds},
         };
 
-        if (filters.accountId) where.account_id = filters.accountId;
+        if (filters.accountId) {
+            if (!accessibleAccountIds.includes(filters.accountId)) {
+                // Force a no-result query without leaking existence.
+                where.account_id = {in: []};
+            } else {
+                where.account_id = filters.accountId;
+            }
+        }
         if (filters.categoryId === "none") where.category_id = null;
         else if (filters.categoryId) where.category_id = filters.categoryId;
         if (filters.merchantId) where.merchant_id = filters.merchantId;
@@ -627,21 +641,8 @@ export class TransactionService {
         return parsedDate;
     }
 
-    private async getOwnedAccountOrThrow(user: UserEntity, accountId: string, tx?: TxClient) {
-        const prisma = this.prismaService.withTx(tx);
-        const account = await prisma.accounts.findUnique({
-            where: {id: accountId},
-        });
-
-        if (!account) throw new NotFoundException("Account not found");
-        if (account.user_id !== user.id)
-            throw new ForbiddenException("You do not have permission to access this account");
-
-        return account;
-    }
-
     private async validateReferencesOwnership(
-        user: UserEntity,
+        ownerUserId: string,
         merchantId?: string | null,
         categoryId?: string | null,
         tx?: TxClient,
@@ -653,7 +654,7 @@ export class TransactionService {
                 where: {id: merchantId},
             });
 
-            if (!merchant || merchant.user_id !== user.id) throw new NotFoundException("Merchant not found");
+            if (!merchant || merchant.user_id !== ownerUserId) throw new NotFoundException("Merchant not found");
         }
 
         if (categoryId) {
@@ -661,14 +662,14 @@ export class TransactionService {
                 where: {id: categoryId},
             });
 
-            if (!category || category.user_id !== user.id) {
+            if (!category || category.user_id !== ownerUserId) {
                 throw new NotFoundException("Category not found");
             }
         }
     }
 
     private async validateBulkReferencesOwnership(
-        user: UserEntity,
+        ownerUserId: string,
         createTransactionDtos: CreateTransactionDto[],
         tx?: TxClient,
     ): Promise<void> {
@@ -689,7 +690,7 @@ export class TransactionService {
             const ownedMerchants = await prisma.userMerchants.findMany({
                 where: {
                     id: {in: merchantIds},
-                    user_id: user.id,
+                    user_id: ownerUserId,
                 },
                 select: {
                     id: true,
@@ -706,7 +707,7 @@ export class TransactionService {
             const ownedCategories = await prisma.userCategories.findMany({
                 where: {
                     id: {in: categoryIds},
-                    user_id: user.id,
+                    user_id: ownerUserId,
                 },
                 select: {
                     id: true,
@@ -736,8 +737,8 @@ export class TransactionService {
     ): Promise<BulkAnalysisEntity> {
         const prisma = this.prismaService.withTx(tx);
 
-        const account = await this.getOwnedAccountOrThrow(user, accountId, tx);
-        await this.validateBulkReferencesOwnership(user, createTransactionDtos, tx);
+        const account = await this.accountAccess.assertAccess(user, accountId, "write", tx);
+        await this.validateBulkReferencesOwnership(account.user_id, createTransactionDtos, tx);
 
         if (createTransactionDtos.length === 0) {
             return new BulkAnalysisEntity({
@@ -750,7 +751,7 @@ export class TransactionService {
             });
         }
 
-        const [categories, merchants] = await this.referenceMatcher.loadEnabledReferences(user, tx);
+        const [categories, merchants] = await this.referenceMatcher.loadEnabledReferencesForUserId(account.user_id, tx);
         const enrichedDtos = createTransactionDtos.map((transaction) => {
             const needsCategory = !transaction.categoryId;
             const needsMerchant = !transaction.merchantId;

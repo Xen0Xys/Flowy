@@ -4,13 +4,17 @@ import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
+export type AccountAccess = "owner" | "write" | "read";
+
 export type Account = {
     id: string;
     name: string;
     type: string;
     balance: number;
-    inBudget?: boolean;
     ownerId: string;
+    ownerUsername: string;
+    access: AccountAccess;
+    sharesCount: number;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -19,14 +23,12 @@ export type CreateAccountPayload = {
     name: string;
     type: string;
     balance: number;
-    inBudget?: boolean;
 };
 
 export type UpdateAccountPayload = {
     name?: string;
     type?: string;
     balance?: number;
-    inBudget?: boolean;
 };
 
 export type AccountBalanceEvolutionPoint = {
@@ -34,12 +36,49 @@ export type AccountBalanceEvolutionPoint = {
     balance: number;
 };
 
+export type AccountSharePermission = "READ" | "WRITE";
+
+export type AccountShare = {
+    id: string;
+    accountId: string;
+    sharedWithId: string;
+    sharedWithUsername: string;
+    sharedWithEmail: string;
+    permission: AccountSharePermission;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export const useAccountStore = defineStore("account", {
     state: () => ({
         accounts: [] as Account[],
         currentAccount: null as Account | null,
         currentAccountEvolution: [] as AccountBalanceEvolutionPoint[],
+        // Turns true once the first fetchAccounts settles; consumers use it to
+        // distinguish "no writable accounts" from "still loading" and avoid
+        // hiding CTAs during the initial network round-trip.
+        hasFetched: false,
     }),
+
+    getters: {
+        writableAccounts(state): Account[] {
+            return state.accounts.filter((a) => a.access === "owner" || a.access === "write");
+        },
+        ownedAccounts(state): Account[] {
+            return state.accounts.filter((a) => a.access === "owner");
+        },
+        sharedAccounts(state): Account[] {
+            return state.accounts.filter((a) => a.access !== "owner");
+        },
+        canWriteAccount(state) {
+            return (accountId?: string | null): boolean => {
+                if (!accountId) return false;
+                const account = state.accounts.find((a) => a.id === accountId);
+                if (!account) return false;
+                return account.access === "owner" || account.access === "write";
+            };
+        },
+    },
 
     actions: {
         async fetchAccounts() {
@@ -50,9 +89,10 @@ export const useAccountStore = defineStore("account", {
             try {
                 const accounts = await apiFetch<Account[]>("/account");
                 this.accounts = accounts;
+                this.hasFetched = true;
                 return accounts;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.store.errors.fetchAccounts");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.store.errors.fetchAccounts");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -94,7 +134,7 @@ export const useAccountStore = defineStore("account", {
             }
         },
 
-        async deleteAccount(id: string) {
+        async deleteAccount(id: string, currentPassword: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
@@ -102,6 +142,7 @@ export const useAccountStore = defineStore("account", {
             try {
                 await apiFetch(`/account/${id}`, {
                     method: "DELETE",
+                    body: {currentPassword},
                 });
                 this.accounts = this.accounts.filter((acc) => acc.id !== id);
                 if (this.currentAccount?.id === id) {
@@ -109,7 +150,7 @@ export const useAccountStore = defineStore("account", {
                 }
                 toast.success(i18nT("account.store.success.accountDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.store.errors.deleteAccount");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.store.errors.deleteAccount");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -155,6 +196,69 @@ export const useAccountStore = defineStore("account", {
                 return evolution;
             } catch (err: any) {
                 const message = err?.message ?? i18nT("account.store.errors.fetchEvolution");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async fetchShares(accountId: string): Promise<AccountShare[]> {
+            const {apiFetch} = useApi();
+            try {
+                return await apiFetch<AccountShare[]>(`/account/${accountId}/shares`);
+            } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.fetchError");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async shareAccount(
+            accountId: string,
+            memberId: string,
+            permission: AccountSharePermission,
+        ): Promise<AccountShare> {
+            const {apiFetch} = useApi();
+            try {
+                const share = await apiFetch<AccountShare>(`/account/${accountId}/shares`, {
+                    method: "POST",
+                    body: {memberId, permission},
+                });
+                toast.success(i18nT("account.share.toast.shared"));
+                return share;
+            } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.shareError");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async updateShare(
+            accountId: string,
+            memberId: string,
+            permission: AccountSharePermission,
+        ): Promise<AccountShare> {
+            const {apiFetch} = useApi();
+            try {
+                const share = await apiFetch<AccountShare>(`/account/${accountId}/shares/${memberId}`, {
+                    method: "PATCH",
+                    body: {permission},
+                });
+                toast.success(i18nT("account.share.toast.updated"));
+                return share;
+            } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.updateError");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async revokeShare(accountId: string, memberId: string): Promise<void> {
+            const {apiFetch} = useApi();
+            try {
+                await apiFetch(`/account/${accountId}/shares/${memberId}`, {method: "DELETE"});
+                toast.success(i18nT("account.share.toast.revoked"));
+            } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.share.toast.revokeError");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

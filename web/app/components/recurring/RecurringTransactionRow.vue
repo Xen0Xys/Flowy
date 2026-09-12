@@ -21,6 +21,7 @@ const props = defineProps<{
     recurringTransaction: RecurringTransaction;
     currency: string;
     accountName?: string;
+    canWrite?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -176,6 +177,7 @@ const stopClick = (event: Event) => event.stopPropagation();
             <div class="shrink-0 pl-2" @click.stop>
                 <Switch
                     :model-value="recurringTransaction.isEnabled"
+                    :disabled="canWrite === false"
                     @update:model-value="(v) => emit('toggle', v)"
                     @click="stopClick" />
             </div>

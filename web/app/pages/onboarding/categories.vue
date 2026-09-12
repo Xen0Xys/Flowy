@@ -8,6 +8,7 @@ import {Input} from "@/components/ui/input";
 import {Card, CardContent} from "@/components/ui/card";
 import {cn} from "@/lib/utils";
 import {DEFAULT_CATEGORIES, type DefaultCategory} from "@/lib/onboarding-defaults";
+import {useAccountStore} from "@/stores/account.store";
 import {useReferenceStore} from "@/stores/reference.store";
 import {useOnboardingStore} from "@/stores/onboarding.store";
 import {useUserStore} from "@/stores/user.store";
@@ -15,7 +16,7 @@ import {useUserStore} from "@/stores/user.store";
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in", appear: true},
-    onboarding: {step: 3},
+    onboarding: {key: "categories"},
 });
 
 type CustomCategory = {
@@ -30,6 +31,7 @@ const CUSTOM_DEFAULT_COLOR = "#64748B";
 
 const router = useRouter();
 const referenceStore = useReferenceStore();
+const accountStore = useAccountStore();
 const userStore = useUserStore();
 const onboardingStore = useOnboardingStore();
 const {t} = useI18n();
@@ -39,10 +41,22 @@ const customCategories = ref<CustomCategory[]>([]);
 const customName = ref("");
 const loading = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
     onboardingStore.hydrate();
     if (!userStore.hasFamily) {
         router.replace("/onboarding");
+        return;
+    }
+    await Promise.allSettled([referenceStore.fetchReferences(), accountStore.fetchAccounts()]);
+    const hasExistingData =
+        referenceStore.categories.length > 0 || referenceStore.merchants.length > 0 || accountStore.accounts.length > 0;
+    if (hasExistingData) {
+        if (userStore.isFamilyAdmin) {
+            router.replace("/onboarding/invite");
+        } else {
+            onboardingStore.reset();
+            router.replace("/");
+        }
     }
 });
 
@@ -80,6 +94,15 @@ const selectedCount = computed(() => {
     return selectedKeys.value.size + customCategories.value.length;
 });
 
+async function goNext() {
+    if (userStore.isFamilyAdmin) {
+        await router.push("/onboarding/invite");
+    } else {
+        onboardingStore.reset();
+        await router.push("/");
+    }
+}
+
 async function submit() {
     const selectedDefaults: DefaultCategory[] = DEFAULT_CATEGORIES.filter((c) => selectedKeys.value.has(c.key));
     const payloads = [
@@ -96,7 +119,7 @@ async function submit() {
     ];
 
     if (payloads.length === 0) {
-        await router.push("/onboarding/invite");
+        await goNext();
         return;
     }
 
@@ -110,14 +133,14 @@ async function submit() {
         } else {
             toast.error(t("onboarding.categories.summary.failed"));
         }
-        await router.push("/onboarding/invite");
+        await goNext();
     } finally {
         loading.value = false;
     }
 }
 
 async function skip() {
-    await router.push("/onboarding/invite");
+    await goNext();
 }
 </script>
 
