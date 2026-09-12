@@ -278,9 +278,9 @@ const close = () => emit("update:open", false);
                     </template>
 
                     <template v-else>
-                        <div class="flex flex-col gap-2 sm:flex-row">
+                        <div class="flex flex-col gap-2">
                             <!-- Member combobox -->
-                            <Combobox v-model="selectedMemberId" :reset-search-term-on-select="true" class="flex-1">
+                            <Combobox v-model="selectedMemberId" :reset-search-term-on-select="true">
                                 <ComboboxAnchor as-child>
                                     <ComboboxTrigger as-child>
                                         <Button
@@ -337,44 +337,46 @@ const close = () => emit("update:open", false);
                                 </ComboboxList>
                             </Combobox>
 
-                            <!-- Permission segmented control -->
-                            <div class="bg-muted flex shrink-0 items-center rounded-lg p-0.5">
-                                <button
-                                    type="button"
-                                    :class="
-                                        cn(
-                                            'flex flex-1 items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:flex-none',
-                                            selectedPermission === 'READ'
-                                                ? 'bg-background text-foreground shadow-sm'
-                                                : 'text-muted-foreground hover:text-foreground',
-                                        )
-                                    "
-                                    :aria-pressed="selectedPermission === 'READ'"
-                                    @click="selectedPermission = 'READ'">
-                                    <Icon class="size-3" name="iconoir:eye" />
-                                    {{ t("account.share.permission.read") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    :class="
-                                        cn(
-                                            'flex flex-1 items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:flex-none',
-                                            selectedPermission === 'WRITE'
-                                                ? 'bg-background text-foreground shadow-sm'
-                                                : 'text-muted-foreground hover:text-foreground',
-                                        )
-                                    "
-                                    :aria-pressed="selectedPermission === 'WRITE'"
-                                    @click="selectedPermission = 'WRITE'">
-                                    <Icon class="size-3" name="iconoir:edit-pencil" />
-                                    {{ t("account.share.permission.write") }}
-                                </button>
-                            </div>
+                            <div class="flex items-center justify-between gap-2">
+                                <!-- Permission segmented control -->
+                                <div class="bg-muted flex items-center rounded-lg p-0.5">
+                                    <button
+                                        type="button"
+                                        :class="
+                                            cn(
+                                                'flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                                selectedPermission === 'READ'
+                                                    ? 'bg-background text-foreground shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground',
+                                            )
+                                        "
+                                        :aria-pressed="selectedPermission === 'READ'"
+                                        @click="selectedPermission = 'READ'">
+                                        <Icon class="size-3" name="iconoir:eye" />
+                                        {{ t("account.share.permission.read") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="
+                                            cn(
+                                                'flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                                selectedPermission === 'WRITE'
+                                                    ? 'bg-background text-foreground shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground',
+                                            )
+                                        "
+                                        :aria-pressed="selectedPermission === 'WRITE'"
+                                        @click="selectedPermission = 'WRITE'">
+                                        <Icon class="size-3" name="iconoir:edit-pencil" />
+                                        {{ t("account.share.permission.write") }}
+                                    </button>
+                                </div>
 
-                            <Button :disabled="!selectedMember || isSubmitting" @click="submitShare">
-                                <Icon class="size-4" name="iconoir:plus" />
-                                {{ t("account.share.add") }}
-                            </Button>
+                                <Button :disabled="!selectedMember || isSubmitting" @click="submitShare">
+                                    <Icon class="size-4" name="iconoir:plus" />
+                                    {{ t("account.share.add") }}
+                                </Button>
+                            </div>
                         </div>
                     </template>
                 </section>
