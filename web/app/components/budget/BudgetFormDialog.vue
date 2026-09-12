@@ -26,7 +26,6 @@ import {Input} from "~/components/ui/input";
 import {Label} from "~/components/ui/label";
 import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
 import {ScrollArea} from "~/components/ui/scroll-area";
-import {Separator} from "~/components/ui/separator";
 import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle} from "~/components/ui/sheet";
 import {toCurrency} from "~/lib/currency";
 import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
@@ -563,8 +562,8 @@ function startFromScratch() {
             :side="isMobile ? 'bottom' : undefined"
             :class="
                 isMobile
-                    ? 'grid max-h-[92dvh] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-t-2xl p-0'
-                    : 'grid max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[560px]'
+                    ? 'grid max-h-[92dvh] grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-0 overflow-hidden rounded-t-2xl p-0'
+                    : 'grid max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-0 overflow-hidden p-0 sm:max-w-[560px]'
             ">
             <component
                 :is="isMobile ? SheetHeader : DialogHeader"
@@ -581,181 +580,144 @@ function startFromScratch() {
                 </div>
             </component>
 
-            <div class="flex min-h-0 flex-1 flex-col gap-5 px-6 py-5">
-                <!-- Renew banner -->
-                <Alert
-                    v-if="mode === 'renew' && sourcePeriodLabel && !hasStartedFresh"
-                    class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">
-                    <Icon name="iconoir:data-transfer-both" />
-                    <AlertDescription class="flex-1">
-                        {{ t("budget.dialog.sourceHint", {period: sourcePeriodLabel}) }}
-                    </AlertDescription>
-                    <Button class="shrink-0" size="sm" type="button" variant="ghost" @click="startFromScratch">
-                        {{ t("budget.dialog.resetSource") }}
-                    </Button>
-                </Alert>
+            <ScrollArea class="min-h-0">
+                <div class="flex flex-col gap-5 px-6 py-5">
+                    <!-- Renew banner -->
+                    <Alert
+                        v-if="mode === 'renew' && sourcePeriodLabel && !hasStartedFresh"
+                        class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">
+                        <Icon name="iconoir:data-transfer-both" />
+                        <AlertDescription class="flex-1">
+                            {{ t("budget.dialog.sourceHint", {period: sourcePeriodLabel}) }}
+                        </AlertDescription>
+                        <Button class="shrink-0" size="sm" type="button" variant="ghost" @click="startFromScratch">
+                            {{ t("budget.dialog.resetSource") }}
+                        </Button>
+                    </Alert>
 
-                <!-- Name (optional) -->
-                <div class="flex shrink-0 flex-col gap-2">
-                    <Label class="text-sm font-medium" for="budgetName">
-                        {{ t("budget.dialog.name.label") }}
-                    </Label>
-                    <Input
-                        id="budgetName"
-                        v-model="budgetName"
-                        maxlength="50"
-                        :placeholder="t('budget.dialog.name.placeholder')" />
-                    <p class="text-muted-foreground text-xs">{{ t("budget.dialog.name.hint") }}</p>
-                </div>
-
-                <!-- Accounts scope -->
-                <div class="flex shrink-0 flex-col gap-2">
-                    <Label class="text-sm font-medium">{{ t("budget.dialog.accounts.label") }}</Label>
-                    <div
-                        v-if="!hasWritableAccounts"
-                        class="border-border/60 text-muted-foreground rounded-md border border-dashed py-4 text-center text-xs">
-                        {{ t("budget.dialog.accounts.noWritable") }}
+                    <!-- Name (optional) -->
+                    <div class="flex shrink-0 flex-col gap-2">
+                        <Label class="text-sm font-medium" for="budgetName">
+                            {{ t("budget.dialog.name.label") }}
+                        </Label>
+                        <Input
+                            id="budgetName"
+                            v-model="budgetName"
+                            maxlength="50"
+                            :placeholder="t('budget.dialog.name.placeholder')" />
+                        <p class="text-muted-foreground text-xs">{{ t("budget.dialog.name.hint") }}</p>
                     </div>
-                    <div v-else class="flex flex-col gap-3">
+
+                    <!-- Accounts scope -->
+                    <div class="flex shrink-0 flex-col gap-2">
+                        <Label class="text-sm font-medium">{{ t("budget.dialog.accounts.label") }}</Label>
                         <div
-                            v-for="group in accountGroups"
-                            :key="group.ownerId"
-                            class="border-border/60 rounded-md border p-2">
-                            <div class="text-muted-foreground mb-2 px-1 text-xs font-medium tracking-wide uppercase">
-                                {{ group.ownerLabel }}
-                            </div>
-                            <div class="flex flex-col gap-1.5">
-                                <label
-                                    v-for="account in group.accounts"
-                                    :key="account.id"
-                                    :class="[
-                                        'hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md p-1.5 transition-colors',
-                                        isAccountDisabled(group.ownerId) ? 'cursor-not-allowed opacity-50' : '',
-                                    ]">
-                                    <span class="flex flex-1 items-center gap-2 text-sm">
-                                        <span class="truncate">{{ account.name }}</span>
-                                        <AccountSharedBadge :access="account.access" variant="icon" />
-                                    </span>
-                                    <Switch
-                                        size="sm"
-                                        :model-value="selectedAccountIds.has(account.id)"
-                                        :disabled="isAccountDisabled(group.ownerId)"
-                                        @update:model-value="toggleAccount(account.id, group.ownerId)" />
-                                </label>
-                            </div>
+                            v-if="!hasWritableAccounts"
+                            class="border-border/60 text-muted-foreground rounded-md border border-dashed py-4 text-center text-xs">
+                            {{ t("budget.dialog.accounts.noWritable") }}
                         </div>
-                        <p v-if="lockAccounts" class="text-muted-foreground text-xs">
-                            {{ t("budget.dialog.accounts.lockedHint") }}
-                        </p>
-                        <p v-else class="text-muted-foreground text-xs">
-                            {{ t("budget.dialog.accounts.singleOwnerHint") }}
-                        </p>
+                        <div v-else class="flex flex-col gap-3">
+                            <div
+                                v-for="group in accountGroups"
+                                :key="group.ownerId"
+                                class="border-border/60 rounded-md border p-2">
+                                <div class="text-muted-foreground mb-2 px-1 text-xs font-medium tracking-wide uppercase">
+                                    {{ group.ownerLabel }}
+                                </div>
+                                <div class="flex flex-col gap-1.5">
+                                    <label
+                                        v-for="account in group.accounts"
+                                        :key="account.id"
+                                        :class="[
+                                            'hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md p-1.5 transition-colors',
+                                            isAccountDisabled(group.ownerId) ? 'cursor-not-allowed opacity-50' : '',
+                                        ]">
+                                        <span class="flex flex-1 items-center gap-2 text-sm">
+                                            <span class="truncate">{{ account.name }}</span>
+                                            <AccountSharedBadge :access="account.access" variant="icon" />
+                                        </span>
+                                        <Switch
+                                            size="sm"
+                                            :model-value="selectedAccountIds.has(account.id)"
+                                            :disabled="isAccountDisabled(group.ownerId)"
+                                            @update:model-value="toggleAccount(account.id, group.ownerId)" />
+                                    </label>
+                                </div>
+                            </div>
+                            <p v-if="lockAccounts" class="text-muted-foreground text-xs">
+                                {{ t("budget.dialog.accounts.lockedHint") }}
+                            </p>
+                            <p v-else class="text-muted-foreground text-xs">
+                                {{ t("budget.dialog.accounts.singleOwnerHint") }}
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Hero income -->
-                <div class="flex shrink-0 flex-col gap-2">
-                    <Label class="text-sm font-medium" for="budgetedIncome">
-                        {{ t("budget.dialog.budgetedIncome") }}
-                    </Label>
-                    <MoneyInput
-                        id="budgetedIncome"
-                        v-model="budgetedIncome"
-                        :currency="currency"
-                        :placeholder="t('budget.dialog.budgetedIncomePlaceholder')"
-                        size="lg"
-                        variant="income" />
-                </div>
-
-                <!-- Allocation feedback -->
-                <div
-                    :aria-valuemax="100"
-                    :aria-valuemin="0"
-                    :aria-valuenow="allocationPercentage"
-                    class="flex shrink-0 flex-col gap-1.5"
-                    role="progressbar">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-muted-foreground">{{ t("budget.dialog.allocated") }}</span>
-                        <span :class="['font-medium tabular-nums', allocationTextClass]">
-                            {{ formattedAllocated }} / {{ formattedIncome }}
-                        </span>
+                    <!-- Hero income -->
+                    <div class="flex shrink-0 flex-col gap-2">
+                        <Label class="text-sm font-medium" for="budgetedIncome">
+                            {{ t("budget.dialog.budgetedIncome") }}
+                        </Label>
+                        <MoneyInput
+                            id="budgetedIncome"
+                            v-model="budgetedIncome"
+                            :currency="currency"
+                            :placeholder="t('budget.dialog.budgetedIncomePlaceholder')"
+                            size="lg"
+                            variant="income" />
                     </div>
-                    <div class="bg-muted h-2 w-full overflow-hidden rounded-full">
+
+                    <!-- Categories -->
+                    <div class="flex flex-col gap-3">
+                        <div class="flex shrink-0 items-center justify-between gap-2">
+                            <Label class="text-sm font-medium">{{ t("budget.dialog.categories") }}</Label>
+                            <Popover v-model:open="isPickerOpen">
+                                <PopoverTrigger as-child>
+                                    <Button
+                                        :disabled="pickerCategories.length === 0"
+                                        size="sm"
+                                        type="button"
+                                        variant="outline">
+                                        <Icon name="iconoir:plus" />
+                                        {{ t("budget.dialog.addCategory") }}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent :class="isMobile ? 'w-[calc(100vw-3rem)] p-0' : 'w-72 p-0'" align="end">
+                                    <Command>
+                                        <CommandInput :placeholder="t('budget.dialog.searchCategoryPlaceholder')" />
+                                        <CommandList>
+                                            <CommandEmpty>{{ t("budget.dialog.noCategoriesFound") }}</CommandEmpty>
+                                            <CommandGroup>
+                                                <CommandItem
+                                                    v-for="cat in pickerCategories"
+                                                    :key="cat.id"
+                                                    :value="cat.name"
+                                                    class="gap-2"
+                                                    @select="addCategory(cat.id)">
+                                                    <div
+                                                        :style="{
+                                                            backgroundColor: cat.hexColor + '20',
+                                                            color: cat.hexColor,
+                                                        }"
+                                                        class="flex size-6 shrink-0 items-center justify-center rounded-md">
+                                                        <Icon :name="cat.icon" class="size-3.5" />
+                                                    </div>
+                                                    <span class="truncate">{{ cat.name }}</span>
+                                                </CommandItem>
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
                         <div
-                            :class="['h-full transition-all duration-300', allocationBarClass]"
-                            :style="{width: allocationPercentage + '%'}"></div>
-                    </div>
-                    <div class="flex items-center justify-between text-xs">
-                        <span v-if="isBalanced" class="text-primary inline-flex items-center gap-1 font-medium">
-                            <Icon class="size-3.5" name="iconoir:check-circle" />
-                            {{ t("budget.dialog.balanced") }}
-                        </span>
-                        <span
-                            v-else-if="isOverAllocated"
-                            class="text-destructive inline-flex items-center gap-1 font-medium">
-                            <Icon class="size-3.5" name="iconoir:warning-triangle" />
-                            {{ t("budget.dialog.overAllocatedBy", {amount: formattedOverAmount}) }}
-                        </span>
-                        <span v-else class="text-muted-foreground">
-                            {{ t("budget.dialog.remaining", {amount: formattedRemaining}) }}
-                        </span>
-                    </div>
-                </div>
+                            v-if="selectedCategoryRows.length === 0"
+                            class="border-border/60 text-muted-foreground shrink-0 rounded-md border border-dashed py-6 text-center text-sm">
+                            {{ t("budget.dialog.noCategoriesHint") }}
+                        </div>
 
-                <Separator class="shrink-0" />
-
-                <!-- Categories -->
-                <div class="flex min-h-0 flex-1 flex-col gap-3">
-                    <div class="flex shrink-0 items-center justify-between gap-2">
-                        <Label class="text-sm font-medium">{{ t("budget.dialog.categories") }}</Label>
-                        <Popover v-model:open="isPickerOpen">
-                            <PopoverTrigger as-child>
-                                <Button
-                                    :disabled="pickerCategories.length === 0"
-                                    size="sm"
-                                    type="button"
-                                    variant="outline">
-                                    <Icon name="iconoir:plus" />
-                                    {{ t("budget.dialog.addCategory") }}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent :class="isMobile ? 'w-[calc(100vw-3rem)] p-0' : 'w-72 p-0'" align="end">
-                                <Command>
-                                    <CommandInput :placeholder="t('budget.dialog.searchCategoryPlaceholder')" />
-                                    <CommandList>
-                                        <CommandEmpty>{{ t("budget.dialog.noCategoriesFound") }}</CommandEmpty>
-                                        <CommandGroup>
-                                            <CommandItem
-                                                v-for="cat in pickerCategories"
-                                                :key="cat.id"
-                                                :value="cat.name"
-                                                class="gap-2"
-                                                @select="addCategory(cat.id)">
-                                                <div
-                                                    :style="{
-                                                        backgroundColor: cat.hexColor + '20',
-                                                        color: cat.hexColor,
-                                                    }"
-                                                    class="flex size-6 shrink-0 items-center justify-center rounded-md">
-                                                    <Icon :name="cat.icon" class="size-3.5" />
-                                                </div>
-                                                <span class="truncate">{{ cat.name }}</span>
-                                            </CommandItem>
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    <div
-                        v-if="selectedCategoryRows.length === 0"
-                        class="border-border/60 text-muted-foreground shrink-0 rounded-md border border-dashed py-6 text-center text-sm">
-                        {{ t("budget.dialog.noCategoriesHint") }}
-                    </div>
-
-                    <ScrollArea v-else class="min-h-0 flex-1 overflow-hidden pr-2">
-                        <div class="flex flex-col gap-1.5">
+                        <div v-else class="flex flex-col gap-1.5">
                             <div
                                 v-for="row in selectedCategoryRows"
                                 :key="row.category.id"
@@ -812,7 +774,42 @@ function startFromScratch() {
                                 </Button>
                             </div>
                         </div>
-                    </ScrollArea>
+                    </div>
+                </div>
+            </ScrollArea>
+
+            <!-- Allocation feedback -->
+            <div
+                :aria-valuemax="100"
+                :aria-valuemin="0"
+                :aria-valuenow="allocationPercentage"
+                class="border-border/60 bg-background flex shrink-0 flex-col gap-1.5 border-t px-6 py-3"
+                role="progressbar">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-muted-foreground">{{ t("budget.dialog.allocated") }}</span>
+                    <span :class="['font-medium tabular-nums', allocationTextClass]">
+                        {{ formattedAllocated }} / {{ formattedIncome }}
+                    </span>
+                </div>
+                <div class="bg-muted h-2 w-full overflow-hidden rounded-full">
+                    <div
+                        :class="['h-full transition-all duration-300', allocationBarClass]"
+                        :style="{width: allocationPercentage + '%'}"></div>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <span v-if="isBalanced" class="text-primary inline-flex items-center gap-1 font-medium">
+                        <Icon class="size-3.5" name="iconoir:check-circle" />
+                        {{ t("budget.dialog.balanced") }}
+                    </span>
+                    <span
+                        v-else-if="isOverAllocated"
+                        class="text-destructive inline-flex items-center gap-1 font-medium">
+                        <Icon class="size-3.5" name="iconoir:warning-triangle" />
+                        {{ t("budget.dialog.overAllocatedBy", {amount: formattedOverAmount}) }}
+                    </span>
+                    <span v-else class="text-muted-foreground">
+                        {{ t("budget.dialog.remaining", {amount: formattedRemaining}) }}
+                    </span>
                 </div>
             </div>
 
