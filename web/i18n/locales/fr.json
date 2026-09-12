@@ -581,21 +581,17 @@
         "dangerZoneDescription": "Supprimez définitivement votre compte",
         "deleteAccount": "Supprimer le compte",
         "delete": "Supprimer",
-        "cancel": "Annuler",
         "deleteDialogTitle": "Supprimer le compte",
         "deleteDialogDescription": "Cette action est irréversible. Veuillez saisir votre mot de passe actuel pour confirmer.",
-        "confirmPassword": "Confirmer le mot de passe",
         "emailConfirmTitle": "Confirmer le changement d'email",
         "emailConfirmDescription": "Vous êtes sur le point de changer votre email pour {email}. Saisissez votre mot de passe actuel pour confirmer.",
         "emailConfirmAction": "Changer l'email",
-        "deleting": "Suppression...",
         "roles": {
             "instanceOwner": "Propriétaire de l'instance",
             "familyAdmin": "Administrateur de la famille",
             "familyMember": "Membre de la famille"
         },
         "errors": {
-            "currentPasswordRequired": "Le mot de passe actuel est requis pour supprimer votre compte.",
             "deleteAccountFailed": "Échec de suppression du compte",
             "usernameLength": "Le nom d'utilisateur doit contenir entre {min} et {max} caractères.",
             "passwordsRequired": "Le mot de passe actuel et le nouveau mot de passe sont requis.",

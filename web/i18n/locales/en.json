@@ -581,21 +581,17 @@
         "dangerZoneDescription": "Permanently delete your account",
         "deleteAccount": "Delete account",
         "delete": "Delete",
-        "cancel": "Cancel",
         "deleteDialogTitle": "Delete account",
         "deleteDialogDescription": "This action is irreversible. Please enter your current password to confirm.",
-        "confirmPassword": "Confirm password",
         "emailConfirmTitle": "Confirm email change",
         "emailConfirmDescription": "You are about to change your email to {email}. Please enter your current password to confirm.",
         "emailConfirmAction": "Change email",
-        "deleting": "Deleting...",
         "roles": {
             "instanceOwner": "Instance Owner",
             "familyAdmin": "Family Admin",
             "familyMember": "Family Member"
         },
         "errors": {
-            "currentPasswordRequired": "Current password is required to delete your account.",
             "deleteAccountFailed": "Failed deleting account",
             "usernameLength": "Username must be between {min} and {max} characters.",
             "passwordsRequired": "Current password and new password are required.",
