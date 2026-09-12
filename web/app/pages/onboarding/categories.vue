@@ -15,7 +15,7 @@ import {useUserStore} from "@/stores/user.store";
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in", appear: true},
-    onboarding: {step: 3},
+    onboarding: {key: "categories"},
 });
 
 type CustomCategory = {
@@ -80,6 +80,15 @@ const selectedCount = computed(() => {
     return selectedKeys.value.size + customCategories.value.length;
 });
 
+async function goNext() {
+    if (userStore.isFamilyAdmin) {
+        await router.push("/onboarding/invite");
+    } else {
+        onboardingStore.reset();
+        await router.push("/");
+    }
+}
+
 async function submit() {
     const selectedDefaults: DefaultCategory[] = DEFAULT_CATEGORIES.filter((c) => selectedKeys.value.has(c.key));
     const payloads = [
@@ -96,7 +105,7 @@ async function submit() {
     ];
 
     if (payloads.length === 0) {
-        await router.push("/onboarding/invite");
+        await goNext();
         return;
     }
 
@@ -110,14 +119,14 @@ async function submit() {
         } else {
             toast.error(t("onboarding.categories.summary.failed"));
         }
-        await router.push("/onboarding/invite");
+        await goNext();
     } finally {
         loading.value = false;
     }
 }
 
 async function skip() {
-    await router.push("/onboarding/invite");
+    await goNext();
 }
 </script>
 

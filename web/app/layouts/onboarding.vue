@@ -1,34 +1,60 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from "vue";
+import {computed, onMounted} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRoute} from "vue-router";
 import LanguageSwitcher from "~/components/common/LanguageSwitcher.vue";
 import {Card, CardContent} from "@/components/ui/card";
 import {Stepper, StepperDescription, StepperIndicator, StepperItem, StepperTitle} from "@/components/ui/stepper";
 import {cn} from "@/lib/utils";
+import {useOnboardingStore} from "@/stores/onboarding.store";
+import {useUserStore} from "@/stores/user.store";
+
+type OnboardingKey = "welcome" | "select" | "createFamily" | "categories" | "invite";
 
 interface OnboardingMeta {
-    step?: number;
+    key?: OnboardingKey;
 }
 
 const route = useRoute();
 const {t} = useI18n();
+const onboardingStore = useOnboardingStore();
+const userStore = useUserStore();
 
-const steps = computed(() => [
-    {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
-    {title: t("onboarding.steps.select.title"), description: t("onboarding.steps.select.description")},
-    {title: t("onboarding.steps.createFamily.title"), description: t("onboarding.steps.createFamily.description")},
-    {title: t("onboarding.steps.categories.title"), description: t("onboarding.steps.categories.description")},
-    {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
-]);
+onMounted(() => {
+    onboardingStore.hydrate();
+});
 
-const active = ref<number>(((route.meta.onboarding ?? {}) as OnboardingMeta).step ?? 0);
-watch(
-    () => (route.meta.onboarding as OnboardingMeta | undefined)?.step,
-    (v) => {
-        if (typeof v === "number") active.value = v;
-    },
+const isJoinerFlow = computed(
+    () => onboardingStore.mode === "join" || (userStore.hasFamily && !userStore.isFamilyAdmin),
 );
+
+const stepDefs = computed<Record<OnboardingKey, {title: string; description: string}>>(() => ({
+    welcome: {title: t("onboarding.steps.welcome.title"), description: t("onboarding.steps.welcome.description")},
+    select: {title: t("onboarding.steps.select.title"), description: t("onboarding.steps.select.description")},
+    createFamily: {
+        title: t("onboarding.steps.createFamily.title"),
+        description: t("onboarding.steps.createFamily.description"),
+    },
+    categories: {
+        title: t("onboarding.steps.categories.title"),
+        description: t("onboarding.steps.categories.description"),
+    },
+    invite: {title: t("onboarding.steps.invite.title"), description: t("onboarding.steps.invite.description")},
+}));
+
+const stepKeys = computed<OnboardingKey[]>(() => {
+    if (isJoinerFlow.value) return ["welcome", "select", "categories"];
+    return ["welcome", "select", "createFamily", "categories", "invite"];
+});
+
+const steps = computed(() => stepKeys.value.map((k) => stepDefs.value[k]));
+
+const active = computed<number>(() => {
+    const key = (route.meta.onboarding as OnboardingMeta | undefined)?.key;
+    if (!key) return 0;
+    const idx = stepKeys.value.indexOf(key);
+    return idx >= 0 ? idx : 0;
+});
 
 const progressPercent = computed(() => Math.round(((active.value + 1) / steps.value.length) * 100));
 </script>

@@ -13,7 +13,7 @@ import {useUserStore} from "@/stores/user.store";
 definePageMeta({
     layout: "onboarding",
     pageTransition: {name: "fade", mode: "out-in", appear: true},
-    onboarding: {step: 4},
+    onboarding: {key: "invite"},
 });
 
 const router = useRouter();
@@ -31,6 +31,11 @@ onMounted(() => {
     onboardingStore.hydrate();
     if (!userStore.hasFamily) {
         router.replace("/onboarding");
+        return;
+    }
+    if (!userStore.isFamilyAdmin) {
+        onboardingStore.reset();
+        router.replace("/");
     }
 });
 
