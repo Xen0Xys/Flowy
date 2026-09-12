@@ -753,6 +753,15 @@
             "deleteMerchant": "Supprimer le marchand",
             "deleteCategoryDescription": "Êtes-vous sûr de vouloir supprimer la catégorie \"{name}\" ? Les transactions utilisant cette catégorie perdront leur association.",
             "deleteMerchantDescription": "Êtes-vous sûr de vouloir supprimer le marchand \"{name}\" ? Les transactions utilisant ce marchand perdront leur association.",
+            "selectedCount": "{count} sélectionné | {count} sélectionnés",
+            "clearSelection": "Tout désélectionner",
+            "bulkDelete": "Supprimer la sélection",
+            "bulkDeleteCategoriesTitle": "Supprimer {count} catégorie | Supprimer {count} catégories",
+            "bulkDeleteMerchantsTitle": "Supprimer {count} marchand | Supprimer {count} marchands",
+            "bulkDeleteCategoriesDescription": "Êtes-vous sûr de vouloir supprimer {count} catégorie ? Les transactions concernées perdront leur association et les lignes de budget associées seront supprimées. | Êtes-vous sûr de vouloir supprimer {count} catégories ? Les transactions concernées perdront leur association et les lignes de budget associées seront supprimées.",
+            "bulkDeleteMerchantsDescription": "Êtes-vous sûr de vouloir supprimer {count} marchand ? Les transactions concernées perdront leur association. | Êtes-vous sûr de vouloir supprimer {count} marchands ? Les transactions concernées perdront leur association.",
+            "selectRow": "Sélectionner la ligne",
+            "selectAll": "Tout sélectionner",
             "noSearchResults": "Aucun résultat pour cette recherche.",
             "emptyCategoriesTitle": "Aucune catégorie",
             "emptyCategoriesDescription": "Créez votre première catégorie pour organiser vos transactions.",
@@ -891,7 +900,9 @@
                 "categoryDeleted": "Catégorie supprimée",
                 "merchantCreated": "Marchand créé",
                 "merchantUpdated": "Marchand mis à jour",
-                "merchantDeleted": "Marchand supprimé"
+                "merchantDeleted": "Marchand supprimé",
+                "categoriesBulkDeleted": "{count} catégorie supprimée | {count} catégories supprimées",
+                "merchantsBulkDeleted": "{count} marchand supprimé | {count} marchands supprimés"
             },
             "errors": {
                 "fetchReferences": "Échec du chargement des références",
@@ -900,7 +911,9 @@
                 "deleteCategory": "Échec de suppression de la catégorie",
                 "createMerchant": "Échec de création du marchand",
                 "updateMerchant": "Échec de mise à jour du marchand",
-                "deleteMerchant": "Échec de suppression du marchand"
+                "deleteMerchant": "Échec de suppression du marchand",
+                "bulkDeleteCategories": "Échec de suppression des catégories sélectionnées",
+                "bulkDeleteMerchants": "Échec de suppression des marchands sélectionnés"
             }
         }
     },

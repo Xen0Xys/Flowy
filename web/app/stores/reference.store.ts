@@ -232,6 +232,30 @@ export const useReferenceStore = defineStore("reference", {
             }
         },
 
+        async bulkDeleteCategories(ids: string[]) {
+            if (!ids.length) return;
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+
+            const {apiFetch} = useApi();
+
+            try {
+                const result = await apiFetch<{deletedCount: number}>("/reference/categories/bulk-delete", {
+                    method: "POST",
+                    body: {ids},
+                });
+
+                const removed = new Set(ids);
+                this.categories = this.categories.filter((category) => !removed.has(category.id));
+                toast.success(i18nT("reference.store.success.categoriesBulkDeleted", {count: result.deletedCount}));
+                return result;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("reference.store.errors.bulkDeleteCategories");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
         async createMerchant(payload: CreateMerchantPayload) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
@@ -293,6 +317,30 @@ export const useReferenceStore = defineStore("reference", {
                 toast.success(i18nT("reference.store.success.merchantDeleted"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("reference.store.errors.deleteMerchant");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async bulkDeleteMerchants(ids: string[]) {
+            if (!ids.length) return;
+            const userStore = useUserStore();
+            if (!userStore.token) throw new Error("No token available");
+
+            const {apiFetch} = useApi();
+
+            try {
+                const result = await apiFetch<{deletedCount: number}>("/reference/merchants/bulk-delete", {
+                    method: "POST",
+                    body: {ids},
+                });
+
+                const removed = new Set(ids);
+                this.merchants = this.merchants.filter((merchant) => !removed.has(merchant.id));
+                toast.success(i18nT("reference.store.success.merchantsBulkDeleted", {count: result.deletedCount}));
+                return result;
+            } catch (err: any) {
+                const message = err?.message ?? i18nT("reference.store.errors.bulkDeleteMerchants");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

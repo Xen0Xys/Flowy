@@ -10,6 +10,7 @@ import {CreateCategoryDto} from "./models/dto/create-category.dto";
 import {UpdateCategoryDto} from "./models/dto/update-category.dto";
 import {CreateMerchantDto} from "./models/dto/create-merchant.dto";
 import {UpdateMerchantDto} from "./models/dto/update-merchant.dto";
+import {BulkDeleteReferencesDto} from "./models/dto/bulk-delete-references.dto";
 import {IsOptional, IsUUID} from "class-validator";
 
 class ReferenceScopeQueryDto {
@@ -57,6 +58,16 @@ export class ReferenceController {
         await this.referenceService.deleteCategory(user, categoryId);
     }
 
+    @Post("categories/bulk-delete")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async bulkDeleteCategories(
+        @User() user: UserEntity,
+        @Body() body: BulkDeleteReferencesDto,
+    ): Promise<{deletedCount: number}> {
+        return this.referenceService.bulkDeleteCategories(user, body.ids);
+    }
+
     @Get("merchants")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
@@ -90,5 +101,15 @@ export class ReferenceController {
         @Param("merchantId", new ParseUUIDPipe({version: "7"})) merchantId: string,
     ): Promise<void> {
         await this.referenceService.deleteMerchant(user, merchantId);
+    }
+
+    @Post("merchants/bulk-delete")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async bulkDeleteMerchants(
+        @User() user: UserEntity,
+        @Body() body: BulkDeleteReferencesDto,
+    ): Promise<{deletedCount: number}> {
+        return this.referenceService.bulkDeleteMerchants(user, body.ids);
     }
 }

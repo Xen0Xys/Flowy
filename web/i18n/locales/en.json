@@ -753,6 +753,15 @@
             "deleteMerchant": "Delete merchant",
             "deleteCategoryDescription": "Are you sure you want to delete the category \"{name}\"? Transactions using this category will lose their association.",
             "deleteMerchantDescription": "Are you sure you want to delete the merchant \"{name}\"? Transactions using this merchant will lose their association.",
+            "selectedCount": "{count} selected | {count} selected",
+            "clearSelection": "Clear selection",
+            "bulkDelete": "Delete selected",
+            "bulkDeleteCategoriesTitle": "Delete {count} category | Delete {count} categories",
+            "bulkDeleteMerchantsTitle": "Delete {count} merchant | Delete {count} merchants",
+            "bulkDeleteCategoriesDescription": "Are you sure you want to delete {count} category? Transactions using it will lose their association and matching budget lines will be removed. | Are you sure you want to delete {count} categories? Transactions using them will lose their association and matching budget lines will be removed.",
+            "bulkDeleteMerchantsDescription": "Are you sure you want to delete {count} merchant? Transactions using it will lose their association. | Are you sure you want to delete {count} merchants? Transactions using them will lose their association.",
+            "selectRow": "Select row",
+            "selectAll": "Select all",
             "noSearchResults": "No results for this search.",
             "emptyCategoriesTitle": "No categories yet",
             "emptyCategoriesDescription": "Create your first category to organize your transactions.",
@@ -891,7 +900,9 @@
                 "categoryDeleted": "Category deleted",
                 "merchantCreated": "Merchant created",
                 "merchantUpdated": "Merchant updated",
-                "merchantDeleted": "Merchant deleted"
+                "merchantDeleted": "Merchant deleted",
+                "categoriesBulkDeleted": "{count} category deleted | {count} categories deleted",
+                "merchantsBulkDeleted": "{count} merchant deleted | {count} merchants deleted"
             },
             "errors": {
                 "fetchReferences": "Failed fetching references",
@@ -900,7 +911,9 @@
                 "deleteCategory": "Failed deleting category",
                 "createMerchant": "Failed creating merchant",
                 "updateMerchant": "Failed updating merchant",
-                "deleteMerchant": "Failed deleting merchant"
+                "deleteMerchant": "Failed deleting merchant",
+                "bulkDeleteCategories": "Failed deleting selected categories",
+                "bulkDeleteMerchants": "Failed deleting selected merchants"
             }
         }
     },

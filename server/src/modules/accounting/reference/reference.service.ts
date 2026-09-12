@@ -196,6 +196,31 @@ export class ReferenceService {
         });
     }
 
+    async bulkDeleteCategories(user: UserEntity, ids: string[]): Promise<{deletedCount: number}> {
+        const uniqueIds = Array.from(new Set(ids));
+
+        const categories = await this.prismaService.userCategories.findMany({
+            where: {id: {in: uniqueIds}},
+            select: {id: true, user_id: true},
+        });
+
+        const found = new Set(categories.map((category) => category.id));
+        const missing = uniqueIds.filter((id) => !found.has(id));
+        if (missing.length > 0) {
+            throw new NotFoundException("Category not found");
+        }
+
+        if (categories.some((category) => category.user_id !== user.id)) {
+            throw new ForbiddenException("You do not have permission to access this category");
+        }
+
+        const result = await this.prismaService.userCategories.deleteMany({
+            where: {id: {in: uniqueIds}, user_id: user.id},
+        });
+
+        return {deletedCount: result.count};
+    }
+
     async getMerchants(user: UserEntity, accountId?: string): Promise<MerchantEntity[]> {
         const scopeUserId = await this.resolveScopeUserId(user, accountId);
         const merchants = await this.prismaService.userMerchants.findMany({
@@ -288,5 +313,30 @@ export class ReferenceService {
                 id: merchantId,
             },
         });
+    }
+
+    async bulkDeleteMerchants(user: UserEntity, ids: string[]): Promise<{deletedCount: number}> {
+        const uniqueIds = Array.from(new Set(ids));
+
+        const merchants = await this.prismaService.userMerchants.findMany({
+            where: {id: {in: uniqueIds}},
+            select: {id: true, user_id: true},
+        });
+
+        const found = new Set(merchants.map((merchant) => merchant.id));
+        const missing = uniqueIds.filter((id) => !found.has(id));
+        if (missing.length > 0) {
+            throw new NotFoundException("Merchant not found");
+        }
+
+        if (merchants.some((merchant) => merchant.user_id !== user.id)) {
+            throw new ForbiddenException("You do not have permission to access this merchant");
+        }
+
+        const result = await this.prismaService.userMerchants.deleteMany({
+            where: {id: {in: uniqueIds}, user_id: user.id},
+        });
+
+        return {deletedCount: result.count};
     }
 }
