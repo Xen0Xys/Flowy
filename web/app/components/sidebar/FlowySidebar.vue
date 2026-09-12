@@ -155,7 +155,7 @@ const isMac = computed(() => {
             <Transition mode="out-in" name="fade-slide">
                 <div v-if="!inSettings" key="main">
                     <SidebarGroup>
-                        <SidebarGroupLabel>{{ t("sidebar.menu") }}</SidebarGroupLabel>
+                        <SidebarGroupLabel>{{ t("sidebar.overview") }}</SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 <SidebarMenuItem>
@@ -166,6 +166,14 @@ const isMac = computed(() => {
                                         </NuxtLink>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+
+                    <SidebarGroup>
+                        <SidebarGroupLabel>{{ t("sidebar.operations") }}</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton :is-active="isActiveFunction('/transactions')" as-child>
                                         <NuxtLink to="/transactions">
@@ -183,18 +191,26 @@ const isMac = computed(() => {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton :is-active="isActiveFunction('/budget')" as-child>
-                                        <NuxtLink to="/budget">
-                                            <Icon name="iconoir:piggy-bank"></Icon>
-                                            <span>{{ t("sidebar.budget") }}</span>
-                                        </NuxtLink>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
                                     <SidebarMenuButton :is-active="isActiveFunction('/import')" as-child>
                                         <NuxtLink to="/import">
                                             <Icon name="iconoir:upload"></Icon>
                                             <span>{{ t("sidebar.import") }}</span>
+                                        </NuxtLink>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+
+                    <SidebarGroup>
+                        <SidebarGroupLabel>{{ t("sidebar.planning") }}</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton :is-active="isActiveFunction('/budget')" as-child>
+                                        <NuxtLink to="/budget">
+                                            <Icon name="iconoir:piggy-bank"></Icon>
+                                            <span>{{ t("sidebar.budget") }}</span>
                                         </NuxtLink>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

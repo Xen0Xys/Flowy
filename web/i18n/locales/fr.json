@@ -243,7 +243,9 @@
         "import": "Import"
     },
     "sidebar": {
-        "menu": "Menu",
+        "overview": "Vue d'ensemble",
+        "operations": "Opérations",
+        "planning": "Planification",
         "dashboard": "Dashboard",
         "transactions": "Transactions",
         "recurring": "Récurrentes",
