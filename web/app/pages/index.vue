@@ -19,11 +19,18 @@ import {
 import {toCurrency} from "~/lib/currency";
 import AccountFormModal from "~/components/accounts/AccountFormModal.vue";
 import AccountOwnerSharesBadge from "~/components/accounts/AccountOwnerSharesBadge.vue";
+import AccountShareDialog from "~/components/accounts/AccountShareDialog.vue";
 import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
 import {Button} from "~/components/ui/button";
 import {Skeleton} from "~/components/ui/skeleton";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "~/components/ui/dropdown-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -73,6 +80,9 @@ const isFormModalOpen = ref(false);
 
 const accountToDelete = ref<Account | null>(null);
 const isDeleteDialogOpen = ref(false);
+
+const accountToShare = ref<Account | null>(null);
+const isShareDialogOpen = ref(false);
 
 const timeRange = ref<TimeRange>("1M");
 const globalEvolutionSeries = ref<{date: string; balance: number}[]>([]);
@@ -189,6 +199,15 @@ const openEditModal = (account: Account) => {
 const confirmDelete = (account: Account) => {
     accountToDelete.value = account;
     isDeleteDialogOpen.value = true;
+};
+
+const openShareDialog = (account: Account) => {
+    accountToShare.value = account;
+    isShareDialogOpen.value = true;
+};
+
+const onSharesChanged = () => {
+    accountStore.fetchAccounts();
 };
 
 const executeDelete = async () => {
@@ -466,7 +485,9 @@ const formatCompactCurrency = (value: number) => {
                                                     <span class="truncate font-medium">{{ account.name }}</span>
                                                     <AccountOwnerSharesBadge
                                                         :shares-count="account.sharesCount ?? 0"
-                                                        variant="icon" />
+                                                        variant="icon"
+                                                        clickable
+                                                        @click.stop="openShareDialog(account)" />
                                                 </div>
                                                 <span class="text-muted-foreground mt-1 text-xs tabular-nums">
                                                     {{
@@ -497,6 +518,11 @@ const formatCompactCurrency = (value: number) => {
                                                             <Icon class="mr-2 h-4 w-4" name="iconoir:edit-pencil" />
                                                             {{ t("common.edit") }}
                                                         </DropdownMenuItem>
+                                                        <DropdownMenuItem @click.stop="openShareDialog(account)">
+                                                            <Icon class="mr-2 h-4 w-4" name="iconoir:community" />
+                                                            {{ t("account.share.action") }}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuItem
                                                             class="text-destructive focus:text-destructive"
                                                             @click.stop="confirmDelete(account)">
@@ -569,6 +595,12 @@ const formatCompactCurrency = (value: number) => {
 
                 <!-- Modals -->
                 <AccountFormModal v-model:open="isFormModalOpen" :account="accountToEdit" @saved="onFormSaved" />
+
+                <AccountShareDialog
+                    v-if="accountToShare"
+                    v-model:open="isShareDialogOpen"
+                    :account-id="accountToShare.id"
+                    @shares-changed="onSharesChanged" />
 
                 <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
                     <AlertDialogContent>

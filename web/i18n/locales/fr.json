@@ -352,7 +352,7 @@
         "updateBalance": "Mettre à jour",
         "noData": "Aucun historique de solde pour cette période",
         "share": {
-            "action": "Partager le compte",
+            "action": "Partager",
             "title": "Partager ce compte",
             "description": "Donnez accès à ce compte à un autre membre de votre famille.",
             "currentShares": "Personnes ayant accès",

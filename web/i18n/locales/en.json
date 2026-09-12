@@ -352,7 +352,7 @@
         "updateBalance": "Update balance",
         "noData": "No balance history for this period",
         "share": {
-            "action": "Share account",
+            "action": "Share",
             "title": "Share this account",
             "description": "Give another member of your family access to this account.",
             "currentShares": "People with access",
