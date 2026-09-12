@@ -2,10 +2,15 @@ import {Injectable, NotFoundException, UnauthorizedException} from "@nestjs/comm
 import {InstanceSettingsEntity} from "./models/entities/instance-settings.entity";
 import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
+import {UserService} from "../users/user/user.service";
+import {UserEntity} from "../users/user/models/entities/user.entity";
 
 @Injectable()
 export class AdminService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly userService: UserService,
+    ) {}
 
     async getInstanceSettings(): Promise<InstanceSettingsEntity> {
         const configs = await this.prisma.config.findMany();
@@ -26,8 +31,10 @@ export class AdminService {
         });
     }
 
-    async deleteUser(id: string, currentUserId: string) {
-        if (id === currentUserId) throw new UnauthorizedException("Cannot delete yourself");
+    async deleteUser(id: string, currentUser: UserEntity, currentPassword: string) {
+        if (id === currentUser.id) throw new UnauthorizedException("Cannot delete yourself");
+
+        await this.userService.verifyPassword(currentUser, currentPassword);
 
         const user = await this.prisma.users.findUnique({where: {id}});
         if (!user) throw new NotFoundException("User not found");
@@ -64,7 +71,9 @@ export class AdminService {
         });
     }
 
-    async updateInstanceOwner(newOwnerId: string): Promise<void> {
+    async updateInstanceOwner(currentUser: UserEntity, newOwnerId: string, currentPassword: string): Promise<void> {
+        await this.userService.verifyPassword(currentUser, currentPassword);
+
         const user = await this.prisma.users.findUnique({
             where: {id: newOwnerId},
         });
@@ -74,5 +83,15 @@ export class AdminService {
             create: {key: ConfigKey.INSTANCE_OWNER, value: newOwnerId},
             update: {value: newOwnerId},
         });
+    }
+
+    async setUserPassword(
+        currentUser: UserEntity,
+        targetUserId: string,
+        newPassword: string,
+        currentPassword: string,
+    ): Promise<void> {
+        await this.userService.verifyPassword(currentUser, currentPassword);
+        await this.userService.updatePassword(targetUserId, newPassword);
     }
 }

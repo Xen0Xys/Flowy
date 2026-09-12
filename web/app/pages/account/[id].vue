@@ -27,16 +27,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import {Label} from "~/components/ui/label";
 import MoneyInput from "~/components/common/MoneyInput.vue";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+import PasswordConfirmDialog from "~/components/common/PasswordConfirmDialog.vue";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {VisArea, VisAxis, VisLine, VisScatter, VisXYContainer} from "@unovis/vue";
 import {CurveType} from "@unovis/ts";
@@ -173,14 +164,20 @@ const deltaLabel = computed(() => {
     return `${sign}${formatCurrency(rebalanceDelta.value)}`;
 });
 
+const isDeletingAccount = ref(false);
 const confirmDelete = () => {
     isDeleteDialogOpen.value = true;
 };
 
-const executeDelete = async () => {
-    await accountStore.deleteAccount(accountId);
-    isDeleteDialogOpen.value = false;
-    router.push("/");
+const executeDelete = async (currentPassword: string) => {
+    isDeletingAccount.value = true;
+    try {
+        await accountStore.deleteAccount(accountId, currentPassword);
+        isDeleteDialogOpen.value = false;
+        router.push("/");
+    } finally {
+        isDeletingAccount.value = false;
+    }
 };
 
 const onFormSaved = () => {
@@ -584,24 +581,15 @@ const graphHeightClass = computed(() =>
                     </DialogContent>
                 </Dialog>
 
-                <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {{ t("dashboard.deleteAccountDescription", {name: account?.name ?? ""}) }}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                            <AlertDialogAction
-                                class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                @click="executeDelete">
-                                {{ t("common.delete") }}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <PasswordConfirmDialog
+                    :open="isDeleteDialogOpen"
+                    :title="t('common.areYouSure')"
+                    :description="t('dashboard.deleteAccountDescription', {name: account?.name ?? ''})"
+                    :confirm-label="t('common.delete')"
+                    :loading="isDeletingAccount"
+                    input-id="account-delete-password"
+                    @update:open="isDeleteDialogOpen = $event"
+                    @confirm="executeDelete" />
             </div>
         </div>
     </div>

@@ -19,7 +19,11 @@
         "areYouSure": "Êtes-vous sûr ?",
         "yes": "Oui",
         "no": "Non",
-        "noResults": "Aucun résultat."
+        "noResults": "Aucun résultat.",
+        "confirmPassword": "Confirmer avec votre mot de passe",
+        "currentPasswordPlaceholder": "Mot de passe actuel",
+        "showPassword": "Afficher le mot de passe",
+        "hidePassword": "Masquer le mot de passe"
     },
     "app": {
         "head": {
@@ -579,6 +583,9 @@
         "deleteDialogTitle": "Supprimer le compte",
         "deleteDialogDescription": "Cette action est irréversible. Veuillez saisir votre mot de passe actuel pour confirmer.",
         "confirmPassword": "Confirmer le mot de passe",
+        "emailConfirmTitle": "Confirmer le changement d'email",
+        "emailConfirmDescription": "Vous êtes sur le point de changer votre email pour {email}. Saisissez votre mot de passe actuel pour confirmer.",
+        "emailConfirmAction": "Changer l'email",
         "deleting": "Suppression...",
         "roles": {
             "instanceOwner": "Propriétaire de l'instance",
@@ -616,6 +623,7 @@
             "searchOwner": "Rechercher un utilisateur",
             "changeOwnerTitle": "Changer le propriétaire de l'instance",
             "changeOwnerDescription": "Changer le propriétaire de l'instance transfère le contrôle administrateur. Cette action est destructive. Continuer ?",
+            "changeOwnerDescriptionWithTarget": "Transfert du contrôle administrateur à {username} ({email}). Cette action est destructive et irréversible. Saisissez votre mot de passe pour confirmer.",
             "currentOwner": "Propriétaire actuel",
             "unknown": "inconnu",
             "toasts": {
@@ -644,6 +652,8 @@
             "familyCurrency": "Devise familiale",
             "familyOwner": "Propriétaire de la famille",
             "resetPasswordFor": "Définir un nouveau mot de passe pour {username}.",
+            "confirmResetTitle": "Confirmer la réinitialisation",
+            "confirmResetDescription": "Saisissez votre propre mot de passe pour confirmer la réinitialisation du mot de passe de {username}.",
             "newPassword": "Nouveau mot de passe",
             "generatePassword": "Générer",
             "showPassword": "Afficher le mot de passe",
@@ -702,6 +712,9 @@
             "remove": "Retirer",
             "removeMember": "Retirer le membre",
             "removeMemberDescription": "Êtes-vous sûr de vouloir retirer ce membre de la famille ? Il perdra l'accès aux données partagées.",
+            "revokeInviteTitle": "Révoquer l'invitation",
+            "revokeInviteDescription": "Révoquer l'invitation envoyée à {email} ? Le destinataire ne pourra plus rejoindre la famille avec ce code.",
+            "revokeInviteConfirm": "Révoquer",
             "invite": "Inviter",
             "inviting": "Invitation...",
             "invitePlaceholder": "member{'@'}example.com",

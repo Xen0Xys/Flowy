@@ -16,6 +16,7 @@ import {InstanceOwnerGuard} from "../../common/guards/instance-owner.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {User} from "../../common/decorators/user.decorator";
 import {UserEntity} from "../users/user/models/entities/user.entity";
+import {AdminDeleteUserDto} from "./models/dto/admin-delete-user.dto";
 import {RegistrationEnabledDto} from "./models/dto/registration-enabled.dto";
 import {UpdateOwnerDto} from "./models/dto/update-owner.dto";
 import {InstanceSettingsDto} from "./models/dto/instance-settings.dto";
@@ -70,26 +71,28 @@ export class AdminController {
     async deleteUser(
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
         @User() user: UserEntity,
+        @Body() body: AdminDeleteUserDto,
     ): Promise<void> {
-        return this.adminService.deleteUser(id, user.id);
+        return this.adminService.deleteUser(id, user, body.currentPassword);
     }
 
     @Patch("instance/owner")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiBearerAuth()
-    async updateInstanceOwner(@Body() body: UpdateOwnerDto): Promise<void> {
-        return this.adminService.updateInstanceOwner(body.ownerId);
+    async updateInstanceOwner(@User() user: UserEntity, @Body() body: UpdateOwnerDto): Promise<void> {
+        return this.adminService.updateInstanceOwner(user, body.ownerId, body.currentPassword);
     }
 
     @Patch("users/:id/password")
     @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
     @ApiBearerAuth()
     async adminUpdateUserPassword(
+        @User() user: UserEntity,
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
         @Body() body: SetPasswordDto,
     ) {
-        return this.usersService.updatePassword(id, body.password);
+        return this.adminService.setUserPassword(user, id, body.password, body.currentPassword);
     }
 
     @Post("integrity/account")

@@ -451,7 +451,10 @@ describe("BudgetController (e2e)", () => {
             });
         expect(budget.status).toBe(201);
 
-        const del = await agent.delete(`/account/${account.id}`).set("Authorization", `Bearer ${user.token}`);
+        const del = await agent
+            .delete(`/account/${account.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
         expect(del.status).toBe(200);
 
         const list = await agent.get("/budget/2026/3").set("Authorization", `Bearer ${user.token}`);
@@ -477,7 +480,10 @@ describe("BudgetController (e2e)", () => {
             });
         expect(budget.status).toBe(201);
 
-        const del = await agent.delete(`/account/${account2.id}`).set("Authorization", `Bearer ${user.token}`);
+        const del = await agent
+            .delete(`/account/${account2.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
         expect(del.status).toBe(200);
 
         const list = await agent.get("/budget/2026/3").set("Authorization", `Bearer ${user.token}`);

@@ -46,6 +46,7 @@ export async function ensureInstanceConfig(prismaClient: PrismaClient) {
 
 export interface RegisteredUser {
     token: string;
+    password: string;
     user: {
         id: string;
         email: string;
@@ -81,5 +82,5 @@ export async function registerUser(
         throw new Error(`Failed to register test user: status=${response.status}`);
     }
 
-    return response.body;
+    return {...response.body, password: payload.password};
 }

@@ -99,14 +99,17 @@ describe("UserController (e2e)", () => {
         expect(regB.status).toBe(201);
 
         const newEmail = `changed-${a.email}`;
-        const upd = await agent.patch("/user/me/email").set("Authorization", `Bearer ${tokenA}`).send({email: newEmail});
+        const upd = await agent
+            .patch("/user/me/email")
+            .set("Authorization", `Bearer ${tokenA}`)
+            .send({email: newEmail, currentPassword: a.password});
         expect(upd.status).toBe(200);
         expect(upd.body.email).toBe(newEmail);
 
         const conflict = await agent
             .patch("/user/me/email")
             .set("Authorization", `Bearer ${tokenA}`)
-            .send({email: regB.body.user.email});
+            .send({email: regB.body.user.email, currentPassword: a.password});
         expect(conflict.status).toBe(409);
         expect(conflict.body.message).toContain("Username or email already exists");
     });

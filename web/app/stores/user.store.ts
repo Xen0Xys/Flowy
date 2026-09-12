@@ -81,20 +81,20 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async saveEmail(newEmail: string) {
+        async saveEmail(newEmail: string, currentPassword: string) {
             const authStore = useAuthStore();
             if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const updatedUser = await apiFetch<User>("/user/me/email", {
                     method: "PATCH",
-                    body: {email: newEmail},
+                    body: {email: newEmail, currentPassword},
                 });
                 this.user = updatedUser;
                 toast.success(i18nT("user.store.success.emailUpdated"));
                 return updatedUser;
             } catch (err: any) {
-                const message = err?.message ?? i18nT("user.store.errors.updateEmail");
+                const message = err?.data?.message ?? err?.message ?? i18nT("user.store.errors.updateEmail");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
@@ -164,49 +164,49 @@ export const useUserStore = defineStore("user", {
             }
         },
 
-        async updateInstanceOwner(newOwnerId: string) {
+        async updateInstanceOwner(newOwnerId: string, currentPassword: string) {
             const authStore = useAuthStore();
             if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch("/admin/instance/owner", {
                     method: "PATCH",
-                    body: {ownerId: newOwnerId},
+                    body: {ownerId: newOwnerId, currentPassword},
                 });
                 toast.success(i18nT("user.store.success.instanceOwnerUpdated"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("user.store.errors.updateInstanceOwner");
+                const message = err?.data?.message ?? err?.message ?? i18nT("user.store.errors.updateInstanceOwner");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
         },
 
-        async adminDeleteUser(id: string) {
+        async adminDeleteUser(id: string, currentPassword: string) {
             const authStore = useAuthStore();
             if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
-                await apiFetch(`/admin/users/${id}`, {method: "DELETE"});
+                await apiFetch(`/admin/users/${id}`, {method: "DELETE", body: {currentPassword}});
                 toast.success(i18nT("user.store.success.userDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("user.store.errors.deleteUser");
+                const message = err?.data?.message ?? err?.message ?? i18nT("user.store.errors.deleteUser");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
         },
 
-        async adminUpdateUserPassword(id: string, password: string) {
+        async adminUpdateUserPassword(id: string, password: string, currentPassword: string) {
             const authStore = useAuthStore();
             if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/admin/users/${id}/password`, {
                     method: "PATCH",
-                    body: {password},
+                    body: {password, currentPassword},
                 });
                 toast.success(i18nT("user.store.success.passwordUpdated"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("user.store.errors.updatePassword");
+                const message = err?.data?.message ?? err?.message ?? i18nT("user.store.errors.updatePassword");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

@@ -2,6 +2,7 @@ import {PrismaService} from "../../helper/prisma.service";
 import {BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit} from "@nestjs/common";
 import {AccountTypes} from "../../../../prisma/generated/enums";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
+import {UserService} from "../../users/user/user.service";
 import {AccountEntity} from "./models/entities/account.entity";
 import {Accounts} from "../../../../prisma/generated/client";
 import {UpdateAccountDto} from "./models/dto/update-account.dto";
@@ -14,6 +15,7 @@ export class AccountService implements OnModuleInit {
     constructor(
         private readonly prismaService: PrismaService,
         private readonly accountAccess: AccountAccessService,
+        private readonly userService: UserService,
     ) {}
 
     async onModuleInit() {
@@ -169,12 +171,13 @@ export class AccountService implements OnModuleInit {
         return this.toAccountEntity(account, owner.username, level ?? "read", sharesCount);
     }
 
-    async deleteAccount(user: UserEntity, accountId: string): Promise<void> {
+    async deleteAccount(user: UserEntity, accountId: string, currentPassword: string): Promise<void> {
         // Owner-only: sharing does not grant delete capability.
         const account = await this.accountAccess.assertAccess(user, accountId, "read");
         if (account.user_id !== user.id) {
             throw new ForbiddenException("You do not have permission to delete this account");
         }
+        await this.userService.verifyPassword(user, currentPassword);
         await this.prismaService.$transaction(async (tx) => {
             await tx.accounts.delete({where: {id: accountId}});
             // Cleanup budgets whose entire account scope disappeared.

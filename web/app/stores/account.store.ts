@@ -129,7 +129,7 @@ export const useAccountStore = defineStore("account", {
             }
         },
 
-        async deleteAccount(id: string) {
+        async deleteAccount(id: string, currentPassword: string) {
             const userStore = useUserStore();
             if (!userStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
@@ -137,6 +137,7 @@ export const useAccountStore = defineStore("account", {
             try {
                 await apiFetch(`/account/${id}`, {
                     method: "DELETE",
+                    body: {currentPassword},
                 });
                 this.accounts = this.accounts.filter((acc) => acc.id !== id);
                 if (this.currentAccount?.id === id) {
@@ -144,7 +145,7 @@ export const useAccountStore = defineStore("account", {
                 }
                 toast.success(i18nT("account.store.success.accountDeleted"));
             } catch (err: any) {
-                const message = err?.message ?? i18nT("account.store.errors.deleteAccount");
+                const message = err?.data?.message ?? err?.message ?? i18nT("account.store.errors.deleteAccount");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

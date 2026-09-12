@@ -140,9 +140,11 @@ export class FamilyService {
         });
     }
 
-    async quitFamily(user: UserEntity) {
+    async quitFamily(user: UserEntity, currentPassword: string) {
         // Check if user is in a family
         if (!user.familyId) throw new NotFoundException("User is not in a family");
+
+        await this.userService.verifyPassword(user, currentPassword);
 
         // Update user to remove family
         await this.prismaService.users.update({
@@ -154,10 +156,12 @@ export class FamilyService {
         });
     }
 
-    async deleteFamily(user: UserEntity) {
+    async deleteFamily(user: UserEntity, currentPassword: string) {
         if (!user.familyId) throw new NotFoundException("User is not in a family");
 
         if (user.familyRole !== UserRoles.ADMIN) throw new UnauthorizedException("User must be a family admin");
+
+        await this.userService.verifyPassword(user, currentPassword);
 
         const familyId = user.familyId;
 
@@ -176,8 +180,10 @@ export class FamilyService {
         this.logger.log(`Family ${familyId} deleted by user ${user.id}`);
     }
 
-    async removeMember(user: UserEntity, memberId: string) {
+    async removeMember(user: UserEntity, memberId: string, currentPassword: string) {
         if (!user.familyId) throw new NotFoundException("User is not in a family");
+
+        await this.userService.verifyPassword(user, currentPassword);
 
         const member = await this.prismaService.users.findUnique({
             where: {id: memberId},

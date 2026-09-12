@@ -29,8 +29,8 @@ export class UserService {
         });
     }
 
-    // allow a user to delete their own account by confirming current password
-    async deleteOwnAccount(user: UserEntity, currentPassword: string): Promise<void> {
+    // shared password confirmation gate; call before any sensitive mutation
+    async verifyPassword(user: UserEntity, currentPassword: string): Promise<void> {
         const db = await this.prismaService.users.findUnique({
             where: {id: user.id},
         });
@@ -38,6 +38,11 @@ export class UserService {
 
         const valid = await argon2.verify(db.password, currentPassword).catch(() => false);
         if (!valid) throw new ForbiddenException("Invalid current password");
+    }
+
+    // allow a user to delete their own account by confirming current password
+    async deleteOwnAccount(user: UserEntity, currentPassword: string): Promise<void> {
+        await this.verifyPassword(user, currentPassword);
 
         const logger = new Logger(UserService.name);
 
@@ -74,7 +79,8 @@ export class UserService {
         return UserService.toUserEntity(updated);
     }
 
-    async updateEmail(user: UserEntity, newEmail: string): Promise<UserEntity> {
+    async updateEmail(user: UserEntity, newEmail: string, currentPassword: string): Promise<UserEntity> {
+        await this.verifyPassword(user, currentPassword);
         const existing = await this.prismaService.users.findFirst({
             where: {email: newEmail},
         });
@@ -88,12 +94,7 @@ export class UserService {
 
     // public API: change password with current password verification
     async changePassword(user: UserEntity, oldPassword: string, newPassword: string): Promise<UserEntity> {
-        const db = await this.prismaService.users.findUnique({
-            where: {id: user.id},
-        });
-        if (!db) throw new NotFoundException("User not found");
-        const valid = await argon2.verify(db.password, oldPassword).catch(() => false);
-        if (!valid) throw new ForbiddenException("Invalid current password");
+        await this.verifyPassword(user, oldPassword);
         return this.persistPassword(user.id, newPassword);
     }
 

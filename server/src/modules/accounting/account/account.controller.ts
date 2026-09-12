@@ -19,6 +19,7 @@ import {User} from "../../../common/decorators/user.decorator";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {AccountEntity} from "./models/entities/account.entity";
 import {CreateAccountDto} from "./models/dto/create-account.dto";
+import {DeleteAccountDto} from "./models/dto/delete-account.dto";
 import {UpdateAccountDto} from "./models/dto/update-account.dto";
 import {GetAccountBalanceEvolutionDto} from "./models/dto/get-account-balance-evolution.dto";
 import {AccountShareService} from "./account-share.service";
@@ -84,8 +85,9 @@ export class AccountController {
     async deleteAccount(
         @User() user: UserEntity,
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @Body() body: DeleteAccountDto,
     ): Promise<void> {
-        return this.accountService.deleteAccount(user, id);
+        return this.accountService.deleteAccount(user, id, body.currentPassword);
     }
 
     @Get(":id/shares")

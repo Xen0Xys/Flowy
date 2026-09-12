@@ -17,7 +17,10 @@ import {FamilyAdminGuard} from "../../../common/guards/family-admin.guard";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {CreateFamilyDto} from "./models/dto/create-family.dto";
+import {DeleteFamilyDto} from "./models/dto/delete-family.dto";
 import {InviteMemberDto} from "./models/dto/invite-member.dto";
+import {QuitFamilyDto} from "./models/dto/quit-family.dto";
+import {RemoveMemberDto} from "./models/dto/remove-member.dto";
 import {UpdateFamilyDto} from "./models/dto/update-family.dto";
 import {UserEntity} from "../user/models/entities/user.entity";
 import {FamilyEntity} from "./models/entities/family.entity";
@@ -71,8 +74,8 @@ export class FamilyController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    async quitFamily(@User() user: UserEntity): Promise<void> {
-        return await this.familyService.quitFamily(user);
+    async quitFamily(@User() user: UserEntity, @Body() body: QuitFamilyDto): Promise<void> {
+        return await this.familyService.quitFamily(user, body.currentPassword);
     }
 
     @Patch("settings")
@@ -96,15 +99,16 @@ export class FamilyController {
     async removeMember(
         @User() user: UserEntity,
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @Body() body: RemoveMemberDto,
     ): Promise<void> {
-        return await this.familyService.removeMember(user, id);
+        return await this.familyService.removeMember(user, id, body.currentPassword);
     }
 
     @Delete()
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseGuards(JwtAuthGuard, FamilyAdminGuard)
     @ApiBearerAuth()
-    async deleteFamily(@User() user: UserEntity): Promise<void> {
-        return await this.familyService.deleteFamily(user);
+    async deleteFamily(@User() user: UserEntity, @Body() body: DeleteFamilyDto): Promise<void> {
+        return await this.familyService.deleteFamily(user, body.currentPassword);
     }
 }

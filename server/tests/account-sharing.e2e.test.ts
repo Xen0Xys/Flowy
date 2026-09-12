@@ -57,7 +57,7 @@ async function setupFamily(): Promise<{owner: RegisteredUser; member: Registered
     // Re-login the member to refresh their JWT payload with the new familyId.
     const relogin = await agent.post("/auth/login").send({email: member.user.email, password: "uP$awLKjChrA#8N5xop!"});
     expect(relogin.status).toBe(201);
-    return {owner, member: {token: relogin.body.token, user: member.user}};
+    return {owner, member: {token: relogin.body.token, user: member.user, password: member.password}};
 }
 
 describe("Account sharing (e2e)", () => {
@@ -465,7 +465,10 @@ describe("Account sharing (e2e)", () => {
             .send({name: "Renamed by sharee"});
         expect(patch.status).toBe(403);
 
-        const del = await agent.delete(`/account/${account.id}`).set("Authorization", `Bearer ${member.token}`);
+        const del = await agent
+            .delete(`/account/${account.id}`)
+            .set("Authorization", `Bearer ${member.token}`)
+            .send({currentPassword: member.password});
         expect(del.status).toBe(403);
     });
 

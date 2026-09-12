@@ -31,16 +31,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
+import PasswordConfirmDialog from "~/components/common/PasswordConfirmDialog.vue";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "~/components/ui/collapsible";
 import {ScrollArea} from "~/components/ui/scroll-area";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
@@ -210,11 +201,17 @@ const onSharesChanged = () => {
     accountStore.fetchAccounts();
 };
 
-const executeDelete = async () => {
-    if (accountToDelete.value) {
-        await accountStore.deleteAccount(accountToDelete.value.id);
+const isDeletingAccount = ref(false);
+const executeDelete = async (currentPassword: string) => {
+    if (!accountToDelete.value) return;
+    isDeletingAccount.value = true;
+    try {
+        await accountStore.deleteAccount(accountToDelete.value.id, currentPassword);
         accountToDelete.value = null;
+        isDeleteDialogOpen.value = false;
         await loadData();
+    } finally {
+        isDeletingAccount.value = false;
     }
 };
 
@@ -602,24 +599,20 @@ const formatCompactCurrency = (value: number) => {
                     :account-id="accountToShare.id"
                     @shares-changed="onSharesChanged" />
 
-                <AlertDialog :open="isDeleteDialogOpen" @update:open="isDeleteDialogOpen = $event">
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>{{ t("common.areYouSure") }}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {{ t("dashboard.deleteAccountDescription", {name: accountToDelete?.name ?? ""}) }}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                            <AlertDialogAction
-                                class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                @click="executeDelete">
-                                {{ t("common.delete") }}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <PasswordConfirmDialog
+                    :open="isDeleteDialogOpen"
+                    :title="t('common.areYouSure')"
+                    :description="t('dashboard.deleteAccountDescription', {name: accountToDelete?.name ?? ''})"
+                    :confirm-label="t('common.delete')"
+                    :loading="isDeletingAccount"
+                    input-id="dashboard-delete-account-password"
+                    @update:open="
+                        (value) => {
+                            isDeleteDialogOpen = value;
+                            if (!value) accountToDelete = null;
+                        }
+                    "
+                    @confirm="executeDelete" />
             </div>
         </div>
     </div>

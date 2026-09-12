@@ -211,7 +211,10 @@ describe("AccountController (e2e)", () => {
         expect(byId.status).toBe(404);
         expect(byId.body.message).toBe("Account not found");
 
-        const remove = await agent.delete(`/account/${fakeId}`).set("Authorization", `Bearer ${user.token}`);
+        const remove = await agent
+            .delete(`/account/${fakeId}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
         expect(remove.status).toBe(404);
         expect(remove.body.message).toBe("Account not found");
 
@@ -431,7 +434,10 @@ describe("AccountController (e2e)", () => {
             .send({name: "Disposable", type: "OTHER", balance: 1});
         expect(create.status).toBe(201);
 
-        const remove = await agent.delete(`/account/${create.body.id}`).set("Authorization", `Bearer ${user.token}`);
+        const remove = await agent
+            .delete(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
         expect([200, 204]).toContain(remove.status);
 
         const list = await agent.get("/account").set("Authorization", `Bearer ${user.token}`);
@@ -449,7 +455,10 @@ describe("AccountController (e2e)", () => {
             .send({name: "Private", type: "CHECKING", balance: 77});
         expect(create.status).toBe(201);
 
-        const remove = await agent.delete(`/account/${create.body.id}`).set("Authorization", `Bearer ${outsider.token}`);
+        const remove = await agent
+            .delete(`/account/${create.body.id}`)
+            .set("Authorization", `Bearer ${outsider.token}`)
+            .send({currentPassword: outsider.password});
 
         expect(remove.status).toBe(403);
         expect(remove.body.message).toBe("You do not have permission to access this account");

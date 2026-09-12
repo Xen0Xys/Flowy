@@ -31,7 +31,7 @@ export class UserController {
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     async updateEmail(@User() user: UserEntity, @Body() body: UpdateEmailDto): Promise<UserEntity> {
-        return this.userService.updateEmail(user, body.email);
+        return this.userService.updateEmail(user, body.email, body.currentPassword);
     }
 
     @Patch("me/password")

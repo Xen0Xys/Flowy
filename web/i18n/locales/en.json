@@ -19,7 +19,11 @@
         "areYouSure": "Are you sure?",
         "yes": "Yes",
         "no": "No",
-        "noResults": "No results."
+        "noResults": "No results.",
+        "confirmPassword": "Confirm with your password",
+        "currentPasswordPlaceholder": "Current password",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password"
     },
     "app": {
         "head": {
@@ -579,6 +583,9 @@
         "deleteDialogTitle": "Delete account",
         "deleteDialogDescription": "This action is irreversible. Please enter your current password to confirm.",
         "confirmPassword": "Confirm password",
+        "emailConfirmTitle": "Confirm email change",
+        "emailConfirmDescription": "You are about to change your email to {email}. Please enter your current password to confirm.",
+        "emailConfirmAction": "Change email",
         "deleting": "Deleting...",
         "roles": {
             "instanceOwner": "Instance Owner",
@@ -616,6 +623,7 @@
             "searchOwner": "Search a user",
             "changeOwnerTitle": "Change instance owner",
             "changeOwnerDescription": "Changing the instance owner transfers administrative control. This is destructive. Proceed?",
+            "changeOwnerDescriptionWithTarget": "Transferring administrative control to {username} ({email}). This is destructive and irreversible. Enter your password to confirm.",
             "currentOwner": "Current owner",
             "unknown": "unknown",
             "toasts": {
@@ -644,6 +652,8 @@
             "familyCurrency": "Family currency",
             "familyOwner": "Family owner",
             "resetPasswordFor": "Set a new password for {username}.",
+            "confirmResetTitle": "Confirm password reset",
+            "confirmResetDescription": "Enter your own password to confirm resetting {username}'s password.",
             "newPassword": "New password",
             "generatePassword": "Generate",
             "showPassword": "Show password",
@@ -702,6 +712,9 @@
             "remove": "Remove",
             "removeMember": "Remove member",
             "removeMemberDescription": "Are you sure you want to remove this member from the family? They will lose access to shared data.",
+            "revokeInviteTitle": "Revoke invitation",
+            "revokeInviteDescription": "Revoke the invitation sent to {email}? The recipient will no longer be able to join with this code.",
+            "revokeInviteConfirm": "Revoke",
             "invite": "Invite",
             "inviting": "Inviting...",
             "invitePlaceholder": "member{'@'}example.com",

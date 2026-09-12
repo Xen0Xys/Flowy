@@ -37,15 +37,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import {valueUpdater} from "@/lib/table";
 import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
 
@@ -269,12 +261,12 @@ async function openDetailsDialog(user: AdminUser) {
     }
 }
 
-async function handleDelete() {
+async function handleDelete(currentPassword: string) {
     const user = deleteDialogUser.value;
     if (!user) return;
     deletingId.value = user.id;
     try {
-        await userStore.adminDeleteUser(user.id);
+        await userStore.adminDeleteUser(user.id, currentPassword);
         deleteDialogUser.value = null;
         await loadUsers();
     } finally {
@@ -282,7 +274,9 @@ async function handleDelete() {
     }
 }
 
-async function handleResetPassword() {
+const resetPasswordConfirmOpen = ref(false);
+
+function requestResetPassword() {
     const user = resetDialogUser.value;
     if (!user) return;
     const password = resetPasswordValue.value;
@@ -297,9 +291,17 @@ async function handleResetPassword() {
         return;
     }
 
+    resetPasswordConfirmOpen.value = true;
+}
+
+async function handleResetPassword(currentPassword: string) {
+    const user = resetDialogUser.value;
+    if (!user) return;
+    const password = resetPasswordValue.value;
     resettingId.value = user.id;
     try {
-        await userStore.adminUpdateUserPassword(user.id, password);
+        await userStore.adminUpdateUserPassword(user.id, password, currentPassword);
+        resetPasswordConfirmOpen.value = false;
         resetDialogUser.value = null;
         resetPasswordValue.value = "";
         showResetPassword.value = false;
@@ -673,7 +675,7 @@ async function copyUserId(id: string) {
                 </div>
                 <DialogFooter>
                     <Button variant="outline" @click="resetDialogUser = null">{{ t("common.cancel") }}</Button>
-                    <Button :disabled="isResettingCurrentUser" @click="handleResetPassword">
+                    <Button :disabled="isResettingCurrentUser" @click="requestResetPassword">
                         <span v-if="!isResettingCurrentUser">{{ t("settings.users.resetPassword") }}</span>
                         <span v-else>{{ t("settings.users.resetting") }}</span>
                     </Button>
@@ -681,30 +683,29 @@ async function copyUserId(id: string) {
             </DialogContent>
         </Dialog>
 
-        <AlertDialog :open="Boolean(deleteDialogUser)" @update:open="(open) => !open && (deleteDialogUser = null)">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{{ t("settings.users.deleteUser") }}</AlertDialogTitle>
-                    <AlertDialogDescription v-if="deleteDialogUser">
-                        {{ t("settings.users.deletePromptWithName", {username: deleteDialogUser.username}) }}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{{ t("common.cancel") }}</AlertDialogCancel>
-                    <Button
-                        :disabled="
-                            Boolean(
-                                deleteDialogUser &&
-                                (deleteDialogUser.id === instanceOwnerId || deletingId === deleteDialogUser.id),
-                            )
-                        "
-                        variant="destructive"
-                        @click="handleDelete">
-                        {{ t("common.delete") }}
-                    </Button>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <PasswordConfirmDialog
+            :open="Boolean(deleteDialogUser)"
+            :title="t('settings.users.deleteUser')"
+            :description="
+                deleteDialogUser ? t('settings.users.deletePromptWithName', {username: deleteDialogUser.username}) : ''
+            "
+            :confirm-label="t('common.delete')"
+            :loading="Boolean(deleteDialogUser && deletingId === deleteDialogUser.id)"
+            input-id="admin-delete-user-password"
+            @update:open="(open) => !open && (deleteDialogUser = null)"
+            @confirm="handleDelete" />
+
+        <PasswordConfirmDialog
+            :open="resetPasswordConfirmOpen"
+            :title="t('settings.users.confirmResetTitle')"
+            :description="
+                resetDialogUser ? t('settings.users.confirmResetDescription', {username: resetDialogUser.username}) : ''
+            "
+            :confirm-label="t('settings.users.resetPassword')"
+            :loading="isResettingCurrentUser"
+            input-id="admin-reset-password-confirm"
+            @update:open="resetPasswordConfirmOpen = $event"
+            @confirm="handleResetPassword" />
     </div>
 </template>
 
