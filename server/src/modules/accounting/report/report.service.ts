@@ -16,6 +16,11 @@ import {MerchantBreakdownEntity} from "./models/entities/merchant-breakdown.enti
 import {AccountBreakdownEntity} from "./models/entities/account-breakdown.entity";
 import {NetWorthPointEntity} from "./models/entities/net-worth.entity";
 import {BudgetVsActualPointEntity} from "./models/entities/budget-vs-actual.entity";
+import {
+    CashFlowSankeyEntity,
+    CashFlowSankeyLinkEntity,
+    CashFlowSankeyNodeEntity,
+} from "./models/entities/cash-flow-sankey.entity";
 import {Prisma} from "../../../../prisma/generated/client";
 
 const UNCATEGORIZED_COLOR = "#94a3b8";
@@ -78,6 +83,176 @@ export class ReportService {
         `;
 
         return this.fillCashFlowGaps(rows, start, end);
+    }
+
+    async getCashFlowSankey(user: UserEntity, filters: ReportFiltersDto): Promise<CashFlowSankeyEntity> {
+        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {start, end} = this.parseRange(filters);
+
+        const empty = new CashFlowSankeyEntity({
+            nodes: [],
+            links: [],
+            totals: {income: 0, expense: 0, net: 0},
+        });
+
+        if (scopedIds.length === 0) return empty;
+
+        const [incomeGrouped, expenseGrouped] = await Promise.all([
+            this.prismaService.transactions.groupBy({
+                by: ["category_id"],
+                where: {
+                    account_id: {in: scopedIds},
+                    is_rebalance: false,
+                    amount: {gt: 0},
+                    date: {gte: start, lte: end},
+                },
+                _sum: {amount: true},
+            }),
+            this.prismaService.transactions.groupBy({
+                by: ["category_id"],
+                where: {
+                    account_id: {in: scopedIds},
+                    is_rebalance: false,
+                    amount: {lt: 0},
+                    date: {gte: start, lte: end},
+                },
+                _sum: {amount: true},
+            }),
+        ]);
+
+        const categoryIds = [
+            ...new Set(
+                [...incomeGrouped, ...expenseGrouped]
+                    .map((g) => g.category_id)
+                    .filter((id): id is string => id !== null),
+            ),
+        ];
+        const categories = categoryIds.length
+            ? await this.prismaService.userCategories.findMany({
+                  where: {id: {in: categoryIds}},
+                  select: {id: true, name: true, hex_color: true, icon: true},
+              })
+            : [];
+        const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+        const round2 = (v: number) => Math.round(v * 100) / 100;
+
+        const incomeItems = incomeGrouped
+            .map((g) => ({
+                categoryId: g.category_id,
+                amount: round2(g._sum.amount ?? 0),
+            }))
+            .filter((i) => i.amount > 0)
+            .sort((a, b) => b.amount - a.amount);
+
+        const expenseItems = expenseGrouped
+            .map((g) => ({
+                categoryId: g.category_id,
+                amount: round2(Math.abs(g._sum.amount ?? 0)),
+            }))
+            .filter((i) => i.amount > 0)
+            .sort((a, b) => b.amount - a.amount);
+
+        const totalIncome = round2(incomeItems.reduce((sum, i) => sum + i.amount, 0));
+        const totalExpense = round2(expenseItems.reduce((sum, i) => sum + i.amount, 0));
+        const net = round2(totalIncome - totalExpense);
+
+        if (totalIncome === 0 && totalExpense === 0) return empty;
+
+        const nodes: CashFlowSankeyNodeEntity[] = [];
+        const links: CashFlowSankeyLinkEntity[] = [];
+
+        const revenueId = "__revenue__";
+        const spendingId = "__spending__";
+        const savingsId = "__savings__";
+        const deficitId = "__deficit__";
+
+        for (const item of incomeItems) {
+            const key = item.categoryId ?? "__uncategorized_income__";
+            const cat = item.categoryId ? categoryMap.get(item.categoryId) : undefined;
+            nodes.push(
+                new CashFlowSankeyNodeEntity({
+                    id: `in:${key}`,
+                    label: cat?.name ?? "",
+                    kind: "income",
+                    hexColor: cat?.hex_color ?? UNCATEGORIZED_COLOR,
+                    icon: cat?.icon ?? UNCATEGORIZED_ICON,
+                }),
+            );
+            links.push(
+                new CashFlowSankeyLinkEntity({
+                    source: `in:${key}`,
+                    target: revenueId,
+                    value: item.amount,
+                }),
+            );
+        }
+
+        if (totalIncome > 0) {
+            nodes.push(new CashFlowSankeyNodeEntity({id: revenueId, label: "", kind: "hub"}));
+        }
+
+        if (totalExpense > 0) {
+            nodes.push(new CashFlowSankeyNodeEntity({id: spendingId, label: "", kind: "hub"}));
+
+            const fromRevenue = Math.min(totalIncome, totalExpense);
+            if (fromRevenue > 0) {
+                links.push(
+                    new CashFlowSankeyLinkEntity({
+                        source: revenueId,
+                        target: spendingId,
+                        value: round2(fromRevenue),
+                    }),
+                );
+            }
+        }
+
+        if (net > 0) {
+            nodes.push(new CashFlowSankeyNodeEntity({id: savingsId, label: "", kind: "savings"}));
+            links.push(
+                new CashFlowSankeyLinkEntity({
+                    source: revenueId,
+                    target: savingsId,
+                    value: round2(net),
+                }),
+            );
+        } else if (net < 0 && totalExpense > 0) {
+            nodes.push(new CashFlowSankeyNodeEntity({id: deficitId, label: "", kind: "deficit"}));
+            links.push(
+                new CashFlowSankeyLinkEntity({
+                    source: deficitId,
+                    target: spendingId,
+                    value: round2(Math.abs(net)),
+                }),
+            );
+        }
+
+        for (const item of expenseItems) {
+            const key = item.categoryId ?? "__uncategorized_expense__";
+            const cat = item.categoryId ? categoryMap.get(item.categoryId) : undefined;
+            nodes.push(
+                new CashFlowSankeyNodeEntity({
+                    id: `out:${key}`,
+                    label: cat?.name ?? "",
+                    kind: "expense",
+                    hexColor: cat?.hex_color ?? UNCATEGORIZED_COLOR,
+                    icon: cat?.icon ?? UNCATEGORIZED_ICON,
+                }),
+            );
+            links.push(
+                new CashFlowSankeyLinkEntity({
+                    source: spendingId,
+                    target: `out:${key}`,
+                    value: item.amount,
+                }),
+            );
+        }
+
+        return new CashFlowSankeyEntity({
+            nodes,
+            links,
+            totals: {income: totalIncome, expense: totalExpense, net},
+        });
     }
 
     async getByCategory(user: UserEntity, filters: ReportFiltersDto): Promise<CategoryBreakdownEntity[]> {

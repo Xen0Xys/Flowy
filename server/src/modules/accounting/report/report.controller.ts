@@ -12,6 +12,7 @@ import {MerchantBreakdownEntity} from "./models/entities/merchant-breakdown.enti
 import {AccountBreakdownEntity} from "./models/entities/account-breakdown.entity";
 import {NetWorthPointEntity} from "./models/entities/net-worth.entity";
 import {BudgetVsActualPointEntity} from "./models/entities/budget-vs-actual.entity";
+import {CashFlowSankeyEntity} from "./models/entities/cash-flow-sankey.entity";
 
 @Controller("report")
 export class ReportController {
@@ -29,6 +30,13 @@ export class ReportController {
     @ApiBearerAuth()
     async getCashFlow(@User() user: UserEntity, @Query() query: ReportFiltersDto): Promise<CashFlowPointEntity[]> {
         return this.reportService.getCashFlow(user, query);
+    }
+
+    @Get("cash-flow-sankey")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getCashFlowSankey(@User() user: UserEntity, @Query() query: ReportFiltersDto): Promise<CashFlowSankeyEntity> {
+        return this.reportService.getCashFlowSankey(user, query);
     }
 
     @Get("by-category")

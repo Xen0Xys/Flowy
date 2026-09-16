@@ -414,6 +414,7 @@ const graphHeightClass = computed(() =>
                                     <TabsTrigger value="3M">3M</TabsTrigger>
                                     <TabsTrigger value="6M">6M</TabsTrigger>
                                     <TabsTrigger value="1Y">1Y</TabsTrigger>
+                                    <TabsTrigger value="YTD">{{ t("common.ytd") }}</TabsTrigger>
                                     <TabsTrigger value="ALL">{{ t("common.all") }}</TabsTrigger>
                                 </TabsList>
                             </Tabs>

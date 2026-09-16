@@ -6,6 +6,7 @@ import {useFamilyStore} from "~/stores/family.store";
 import {
     type ReportKpi,
     type CashFlowPoint,
+    type CashFlowSankey,
     type CategoryBreakdown,
     type CategoryTrend,
     type MerchantBreakdown,
@@ -20,6 +21,7 @@ import ReportKpiCards from "~/components/reports/ReportKpiCards.vue";
 import ReportChartCard from "~/components/reports/ReportChartCard.vue";
 import NetWorthChart from "~/components/reports/NetWorthChart.vue";
 import CashFlowChart from "~/components/reports/CashFlowChart.vue";
+import CashFlowSankeyChart from "~/components/reports/CashFlowSankeyChart.vue";
 import CategoryDonutChart from "~/components/reports/CategoryDonutChart.vue";
 import CategoryTrendChart from "~/components/reports/CategoryTrendChart.vue";
 import TopMerchantsChart from "~/components/reports/TopMerchantsChart.vue";
@@ -41,6 +43,7 @@ const currency = computed(() => familyStore.family?.currency ?? "USD");
 function parseRange(value: unknown): ReportRange {
     const raw = Array.isArray(value) ? value[0] : value;
     if (
+        raw === "7D" ||
         raw === "1M" ||
         raw === "3M" ||
         raw === "6M" ||
@@ -87,6 +90,7 @@ const includeShared = ref<boolean>(parseIncludeShared(route.query.includeShared)
 // Data buckets
 const kpis = ref<ReportKpi | null>(null);
 const cashFlow = ref<CashFlowPoint[]>([]);
+const cashFlowSankey = ref<CashFlowSankey>({nodes: [], links: [], totals: {income: 0, expense: 0, net: 0}});
 const byCategory = ref<CategoryBreakdown[]>([]);
 const categoryTrend = ref<CategoryTrend>({categories: [], points: []});
 const topMerchants = ref<MerchantBreakdown[]>([]);
@@ -112,9 +116,11 @@ async function loadAllReports() {
 
     const filters = currentFilters();
     try {
+        const emptySankey: CashFlowSankey = {nodes: [], links: [], totals: {income: 0, expense: 0, net: 0}};
         const [
             kpisRes,
             cashFlowRes,
+            sankeyRes,
             byCategoryRes,
             trendRes,
             merchantsRes,
@@ -124,6 +130,7 @@ async function loadAllReports() {
         ] = await Promise.all([
             reportStore.fetchKpis(filters).catch(() => null),
             reportStore.fetchCashFlow(filters).catch(() => []),
+            reportStore.fetchCashFlowSankey(filters).catch(() => emptySankey),
             reportStore.fetchByCategory(filters).catch(() => []),
             reportStore.fetchCategoryTrend(filters).catch(() => ({categories: [], points: []})),
             reportStore.fetchByMerchant(filters, 10).catch(() => []),
@@ -136,6 +143,7 @@ async function loadAllReports() {
 
         kpis.value = kpisRes;
         cashFlow.value = cashFlowRes;
+        cashFlowSankey.value = sankeyRes;
         byCategory.value = byCategoryRes;
         categoryTrend.value = trendRes;
         topMerchants.value = merchantsRes;
@@ -255,6 +263,17 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                             :empty-message="t('reports.empty.noData')"
                             class="lg:col-span-2">
                             <CashFlowChart :data="cashFlow" :currency="currency" />
+                        </ReportChartCard>
+
+                        <ReportChartCard
+                            :title="t('reports.charts.cashFlowSankey.title')"
+                            :subtitle="t('reports.charts.cashFlowSankey.subtitle')"
+                            icon="iconoir:git-fork"
+                            :loading="isLoading"
+                            :empty="!isLoading && cashFlowSankey.links.length === 0"
+                            :empty-message="t('reports.empty.noData')"
+                            class="lg:col-span-2">
+                            <CashFlowSankeyChart :data="cashFlowSankey" :currency="currency" />
                         </ReportChartCard>
 
                         <ReportChartCard

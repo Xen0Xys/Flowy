@@ -1,6 +1,6 @@
-export type ReportRange = "1M" | "3M" | "6M" | "1Y" | "YTD" | "ALL" | "CUSTOM";
+export type ReportRange = "7D" | "1M" | "3M" | "6M" | "1Y" | "YTD" | "ALL" | "CUSTOM";
 
-export const REPORT_RANGES: Exclude<ReportRange, "CUSTOM">[] = ["1M", "3M", "6M", "1Y", "YTD", "ALL"];
+export const REPORT_RANGES: Exclude<ReportRange, "CUSTOM">[] = ["7D", "1M", "3M", "6M", "1Y", "YTD", "ALL"];
 
 export function buildReportDateRange(preset: Exclude<ReportRange, "CUSTOM">): {startDate: string; endDate: string} {
     const end = new Date();
@@ -8,6 +8,9 @@ export function buildReportDateRange(preset: Exclude<ReportRange, "CUSTOM">): {s
     start.setHours(0, 0, 0, 0);
 
     switch (preset) {
+        case "7D":
+            start.setDate(end.getDate() - 7);
+            break;
         case "1M":
             start.setMonth(end.getMonth() - 1);
             break;

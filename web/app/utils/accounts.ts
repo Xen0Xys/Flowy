@@ -1,6 +1,6 @@
 import type {Account, AccountBalanceEvolutionPoint} from "~/stores/account.store";
 
-export type TimeRange = "7D" | "1M" | "3M" | "6M" | "1Y" | "ALL";
+export type TimeRange = "7D" | "1M" | "3M" | "6M" | "1Y" | "YTD" | "ALL";
 
 export function buildDateRange(preset: TimeRange): {
     startDate: string;
@@ -24,6 +24,11 @@ export function buildDateRange(preset: TimeRange): {
             break;
         case "1Y":
             start.setFullYear(end.getFullYear() - 1);
+            break;
+        case "YTD":
+            start.setMonth(0);
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
             break;
         case "ALL":
             start.setFullYear(2000); // 2000 as start date for "ALL"

@@ -4,6 +4,7 @@
         "settings": "Paramètres",
         "back": "Retour",
         "all": "Tous",
+        "ytd": "ADJ",
         "none": "Aucun",
         "actions": "Actions",
         "moreActions": "Plus d'actions",
@@ -1329,6 +1330,7 @@
             "clear": "Effacer",
             "includeShared": "Inclure les partagés",
             "presets": {
+                "7D": "7J",
                 "1M": "1M",
                 "3M": "3M",
                 "6M": "6M",
@@ -1354,6 +1356,15 @@
             "cashFlow": {
                 "title": "Flux de trésorerie",
                 "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net"
+            },
+            "cashFlowSankey": {
+                "title": "Flux d'argent",
+                "subtitle": "Comment votre argent circule des sources de revenus vers les catégories de dépenses",
+                "revenue": "Revenus",
+                "spending": "Dépenses",
+                "savings": "Épargne",
+                "deficit": "Déficit",
+                "uncategorized": "Sans catégorie"
             },
             "byCategory": {
                 "title": "Dépenses par catégorie",

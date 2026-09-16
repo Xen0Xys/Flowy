@@ -4,6 +4,7 @@
         "settings": "Settings",
         "back": "Back",
         "all": "All",
+        "ytd": "YTD",
         "none": "None",
         "actions": "Actions",
         "moreActions": "More actions",
@@ -1329,6 +1330,7 @@
             "clear": "Clear",
             "includeShared": "Include shared",
             "presets": {
+                "7D": "7D",
                 "1M": "1M",
                 "3M": "3M",
                 "6M": "6M",
@@ -1354,6 +1356,15 @@
             "cashFlow": {
                 "title": "Cash flow",
                 "subtitle": "Monthly income vs expense with net line"
+            },
+            "cashFlowSankey": {
+                "title": "Money flow",
+                "subtitle": "How your money moves from income sources to spending categories",
+                "revenue": "Revenue",
+                "spending": "Spending",
+                "savings": "Savings",
+                "deficit": "Deficit",
+                "uncategorized": "Uncategorized"
             },
             "byCategory": {
                 "title": "Spending by category",

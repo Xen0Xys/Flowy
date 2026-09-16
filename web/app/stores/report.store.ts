@@ -31,6 +31,26 @@ export type CashFlowPoint = {
     net: number;
 };
 
+export type CashFlowSankeyNode = {
+    id: string;
+    label: string;
+    kind: "income" | "expense" | "hub" | "savings" | "deficit";
+    hexColor?: string;
+    icon?: string;
+};
+
+export type CashFlowSankeyLink = {
+    source: string;
+    target: string;
+    value: number;
+};
+
+export type CashFlowSankey = {
+    nodes: CashFlowSankeyNode[];
+    links: CashFlowSankeyLink[];
+    totals: {income: number; expense: number; net: number};
+};
+
 export type CategoryBreakdown = {
     categoryId: string | null;
     name: string;
@@ -133,6 +153,10 @@ export const useReportStore = defineStore("report", {
 
         async fetchCashFlow(filters: ReportFilters): Promise<CashFlowPoint[]> {
             return apiGet<CashFlowPoint[]>(`/report/cash-flow?${buildQuery(filters)}`);
+        },
+
+        async fetchCashFlowSankey(filters: ReportFilters): Promise<CashFlowSankey> {
+            return apiGet<CashFlowSankey>(`/report/cash-flow-sankey?${buildQuery(filters)}`);
         },
 
         async fetchByCategory(filters: ReportFilters): Promise<CategoryBreakdown[]> {
