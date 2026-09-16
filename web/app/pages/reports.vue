@@ -54,7 +54,7 @@ function parseRange(value: unknown): ReportRange {
     ) {
         return raw;
     }
-    return "3M";
+    return "1M";
 }
 
 function parseAccountIdsQuery(value: unknown): string[] {
@@ -80,7 +80,7 @@ const initialCustom =
 
 const range = ref<ReportRange>(initialRange);
 const {startDate: defaultStart, endDate: defaultEnd} = buildReportDateRange(
-    initialRange === "CUSTOM" ? "3M" : initialRange,
+    initialRange === "CUSTOM" ? "1M" : initialRange,
 );
 const startDate = ref<string>(initialCustom?.startDate || defaultStart);
 const endDate = ref<string>(initialCustom?.endDate || defaultEnd);
@@ -279,7 +279,7 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                         <ReportChartCard
                             :title="t('reports.charts.byCategory.title')"
                             :subtitle="t('reports.charts.byCategory.subtitle')"
-                            icon="iconoir:donut-chart"
+                            icon="iconoir:pie-chart"
                             :loading="isLoading"
                             :empty="!isLoading && byCategory.length === 0"
                             :empty-message="t('reports.empty.noSpending')">

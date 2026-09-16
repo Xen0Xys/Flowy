@@ -173,7 +173,12 @@ function crosshairTemplate(d: ChartRow): string {
                     <VisScatter v-if="dataset.length === 1" :color="totalColor" :size="6" :x="xAccessor" :y="yTotal" />
 
                     <VisAxis type="x" :gridLine="false" :numTicks="isMobile ? 3 : undefined" :tickFormat="formatDate" />
-                    <VisAxis v-if="!isMobile" type="y" :gridLine="false" :tickFormat="formatCompactCurrency" />
+                    <VisAxis
+                        v-if="!isMobile"
+                        type="y"
+                        :gridLine="true"
+                        :domainLine="false"
+                        :tickFormat="formatCompactCurrency" />
                     <ChartCrosshair :template="crosshairTemplate" />
                     <ChartTooltip :customComponent="ChartTooltipContent" />
                 </VisXYContainer>

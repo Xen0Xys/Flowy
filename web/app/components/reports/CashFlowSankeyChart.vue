@@ -85,7 +85,7 @@ const isEmpty = computed(() => chartData.value.nodes.length === 0 || chartData.v
 </script>
 
 <template>
-    <div :style="{height: `${height}px`}">
+    <div class="sankey-container" :style="{height: `${height}px`}">
         <ClientOnly>
             <div v-if="isEmpty" class="flex h-full items-center justify-center">
                 <p class="text-muted-foreground text-sm">{{ t("reports.empty.noData") }}</p>
@@ -116,3 +116,12 @@ const isEmpty = computed(() => chartData.value.nodes.length === 0 || chartData.v
         </ClientOnly>
     </div>
 </template>
+
+<style scoped>
+.sankey-container {
+    --vis-sankey-node-label-color: var(--foreground);
+    --vis-sankey-node-sublabel-color: var(--muted-foreground);
+    --vis-dark-sankey-node-label-color: var(--foreground);
+    --vis-dark-sankey-node-sublabel-color: var(--muted-foreground);
+}
+</style>

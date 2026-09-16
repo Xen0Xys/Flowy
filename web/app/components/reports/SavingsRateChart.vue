@@ -110,7 +110,8 @@ function crosshairTemplate(d: Row): string {
                         <VisAxis
                             v-if="!isMobile"
                             type="y"
-                            :gridLine="false"
+                            :gridLine="true"
+                            :domainLine="false"
                             :tickFormat="(d: number) => `${d.toFixed(0)}%`" />
                         <ChartCrosshair :color="chartColor" :template="crosshairTemplate" />
                         <ChartTooltip :customComponent="ChartTooltipContent" />

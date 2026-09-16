@@ -96,7 +96,12 @@ function crosshairTemplate(d: Row): string {
                         :gridLine="false"
                         :numTicks="isMobile ? 3 : undefined"
                         :tickFormat="formatPeriodTick" />
-                    <VisAxis v-if="!isMobile" type="y" :gridLine="false" :tickFormat="formatCurrency" />
+                    <VisAxis
+                        v-if="!isMobile"
+                        type="y"
+                        :gridLine="true"
+                        :domainLine="false"
+                        :tickFormat="formatCurrency" />
                     <ChartCrosshair :template="crosshairTemplate" />
                     <ChartTooltip :customComponent="ChartTooltipContent" />
                 </VisXYContainer>
