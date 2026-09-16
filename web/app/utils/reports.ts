@@ -3,40 +3,39 @@ export type ReportRange = "7D" | "1M" | "3M" | "6M" | "1Y" | "YTD" | "ALL" | "CU
 export const REPORT_RANGES: Exclude<ReportRange, "CUSTOM">[] = ["7D", "1M", "3M", "6M", "1Y", "YTD", "ALL"];
 
 export function buildReportDateRange(preset: Exclude<ReportRange, "CUSTOM">): {startDate: string; endDate: string} {
-    const end = new Date();
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const y = now.getUTCFullYear();
+    const m = now.getUTCMonth();
+    const d = now.getUTCDate();
 
+    let start: Date;
     switch (preset) {
         case "7D":
-            start.setDate(end.getDate() - 7);
+            start = new Date(Date.UTC(y, m, d - 7, 0, 0, 0, 0));
             break;
         case "1M":
-            start.setMonth(end.getMonth() - 1);
+            start = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0));
             break;
         case "3M":
-            start.setMonth(end.getMonth() - 3);
+            start = new Date(Date.UTC(y, m - 2, 1, 0, 0, 0, 0));
             break;
         case "6M":
-            start.setMonth(end.getMonth() - 6);
+            start = new Date(Date.UTC(y, m - 5, 1, 0, 0, 0, 0));
             break;
         case "1Y":
-            start.setFullYear(end.getFullYear() - 1);
+            start = new Date(Date.UTC(y, m - 11, 1, 0, 0, 0, 0));
             break;
         case "YTD":
-            start.setMonth(0);
-            start.setDate(1);
+            start = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0));
             break;
         case "ALL":
-            start.setFullYear(2000);
-            start.setMonth(0);
-            start.setDate(1);
+            start = new Date(Date.UTC(2000, 0, 1, 0, 0, 0, 0));
             break;
     }
 
     return {
         startDate: start.toISOString(),
-        endDate: end.toISOString(),
+        endDate: now.toISOString(),
     };
 }
 

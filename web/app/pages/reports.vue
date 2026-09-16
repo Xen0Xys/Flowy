@@ -4,15 +4,15 @@ import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {
-    type ReportKpi,
+    type AccountBreakdown,
+    type BudgetVsActualPoint,
     type CashFlowPoint,
     type CashFlowSankey,
     type CategoryBreakdown,
     type CategoryTrend,
     type MerchantBreakdown,
-    type AccountBreakdown,
     type NetWorthPoint,
-    type BudgetVsActualPoint,
+    type ReportKpi,
     useReportStore,
 } from "~/stores/report.store";
 import {buildReportDateRange, type ReportRange} from "~/utils/reports";
@@ -227,114 +227,114 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
 
                 <template v-else>
                     <ReportFiltersBar
-                        :accounts="accountStore.accounts"
-                        :range="range"
-                        :start-date="startDate"
-                        :end-date="endDate"
                         :account-ids="accountIds"
+                        :accounts="accountStore.accounts"
+                        :end-date="endDate"
                         :include-shared="includeShared"
                         :loading="isLoading"
+                        :range="range"
+                        :start-date="startDate"
                         @update:range="(v) => (range = v)"
                         @update:start-date="(v) => (startDate = v)"
                         @update:end-date="(v) => (endDate = v)"
                         @update:account-ids="(v) => (accountIds = v)"
                         @update:include-shared="(v) => (includeShared = v)" />
 
-                    <ReportKpiCards :data="kpis" :currency="currency" :loading="isLoading" />
+                    <ReportKpiCards :currency="currency" :data="kpis" :loading="isLoading" />
 
                     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <ReportChartCard
-                            :title="t('reports.charts.netWorth.title')"
-                            :subtitle="t('reports.charts.netWorth.subtitle')"
-                            icon="iconoir:graph-up"
-                            :loading="isLoading"
                             :empty="!isLoading && netWorth.length === 0"
                             :empty-message="t('reports.empty.noData')"
-                            class="lg:col-span-2">
-                            <NetWorthChart :data="netWorth" :currency="currency" />
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.netWorth.subtitle')"
+                            :title="t('reports.charts.netWorth.title')"
+                            class="lg:col-span-2"
+                            icon="iconoir:graph-up">
+                            <NetWorthChart :currency="currency" :data="netWorth" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.cashFlow.title')"
-                            :subtitle="t('reports.charts.cashFlow.subtitle')"
-                            icon="iconoir:data-transfer-both"
-                            :loading="isLoading"
                             :empty="!isLoading && cashFlow.length === 0"
                             :empty-message="t('reports.empty.noData')"
-                            class="lg:col-span-2">
-                            <CashFlowChart :data="cashFlow" :currency="currency" />
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.cashFlow.subtitle')"
+                            :title="t('reports.charts.cashFlow.title')"
+                            class="lg:col-span-2"
+                            icon="iconoir:data-transfer-both">
+                            <CashFlowChart :currency="currency" :data="cashFlow" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.cashFlowSankey.title')"
-                            :subtitle="t('reports.charts.cashFlowSankey.subtitle')"
-                            icon="iconoir:git-fork"
-                            :loading="isLoading"
                             :empty="!isLoading && cashFlowSankey.links.length === 0"
                             :empty-message="t('reports.empty.noData')"
-                            class="lg:col-span-2">
-                            <CashFlowSankeyChart :data="cashFlowSankey" :currency="currency" />
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.cashFlowSankey.subtitle')"
+                            :title="t('reports.charts.cashFlowSankey.title')"
+                            class="lg:col-span-2"
+                            icon="iconoir:git-fork">
+                            <CashFlowSankeyChart :currency="currency" :data="cashFlowSankey" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.byCategory.title')"
-                            :subtitle="t('reports.charts.byCategory.subtitle')"
-                            icon="iconoir:pie-chart"
-                            :loading="isLoading"
                             :empty="!isLoading && byCategory.length === 0"
-                            :empty-message="t('reports.empty.noSpending')">
-                            <CategoryDonutChart :data="byCategory" :currency="currency" />
+                            :empty-message="t('reports.empty.noSpending')"
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.byCategory.subtitle')"
+                            :title="t('reports.charts.byCategory.title')"
+                            icon="iconoir:pizza-slice">
+                            <CategoryDonutChart :currency="currency" :data="byCategory" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.topMerchants.title')"
-                            :subtitle="t('reports.charts.topMerchants.subtitle')"
-                            icon="iconoir:shop"
-                            :loading="isLoading"
                             :empty="!isLoading && topMerchants.length === 0"
-                            :empty-message="t('reports.empty.noSpending')">
-                            <TopMerchantsChart :data="topMerchants" :currency="currency" />
+                            :empty-message="t('reports.empty.noSpending')"
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.topMerchants.subtitle')"
+                            :title="t('reports.charts.topMerchants.title')"
+                            icon="iconoir:shop">
+                            <TopMerchantsChart :currency="currency" :data="topMerchants" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.categoryTrend.title')"
-                            :subtitle="t('reports.charts.categoryTrend.subtitle')"
-                            icon="iconoir:stats-up-square"
-                            :loading="isLoading"
                             :empty="!isLoading && categoryTrend.points.length === 0"
                             :empty-message="t('reports.empty.noData')"
-                            class="lg:col-span-2">
-                            <CategoryTrendChart :data="categoryTrend" :currency="currency" />
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.categoryTrend.subtitle')"
+                            :title="t('reports.charts.categoryTrend.title')"
+                            class="lg:col-span-2"
+                            icon="iconoir:stats-up-square">
+                            <CategoryTrendChart :currency="currency" :data="categoryTrend" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.budgetVsActual.title')"
-                            :subtitle="t('reports.charts.budgetVsActual.subtitle')"
-                            icon="iconoir:piggy-bank"
-                            :loading="isLoading"
                             :empty="!isLoading && budgetVsActual.length === 0"
-                            :empty-message="t('reports.empty.noBudgets')">
-                            <BudgetVsActualChart :data="budgetVsActual" :currency="currency" />
+                            :empty-message="t('reports.empty.noBudgets')"
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.budgetVsActual.subtitle')"
+                            :title="t('reports.charts.budgetVsActual.title')"
+                            icon="iconoir:piggy-bank">
+                            <BudgetVsActualChart :currency="currency" :data="budgetVsActual" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.byAccount.title')"
-                            :subtitle="t('reports.charts.byAccount.subtitle')"
-                            icon="iconoir:wallet"
-                            :loading="isLoading"
                             :empty="!isLoading && byAccount.length === 0"
-                            :empty-message="t('reports.empty.noData')">
-                            <AccountDistributionChart :data="byAccount" :currency="currency" />
+                            :empty-message="t('reports.empty.noData')"
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.byAccount.subtitle')"
+                            :title="t('reports.charts.byAccount.title')"
+                            icon="iconoir:wallet">
+                            <AccountDistributionChart :currency="currency" :data="byAccount" />
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :title="t('reports.charts.savingsRate.title')"
-                            :subtitle="t('reports.charts.savingsRate.subtitle')"
-                            icon="iconoir:coins"
-                            :loading="isLoading"
                             :empty="!isLoading && cashFlow.length === 0"
                             :empty-message="t('reports.empty.noData')"
-                            class="lg:col-span-2">
+                            :loading="isLoading"
+                            :subtitle="t('reports.charts.savingsRate.subtitle')"
+                            :title="t('reports.charts.savingsRate.title')"
+                            class="lg:col-span-2"
+                            icon="iconoir:coins">
                             <SavingsRateChart :data="cashFlow" />
                         </ReportChartCard>
                     </div>
