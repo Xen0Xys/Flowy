@@ -11,6 +11,7 @@ const pageTitle = computed(() => {
     const path = route.path || "/";
 
     if (path === "/") return t("app.pageTitle.dashboard");
+    if (path.startsWith("/reports")) return t("app.pageTitle.reports");
     if (path.startsWith("/auth/login")) return t("app.pageTitle.login");
     if (path.startsWith("/auth/register")) return t("app.pageTitle.register");
     if (path.startsWith("/onboarding")) return t("app.pageTitle.onboarding");

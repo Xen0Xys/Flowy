@@ -39,7 +39,8 @@
             "adminUsers": "Admin Users",
             "profile": "Profile",
             "family": "Family",
-            "settings": "Settings"
+            "settings": "Settings",
+            "reports": "Reports"
         }
     },
     "auth": {
@@ -244,9 +245,11 @@
     },
     "sidebar": {
         "overview": "Overview",
+        "insights": "Insights",
         "operations": "Operations",
         "planning": "Planning",
         "dashboard": "Dashboard",
+        "reports": "Reports",
         "transactions": "Transactions",
         "recurring": "Recurring",
         "import": "Import",
@@ -1306,6 +1309,97 @@
                 "create": "Failed to create recurring transaction",
                 "update": "Failed to update recurring transaction",
                 "delete": "Failed to delete recurring transaction"
+            }
+        }
+    },
+    "reports": {
+        "title": "Reports",
+        "subtitle": "Explore your finances with charts and trends",
+        "emptyGeneric": "No data available.",
+        "filters": {
+            "custom": "Custom range",
+            "applyRange": "Apply",
+            "accountsTitle": "Filter accounts",
+            "accountsHint": "Leave empty to include every accessible account.",
+            "accountsAll": "All accounts",
+            "accountsCount": "{count} accounts",
+            "accountsOwned": "Owned",
+            "accountsSharedBy": "Shared by {name}",
+            "selectAll": "Select all",
+            "clear": "Clear",
+            "includeShared": "Include shared",
+            "presets": {
+                "1M": "1M",
+                "3M": "3M",
+                "6M": "6M",
+                "1Y": "1Y",
+                "YTD": "YTD",
+                "ALL": "All",
+                "CUSTOM": "Custom"
+            }
+        },
+        "kpi": {
+            "income": "Income",
+            "expense": "Expense",
+            "net": "Net",
+            "savingsRate": "Savings rate",
+            "vsPrevious": "vs previous period"
+        },
+        "charts": {
+            "netWorth": {
+                "title": "Net worth",
+                "subtitle": "Combined balance evolution by account type",
+                "total": "Total"
+            },
+            "cashFlow": {
+                "title": "Cash flow",
+                "subtitle": "Monthly income vs expense with net line"
+            },
+            "byCategory": {
+                "title": "Spending by category",
+                "subtitle": "Distribution over the selected period",
+                "totalSpent": "spent"
+            },
+            "categoryTrend": {
+                "title": "Category trend",
+                "subtitle": "Top categories over time",
+                "others": "Others"
+            },
+            "topMerchants": {
+                "title": "Top merchants",
+                "subtitle": "Where your money goes most",
+                "unknown": "Unknown merchant",
+                "transactionsCount": "{count} tx"
+            },
+            "budgetVsActual": {
+                "title": "Budget vs actual",
+                "subtitle": "Planned expense against real spending",
+                "budgeted": "Budgeted",
+                "actual": "Actual",
+                "difference": "Difference"
+            },
+            "byAccount": {
+                "title": "Account distribution",
+                "subtitle": "Activity spread across your accounts",
+                "activity": "Activity"
+            },
+            "savingsRate": {
+                "title": "Savings rate over time",
+                "subtitle": "Percentage of income you kept each month",
+                "average": "Average",
+                "monthsCount": "{count} months"
+            }
+        },
+        "empty": {
+            "noAccountsTitle": "Nothing to report yet",
+            "noAccountsDescription": "Create at least one account to unlock your reports.",
+            "noData": "No data for the selected period.",
+            "noSpending": "No spending in this period.",
+            "noBudgets": "No budgets found for the selected months."
+        },
+        "store": {
+            "errors": {
+                "fetch": "Failed to load report data"
             }
         }
     }
