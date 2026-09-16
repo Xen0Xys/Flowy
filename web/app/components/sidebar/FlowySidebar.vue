@@ -171,22 +171,6 @@ const isMac = computed(() => {
                     </SidebarGroup>
 
                     <SidebarGroup>
-                        <SidebarGroupLabel>{{ t("sidebar.insights") }}</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton :is-active="isActiveFunction('/reports')" as-child>
-                                        <NuxtLink to="/reports">
-                                            <Icon name="iconoir:stats-report"></Icon>
-                                            <span>{{ t("sidebar.reports") }}</span>
-                                        </NuxtLink>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-
-                    <SidebarGroup>
                         <SidebarGroupLabel>{{ t("sidebar.operations") }}</SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
@@ -227,6 +211,14 @@ const isMac = computed(() => {
                                         <NuxtLink to="/budget">
                                             <Icon name="iconoir:piggy-bank"></Icon>
                                             <span>{{ t("sidebar.budget") }}</span>
+                                        </NuxtLink>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton :is-active="isActiveFunction('/reports')" as-child>
+                                        <NuxtLink to="/reports">
+                                            <Icon name="iconoir:stats-report"></Icon>
+                                            <span>{{ t("sidebar.reports") }}</span>
                                         </NuxtLink>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

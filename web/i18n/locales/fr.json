@@ -246,7 +246,6 @@
     },
     "sidebar": {
         "overview": "Vue d'ensemble",
-        "insights": "Analyses",
         "operations": "Opérations",
         "planning": "Planification",
         "dashboard": "Dashboard",
