@@ -40,8 +40,8 @@ jobs:
                   images: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}
                   tags: |
                       type=semver,pattern={{version}}
-                      type=semver,pattern={{major}}.{{minor}}
-                      type=semver,pattern={{major}}
+                      type=semver,pattern={{major}}.{{minor}},enable=${{ !contains(github.ref, '-') }}
+                      type=semver,pattern={{major}},enable=${{ !contains(github.ref, '-') }}
                       type=raw,value=latest,enable=${{ !contains(github.ref, '-') }}
 
             - name: Build and push
