@@ -214,6 +214,14 @@ const isMac = computed(() => {
                                         </NuxtLink>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton :is-active="isActiveFunction('/reports')" as-child>
+                                        <NuxtLink to="/reports">
+                                            <Icon name="iconoir:stats-report"></Icon>
+                                            <span>{{ t("sidebar.reports") }}</span>
+                                        </NuxtLink>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </SidebarGroup>

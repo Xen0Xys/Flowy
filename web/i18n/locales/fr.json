@@ -4,6 +4,7 @@
         "settings": "Paramètres",
         "back": "Retour",
         "all": "Tous",
+        "ytd": "ADJ",
         "none": "Aucun",
         "actions": "Actions",
         "moreActions": "Plus d'actions",
@@ -39,7 +40,8 @@
             "adminUsers": "Utilisateurs admin",
             "profile": "Profil",
             "family": "Famille",
-            "settings": "Paramètres"
+            "settings": "Paramètres",
+            "reports": "Rapports"
         }
     },
     "auth": {
@@ -247,6 +249,7 @@
         "operations": "Opérations",
         "planning": "Planification",
         "dashboard": "Dashboard",
+        "reports": "Rapports",
         "transactions": "Transactions",
         "recurring": "Récurrentes",
         "import": "Import",
@@ -1306,6 +1309,107 @@
                 "create": "Impossible de créer la transaction récurrente",
                 "update": "Impossible de mettre à jour la transaction récurrente",
                 "delete": "Impossible de supprimer la transaction récurrente"
+            }
+        }
+    },
+    "reports": {
+        "title": "Rapports",
+        "subtitle": "Explorez vos finances avec des graphiques et des tendances",
+        "emptyGeneric": "Aucune donnée disponible.",
+        "filters": {
+            "custom": "Période personnalisée",
+            "applyRange": "Appliquer",
+            "accountsTitle": "Filtrer les comptes",
+            "accountsHint": "Laissez vide pour inclure tous les comptes accessibles.",
+            "accountsAll": "Tous les comptes",
+            "accountsCount": "{count} comptes",
+            "accountsOwned": "Mes comptes",
+            "accountsSharedBy": "Partagé par {name}",
+            "selectAll": "Tout sélectionner",
+            "clear": "Effacer",
+            "includeShared": "Inclure les partagés",
+            "presets": {
+                "7D": "7J",
+                "1M": "1M",
+                "3M": "3M",
+                "6M": "6M",
+                "1Y": "1A",
+                "YTD": "ADJ",
+                "ALL": "Tout",
+                "CUSTOM": "Perso"
+            }
+        },
+        "kpi": {
+            "income": "Revenus",
+            "expense": "Dépenses",
+            "net": "Solde net",
+            "savingsRate": "Taux d'épargne",
+            "vsPrevious": "vs période précédente"
+        },
+        "charts": {
+            "netWorth": {
+                "title": "Patrimoine net",
+                "subtitle": "Évolution des soldes cumulés par type de compte",
+                "total": "Total"
+            },
+            "cashFlow": {
+                "title": "Flux de trésorerie",
+                "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net"
+            },
+            "cashFlowSankey": {
+                "title": "Flux d'argent",
+                "subtitle": "Comment votre argent circule des sources de revenus vers les catégories de dépenses",
+                "revenue": "Revenus",
+                "spending": "Dépenses",
+                "savings": "Épargne",
+                "deficit": "Déficit",
+                "uncategorized": "Sans catégorie"
+            },
+            "byCategory": {
+                "title": "Dépenses par catégorie",
+                "subtitle": "Répartition sur la période sélectionnée",
+                "totalSpent": "dépensés"
+            },
+            "categoryTrend": {
+                "title": "Tendance par catégorie",
+                "subtitle": "Top catégories dans le temps",
+                "others": "Autres"
+            },
+            "topMerchants": {
+                "title": "Top marchands",
+                "subtitle": "Où vont vos dépenses en priorité",
+                "unknown": "Marchand inconnu",
+                "transactionsCount": "{count} tx"
+            },
+            "budgetVsActual": {
+                "title": "Budget vs réel",
+                "subtitle": "Dépenses planifiées vs dépenses réelles",
+                "budgeted": "Prévu",
+                "actual": "Réel",
+                "difference": "Écart"
+            },
+            "byAccount": {
+                "title": "Répartition par compte",
+                "subtitle": "Activité répartie sur vos comptes",
+                "activity": "Activité"
+            },
+            "savingsRate": {
+                "title": "Taux d'épargne dans le temps",
+                "subtitle": "Part de vos revenus conservée chaque mois",
+                "average": "Moyenne",
+                "monthsCount": "{count} mois"
+            }
+        },
+        "empty": {
+            "noAccountsTitle": "Rien à rapporter pour l'instant",
+            "noAccountsDescription": "Créez au moins un compte pour débloquer vos rapports.",
+            "noData": "Aucune donnée sur la période sélectionnée.",
+            "noSpending": "Aucune dépense sur cette période.",
+            "noBudgets": "Aucun budget trouvé sur les mois sélectionnés."
+        },
+        "store": {
+            "errors": {
+                "fetch": "Impossible de charger les données des rapports"
             }
         }
     }

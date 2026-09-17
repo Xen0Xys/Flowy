@@ -1,9 +1,10 @@
-import {ArrayMaxSize, IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, Length} from "class-validator";
+import {ArrayMaxSize, IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, Length, Matches} from "class-validator";
 
 export class CreateMerchantDto {
     @IsNotEmpty()
     @IsString()
     @Length(1, 50)
+    @Matches(/^[\p{L}\p{N}\s\-'&.,()]+$/u)
     name!: string;
 
     @IsOptional()

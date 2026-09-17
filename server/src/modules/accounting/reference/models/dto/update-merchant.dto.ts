@@ -1,9 +1,10 @@
-import {ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, Length} from "class-validator";
+import {ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, Length, Matches} from "class-validator";
 
 export class UpdateMerchantDto {
     @IsOptional()
     @IsString()
     @Length(1, 50)
+    @Matches(/^[\p{L}\p{N}\s\-'&.,()]+$/u)
     name?: string;
 
     @IsOptional()

@@ -4,6 +4,7 @@ import {ReferenceModule} from "./modules/accounting/reference/reference.module";
 import {TransferModule} from "./modules/accounting/transfer/transfer.module";
 import {AccountModule} from "./modules/accounting/account/account.module";
 import {BudgetModule} from "./modules/accounting/budget/budget.module";
+import {ReportModule} from "./modules/accounting/report/report.module";
 import {ClassSerializerInterceptor, Module} from "@nestjs/common";
 import {FamilyModule} from "./modules/users/family/family.module";
 import {HelperModule} from "./modules/helper/helper.module";
@@ -66,6 +67,7 @@ import Joi from "joi";
         ReferenceModule,
         BudgetModule,
         RecurringTransactionModule,
+        ReportModule,
     ],
     controllers: [AppController],
     providers: [
