@@ -237,8 +237,18 @@ export class AccountService implements OnModuleInit {
         accountId: string,
         startDate: string,
         endDate: string,
+        options?: {skipAccessCheck?: boolean; resolution?: "day" | "month"},
     ): Promise<Array<{date: Date; balance: number}>> {
-        const account = await this.accountAccess.assertAccess(user, accountId, "read");
+        // `skipAccessCheck` is reserved for internal callers that have already
+        // resolved the account against `AccountAccessService`. When set, we
+        // still need `account.created_at` for the ALL-preset clamp below, so
+        // we do a lightweight lookup instead of the full assertAccess call.
+        const account = options?.skipAccessCheck
+            ? await this.prismaService.accounts.findUniqueOrThrow({
+                  where: {id: accountId},
+                  select: {id: true, created_at: true},
+              })
+            : await this.accountAccess.assertAccess(user, accountId, "read");
 
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -313,16 +323,23 @@ export class AccountService implements OnModuleInit {
             return evolution;
         }
 
+        const monthly = options?.resolution === "month";
+
         // oxlint-disable-next-line no-unmodified-loop-condition
         while (currentDate <= endDay) {
             const dateStr = currentDate.toISOString().split("T")[0];
             if (transactionsByDate.has(dateStr)) {
                 runningBalance = this.toDecimal(runningBalance + transactionsByDate.get(dateStr)!);
             }
-            evolution.push({
-                date: new Date(currentDate),
-                balance: runningBalance,
-            });
+            const isLastDayOfMonth =
+                currentDate.getUTCMonth() !== new Date(currentDate.getTime() + 24 * 60 * 60 * 1000).getUTCMonth();
+            const isLastDayOfRange = currentDate.getTime() === endDay.getTime();
+            if (!monthly || isLastDayOfMonth || isLastDayOfRange) {
+                evolution.push({
+                    date: new Date(currentDate),
+                    balance: runningBalance,
+                });
+            }
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 

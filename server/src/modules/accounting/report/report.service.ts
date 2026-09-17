@@ -37,11 +37,11 @@ export class ReportService {
     ) {}
 
     async getKpis(user: UserEntity, filters: ReportFiltersDto): Promise<ReportKpiEntity> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
         const rangeMs = end.getTime() - start.getTime();
         const previousStart = new Date(start.getTime() - rangeMs);
-        const previousEnd = new Date(start.getTime());
+        const previousEnd = new Date(start.getTime() - 1);
 
         if (scopedIds.length === 0) {
             const empty = new ReportKpiPeriodEntity({
@@ -63,7 +63,7 @@ export class ReportService {
     }
 
     async getCashFlow(user: UserEntity, filters: ReportFiltersDto): Promise<CashFlowPointEntity[]> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         if (scopedIds.length === 0) return [];
@@ -86,7 +86,7 @@ export class ReportService {
     }
 
     async getCashFlowSankey(user: UserEntity, filters: ReportFiltersDto): Promise<CashFlowSankeyEntity> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         const empty = new CashFlowSankeyEntity({
@@ -256,7 +256,7 @@ export class ReportService {
     }
 
     async getByCategory(user: UserEntity, filters: ReportFiltersDto): Promise<CategoryBreakdownEntity[]> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         if (scopedIds.length === 0) return [];
@@ -310,7 +310,7 @@ export class ReportService {
     }
 
     async getCategoryTrend(user: UserEntity, filters: ReportFiltersDto): Promise<CategoryTrendEntity> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         if (scopedIds.length === 0) return new CategoryTrendEntity({categories: [], points: []});
@@ -393,7 +393,7 @@ export class ReportService {
     }
 
     async getByMerchant(user: UserEntity, filters: TopMerchantsDto): Promise<MerchantBreakdownEntity[]> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
         const limit = filters.limit ?? 10;
 
@@ -443,7 +443,7 @@ export class ReportService {
     }
 
     async getByAccount(user: UserEntity, filters: ReportFiltersDto): Promise<AccountBreakdownEntity[]> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         if (scopedIds.length === 0) return [];
@@ -501,7 +501,7 @@ export class ReportService {
     }
 
     async getNetWorth(user: UserEntity, filters: ReportFiltersDto): Promise<NetWorthPointEntity[]> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         if (scopedIds.length === 0) return [];
@@ -514,7 +514,10 @@ export class ReportService {
 
         const evolutionSeries = await Promise.all(
             scopedIds.map((id) =>
-                this.accountService.getAccountBalanceEvolution(user, id, start.toISOString(), end.toISOString()),
+                this.accountService.getAccountBalanceEvolution(user, id, start.toISOString(), end.toISOString(), {
+                    skipAccessCheck: true,
+                    resolution: "month",
+                }),
             ),
         );
 
@@ -548,13 +551,12 @@ export class ReportService {
     }
 
     async getBudgetVsActual(user: UserEntity, filters: ReportFiltersDto): Promise<BudgetVsActualPointEntity[]> {
-        const scopedIds = await this.resolveAccountIds(user, filters);
+        const {scoped: scopedIds, readable} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
 
         if (scopedIds.length === 0) return [];
 
         const months = this.buildMonthEntries(start, end);
-        const readableSet = new Set(scopedIds);
 
         const budgets = await this.prismaService.budgets.findMany({
             where: {
@@ -569,8 +571,11 @@ export class ReportService {
 
         const budgetsByPeriod = new Map<string, typeof budgets>();
         for (const budget of budgets) {
-            // Only include budgets whose every scoped account is readable by user.
-            const allReadable = budget.accounts.every((a) => readableSet.has(a.account_id));
+            // Only include budgets whose every member account is readable by
+            // the user (regardless of the current accountIds filter). This
+            // preserves the budget when the user narrows the report to a
+            // subset of the budget's accounts.
+            const allReadable = budget.accounts.every((a) => readable.has(a.account_id));
             if (!allReadable) continue;
             const key = `${budget.year}-${budget.month}`;
             if (!budgetsByPeriod.has(key)) budgetsByPeriod.set(key, []);
@@ -673,24 +678,25 @@ export class ReportService {
         });
     }
 
-    private async resolveAccountIds(user: UserEntity, filters: ReportFiltersDto): Promise<string[]> {
-        const accessible = await this.accountAccess.getAccessibleAccountIds(user, "read");
-        const accessibleSet = new Set(accessible);
-        let scope = accessible;
+    private async resolveAccountIds(
+        user: UserEntity,
+        filters: ReportFiltersDto,
+    ): Promise<{scoped: string[]; readable: Set<string>}> {
+        const readable = new Set(await this.accountAccess.getAccessibleAccountIds(user, "read"));
+        let scopeSet: Set<string> = readable;
 
         if (filters.includeShared === false) {
             const owned = await this.prismaService.accounts.findMany({
-                where: {id: {in: scope}, user_id: user.id},
+                where: {id: {in: [...scopeSet]}, user_id: user.id},
                 select: {id: true},
             });
-            scope = owned.map((a) => a.id);
+            scopeSet = new Set(owned.map((a) => a.id));
         }
 
         if (filters.accountIds && filters.accountIds.length > 0) {
-            scope = filters.accountIds.filter((id) => accessibleSet.has(id) && scope.includes(id));
+            return {scoped: filters.accountIds.filter((id) => scopeSet.has(id)), readable};
         }
-
-        return scope;
+        return {scoped: [...scopeSet], readable};
     }
 
     private parseRange(filters: ReportFiltersDto): {start: Date; end: Date} {

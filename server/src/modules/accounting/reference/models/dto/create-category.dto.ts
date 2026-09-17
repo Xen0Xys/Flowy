@@ -4,6 +4,7 @@ export class CreateCategoryDto {
     @IsNotEmpty()
     @IsString()
     @Length(1, 50)
+    @Matches(/^[\p{L}\p{N}\s\-'&.,()]+$/u)
     name!: string;
 
     @IsNotEmpty()

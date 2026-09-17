@@ -5,6 +5,7 @@ import {useMediaQuery} from "@vueuse/core";
 import {VisAxis, VisStackedBar, VisXYContainer} from "@unovis/vue";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {toCurrency} from "~/lib/currency";
+import {escapeHtml} from "~/lib/utils";
 import type {CategoryTrend} from "~/stores/report.store";
 
 const props = defineProps<{
@@ -93,17 +94,19 @@ function formatPeriodTick(ms: number) {
 }
 
 function crosshairTemplate(d: Row): string {
-    const date = new Date(d.periodMs).toLocaleDateString(locale.value || "en-US", {year: "numeric", month: "long"});
+    const date = escapeHtml(
+        new Date(d.periodMs).toLocaleDateString(locale.value || "en-US", {year: "numeric", month: "long"}),
+    );
     const rows = seriesKeys.value
         .map((key, idx) => {
             const value = d[key] ?? 0;
             if (value <= 0) return "";
             return `<div class="flex items-center justify-between gap-3 text-xs">
                 <span class="flex items-center gap-1.5">
-                    <span class="inline-block size-2 rounded-full" style="background-color: ${seriesColors.value[idx]}"></span>
-                    <span class="text-muted-foreground">${seriesLabels.value[key]}</span>
+                    <span class="inline-block size-2 rounded-full" style="background-color: ${escapeHtml(seriesColors.value[idx])}"></span>
+                    <span class="text-muted-foreground">${escapeHtml(seriesLabels.value[key])}</span>
                 </span>
-                <span class="tabular-nums font-medium">${formatCurrency(value)}</span>
+                <span class="tabular-nums font-medium">${escapeHtml(formatCurrency(value))}</span>
             </div>`;
         })
         .filter(Boolean)
@@ -113,8 +116,8 @@ function crosshairTemplate(d: Row): string {
         <span class="text-[0.70rem] uppercase text-muted-foreground">${date}</span>
         ${rows}
         <div class="flex items-center justify-between border-t pt-1 mt-1 text-xs">
-            <span class="text-muted-foreground">${t("common.all")}</span>
-            <span class="tabular-nums font-semibold">${formatCurrency(total)}</span>
+            <span class="text-muted-foreground">${escapeHtml(t("common.all"))}</span>
+            <span class="tabular-nums font-semibold">${escapeHtml(formatCurrency(total))}</span>
         </div>
     </div>`;
 }
