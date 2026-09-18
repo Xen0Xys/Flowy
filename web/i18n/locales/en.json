@@ -14,6 +14,7 @@
         "deleting": "Deleting...",
         "cancel": "Cancel",
         "close": "Close",
+        "continue": "Continue",
         "edit": "Edit",
         "loading": "Loading...",
         "processing": "Processing...",
@@ -75,6 +76,22 @@
                 "required": "All fields are required.",
                 "usernameLength": "Username must be between {min} and {max} characters.",
                 "passwordLength": "Password must be at least {min} characters."
+            }
+        },
+        "mfa": {
+            "title": "Two-factor authentication",
+            "subtitleTotp": "Enter the 6-digit code from your authenticator app.",
+            "subtitleBackup": "Enter one of your backup codes.",
+            "codeLabelTotp": "Authentication code",
+            "codeLabelBackup": "Backup code",
+            "verifyAction": "Verify",
+            "verifying": "Verifying...",
+            "useBackupCode": "Use a backup code",
+            "useAuthenticator": "Use authenticator app",
+            "cancel": "Cancel and log out",
+            "errors": {
+                "noChallenge": "No pending authentication challenge",
+                "invalidCode": "Invalid verification code"
             }
         },
         "store": {
@@ -594,6 +611,64 @@
             "familyAdmin": "Family Admin",
             "familyMember": "Family Member"
         },
+        "mfa": {
+            "title": "Two-factor authentication",
+            "description": "Protect your account with a one-time code from an authenticator app.",
+            "statusEnabled": "Two-factor authentication is enabled",
+            "statusDisabled": "Two-factor authentication is disabled",
+            "enabledHelp": "You will be asked for a verification code every time you sign in.",
+            "disabledHelp": "Anyone with your password can sign in. Enable 2FA for extra security.",
+            "enable": "Enable 2FA",
+            "setup": {
+                "title": "Enable two-factor authentication",
+                "descriptionPassword": "Confirm your password to begin setup.",
+                "descriptionScan": "Scan the QR code with your authenticator app.",
+                "descriptionVerify": "Enter the 6-digit code shown by your authenticator app to finish setup.",
+                "descriptionBackup": "Save these one-time backup codes to sign in if you lose access to your authenticator.",
+                "qrAlt": "QR code for authenticator setup",
+                "qrError": "Failed to render QR code",
+                "manualLabel": "Or enter this secret manually",
+                "manualHelp": "Set type to Time-based, digits to 6, and period to 30 seconds.",
+                "codeLabel": "Verification code",
+                "activate": "Activate"
+            },
+            "disable": {
+                "button": "Disable",
+                "title": "Disable two-factor authentication",
+                "description": "This will remove 2FA and delete your backup codes. Enter your password and a valid code to confirm.",
+                "codeLabel": "Authenticator or backup code",
+                "codePlaceholder": "123456 or XXXX-XXXX",
+                "action": "Disable"
+            },
+            "regenerate": {
+                "button": "Regenerate backup codes",
+                "title": "Regenerate backup codes",
+                "description": "This invalidates your existing backup codes. Enter your password and a valid authenticator code.",
+                "codeLabel": "Authenticator code",
+                "action": "Regenerate"
+            },
+            "backupCodes": {
+                "warningTitle": "Store these codes securely",
+                "warningBody": "Each code can be used once. They will not be shown again.",
+                "copy": "Copy all",
+                "copiedShort": "Copied",
+                "copied": "Backup codes copied to clipboard",
+                "copyFailed": "Failed to copy backup codes",
+                "download": "Download",
+                "done": "I have saved them"
+            },
+            "toasts": {
+                "enabled": "Two-factor authentication enabled",
+                "disabled": "Two-factor authentication disabled",
+                "codesRegenerated": "Backup codes regenerated"
+            },
+            "errors": {
+                "setupFailed": "Failed to start MFA setup",
+                "confirmFailed": "Failed to activate MFA",
+                "disableFailed": "Failed to disable MFA",
+                "regenerateFailed": "Failed to regenerate backup codes"
+            }
+        },
         "errors": {
             "deleteAccountFailed": "Failed deleting account",
             "usernameLength": "Username must be between {min} and {max} characters.",
@@ -666,6 +741,17 @@
                 "familyAdmin": "Family admin",
                 "familyMember": "Member",
                 "noFamily": "No family"
+            },
+            "mfa": {
+                "badge": "Two-factor authentication enabled",
+                "resetAction": "Reset 2FA",
+                "resetDescription": "This disables two-factor authentication for {username} and removes their backup codes. Enter your password to confirm.",
+                "toasts": {
+                    "reset": "Two-factor authentication reset"
+                },
+                "errors": {
+                    "resetFailed": "Failed to reset MFA"
+                }
             },
             "toasts": {
                 "uuidCopied": "UUID copied to clipboard",
