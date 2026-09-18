@@ -6,7 +6,7 @@ import {LoginDto} from "../users/user/models/dto/login.dto";
 import {RegisterDto} from "../users/user/models/dto/register.dto";
 import {LoginUserEntity} from "../users/user/models/entities/login-user.entity";
 import {UserEntity} from "../users/user/models/entities/user.entity";
-import {AuthService} from "./auth.service";
+import {AuthService, LoginResponse} from "./auth.service";
 import type {FastifyReply} from "fastify";
 
 @Controller("auth")
@@ -28,7 +28,7 @@ export class AuthController {
     }
 
     @Post("login")
-    async login(@Body() body: LoginDto): Promise<LoginUserEntity> {
+    async login(@Body() body: LoginDto): Promise<LoginResponse> {
         const {email, password} = body;
         return this.authService.login(email, password);
     }

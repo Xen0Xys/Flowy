@@ -106,4 +106,17 @@ export class AdminController {
     async runAccountIntegrityCheck(): Promise<void> {
         await this.accountService.checkIntegrity();
     }
+
+    @Delete("users/:id/mfa")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
+    @ApiBearerAuth()
+    async resetUserMfa(
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @User() user: UserEntity,
+        @Body() body: AdminDeleteUserDto,
+    ): Promise<void> {
+        return this.adminService.resetUserMfa(user, id, body.currentPassword);
+    }
 }

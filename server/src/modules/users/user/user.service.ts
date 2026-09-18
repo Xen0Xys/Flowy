@@ -1,6 +1,8 @@
 import {
     ConflictException,
     ForbiddenException,
+    forwardRef,
+    Inject,
     Injectable,
     InternalServerErrorException,
     Logger,
@@ -19,6 +21,7 @@ export class UserService {
 
     constructor(
         private readonly prismaService: PrismaService,
+        @Inject(forwardRef(() => AuthService))
         private readonly authService: AuthService,
     ) {}
 
@@ -31,6 +34,7 @@ export class UserService {
             familyId: user.family_id,
             familyRole: user.family_role,
             password: user.password,
+            mfaEnabled: user.mfa_enabled,
         });
     }
 

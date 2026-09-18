@@ -4,6 +4,7 @@ import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
 import {UserService} from "../users/user/user.service";
 import {UserEntity} from "../users/user/models/entities/user.entity";
+import {MfaService} from "../auth/mfa/mfa.service";
 
 @Injectable()
 export class AdminService {
@@ -12,6 +13,7 @@ export class AdminService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly userService: UserService,
+        private readonly mfaService: MfaService,
     ) {}
 
     async getInstanceSettings(): Promise<InstanceSettingsEntity> {
@@ -98,5 +100,13 @@ export class AdminService {
         await this.userService.verifyPassword(currentUser, currentPassword);
         await this.userService.updatePassword(targetUserId, newPassword);
         this.logger.log(`actor=${currentUser.id} action=admin.setUserPassword target=${targetUserId}`);
+    }
+
+    async resetUserMfa(currentUser: UserEntity, targetUserId: string, currentPassword: string): Promise<void> {
+        await this.userService.verifyPassword(currentUser, currentPassword);
+        const target = await this.prisma.users.findUnique({where: {id: targetUserId}});
+        if (!target) throw new NotFoundException("User not found");
+        await this.mfaService.resetForUser(targetUserId);
+        this.logger.log(`actor=${currentUser.id} action=admin.resetUserMfa target=${targetUserId}`);
     }
 }

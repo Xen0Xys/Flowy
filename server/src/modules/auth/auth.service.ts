@@ -5,8 +5,15 @@ import argon2 from "argon2";
 import {Users} from "../../../prisma/generated/client";
 import {UserEntity} from "../users/user/models/entities/user.entity";
 import {LoginUserEntity} from "../users/user/models/entities/login-user.entity";
+import {MfaChallengeEntity} from "./mfa/models/entities/mfa-challenge.entity";
+import type {MfaMethod} from "./mfa/mfa-factor.interface";
 import {InstanceConfigService} from "../helper/instance-config.service";
 import {PrismaService} from "../helper/prisma.service";
+
+export type LoginResponse = LoginUserEntity | MfaChallengeEntity;
+
+const MFA_CHALLENGE_AUDIENCE = "MFA_CHALLENGE";
+const MFA_CHALLENGE_EXPIRES_IN = "5m";
 
 @Injectable()
 export class AuthService {
@@ -78,7 +85,7 @@ export class AuthService {
         });
     }
 
-    async login(email: string, password: string): Promise<LoginUserEntity> {
+    async login(email: string, password: string): Promise<LoginResponse> {
         const user = await this.prismaService.users.findFirst({
             where: {email},
         });
@@ -86,6 +93,12 @@ export class AuthService {
 
         const valid = await argon2.verify(user.password, password);
         if (!valid) throw new UnauthorizedException("Invalid email or password");
+
+        if (user.mfa_enabled) {
+            const methods = await this.getEnrolledMfaMethods(user.id);
+            const challengeToken = await this.generateMfaChallengeToken(user.id);
+            return new MfaChallengeEntity({challengeToken, methods});
+        }
 
         const userEntity: UserEntity = this.toUserEntity(user);
         return new LoginUserEntity({
@@ -103,6 +116,28 @@ export class AuthService {
         });
     }
 
+    private async getEnrolledMfaMethods(userId: string): Promise<MfaMethod[]> {
+        const methods: MfaMethod[] = [];
+        const totp = await this.prismaService.userTotpSecret.findUnique({
+            where: {user_id: userId},
+            select: {confirmed_at: true},
+        });
+        if (totp?.confirmed_at) methods.push("totp");
+
+        const unusedBackup = await this.prismaService.mfaBackupCodes.count({
+            where: {user_id: userId, used_at: null},
+        });
+        if (unusedBackup > 0) methods.push("backup_code");
+        return methods;
+    }
+
+    private async generateMfaChallengeToken(userId: string): Promise<string> {
+        return this.jwtService.signAsync(
+            {sub: userId},
+            {audience: MFA_CHALLENGE_AUDIENCE, expiresIn: MFA_CHALLENGE_EXPIRES_IN},
+        );
+    }
+
     private toUserEntity(user: Users): UserEntity {
         return new UserEntity({
             id: user.id,
@@ -112,6 +147,7 @@ export class AuthService {
             familyId: user.family_id,
             familyRole: user.family_role,
             password: user.password,
+            mfaEnabled: user.mfa_enabled,
         });
     }
 }

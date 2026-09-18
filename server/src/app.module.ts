@@ -13,6 +13,7 @@ import {ConfigModule, ConfigService} from "@nestjs/config";
 import {AdminModule} from "./modules/admin/admin.module";
 import {APP_FILTER, APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthModule} from "./modules/auth/auth.module";
+import {MfaModule} from "./modules/auth/mfa/mfa.module";
 import {CsrfGuard} from "./common/guards/csrf.guard";
 import {AppThrottlerGuard} from "./common/guards/app-throttler.guard";
 import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
@@ -59,6 +60,7 @@ import Joi from "joi";
         HelperModule,
         UserModule,
         AuthModule,
+        MfaModule,
         AdminModule,
         FamilyModule,
         AccountModule,
