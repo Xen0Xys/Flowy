@@ -45,6 +45,8 @@ model Users {
     mfa_enabled            Boolean                 @default(false)
     totp_secret            UserTotpSecret?
     backup_codes           MfaBackupCodes[]
+    passkeys               UserPasskeys[]
+    webauthn_challenges    WebAuthnChallenges[]
     user_settings          UserSettings?
     family_role            UserRoles?
     family_id              String?                 @db.Uuid
@@ -84,6 +86,39 @@ model MfaBackupCodes {
 
     @@index([user_id])
     @@map("mfa_backup_codes")
+}
+
+model UserPasskeys {
+    id             String    @id @default(uuid(7)) @db.Uuid
+    user_id        String    @db.Uuid
+    user           Users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    credential_id  String    @unique
+    public_key     Bytes
+    counter        BigInt    @default(0)
+    transports     String[]  @default([])
+    device_type    String
+    backed_up      Boolean   @default(false)
+    label          String    @db.VarChar(50)
+    last_used_at   DateTime?
+    created_at     DateTime  @default(now())
+    updated_at     DateTime  @updatedAt
+
+    @@index([user_id])
+    @@map("user_passkeys")
+}
+
+model WebAuthnChallenges {
+    id         String   @id @default(uuid(7)) @db.Uuid
+    user_id    String   @db.Uuid
+    user       Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    challenge  String
+    purpose    String   @db.VarChar(20)
+    expires_at DateTime
+    created_at DateTime @default(now())
+
+    @@index([user_id, purpose])
+    @@index([expires_at])
+    @@map("webauthn_challenges")
 }
 
 model Family {

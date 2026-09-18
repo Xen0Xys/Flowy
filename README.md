@@ -102,14 +102,15 @@ cp web/.env.example web/.env
 
 Backend variables (`server/.env`):
 
-| Variable       | Description                                |
-| -------------- | ------------------------------------------ |
-| `DATABASE_URL` | PostgreSQL connection string               |
-| `APP_NAME`     | App name used by JWT issuer and docs       |
-| `APP_SECRET`   | Secret for JWT and cookies (required)      |
-| `NODE_ENV`     | `development`, `production` or `test`      |
-| `PREFIX`       | Global API prefix (optional)               |
-| `CORS_ORIGINS` | Comma-separated allowed origins (optional) |
+| Variable         | Description                                                               |
+| ---------------- | ------------------------------------------------------------------------- |
+| `DATABASE_URL`   | PostgreSQL connection string                                              |
+| `APP_NAME`       | App name used by JWT issuer and docs                                      |
+| `APP_SECRET`     | Secret for JWT and cookies (required)                                     |
+| `NODE_ENV`       | `development`, `production` or `test`                                     |
+| `PREFIX`         | Global API prefix (optional)                                              |
+| `CORS_ORIGINS`   | Comma-separated allowed origins (optional)                                |
+| `WEBAUTHN_RP_ID` | WebAuthn Relying Party ID (optional, defaults to first CORS_ORIGINS host) |
 
 Frontend variables (`web/.env`):
 

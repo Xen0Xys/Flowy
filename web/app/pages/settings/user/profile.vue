@@ -14,6 +14,7 @@ import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue
 import MfaSetupDialog from "@/components/settings/mfa/MfaSetupDialog.vue";
 import MfaDisableDialog from "@/components/settings/mfa/MfaDisableDialog.vue";
 import MfaBackupCodesDialog from "@/components/settings/mfa/MfaBackupCodesDialog.vue";
+import PasskeyList from "@/components/settings/mfa/PasskeyList.vue";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
 import {useI18n} from "vue-i18n";
@@ -486,6 +487,10 @@ watch(locale, async () => {
                                                 {{ t("profile.mfa.enable") }}
                                             </Button>
                                         </div>
+                                    </div>
+
+                                    <div class="border-border/60 border-t pt-4">
+                                        <PasskeyList />
                                     </div>
                                 </CardContent>
                             </Card>

@@ -2,7 +2,7 @@ import {Injectable, Logger} from "@nestjs/common";
 import {TOTP, Secret} from "otpauth";
 import {PrismaService} from "../../../helper/prisma.service";
 import {MfaCryptoService} from "../../../helper/mfa-crypto.service";
-import type {MfaFactor, MfaMethod} from "../mfa-factor.interface";
+import type {CodeMfaFactor, MfaMethod} from "../mfa-factor.interface";
 
 const TOTP_ISSUER_FALLBACK = "Flowy";
 const TOTP_DIGITS = 6;
@@ -16,7 +16,7 @@ export interface TotpSetupResult {
 }
 
 @Injectable()
-export class TotpFactorService implements MfaFactor {
+export class TotpFactorService implements CodeMfaFactor {
     readonly method: MfaMethod = "totp";
     private readonly logger = new Logger(TotpFactorService.name);
 

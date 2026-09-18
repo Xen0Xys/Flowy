@@ -1,5 +1,6 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
+import {startAuthentication} from "@simplewebauthn/browser";
 import {useApi} from "~/composables/useApi";
 import {useAccountStore} from "~/stores/account.store";
 import {useBudgetStore} from "~/stores/budget.store";
@@ -14,7 +15,7 @@ export type LoginCredentials = {
     password: string;
 };
 
-export type MfaMethod = "totp" | "backup_code";
+export type MfaMethod = "totp" | "backup_code" | "passkey";
 
 export type MfaChallenge = {
     challengeToken: string;
@@ -128,6 +129,9 @@ export const useAuthStore = defineStore("auth", {
         },
 
         async verifyMfa(payload: {code: string; method: MfaMethod}): Promise<{mfaAutoDisabled: boolean}> {
+            if (payload.method === "passkey") {
+                return this.verifyMfaPasskey();
+            }
             if (!this.mfaChallenge) {
                 throw new Error(i18nT("auth.mfa.errors.noChallenge"));
             }
@@ -157,6 +161,43 @@ export const useAuthStore = defineStore("auth", {
                 }
                 return {mfaAutoDisabled};
             } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("auth.mfa.errors.invalidCode");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async verifyMfaPasskey(): Promise<{mfaAutoDisabled: boolean}> {
+            if (!this.mfaChallenge) {
+                throw new Error(i18nT("auth.mfa.errors.noChallenge"));
+            }
+            const {apiFetch} = useApi();
+            const challengeToken = this.mfaChallenge.challengeToken;
+            try {
+                const options = await apiFetch<any>("/auth/mfa/passkey/challenge/options", {
+                    method: "POST",
+                    body: {challengeToken},
+                });
+                const response = await startAuthentication({optionsJSON: options});
+                const data = await apiFetch<any>("/auth/mfa/passkey/challenge/verify", {
+                    method: "POST",
+                    body: {challengeToken, response},
+                });
+                if (!data?.token) {
+                    toast.error(i18nT("auth.store.errors.loginMissingToken"));
+                    throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
+                }
+                this.setToken(data.token);
+                this.mfaChallenge = null;
+                const userStore = useUserStore();
+                userStore.user = data.user ?? null;
+                toast.success(i18nT("auth.store.success.connected"));
+                return {mfaAutoDisabled: false};
+            } catch (err: any) {
+                if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+                    // User cancelled the passkey prompt: silent no-op so they can retry.
+                    throw err;
+                }
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.mfa.errors.invalidCode");
                 toast.error(message);
                 throw new Error(message, {cause: err});

@@ -88,6 +88,8 @@
             "verifying": "Verifying...",
             "useBackupCode": "Use a backup code",
             "useAuthenticator": "Use authenticator app",
+            "usePasskey": "Use a passkey",
+            "orDivider": "or",
             "cancel": "Cancel and log out",
             "autoDisabledToast": "Two-factor authentication was disabled after using a backup code. Please re-enable it from your security settings.",
             "errors": {
@@ -671,7 +673,43 @@
                 "setupFailed": "Failed to start MFA setup",
                 "confirmFailed": "Failed to activate MFA",
                 "disableFailed": "Failed to disable MFA",
-                "regenerateFailed": "Failed to regenerate backup codes"
+                "regenerateFailed": "Failed to regenerate backup codes",
+                "listPasskeysFailed": "Failed to load passkeys"
+            },
+            "passkeys": {
+                "title": "Passkeys",
+                "description": "Sign in using biometrics or your device's screen lock.",
+                "add": "Add a passkey",
+                "empty": "No passkey registered yet.",
+                "register": {
+                    "title": "Register a passkey",
+                    "description": "Give this passkey a name, confirm your password, then follow the prompts from your browser.",
+                    "labelField": "Passkey name",
+                    "labelPlaceholder": "e.g. MacBook, iPhone, YubiKey",
+                    "action": "Register"
+                },
+                "list": {
+                    "rename": "Rename",
+                    "delete": "Delete",
+                    "createdOn": "Added {date}",
+                    "lastUsed": "last used {date}",
+                    "never": "never"
+                },
+                "delete": {
+                    "title": "Delete passkey",
+                    "description": "This passkey will no longer work to sign in. If this is your last MFA factor, two-factor authentication will be disabled."
+                },
+                "toasts": {
+                    "registered": "Passkey registered",
+                    "renamed": "Passkey renamed",
+                    "deleted": "Passkey deleted"
+                },
+                "errors": {
+                    "registerFailed": "Failed to register passkey",
+                    "alreadyRegistered": "This passkey is already registered on your account",
+                    "renameFailed": "Failed to rename passkey",
+                    "deleteFailed": "Failed to delete passkey"
+                }
             }
         },
         "errors": {

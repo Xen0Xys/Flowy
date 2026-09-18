@@ -118,6 +118,9 @@ export class AuthService {
 
     private async getEnrolledMfaMethods(userId: string): Promise<MfaMethod[]> {
         const methods: MfaMethod[] = [];
+        const passkeyCount = await this.prismaService.userPasskeys.count({where: {user_id: userId}});
+        if (passkeyCount > 0) methods.push("passkey");
+
         const totp = await this.prismaService.userTotpSecret.findUnique({
             where: {user_id: userId},
             select: {confirmed_at: true},

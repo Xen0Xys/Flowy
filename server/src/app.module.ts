@@ -32,6 +32,7 @@ import Joi from "joi";
                 APP_NAME: Joi.string().required(),
                 DATABASE_URL: Joi.string().uri().required(),
                 NODE_ENV: Joi.string().valid("development", "production", "test").default("production"),
+                WEBAUTHN_RP_ID: Joi.string().optional(),
             }),
         }),
         JwtModule.registerAsync({

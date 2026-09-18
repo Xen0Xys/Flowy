@@ -21,23 +21,30 @@ const activeMethod = ref<MfaMethod>("totp");
 const totpDigits = ref<string[]>([]);
 const backupCode = ref("");
 const loading = ref(false);
+const passkeyLoading = ref(false);
 
 const availableMethods = computed<MfaMethod[]>(() => store.mfaChallenge?.methods ?? []);
+const canUsePasskey = computed(() => availableMethods.value.includes("passkey"));
+const canUseTotp = computed(() => availableMethods.value.includes("totp"));
 const canUseBackup = computed(() => availableMethods.value.includes("backup_code"));
 
 const currentCode = computed(() =>
     activeMethod.value === "totp" ? totpDigits.value.join("") : backupCode.value.trim(),
 );
-const canSubmit = computed(() =>
-    activeMethod.value === "totp" ? totpDigits.value.filter(Boolean).length === 6 : currentCode.value.length > 0,
-);
+const canSubmit = computed(() => {
+    if (activeMethod.value === "totp") return totpDigits.value.filter(Boolean).length === 6;
+    if (activeMethod.value === "backup_code") return currentCode.value.length > 0;
+    return false;
+});
 
 onBeforeMount(async () => {
     if (!store.mfaChallenge) {
         await router.replace("/auth/login");
         return;
     }
-    activeMethod.value = availableMethods.value.includes("totp") ? "totp" : "backup_code";
+    if (canUseTotp.value) activeMethod.value = "totp";
+    else if (canUseBackup.value) activeMethod.value = "backup_code";
+    else if (canUsePasskey.value) activeMethod.value = "passkey";
 });
 
 watch(activeMethod, () => {
@@ -60,6 +67,19 @@ async function submit() {
         backupCode.value = "";
     } finally {
         loading.value = false;
+    }
+}
+
+async function submitPasskey() {
+    if (passkeyLoading.value) return;
+    passkeyLoading.value = true;
+    try {
+        await store.verifyMfaPasskey();
+        await router.push("/");
+    } catch {
+        // toast already handled unless it was a cancellation
+    } finally {
+        passkeyLoading.value = false;
     }
 }
 
@@ -86,7 +106,26 @@ function cancel() {
             {{ activeMethod === "totp" ? t("auth.mfa.subtitleTotp") : t("auth.mfa.subtitleBackup") }}
         </p>
 
-        <form class="space-y-4" novalidate @submit.prevent="submit">
+        <div v-if="canUsePasskey" class="mb-6 space-y-3">
+            <Button
+                :aria-label="t('auth.mfa.usePasskey')"
+                :disabled="passkeyLoading || loading"
+                class="w-full"
+                type="button"
+                variant="outline"
+                @click="submitPasskey">
+                <Icon v-if="passkeyLoading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
+                <Icon v-else class="mr-2" name="iconoir:fingerprint" />
+                {{ passkeyLoading ? t("auth.mfa.verifying") : t("auth.mfa.usePasskey") }}
+            </Button>
+            <div v-if="canUseTotp || canUseBackup" class="flex items-center gap-3">
+                <span class="bg-border h-px flex-1"></span>
+                <span class="text-muted-foreground text-xs uppercase">{{ t("auth.mfa.orDivider") }}</span>
+                <span class="bg-border h-px flex-1"></span>
+            </div>
+        </div>
+
+        <form v-if="canUseTotp || canUseBackup" class="space-y-4" novalidate @submit.prevent="submit">
             <FormItem>
                 <FormField name="code">
                     <FormLabel for="mfa-code">
@@ -150,7 +189,7 @@ function cancel() {
                 {{ t("auth.mfa.useBackupCode") }}
             </button>
             <button
-                v-else-if="activeMethod === 'backup_code'"
+                v-else-if="canUseTotp && activeMethod === 'backup_code'"
                 class="text-primary underline-offset-4 hover:underline"
                 type="button"
                 @click="switchMethod('totp')">

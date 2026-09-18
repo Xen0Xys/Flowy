@@ -1,4 +1,5 @@
 import {toast} from "vue-sonner";
+import {startRegistration} from "@simplewebauthn/browser";
 import {useApi} from "~/composables/useApi";
 import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
@@ -16,6 +17,20 @@ export type MfaConfirmResponse = {
 
 export type MfaBackupCodesResponse = {
     codes: string[];
+};
+
+export type PasskeyResponse = {
+    id: string;
+    label: string;
+    transports: string[];
+    createdAt: string;
+    lastUsedAt: string | null;
+};
+
+export type PasskeyRegisterResponse = {
+    passkey: PasskeyResponse;
+    token: string | null;
+    backupCodes: string[] | null;
 };
 
 export function useMfa() {
@@ -97,5 +112,84 @@ export function useMfa() {
         }
     }
 
-    return {setupTotp, confirmTotpSetup, disableMfa, regenerateBackupCodes, adminResetUserMfa};
+    async function listPasskeys(): Promise<PasskeyResponse[]> {
+        try {
+            return await apiFetch<PasskeyResponse[]>("/auth/mfa/passkey", {method: "GET"});
+        } catch (err: any) {
+            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.listPasskeysFailed");
+            toast.error(message);
+            throw new Error(message, {cause: err});
+        }
+    }
+
+    async function registerPasskey(currentPassword: string, label: string): Promise<PasskeyRegisterResponse> {
+        try {
+            const options = await apiFetch<any>("/auth/mfa/passkey/register/options", {
+                method: "POST",
+                body: {currentPassword},
+            });
+            const response = await startRegistration({optionsJSON: options});
+            const result = await apiFetch<PasskeyRegisterResponse>("/auth/mfa/passkey/register/verify", {
+                method: "POST",
+                body: {response, label},
+            });
+            if (result?.token) authStore.setToken(result.token);
+            if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: true};
+            toast.success(i18nT("profile.mfa.passkeys.toasts.registered"));
+            return result;
+        } catch (err: any) {
+            if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+                throw err;
+            }
+            if (err?.name === "InvalidStateError") {
+                const message = i18nT("profile.mfa.passkeys.errors.alreadyRegistered");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.passkeys.errors.registerFailed");
+            toast.error(message);
+            throw new Error(message, {cause: err});
+        }
+    }
+
+    async function renamePasskey(id: string, label: string): Promise<PasskeyResponse> {
+        try {
+            const passkey = await apiFetch<PasskeyResponse>(`/auth/mfa/passkey/${id}`, {
+                method: "PATCH",
+                body: {label},
+            });
+            toast.success(i18nT("profile.mfa.passkeys.toasts.renamed"));
+            return passkey;
+        } catch (err: any) {
+            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.passkeys.errors.renameFailed");
+            toast.error(message);
+            throw new Error(message, {cause: err});
+        }
+    }
+
+    async function deletePasskey(id: string, currentPassword: string): Promise<void> {
+        try {
+            await apiFetch(`/auth/mfa/passkey/${id}`, {
+                method: "DELETE",
+                body: {currentPassword},
+            });
+            toast.success(i18nT("profile.mfa.passkeys.toasts.deleted"));
+        } catch (err: any) {
+            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.passkeys.errors.deleteFailed");
+            toast.error(message);
+            throw new Error(message, {cause: err});
+        }
+    }
+
+    return {
+        setupTotp,
+        confirmTotpSetup,
+        disableMfa,
+        regenerateBackupCodes,
+        adminResetUserMfa,
+        listPasskeys,
+        registerPasskey,
+        renamePasskey,
+        deletePasskey,
+    };
 }

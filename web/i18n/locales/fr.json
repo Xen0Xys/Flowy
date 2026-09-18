@@ -88,6 +88,8 @@
             "verifying": "Vérification...",
             "useBackupCode": "Utiliser un code de récupération",
             "useAuthenticator": "Utiliser l'application d'authentification",
+            "usePasskey": "Utiliser une passkey",
+            "orDivider": "ou",
             "cancel": "Annuler et se déconnecter",
             "autoDisabledToast": "L'authentification à deux facteurs a été désactivée après l'utilisation d'un code de récupération. Veuillez la réactiver dans vos paramètres de sécurité.",
             "errors": {
@@ -680,7 +682,43 @@
                 "setupFailed": "Échec du démarrage de la configuration MFA",
                 "confirmFailed": "Échec de l'activation MFA",
                 "disableFailed": "Échec de la désactivation MFA",
-                "regenerateFailed": "Échec de la regénération des codes"
+                "regenerateFailed": "Échec de la regénération des codes",
+                "listPasskeysFailed": "Échec du chargement des passkeys"
+            },
+            "passkeys": {
+                "title": "Passkeys",
+                "description": "Connectez-vous via biométrie ou le verrouillage de votre appareil.",
+                "add": "Ajouter une passkey",
+                "empty": "Aucune passkey enregistrée.",
+                "register": {
+                    "title": "Enregistrer une passkey",
+                    "description": "Nommez cette passkey, confirmez votre mot de passe, puis suivez les instructions de votre navigateur.",
+                    "labelField": "Nom de la passkey",
+                    "labelPlaceholder": "ex. MacBook, iPhone, YubiKey",
+                    "action": "Enregistrer"
+                },
+                "list": {
+                    "rename": "Renommer",
+                    "delete": "Supprimer",
+                    "createdOn": "Ajoutée le {date}",
+                    "lastUsed": "dernière utilisation {date}",
+                    "never": "jamais"
+                },
+                "delete": {
+                    "title": "Supprimer la passkey",
+                    "description": "Cette passkey ne pourra plus servir à vous connecter. Si c'est votre dernier facteur MFA, l'authentification à deux facteurs sera désactivée."
+                },
+                "toasts": {
+                    "registered": "Passkey enregistrée",
+                    "renamed": "Passkey renommée",
+                    "deleted": "Passkey supprimée"
+                },
+                "errors": {
+                    "registerFailed": "Échec de l'enregistrement de la passkey",
+                    "alreadyRegistered": "Cette passkey est déjà enregistrée sur votre compte",
+                    "renameFailed": "Échec du renommage de la passkey",
+                    "deleteFailed": "Échec de la suppression de la passkey"
+                }
             }
         }
     },

@@ -2,14 +2,14 @@ import {Injectable, Logger} from "@nestjs/common";
 import argon2 from "argon2";
 import crypto from "crypto";
 import {PrismaService} from "../../../helper/prisma.service";
-import type {MfaFactor, MfaMethod} from "../mfa-factor.interface";
+import type {CodeMfaFactor, MfaMethod} from "../mfa-factor.interface";
 
 const CODE_COUNT = 10;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/I/0/1
 const CODE_LENGTH = 8;
 
 @Injectable()
-export class BackupCodeFactorService implements MfaFactor {
+export class BackupCodeFactorService implements CodeMfaFactor {
     readonly method: MfaMethod = "backup_code";
     private readonly logger = new Logger(BackupCodeFactorService.name);
 
