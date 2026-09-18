@@ -18,7 +18,7 @@ import {
     useTable,
     type VisibilityState,
 } from "@tanstack/vue-table";
-import {Copy, Eye, EyeOff, KeyRound, MoreHorizontal, RefreshCw, Trash2} from "lucide-vue-next";
+import {Copy, Eye, EyeOff, KeyRound, MoreHorizontal, RefreshCw, ShieldOff, Trash2} from "lucide-vue-next";
 import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
+import {useMfa} from "@/composables/useMfa";
 import {valueUpdater} from "@/lib/table";
 import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
 import type {Family} from "~/stores/family.store";
@@ -49,6 +50,7 @@ type AdminUser = {
     email: string;
     familyId: string | null;
     familyRole: string | null;
+    mfaEnabled?: boolean;
 };
 
 type DetailsState = {
@@ -59,13 +61,16 @@ type DetailsState = {
 const userStore = useUserStore();
 const familyStore = useFamilyStore();
 const {copy, isSupported} = useClipboard({legacy: true});
+const {adminResetUserMfa} = useMfa();
 const {t} = useI18n();
 
 const users = ref<AdminUser[]>([]);
 const loading = ref(false);
 const deletingId = ref<string | null>(null);
 const resettingId = ref<string | null>(null);
+const resettingMfaId = ref<string | null>(null);
 const instanceOwnerId = ref<string | null>(null);
+const resetMfaDialogUser = ref<AdminUser | null>(null);
 
 const globalFilter = ref("");
 const sorting = ref<SortingState>([]);
@@ -312,6 +317,19 @@ async function handleResetPassword(currentPassword: string) {
     }
 }
 
+async function handleResetMfa(currentPassword: string) {
+    const user = resetMfaDialogUser.value;
+    if (!user) return;
+    resettingMfaId.value = user.id;
+    try {
+        await adminResetUserMfa(user.id, currentPassword);
+        resetMfaDialogUser.value = null;
+        await loadUsers();
+    } finally {
+        resettingMfaId.value = null;
+    }
+}
+
 async function copyUserId(id: string) {
     if (!isSupported.value) {
         toast.error(t("settings.users.errors.clipboardUnsupported"));
@@ -453,6 +471,12 @@ async function copyUserId(id: string) {
                                             </AvatarFallback>
                                         </Avatar>
                                         <span class="font-medium">{{ row.original.username }}</span>
+                                        <Icon
+                                            v-if="row.original.mfaEnabled"
+                                            :aria-label="t('settings.users.mfa.badge')"
+                                            :title="t('settings.users.mfa.badge')"
+                                            class="size-3.5 text-emerald-500"
+                                            name="iconoir:shield-check" />
                                     </div>
 
                                     <span
@@ -487,6 +511,13 @@ async function copyUserId(id: string) {
                                                 <DropdownMenuItem @click="openResetDialog(row.original)">
                                                     <KeyRound class="size-4" />
                                                     {{ t("settings.users.resetPassword") }}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    v-if="row.original.mfaEnabled"
+                                                    :disabled="resettingMfaId === row.original.id"
+                                                    @click="resetMfaDialogUser = row.original">
+                                                    <ShieldOff class="size-4" />
+                                                    {{ t("settings.users.mfa.resetAction") }}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
@@ -708,6 +739,20 @@ async function copyUserId(id: string) {
             input-id="admin-reset-password-confirm"
             @update:open="resetPasswordConfirmOpen = $event"
             @confirm="handleResetPassword" />
+
+        <PasswordConfirmDialog
+            :open="Boolean(resetMfaDialogUser)"
+            :title="t('settings.users.mfa.resetAction')"
+            :description="
+                resetMfaDialogUser
+                    ? t('settings.users.mfa.resetDescription', {username: resetMfaDialogUser.username})
+                    : ''
+            "
+            :confirm-label="t('settings.users.mfa.resetAction')"
+            :loading="Boolean(resetMfaDialogUser && resettingMfaId === resetMfaDialogUser.id)"
+            input-id="admin-reset-mfa-password"
+            @update:open="(open) => !open && (resetMfaDialogUser = null)"
+            @confirm="handleResetMfa" />
     </div>
 </template>
 

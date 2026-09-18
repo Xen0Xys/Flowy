@@ -14,16 +14,25 @@ export type LoginCredentials = {
     password: string;
 };
 
+export type MfaMethod = "totp" | "backup_code";
+
+export type MfaChallenge = {
+    challengeToken: string;
+    methods: MfaMethod[];
+};
+
 const COOKIE_TOKEN_KEY = "flowy:token";
 
 export const useAuthStore = defineStore("auth", {
     state: () => ({
         token: null as string | null,
+        mfaChallenge: null as MfaChallenge | null,
     }),
 
     getters: {
         isAuthenticated: (state) => !!state.token,
         getToken: (state) => state.token,
+        hasMfaChallenge: (state) => !!state.mfaChallenge,
     },
 
     actions: {
@@ -52,6 +61,7 @@ export const useAuthStore = defineStore("auth", {
 
         logout() {
             this.token = null;
+            this.mfaChallenge = null;
 
             const userStore = useUserStore();
             const accountStore = useAccountStore();
@@ -75,25 +85,74 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
-        async login(credentials: LoginCredentials) {
+        clearMfaChallenge() {
+            this.mfaChallenge = null;
+        },
+
+        async login(credentials: LoginCredentials): Promise<{mfaRequired: boolean}> {
             const {apiFetch} = useApi();
             try {
                 const data = await apiFetch<any>("/auth/login", {
                     method: "POST",
                     body: credentials,
                 });
+
+                if (data?.mfaRequired) {
+                    if (!data.challengeToken) {
+                        toast.error(i18nT("auth.store.errors.loginMissingToken"));
+                        throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
+                    }
+                    this.mfaChallenge = {
+                        challengeToken: data.challengeToken,
+                        methods: data.methods ?? ["totp"],
+                    };
+                    return {mfaRequired: true};
+                }
+
                 if (!data || !data.token) {
                     toast.error(i18nT("auth.store.errors.loginMissingToken"));
                     throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
                 }
 
                 this.setToken(data.token);
+                this.mfaChallenge = null;
+                const userStore = useUserStore();
+                userStore.user = data.user ?? null;
+                toast.success(i18nT("auth.store.success.connected"));
+                return {mfaRequired: false};
+            } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.loginFailed");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async verifyMfa(payload: {code: string; method: MfaMethod}) {
+            if (!this.mfaChallenge) {
+                throw new Error(i18nT("auth.mfa.errors.noChallenge"));
+            }
+            const {apiFetch} = useApi();
+            const endpoint = payload.method === "totp" ? "/auth/mfa/totp/verify" : "/auth/mfa/backup-codes/verify";
+            try {
+                const data = await apiFetch<any>(endpoint, {
+                    method: "POST",
+                    body: {
+                        challengeToken: this.mfaChallenge.challengeToken,
+                        code: payload.code,
+                    },
+                });
+                if (!data?.token) {
+                    toast.error(i18nT("auth.store.errors.loginMissingToken"));
+                    throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
+                }
+                this.setToken(data.token);
+                this.mfaChallenge = null;
                 const userStore = useUserStore();
                 userStore.user = data.user ?? null;
                 toast.success(i18nT("auth.store.success.connected"));
                 return data;
             } catch (err: any) {
-                const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.loginFailed");
+                const message = err?.data?.message ?? err?.message ?? i18nT("auth.mfa.errors.invalidCode");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

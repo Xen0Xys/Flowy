@@ -11,6 +11,9 @@ import {Badge} from "@/components/ui/badge";
 import {Label} from "@/components/ui/label";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
+import MfaSetupDialog from "@/components/settings/mfa/MfaSetupDialog.vue";
+import MfaDisableDialog from "@/components/settings/mfa/MfaDisableDialog.vue";
+import MfaBackupCodesDialog from "@/components/settings/mfa/MfaBackupCodesDialog.vue";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
 import {useI18n} from "vue-i18n";
@@ -191,6 +194,11 @@ async function changePasswordNow() {
         changingPassword.value = false;
     }
 }
+
+const mfaEnabled = computed(() => Boolean(userStore.user?.mfaEnabled));
+const isMfaSetupOpen = ref(false);
+const isMfaDisableOpen = ref(false);
+const isMfaBackupOpen = ref(false);
 
 const deleting = ref(false);
 const isDeleteAccountOpen = ref(false);
@@ -420,6 +428,68 @@ watch(locale, async () => {
                                 </CardContent>
                             </Card>
 
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{{ t("profile.mfa.title") }}</CardTitle>
+                                    <CardDescription>{{ t("profile.mfa.description") }}</CardDescription>
+                                </CardHeader>
+                                <CardContent class="space-y-4">
+                                    <div
+                                        class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                :class="[
+                                                    'flex size-10 items-center justify-center rounded-md',
+                                                    mfaEnabled
+                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                        : 'bg-muted text-muted-foreground',
+                                                ]">
+                                                <Icon
+                                                    :name="mfaEnabled ? 'iconoir:shield-check' : 'iconoir:shield'"
+                                                    class="size-5" />
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium">
+                                                    {{
+                                                        mfaEnabled
+                                                            ? t("profile.mfa.statusEnabled")
+                                                            : t("profile.mfa.statusDisabled")
+                                                    }}
+                                                </div>
+                                                <p class="text-muted-foreground text-xs">
+                                                    {{
+                                                        mfaEnabled
+                                                            ? t("profile.mfa.enabledHelp")
+                                                            : t("profile.mfa.disabledHelp")
+                                                    }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <template v-if="mfaEnabled">
+                                                <Button
+                                                    size="sm"
+                                                    type="button"
+                                                    variant="outline"
+                                                    @click="isMfaBackupOpen = true">
+                                                    {{ t("profile.mfa.regenerate.button") }}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    type="button"
+                                                    variant="destructive"
+                                                    @click="isMfaDisableOpen = true">
+                                                    {{ t("profile.mfa.disable.button") }}
+                                                </Button>
+                                            </template>
+                                            <Button v-else size="sm" type="button" @click="isMfaSetupOpen = true">
+                                                {{ t("profile.mfa.enable") }}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
                             <Card class="border-destructive/40">
                                 <CardHeader>
                                     <CardTitle class="text-destructive flex items-center gap-2">
@@ -473,5 +543,9 @@ watch(locale, async () => {
             input-id="profile-delete-account-password"
             @update:open="isDeleteAccountOpen = $event"
             @confirm="deleteAccountNow" />
+
+        <MfaSetupDialog :open="isMfaSetupOpen" @update:open="isMfaSetupOpen = $event" />
+        <MfaDisableDialog :open="isMfaDisableOpen" @update:open="isMfaDisableOpen = $event" />
+        <MfaBackupCodesDialog :open="isMfaBackupOpen" @update:open="isMfaBackupOpen = $event" />
     </div>
 </template>

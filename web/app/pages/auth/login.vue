@@ -48,11 +48,15 @@ async function submit() {
     if (!validate()) return;
     loading.value = true;
     try {
-        await store.login({
+        const result = await store.login({
             email: form.value.email,
             password: form.value.password,
         });
-        await router.push("/");
+        if (result.mfaRequired) {
+            await router.push("/auth/mfa");
+        } else {
+            await router.push("/");
+        }
     } catch (err: any) {
         error.value = null;
     } finally {
