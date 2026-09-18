@@ -662,6 +662,17 @@
                 "backupCodePlaceholder": "XXXX-XXXX",
                 "action": "Désactiver"
             },
+            "authenticatorApp": {
+                "title": "Application d'authentification",
+                "description": "Utilisez une app comme Google Authenticator ou 1Password.",
+                "add": "Ajouter",
+                "remove": "Retirer"
+            },
+            "removeTotp": {
+                "title": "Retirer l'application d'authentification",
+                "description": "Le TOTP sera retiré. Si aucun autre facteur ne reste, la 2FA sera désactivée.",
+                "action": "Retirer"
+            },
             "regenerate": {
                 "button": "Regénérer les codes de récupération",
                 "title": "Regénérer les codes de récupération",

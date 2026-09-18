@@ -124,6 +124,25 @@ export class MfaService {
         return this.buildVerifyResult(userId, mfaAutoDisabled);
     }
 
+    async getFactors(user: UserEntity): Promise<{
+        mfaEnabled: boolean;
+        totpEnrolled: boolean;
+        passkeyCount: number;
+        unusedBackupCodes: number;
+    }> {
+        const [totpEnrolled, passkeyCount, unusedBackupCodes] = await Promise.all([
+            this.totpFactor.isEnrolledFor(user.id),
+            this.passkeyFactor.countForUser(user.id),
+            this.prisma.mfaBackupCodes.count({where: {user_id: user.id, used_at: null}}),
+        ]);
+        return {
+            mfaEnabled: user.mfaEnabled,
+            totpEnrolled,
+            passkeyCount,
+            unusedBackupCodes,
+        };
+    }
+
     // Passkey management (settings)
 
     async listPasskeys(user: UserEntity): Promise<PasskeySummary[]> {

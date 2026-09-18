@@ -32,12 +32,21 @@ import {MfaSetupEntity} from "./models/entities/mfa-setup.entity";
 import {MfaConfirmEntity} from "./models/entities/mfa-confirm.entity";
 import {MfaBackupCodesEntity} from "./models/entities/mfa-backup-codes.entity";
 import {MfaVerifyEntity} from "./models/entities/mfa-verify.entity";
+import {MfaFactorsEntity} from "./models/entities/mfa-factors.entity";
 import {PasskeyEntity} from "./models/entities/passkey.entity";
 import {PasskeyRegisterEntity} from "./models/entities/passkey-register.entity";
 
 @Controller("auth/mfa")
 export class MfaController {
     constructor(private readonly mfaService: MfaService) {}
+
+    @Get("factors")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    async getFactors(@User() user: UserEntity): Promise<MfaFactorsEntity> {
+        const factors = await this.mfaService.getFactors(user);
+        return new MfaFactorsEntity(factors);
+    }
 
     @Post("totp/setup")
     @UseGuards(JwtAuthGuard)

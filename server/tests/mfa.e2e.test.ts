@@ -311,6 +311,29 @@ describe("MfaController (e2e)", () => {
         expect(response.status).toBe(400);
     });
 
+    test("GET /auth/mfa/factors reports per-factor state", async () => {
+        const user = await registerUser(server);
+
+        const initial = await agent.get("/auth/mfa/factors").set("Authorization", `Bearer ${user.token}`);
+        expect(initial.status).toBe(200);
+        expect(initial.body).toEqual({
+            mfaEnabled: false,
+            totpEnrolled: false,
+            passkeyCount: 0,
+            unusedBackupCodes: 0,
+        });
+
+        const {token} = await setupMfa(user.token, user.password);
+        await seedPasskey(user.user.id);
+
+        const enriched = await agent.get("/auth/mfa/factors").set("Authorization", `Bearer ${token}`);
+        expect(enriched.status).toBe(200);
+        expect(enriched.body.mfaEnabled).toBe(true);
+        expect(enriched.body.totpEnrolled).toBe(true);
+        expect(enriched.body.passkeyCount).toBe(1);
+        expect(enriched.body.unusedBackupCodes).toBeGreaterThan(0);
+    });
+
     test("passkey settings/options rejects when no passkey is enrolled", async () => {
         const user = await registerUser(server);
         const response = await agent

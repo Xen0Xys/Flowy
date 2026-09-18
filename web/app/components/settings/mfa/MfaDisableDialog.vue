@@ -11,20 +11,32 @@ import {useMfa} from "@/composables/useMfa";
 
 type Props = {
     open: boolean;
+    scope?: "all" | "totp";
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {scope: "all"});
 const emit = defineEmits<{
     (e: "update:open", value: boolean): void;
     (e: "disabled"): void;
 }>();
 
 const {t} = useI18n();
-const {disableMfa, listPasskeys, getPasskeySettingsAssertion} = useMfa();
+const {disableMfa, disableTotp, listPasskeys, getPasskeySettingsAssertion} = useMfa();
 
 type Mode = "totp" | "backup" | "passkey";
 
 const mode = ref<Mode>("totp");
+
+const dialogTitle = computed(() =>
+    props.scope === "totp" ? t("profile.mfa.removeTotp.title") : t("profile.mfa.disable.title"),
+);
+const dialogDescription = computed(() =>
+    props.scope === "totp" ? t("profile.mfa.removeTotp.description") : t("profile.mfa.disable.description"),
+);
+const submitLabel = computed(() => {
+    if (mode.value === "passkey") return t("profile.mfa.disable.passkeyAction");
+    return props.scope === "totp" ? t("profile.mfa.removeTotp.action") : t("profile.mfa.disable.action");
+});
 const password = ref("");
 const showPassword = ref(false);
 const totpDigits = ref<string[]>([]);
@@ -81,12 +93,13 @@ async function submit() {
     if (!canSubmit.value || loading.value) return;
     loading.value = true;
     try {
+        const action = props.scope === "totp" ? disableTotp : disableMfa;
         if (mode.value === "passkey") {
             const response = await getPasskeySettingsAssertion();
-            await disableMfa(password.value, {kind: "passkey", response});
+            await action(password.value, {kind: "passkey", response});
         } else {
             const code = mode.value === "totp" ? totpCode.value : normalizedBackup.value;
-            await disableMfa(password.value, {kind: "code", code});
+            await action(password.value, {kind: "code", code});
         }
         emit("disabled");
         emit("update:open", false);
@@ -107,8 +120,8 @@ function handleComplete() {
     <Dialog :open="open" @update:open="handleUpdateOpen">
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{{ t("profile.mfa.disable.title") }}</DialogTitle>
-                <DialogDescription>{{ t("profile.mfa.disable.description") }}</DialogDescription>
+                <DialogTitle>{{ dialogTitle }}</DialogTitle>
+                <DialogDescription>{{ dialogDescription }}</DialogDescription>
             </DialogHeader>
             <form class="space-y-4" @submit.prevent="submit">
                 <div class="space-y-2">
@@ -190,7 +203,7 @@ function handleComplete() {
                 </Button>
                 <Button :disabled="loading || !canSubmit" type="button" variant="destructive" @click="submit">
                     <Icon v-if="loading" class="mr-1 size-4 animate-spin" name="iconoir:refresh" />
-                    {{ mode === "passkey" ? t("profile.mfa.disable.passkeyAction") : t("profile.mfa.disable.action") }}
+                    {{ submitLabel }}
                 </Button>
             </DialogFooter>
         </DialogContent>

@@ -15,6 +15,7 @@ import MfaSetupDialog from "@/components/settings/mfa/MfaSetupDialog.vue";
 import MfaDisableDialog from "@/components/settings/mfa/MfaDisableDialog.vue";
 import MfaBackupCodesDialog from "@/components/settings/mfa/MfaBackupCodesDialog.vue";
 import PasskeyList from "@/components/settings/mfa/PasskeyList.vue";
+import {useMfa, type MfaFactorsResponse} from "@/composables/useMfa";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
 import {useI18n} from "vue-i18n";
@@ -200,6 +201,23 @@ const mfaEnabled = computed(() => Boolean(userStore.user?.mfaEnabled));
 const isMfaSetupOpen = ref(false);
 const isMfaDisableOpen = ref(false);
 const isMfaBackupOpen = ref(false);
+const isMfaRemoveTotpOpen = ref(false);
+
+const {getMfaFactors} = useMfa();
+const mfaFactors = ref<MfaFactorsResponse | null>(null);
+const totpEnrolled = computed(() => Boolean(mfaFactors.value?.totpEnrolled));
+
+async function refreshMfaFactors() {
+    try {
+        mfaFactors.value = await getMfaFactors();
+    } catch {
+        mfaFactors.value = null;
+    }
+}
+
+onMounted(() => {
+    void refreshMfaFactors();
+});
 
 const deleting = ref(false);
 const isDeleteAccountOpen = ref(false);
@@ -466,31 +484,53 @@ watch(locale, async () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <template v-if="mfaEnabled">
-                                                <Button
-                                                    size="sm"
-                                                    type="button"
-                                                    variant="outline"
-                                                    @click="isMfaBackupOpen = true">
-                                                    {{ t("profile.mfa.regenerate.button") }}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    type="button"
-                                                    variant="destructive"
-                                                    @click="isMfaDisableOpen = true">
-                                                    {{ t("profile.mfa.disable.button") }}
-                                                </Button>
-                                            </template>
-                                            <Button v-else size="sm" type="button" @click="isMfaSetupOpen = true">
-                                                {{ t("profile.mfa.enable") }}
+                                        <div v-if="mfaEnabled" class="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                type="button"
+                                                variant="outline"
+                                                @click="isMfaBackupOpen = true">
+                                                {{ t("profile.mfa.regenerate.button") }}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                type="button"
+                                                variant="destructive"
+                                                @click="isMfaDisableOpen = true">
+                                                {{ t("profile.mfa.disable.button") }}
                                             </Button>
                                         </div>
                                     </div>
 
                                     <div class="border-border/60 border-t pt-4">
-                                        <PasskeyList />
+                                        <div
+                                            class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                                            <div>
+                                                <div class="text-sm font-medium">
+                                                    {{ t("profile.mfa.authenticatorApp.title") }}
+                                                </div>
+                                                <p class="text-muted-foreground text-xs">
+                                                    {{ t("profile.mfa.authenticatorApp.description") }}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                v-if="totpEnrolled"
+                                                size="sm"
+                                                type="button"
+                                                variant="outline"
+                                                @click="isMfaRemoveTotpOpen = true">
+                                                <Icon class="mr-1 size-4" name="iconoir:trash" />
+                                                {{ t("profile.mfa.authenticatorApp.remove") }}
+                                            </Button>
+                                            <Button v-else size="sm" type="button" @click="isMfaSetupOpen = true">
+                                                <Icon class="mr-1 size-4" name="iconoir:plus" />
+                                                {{ t("profile.mfa.authenticatorApp.add") }}
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-border/60 border-t pt-4">
+                                        <PasskeyList @changed="refreshMfaFactors" />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -549,8 +589,17 @@ watch(locale, async () => {
             @update:open="isDeleteAccountOpen = $event"
             @confirm="deleteAccountNow" />
 
-        <MfaSetupDialog :open="isMfaSetupOpen" @update:open="isMfaSetupOpen = $event" />
-        <MfaDisableDialog :open="isMfaDisableOpen" @update:open="isMfaDisableOpen = $event" />
+        <MfaSetupDialog :open="isMfaSetupOpen" @enabled="refreshMfaFactors" @update:open="isMfaSetupOpen = $event" />
+        <MfaDisableDialog
+            :open="isMfaDisableOpen"
+            scope="all"
+            @disabled="refreshMfaFactors"
+            @update:open="isMfaDisableOpen = $event" />
+        <MfaDisableDialog
+            :open="isMfaRemoveTotpOpen"
+            scope="totp"
+            @disabled="refreshMfaFactors"
+            @update:open="isMfaRemoveTotpOpen = $event" />
         <MfaBackupCodesDialog :open="isMfaBackupOpen" @update:open="isMfaBackupOpen = $event" />
     </div>
 </template>

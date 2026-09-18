@@ -34,6 +34,13 @@ export type PasskeyRegisterResponse = {
     backupCodes: string[] | null;
 };
 
+export type MfaFactorsResponse = {
+    mfaEnabled: boolean;
+    totpEnrolled: boolean;
+    passkeyCount: number;
+    unusedBackupCodes: number;
+};
+
 export type SensitiveActionProof =
     | {kind: "code"; code: string}
     | {kind: "passkey"; response: AuthenticationResponseJSON};
@@ -143,6 +150,16 @@ export function useMfa() {
         }
     }
 
+    async function getMfaFactors(): Promise<MfaFactorsResponse> {
+        try {
+            return await apiFetch<MfaFactorsResponse>("/auth/mfa/factors", {method: "GET"});
+        } catch (err: any) {
+            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.listPasskeysFailed");
+            toast.error(message);
+            throw new Error(message, {cause: err});
+        }
+    }
+
     async function listPasskeys(): Promise<PasskeyResponse[]> {
         try {
             return await apiFetch<PasskeyResponse[]>("/auth/mfa/passkey", {method: "GET"});
@@ -232,5 +249,6 @@ export function useMfa() {
         renamePasskey,
         deletePasskey,
         getPasskeySettingsAssertion,
+        getMfaFactors,
     };
 }
