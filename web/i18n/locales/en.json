@@ -623,7 +623,6 @@
             "statusDisabled": "Two-factor authentication is disabled",
             "enabledHelp": "You will be asked for a verification code every time you sign in.",
             "disabledHelp": "Anyone with your password can sign in. Enable 2FA for extra security.",
-            "enable": "Enable 2FA",
             "setup": {
                 "title": "Enable two-factor authentication",
                 "descriptionPassword": "Confirm your password to begin setup.",
@@ -642,13 +641,11 @@
                 "title": "Disable two-factor authentication",
                 "description": "This will remove 2FA and delete your backup codes. Enter your password and a valid code to confirm.",
                 "codeLabel": "Authenticator code",
-                "codePlaceholder": "123456",
                 "tabTotp": "Authenticator",
                 "tabBackup": "Backup code",
                 "tabPasskey": "Passkey",
                 "passkeyDescription": "Authorize the operation with your passkey to disable 2FA.",
                 "passkeyAction": "Verify with passkey",
-                "passkeyVerifying": "Verifying...",
                 "backupCodeLabel": "Backup code",
                 "backupCodePlaceholder": "XXXX-XXXX",
                 "action": "Disable"
