@@ -2,7 +2,7 @@ import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 
 export default defineNuxtRouteMiddleware(async (to) => {
-    const publicPaths = ["/auth/login", "/auth/register"];
+    const publicPaths = ["/auth/login", "/auth/register", "/auth/mfa"];
 
     // allow public routes and internal Nuxt paths
     if (publicPaths.includes(to.path) || to.path.startsWith("/_")) return;
