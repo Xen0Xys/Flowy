@@ -127,7 +127,7 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
-        async verifyMfa(payload: {code: string; method: MfaMethod}) {
+        async verifyMfa(payload: {code: string; method: MfaMethod}): Promise<{mfaAutoDisabled: boolean}> {
             if (!this.mfaChallenge) {
                 throw new Error(i18nT("auth.mfa.errors.noChallenge"));
             }
@@ -149,8 +149,13 @@ export const useAuthStore = defineStore("auth", {
                 this.mfaChallenge = null;
                 const userStore = useUserStore();
                 userStore.user = data.user ?? null;
-                toast.success(i18nT("auth.store.success.connected"));
-                return data;
+                const mfaAutoDisabled = data.mfaAutoDisabled === true;
+                if (mfaAutoDisabled) {
+                    toast.warning(i18nT("auth.mfa.autoDisabledToast"), {duration: 10000});
+                } else {
+                    toast.success(i18nT("auth.store.success.connected"));
+                }
+                return {mfaAutoDisabled};
             } catch (err: any) {
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.mfa.errors.invalidCode");
                 toast.error(message);

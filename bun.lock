@@ -64,7 +64,7 @@
       "version": "2.0.0-beta.1",
       "dependencies": {
         "@internationalized/date": "3.12.4",
-        "@lucide/vue": "1.46.0",
+        "@lucide/vue": "1.47.0",
         "@nuxt/fonts": "0.14.0",
         "@nuxt/icon": "2.5.1",
         "@nuxtjs/color-mode": "4.0.1",
@@ -527,7 +527,7 @@
 
     "@kwsites/promise-deferred": ["@kwsites/promise-deferred@1.1.1", "", {}, "sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw=="],
 
-    "@lucide/vue": ["@lucide/vue@1.46.0", "", { "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-xp4mUamXKM/jYCve8TOcEcuikidFh3Jn9gs0THCeEKn/fAdeU0mKhPqk0fmIwn42fI4CwGLRWrLneLA69h8Nqw=="],
+    "@lucide/vue": ["@lucide/vue@1.47.0", "", { "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-S0/UX9zra4Z8xmqrA1MH5GiSKA8daAPFwkmORt/u+gUHAkYZoeOcr+DH3scZeyE9bdLWScGK+MJoDYi8rIU5Jg=="],
 
     "@lukeed/csprng": ["@lukeed/csprng@1.1.0", "", {}, "sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA=="],
 

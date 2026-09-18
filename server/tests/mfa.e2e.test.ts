@@ -108,7 +108,7 @@ describe("MfaController (e2e)", () => {
         expect(login.body.token).toBeUndefined();
     });
 
-    test("verify totp challenge returns auth token", async () => {
+    test("verify totp challenge returns auth token and keeps MFA enabled", async () => {
         const user = await registerUser(server);
         const {secret} = await setupMfa(user.token, user.password);
 
@@ -128,6 +128,10 @@ describe("MfaController (e2e)", () => {
         expect(verify.status).toBe(201);
         expect(typeof verify.body.token).toBe("string");
         expect(verify.body.user.email).toBe(user.user.email);
+        expect(verify.body.mfaAutoDisabled).toBe(false);
+
+        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
+        expect(dbUser?.mfa_enabled).toBe(true);
     });
 
     test("verify with invalid code rejects", async () => {
@@ -141,7 +145,7 @@ describe("MfaController (e2e)", () => {
         expect(verify.status).toBe(401);
     });
 
-    test("backup code verify works once and cannot be reused", async () => {
+    test("backup code verify auto-disables MFA and next login skips challenge", async () => {
         const user = await registerUser(server);
         const {backupCodes} = await setupMfa(user.token, user.password);
 
@@ -152,12 +156,19 @@ describe("MfaController (e2e)", () => {
             .post("/auth/mfa/backup-codes/verify")
             .send({challengeToken: login1.body.challengeToken, code});
         expect(verify1.status).toBe(201);
+        expect(verify1.body.mfaAutoDisabled).toBe(true);
+        expect(typeof verify1.body.token).toBe("string");
+
+        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
+        expect(dbUser?.mfa_enabled).toBe(false);
+        const totpRow = await prisma.userTotpSecret.findUnique({where: {user_id: user.user.id}});
+        expect(totpRow).toBeNull();
+        const remainingCodes = await prisma.mfaBackupCodes.count({where: {user_id: user.user.id}});
+        expect(remainingCodes).toBe(0);
 
         const login2 = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
-        const verify2 = await agent
-            .post("/auth/mfa/backup-codes/verify")
-            .send({challengeToken: login2.body.challengeToken, code});
-        expect(verify2.status).toBe(401);
+        expect(login2.body.mfaRequired).toBeUndefined();
+        expect(typeof login2.body.token).toBe("string");
     });
 
     test("admin can reset another user's MFA", async () => {

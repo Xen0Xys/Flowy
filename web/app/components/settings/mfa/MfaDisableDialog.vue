@@ -1,10 +1,12 @@
 <script lang="ts" setup>
-import {ref, watch} from "vue";
+import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
+import {PinInput, PinInputGroup, PinInputSeparator, PinInputSlot} from "@/components/ui/pin-input";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {useMfa} from "@/composables/useMfa";
 
 type Props = {
@@ -20,10 +22,22 @@ const emit = defineEmits<{
 const {t} = useI18n();
 const {disableMfa} = useMfa();
 
+type Mode = "totp" | "backup";
+
+const mode = ref<Mode>("totp");
 const password = ref("");
 const showPassword = ref(false);
-const code = ref("");
+const totpDigits = ref<string[]>([]);
+const backupCode = ref("");
 const loading = ref(false);
+
+const totpCode = computed(() => totpDigits.value.join(""));
+const normalizedBackup = computed(() => backupCode.value.replace(/[\s-]+/g, "").toUpperCase());
+const submittedCode = computed(() => (mode.value === "totp" ? totpCode.value : normalizedBackup.value));
+const canSubmit = computed(() => {
+    if (!password.value.trim()) return false;
+    return mode.value === "totp" ? totpCode.value.length === 6 : normalizedBackup.value.length === 8;
+});
 
 watch(
     () => props.open,
@@ -32,10 +46,17 @@ watch(
     },
 );
 
+watch(mode, () => {
+    totpDigits.value = [];
+    backupCode.value = "";
+});
+
 function reset() {
+    mode.value = "totp";
     password.value = "";
     showPassword.value = false;
-    code.value = "";
+    totpDigits.value = [];
+    backupCode.value = "";
     loading.value = false;
 }
 
@@ -45,17 +66,22 @@ function handleUpdateOpen(next: boolean) {
 }
 
 async function submit() {
-    if (!password.value.trim() || !code.value.trim() || loading.value) return;
+    if (!canSubmit.value || loading.value) return;
     loading.value = true;
     try {
-        await disableMfa(password.value, code.value.trim());
+        await disableMfa(password.value, submittedCode.value);
         emit("disabled");
         emit("update:open", false);
     } catch {
-        code.value = "";
+        totpDigits.value = [];
+        backupCode.value = "";
     } finally {
         loading.value = false;
     }
+}
+
+function handleComplete() {
+    if (password.value.trim()) void submit();
 }
 </script>
 
@@ -66,7 +92,7 @@ async function submit() {
                 <DialogTitle>{{ t("profile.mfa.disable.title") }}</DialogTitle>
                 <DialogDescription>{{ t("profile.mfa.disable.description") }}</DialogDescription>
             </DialogHeader>
-            <form class="space-y-3" @submit.prevent="submit">
+            <form class="space-y-4" @submit.prevent="submit">
                 <div class="space-y-2">
                     <Label for="mfa-disable-password">{{ t("common.confirmPassword") }}</Label>
                     <div class="relative">
@@ -89,27 +115,54 @@ async function submit() {
                         </Button>
                     </div>
                 </div>
-                <div class="space-y-2">
-                    <Label for="mfa-disable-code">{{ t("profile.mfa.disable.codeLabel") }}</Label>
-                    <Input
-                        id="mfa-disable-code"
-                        v-model="code"
-                        :disabled="loading"
-                        :placeholder="t('profile.mfa.disable.codePlaceholder')"
-                        autocomplete="one-time-code"
-                        inputmode="text"
-                        type="text" />
-                </div>
+
+                <Tabs v-model="mode" class="w-full">
+                    <TabsList class="grid w-full grid-cols-2">
+                        <TabsTrigger value="totp">{{ t("profile.mfa.disable.tabTotp") }}</TabsTrigger>
+                        <TabsTrigger value="backup">{{ t("profile.mfa.disable.tabBackup") }}</TabsTrigger>
+                    </TabsList>
+                    <TabsContent class="space-y-2 pt-3" value="totp">
+                        <Label for="mfa-disable-totp">{{ t("profile.mfa.disable.codeLabel") }}</Label>
+                        <div class="flex justify-center">
+                            <PinInput
+                                id="mfa-disable-totp"
+                                v-model="totpDigits"
+                                :disabled="loading"
+                                :otp="true"
+                                type="text"
+                                @complete="handleComplete">
+                                <PinInputGroup>
+                                    <PinInputSlot
+                                        v-for="index in 3"
+                                        :key="`disable-start-${index}`"
+                                        :index="index - 1" />
+                                </PinInputGroup>
+                                <PinInputSeparator />
+                                <PinInputGroup>
+                                    <PinInputSlot v-for="index in 3" :key="`disable-end-${index}`" :index="index + 2" />
+                                </PinInputGroup>
+                            </PinInput>
+                        </div>
+                    </TabsContent>
+                    <TabsContent class="space-y-2 pt-3" value="backup">
+                        <Label for="mfa-disable-backup">{{ t("profile.mfa.disable.backupCodeLabel") }}</Label>
+                        <Input
+                            id="mfa-disable-backup"
+                            v-model="backupCode"
+                            :disabled="loading"
+                            :placeholder="t('profile.mfa.disable.backupCodePlaceholder')"
+                            autocomplete="off"
+                            class="text-center font-mono tracking-widest uppercase"
+                            inputmode="text"
+                            type="text" />
+                    </TabsContent>
+                </Tabs>
             </form>
             <DialogFooter>
                 <Button :disabled="loading" type="button" variant="ghost" @click="emit('update:open', false)">
                     {{ t("common.cancel") }}
                 </Button>
-                <Button
-                    :disabled="loading || !password.trim() || !code.trim()"
-                    type="button"
-                    variant="destructive"
-                    @click="submit">
+                <Button :disabled="loading || !canSubmit" type="button" variant="destructive" @click="submit">
                     <Icon v-if="loading" class="mr-1 size-4 animate-spin" name="iconoir:refresh" />
                     {{ t("profile.mfa.disable.action") }}
                 </Button>

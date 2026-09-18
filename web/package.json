@@ -17,7 +17,7 @@
     },
     "dependencies": {
         "@internationalized/date": "3.12.4",
-        "@lucide/vue": "1.46.0",
+        "@lucide/vue": "1.47.0",
         "@nuxt/fonts": "0.14.0",
         "@nuxt/icon": "2.5.1",
         "@nuxtjs/color-mode": "4.0.1",

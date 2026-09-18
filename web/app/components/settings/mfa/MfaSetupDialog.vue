@@ -1,11 +1,12 @@
 <script lang="ts" setup>
-import {nextTick, ref, watch} from "vue";
+import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import QRCode from "qrcode";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
+import {PinInput, PinInputGroup, PinInputSeparator, PinInputSlot} from "@/components/ui/pin-input";
 import {useMfa} from "@/composables/useMfa";
 import MfaBackupCodesDisplay from "./MfaBackupCodesDisplay.vue";
 
@@ -27,13 +28,15 @@ type Step = "password" | "scan" | "verify" | "backup";
 const step = ref<Step>("password");
 const password = ref("");
 const showPassword = ref(false);
-const code = ref("");
+const codeDigits = ref<string[]>([]);
 const loading = ref(false);
 const secret = ref("");
 const otpauthUrl = ref("");
 const backupCodes = ref<string[]>([]);
 const qrDataUrl = ref("");
 const qrError = ref<string | null>(null);
+
+const code = computed(() => codeDigits.value.join(""));
 
 watch(
     () => props.open,
@@ -46,7 +49,7 @@ function reset() {
     step.value = "password";
     password.value = "";
     showPassword.value = false;
-    code.value = "";
+    codeDigits.value = [];
     loading.value = false;
     secret.value = "";
     otpauthUrl.value = "";
@@ -87,26 +90,22 @@ async function submitPassword() {
 }
 
 async function submitCode() {
-    const normalized = code.value.replace(/\s+/g, "");
-    if (normalized.length !== 6 || loading.value) return;
+    if (code.value.length !== 6 || loading.value) return;
     loading.value = true;
     try {
-        const response = await confirmTotpSetup(normalized);
+        const response = await confirmTotpSetup(code.value);
         backupCodes.value = response.backupCodes;
         step.value = "backup";
-        code.value = "";
+        codeDigits.value = [];
     } catch {
-        code.value = "";
+        codeDigits.value = [];
     } finally {
         loading.value = false;
     }
 }
 
-async function goToVerify() {
+function goToVerify() {
     step.value = "verify";
-    await nextTick();
-    const input = document.getElementById("mfa-setup-code") as HTMLInputElement | null;
-    input?.focus();
 }
 
 function finish() {
@@ -181,16 +180,23 @@ function handleUpdateOpen(next: boolean) {
 
             <div v-else-if="step === 'verify'" class="space-y-3">
                 <Label for="mfa-setup-code">{{ t("profile.mfa.setup.codeLabel") }}</Label>
-                <Input
-                    id="mfa-setup-code"
-                    v-model="code"
-                    :disabled="loading"
-                    autocomplete="one-time-code"
-                    inputmode="numeric"
-                    maxlength="6"
-                    placeholder="123456"
-                    type="text"
-                    @keydown.enter="submitCode" />
+                <div class="flex justify-center">
+                    <PinInput
+                        id="mfa-setup-code"
+                        v-model="codeDigits"
+                        :disabled="loading"
+                        :otp="true"
+                        type="text"
+                        @complete="submitCode">
+                        <PinInputGroup>
+                            <PinInputSlot v-for="index in 3" :key="`setup-start-${index}`" :index="index - 1" />
+                        </PinInputGroup>
+                        <PinInputSeparator />
+                        <PinInputGroup>
+                            <PinInputSlot v-for="index in 3" :key="`setup-end-${index}`" :index="index + 2" />
+                        </PinInputGroup>
+                    </PinInput>
+                </div>
             </div>
 
             <div v-else class="space-y-3">
@@ -225,10 +231,7 @@ function handleUpdateOpen(next: boolean) {
                     <Button :disabled="loading" type="button" variant="ghost" @click="step = 'scan'">
                         {{ t("common.back") }}
                     </Button>
-                    <Button
-                        :disabled="loading || code.replace(/\s+/g, '').length !== 6"
-                        type="button"
-                        @click="submitCode">
+                    <Button :disabled="loading || code.length !== 6" type="button" @click="submitCode">
                         <Icon v-if="loading" class="mr-1 size-4 animate-spin" name="iconoir:refresh" />
                         {{ t("profile.mfa.setup.activate") }}
                     </Button>

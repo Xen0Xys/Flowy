@@ -4,7 +4,6 @@ import {Throttle} from "@nestjs/throttler";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {User} from "../../../common/decorators/user.decorator";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
-import {LoginUserEntity} from "../../users/user/models/entities/login-user.entity";
 import {MfaService} from "./mfa.service";
 import {MfaTotpSetupDto} from "./models/dto/mfa-totp-setup.dto";
 import {MfaTotpConfirmDto} from "./models/dto/mfa-totp-confirm.dto";
@@ -14,6 +13,7 @@ import {MfaVerifyDto} from "./models/dto/mfa-verify.dto";
 import {MfaSetupEntity} from "./models/entities/mfa-setup.entity";
 import {MfaConfirmEntity} from "./models/entities/mfa-confirm.entity";
 import {MfaBackupCodesEntity} from "./models/entities/mfa-backup-codes.entity";
+import {MfaVerifyEntity} from "./models/entities/mfa-verify.entity";
 
 @Controller("auth/mfa")
 export class MfaController {
@@ -60,13 +60,13 @@ export class MfaController {
 
     @Post("totp/verify")
     @Throttle({default: {limit: 10, ttl: 60_000}})
-    async verifyTotp(@Body() body: MfaVerifyDto): Promise<LoginUserEntity> {
+    async verifyTotp(@Body() body: MfaVerifyDto): Promise<MfaVerifyEntity> {
         return this.mfaService.verifyChallenge(body.challengeToken, body.code, "totp");
     }
 
     @Post("backup-codes/verify")
     @Throttle({default: {limit: 10, ttl: 60_000}})
-    async verifyBackupCode(@Body() body: MfaVerifyDto): Promise<LoginUserEntity> {
+    async verifyBackupCode(@Body() body: MfaVerifyDto): Promise<MfaVerifyEntity> {
         return this.mfaService.verifyChallenge(body.challengeToken, body.code, "backup_code");
     }
 }

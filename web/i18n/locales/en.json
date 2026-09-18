@@ -89,6 +89,7 @@
             "useBackupCode": "Use a backup code",
             "useAuthenticator": "Use authenticator app",
             "cancel": "Cancel and log out",
+            "autoDisabledToast": "Two-factor authentication was disabled after using a backup code. Please re-enable it from your security settings.",
             "errors": {
                 "noChallenge": "No pending authentication challenge",
                 "invalidCode": "Invalid verification code"
@@ -636,8 +637,12 @@
                 "button": "Disable",
                 "title": "Disable two-factor authentication",
                 "description": "This will remove 2FA and delete your backup codes. Enter your password and a valid code to confirm.",
-                "codeLabel": "Authenticator or backup code",
-                "codePlaceholder": "123456 or XXXX-XXXX",
+                "codeLabel": "Authenticator code",
+                "codePlaceholder": "123456",
+                "tabTotp": "Authenticator",
+                "tabBackup": "Backup code",
+                "backupCodeLabel": "Backup code",
+                "backupCodePlaceholder": "XXXX-XXXX",
                 "action": "Disable"
             },
             "regenerate": {

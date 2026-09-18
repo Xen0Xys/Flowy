@@ -4,7 +4,7 @@ import {PrismaService} from "../../helper/prisma.service";
 import {UserService} from "../../users/user/user.service";
 import {AuthService} from "../auth.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
-import {LoginUserEntity} from "../../users/user/models/entities/login-user.entity";
+import {MfaVerifyEntity} from "./models/entities/mfa-verify.entity";
 import {TotpFactorService, TotpSetupResult} from "./factors/totp-factor.service";
 import {BackupCodeFactorService} from "./factors/backup-code-factor.service";
 import type {MfaMethod} from "./mfa-factor.interface";
@@ -61,11 +61,7 @@ export class MfaService {
         const backupOk = totpOk ? false : await this.backupCodeFactor.verify(user.id, code);
         if (!totpOk && !backupOk) throw new UnauthorizedException("Invalid verification code");
 
-        await this.prisma.$transaction([
-            this.prisma.userTotpSecret.deleteMany({where: {user_id: user.id}}),
-            this.prisma.mfaBackupCodes.deleteMany({where: {user_id: user.id}}),
-            this.prisma.users.update({where: {id: user.id}, data: {mfa_enabled: false}}),
-        ]);
+        await this.purgeMfa(user.id);
         await this.authService.invalidateTokens(user);
 
         this.logger.log(`MFA disabled user=${user.id}`);
@@ -82,29 +78,39 @@ export class MfaService {
         return codes;
     }
 
-    async verifyChallenge(challengeToken: string, code: string, method: MfaMethod): Promise<LoginUserEntity> {
+    async verifyChallenge(challengeToken: string, code: string, method: MfaMethod): Promise<MfaVerifyEntity> {
         const userId = await this.consumeChallengeToken(challengeToken);
         const factor = method === "totp" ? this.totpFactor : this.backupCodeFactor;
 
         const ok = await factor.verify(userId, code);
         if (!ok) throw new UnauthorizedException("Invalid verification code");
 
+        const mfaAutoDisabled = method === "backup_code";
+        if (mfaAutoDisabled) {
+            await this.purgeMfa(userId);
+            this.logger.log(`MFA auto-disabled after backup code login user=${userId}`);
+        }
+
         const user = await this.prisma.users.findUnique({where: {id: userId}});
         if (!user) throw new UnauthorizedException("Invalid verification code");
 
         const userEntity = UserService.toUserEntity(user);
         const token = await this.authService.generateToken(userEntity);
-        return new LoginUserEntity({user: userEntity, token});
+        return new MfaVerifyEntity({user: userEntity, token, mfaAutoDisabled});
     }
 
     async resetForUser(userId: string): Promise<void> {
+        await this.purgeMfa(userId);
+        const user = await this.prisma.users.findUniqueOrThrow({where: {id: userId}});
+        await this.authService.invalidateTokens(UserService.toUserEntity(user));
+    }
+
+    private async purgeMfa(userId: string): Promise<void> {
         await this.prisma.$transaction([
             this.prisma.userTotpSecret.deleteMany({where: {user_id: userId}}),
             this.prisma.mfaBackupCodes.deleteMany({where: {user_id: userId}}),
             this.prisma.users.update({where: {id: userId}, data: {mfa_enabled: false}}),
         ]);
-        const user = await this.prisma.users.findUniqueOrThrow({where: {id: userId}});
-        await this.authService.invalidateTokens(UserService.toUserEntity(user));
     }
 
     private async consumeChallengeToken(challengeToken: string): Promise<string> {

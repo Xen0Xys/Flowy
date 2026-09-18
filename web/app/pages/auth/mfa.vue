@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import {computed, onBeforeMount, ref} from "vue";
+import {computed, onBeforeMount, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useRouter} from "#app";
 import {useAuthStore, type MfaMethod} from "@/stores/auth.store";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {PinInput, PinInputGroup, PinInputSeparator, PinInputSlot} from "@/components/ui/pin-input";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 
 definePageMeta({
@@ -17,11 +18,19 @@ const store = useAuthStore();
 const {t} = useI18n();
 
 const activeMethod = ref<MfaMethod>("totp");
-const code = ref("");
+const totpDigits = ref<string[]>([]);
+const backupCode = ref("");
 const loading = ref(false);
 
 const availableMethods = computed<MfaMethod[]>(() => store.mfaChallenge?.methods ?? []);
 const canUseBackup = computed(() => availableMethods.value.includes("backup_code"));
+
+const currentCode = computed(() =>
+    activeMethod.value === "totp" ? totpDigits.value.join("") : backupCode.value.trim(),
+);
+const canSubmit = computed(() =>
+    activeMethod.value === "totp" ? totpDigits.value.filter(Boolean).length === 6 : currentCode.value.length > 0,
+);
 
 onBeforeMount(async () => {
     if (!store.mfaChallenge) {
@@ -31,22 +40,35 @@ onBeforeMount(async () => {
     activeMethod.value = availableMethods.value.includes("totp") ? "totp" : "backup_code";
 });
 
-function switchMethod(method: MfaMethod) {
-    activeMethod.value = method;
-    code.value = "";
-}
+watch(activeMethod, () => {
+    totpDigits.value = [];
+    backupCode.value = "";
+});
 
 async function submit() {
-    if (!code.value.trim() || loading.value) return;
+    if (!canSubmit.value || loading.value) return;
     loading.value = true;
     try {
-        await store.verifyMfa({code: code.value.trim(), method: activeMethod.value});
-        await router.push("/");
+        const result = await store.verifyMfa({code: currentCode.value, method: activeMethod.value});
+        if (result.mfaAutoDisabled) {
+            await router.push("/settings/user/profile");
+        } else {
+            await router.push("/");
+        }
     } catch {
-        code.value = "";
+        totpDigits.value = [];
+        backupCode.value = "";
     } finally {
         loading.value = false;
     }
+}
+
+function handleComplete() {
+    void submit();
+}
+
+function switchMethod(method: MfaMethod) {
+    activeMethod.value = method;
 }
 
 function cancel() {
@@ -71,14 +93,34 @@ function cancel() {
                         {{ activeMethod === "totp" ? t("auth.mfa.codeLabelTotp") : t("auth.mfa.codeLabelBackup") }}
                     </FormLabel>
                     <FormControl>
-                        <Input
+                        <PinInput
+                            v-if="activeMethod === 'totp'"
                             id="mfa-code"
-                            v-model="code"
+                            v-model="totpDigits"
                             :aria-label="t('auth.mfa.codeLabelTotp')"
-                            :autocomplete="activeMethod === 'totp' ? 'one-time-code' : 'off'"
-                            :inputmode="activeMethod === 'totp' ? 'numeric' : 'text'"
-                            :placeholder="activeMethod === 'totp' ? '123456' : 'XXXX-XXXX'"
+                            :disabled="loading"
+                            :otp="true"
+                            class="justify-center"
+                            type="text"
+                            @complete="handleComplete">
+                            <PinInputGroup>
+                                <PinInputSlot v-for="index in 3" :key="`start-${index}`" :index="index - 1" />
+                            </PinInputGroup>
+                            <PinInputSeparator />
+                            <PinInputGroup>
+                                <PinInputSlot v-for="index in 3" :key="`end-${index}`" :index="index + 2" />
+                            </PinInputGroup>
+                        </PinInput>
+                        <Input
+                            v-else
+                            id="mfa-code"
+                            v-model="backupCode"
+                            :aria-label="t('auth.mfa.codeLabelBackup')"
+                            autocomplete="off"
                             autofocus
+                            class="text-center font-mono tracking-widest uppercase"
+                            inputmode="text"
+                            placeholder="XXXX-XXXX"
                             required
                             type="text" />
                     </FormControl>
@@ -90,7 +132,7 @@ function cancel() {
                 <Button
                     :aria-label="t('auth.mfa.verifyAction')"
                     :as="'button'"
-                    :disabled="loading || !code.trim()"
+                    :disabled="loading || !canSubmit"
                     class="bg-brand-gradient hover:shadow-glow w-full font-medium text-white shadow-md transition-all hover:brightness-110 disabled:opacity-70"
                     type="submit">
                     <Icon v-if="loading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
