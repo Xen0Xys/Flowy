@@ -29,6 +29,7 @@ const showPassword = ref(false);
 const label = ref("");
 const loading = ref(false);
 const backupCodes = ref<string[]>([]);
+const codesSaved = ref(false);
 
 watch(
     () => props.open,
@@ -44,10 +45,13 @@ function reset() {
     label.value = "";
     loading.value = false;
     backupCodes.value = [];
+    codesSaved.value = false;
 }
 
 function handleUpdateOpen(next: boolean) {
     if (loading.value && step.value !== "backup") return;
+    // Do not lose freshly-issued backup codes to a misclick on the overlay.
+    if (!next && step.value === "backup" && !codesSaved.value) return;
     emit("update:open", next);
 }
 
@@ -57,11 +61,11 @@ async function submit() {
     loading.value = true;
     try {
         const result = await registerPasskey(password.value, trimmedLabel);
-        emit("registered");
         if (result.backupCodes && result.backupCodes.length > 0) {
             backupCodes.value = result.backupCodes;
             step.value = "backup";
         } else {
+            emit("registered");
             emit("update:open", false);
         }
     } catch {
@@ -72,6 +76,7 @@ async function submit() {
 }
 
 function finish() {
+    emit("registered");
     emit("update:open", false);
 }
 </script>
@@ -135,6 +140,10 @@ function finish() {
                     </p>
                 </div>
                 <MfaBackupCodesDisplay :codes="backupCodes" />
+                <label class="flex items-center gap-2 text-sm">
+                    <input v-model="codesSaved" type="checkbox" />
+                    <span>{{ t("profile.mfa.backupCodes.saveConfirm") }}</span>
+                </label>
             </div>
 
             <DialogFooter>
@@ -148,7 +157,7 @@ function finish() {
                     </Button>
                 </template>
                 <template v-else>
-                    <Button type="button" @click="finish">
+                    <Button :disabled="!codesSaved" type="button" @click="finish">
                         {{ t("profile.mfa.backupCodes.done") }}
                     </Button>
                 </template>

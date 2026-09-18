@@ -44,6 +44,10 @@ import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
 import type {Family} from "~/stores/family.store";
 import type {User} from "~/stores/user.store";
 
+definePageMeta({
+    middleware: ["admin"],
+});
+
 type AdminUser = {
     id: string;
     username: string;
@@ -330,7 +334,7 @@ async function handleResetMfa(currentPassword: string) {
     }
 }
 
-async function copyUserId(id: string) {
+async function copyUuid(id: string, kind: "user" | "family") {
     if (!isSupported.value) {
         toast.error(t("settings.users.errors.clipboardUnsupported"));
         return;
@@ -338,11 +342,16 @@ async function copyUserId(id: string) {
 
     try {
         await copy(id);
-        toast.success(t("settings.users.toasts.uuidCopied"));
+        toast.success(
+            kind === "family" ? t("settings.users.toasts.familyUuidCopied") : t("settings.users.toasts.uuidCopied"),
+        );
     } catch {
         toast.error(t("settings.users.errors.copyUuidFailed"));
     }
 }
+
+const copyUserId = (id: string) => copyUuid(id, "user");
+const copyFamilyId = (id: string) => copyUuid(id, "family");
 </script>
 
 <template>
@@ -580,7 +589,7 @@ async function copyUserId(id: string) {
                                     {{ detailsState.user.id }}
                                 </p>
                                 <Button
-                                    aria-label="Copy user UUID"
+                                    :aria-label="t('settings.users.copyUuid')"
                                     class="size-6"
                                     size="icon"
                                     variant="ghost"
@@ -643,11 +652,11 @@ async function copyUserId(id: string) {
                                         {{ detailsState.user.familyId }}
                                     </p>
                                     <Button
-                                        aria-label="Copy family UUID"
+                                        :aria-label="t('settings.users.copyFamilyUuid')"
                                         class="size-6"
                                         size="icon"
                                         variant="ghost"
-                                        @click="copyUserId(detailsState.user.familyId)">
+                                        @click="copyFamilyId(detailsState.user.familyId)">
                                         <Copy class="size-3" />
                                     </Button>
                                 </div>

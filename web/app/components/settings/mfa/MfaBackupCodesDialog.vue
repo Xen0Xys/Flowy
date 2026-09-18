@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from "vue";
+import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {useMfa} from "@/composables/useMfa";
+import {PasskeyCancelledError, useMfa} from "@/composables/useMfa";
 import MfaBackupCodesDisplay from "./MfaBackupCodesDisplay.vue";
 
 type Props = {
@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const {t} = useI18n();
-const {regenerateBackupCodes, listPasskeys, getPasskeySettingsAssertion} = useMfa();
+const {regenerateBackupCodes, getMfaFactors, getPasskeySettingsAssertion} = useMfa();
 
 type Step = "form" | "display";
 type Mode = "totp" | "passkey";
@@ -31,6 +31,7 @@ const code = ref("");
 const loading = ref(false);
 const codes = ref<string[]>([]);
 const hasPasskey = ref(false);
+const codesSaved = ref(false);
 
 const canSubmit = computed(() => {
     if (!password.value.trim()) return false;
@@ -38,20 +39,24 @@ const canSubmit = computed(() => {
     return true;
 });
 
-onMounted(async () => {
+async function refreshFactors() {
     try {
-        const passkeys = await listPasskeys();
-        hasPasskey.value = passkeys.length > 0;
+        const factors = await getMfaFactors();
+        hasPasskey.value = factors.passkeyCount > 0;
         if (hasPasskey.value) mode.value = "passkey";
     } catch {
         hasPasskey.value = false;
     }
-});
+}
 
 watch(
     () => props.open,
     (value) => {
-        if (!value) reset();
+        if (value) {
+            void refreshFactors();
+        } else {
+            reset();
+        }
     },
 );
 
@@ -67,6 +72,7 @@ function reset() {
     code.value = "";
     loading.value = false;
     codes.value = [];
+    codesSaved.value = false;
 }
 
 async function submit() {
@@ -82,7 +88,8 @@ async function submit() {
                 : await regenerateBackupCodes(password.value, {kind: "code", code: code.value.trim()});
         codes.value = generated;
         step.value = "display";
-    } catch {
+    } catch (err) {
+        if (err instanceof PasskeyCancelledError) return;
         code.value = "";
     } finally {
         loading.value = false;
@@ -91,6 +98,8 @@ async function submit() {
 
 function handleUpdateOpen(next: boolean) {
     if (loading.value && !next) return;
+    // Block accidental dismissal while codes are visible and not acknowledged.
+    if (!next && step.value === "display" && !codesSaved.value) return;
     emit("update:open", next);
 }
 </script>
@@ -144,9 +153,9 @@ function handleUpdateOpen(next: boolean) {
                         </p>
                     </TabsContent>
                     <TabsContent class="space-y-2 pt-3" value="totp">
-                        <Label for="mfa-regen-code">{{ t("profile.mfa.regenerate.codeLabel") }}</Label>
+                        <Label for="mfa-regen-code-tab">{{ t("profile.mfa.regenerate.codeLabel") }}</Label>
                         <Input
-                            id="mfa-regen-code"
+                            id="mfa-regen-code-tab"
                             v-model="code"
                             :disabled="loading"
                             autocomplete="one-time-code"
@@ -157,9 +166,9 @@ function handleUpdateOpen(next: boolean) {
                     </TabsContent>
                 </Tabs>
                 <div v-else class="space-y-2">
-                    <Label for="mfa-regen-code">{{ t("profile.mfa.regenerate.codeLabel") }}</Label>
+                    <Label for="mfa-regen-code-only">{{ t("profile.mfa.regenerate.codeLabel") }}</Label>
                     <Input
-                        id="mfa-regen-code"
+                        id="mfa-regen-code-only"
                         v-model="code"
                         :disabled="loading"
                         autocomplete="one-time-code"
@@ -170,7 +179,13 @@ function handleUpdateOpen(next: boolean) {
                 </div>
             </form>
 
-            <MfaBackupCodesDisplay v-else :codes="codes" />
+            <div v-else class="space-y-3">
+                <MfaBackupCodesDisplay :codes="codes" />
+                <label class="flex items-center gap-2 text-sm">
+                    <input v-model="codesSaved" type="checkbox" />
+                    <span>{{ t("profile.mfa.backupCodes.saveConfirm") }}</span>
+                </label>
+            </div>
 
             <DialogFooter>
                 <template v-if="step === 'form'">
@@ -187,7 +202,7 @@ function handleUpdateOpen(next: boolean) {
                     </Button>
                 </template>
                 <template v-else>
-                    <Button type="button" @click="emit('update:open', false)">
+                    <Button :disabled="!codesSaved" type="button" @click="emit('update:open', false)">
                         {{ t("profile.mfa.backupCodes.done") }}
                     </Button>
                 </template>

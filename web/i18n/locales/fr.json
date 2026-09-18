@@ -96,7 +96,8 @@
             "autoDisabledToast": "L'authentification à deux facteurs a été désactivée après l'utilisation d'un code de récupération. Veuillez la réactiver dans vos paramètres de sécurité.",
             "errors": {
                 "noChallenge": "Aucune vérification en cours",
-                "invalidCode": "Code de vérification invalide"
+                "invalidCode": "Code de vérification invalide",
+                "challengeExpired": "Votre session de vérification a expiré. Veuillez vous reconnecter."
             }
         },
         "store": {
@@ -689,7 +690,8 @@
                 "copied": "Codes de récupération copiés dans le presse-papiers",
                 "copyFailed": "Échec de la copie des codes",
                 "download": "Télécharger",
-                "done": "Je les ai enregistrés"
+                "done": "Je les ai enregistrés",
+                "saveConfirm": "J'ai enregistré ces codes de récupération en lieu sûr"
             },
             "toasts": {
                 "enabled": "Authentification à deux facteurs activée",
@@ -778,6 +780,7 @@
             "uuid": "UUID",
             "viewDetails": "Voir les détails",
             "copyUuid": "Copier l'UUID",
+            "copyFamilyUuid": "Copier l'UUID de la famille",
             "resetPassword": "Réinitialiser le mot de passe",
             "deleteUser": "Supprimer l'utilisateur",
             "noUsers": "Aucun utilisateur trouvé.",
@@ -817,6 +820,7 @@
             },
             "toasts": {
                 "uuidCopied": "UUID copié dans le presse-papiers",
+                "familyUuidCopied": "UUID de la famille copié dans le presse-papiers",
                 "passwordGenerated": "Mot de passe généré"
             },
             "errors": {

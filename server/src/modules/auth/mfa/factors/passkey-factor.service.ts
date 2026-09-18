@@ -7,6 +7,7 @@ import {
 } from "@simplewebauthn/server";
 import type {
     AuthenticationResponseJSON,
+    AuthenticatorTransportFuture,
     PublicKeyCredentialCreationOptionsJSON,
     PublicKeyCredentialRequestOptionsJSON,
     RegistrationResponseJSON,
@@ -19,6 +20,28 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const CHALLENGE_PURPOSE_REGISTER = "registration";
 const CHALLENGE_PURPOSE_AUTH = "authentication";
 const CHALLENGE_PURPOSE_SETTINGS = "settings-verify";
+
+const ALLOWED_TRANSPORTS: readonly AuthenticatorTransportFuture[] = [
+    "usb",
+    "nfc",
+    "ble",
+    "internal",
+    "hybrid",
+    "smart-card",
+    "cable",
+];
+
+function toTransports(values: string[]): AuthenticatorTransportFuture[] {
+    return values.filter((v): v is AuthenticatorTransportFuture =>
+        (ALLOWED_TRANSPORTS as readonly string[]).includes(v),
+    );
+}
+
+function encodeUserHandle(userId: string): Buffer {
+    // Encode the UUID as its raw 16 bytes rather than the ASCII string; keeps the
+    // credential storage compact and hides the DB key format from authenticators.
+    return Buffer.from(userId.replace(/-/g, ""), "hex");
+}
 
 export interface PasskeySummary {
     id: string;
@@ -59,7 +82,8 @@ export class PasskeyFactorService implements MfaFactor {
 
     async generateRegistrationOptions(
         userId: string,
-        userName: string,
+        username: string,
+        displayName: string,
     ): Promise<PublicKeyCredentialCreationOptionsJSON> {
         const existing = await this.prisma.userPasskeys.findMany({
             where: {user_id: userId},
@@ -69,15 +93,19 @@ export class PasskeyFactorService implements MfaFactor {
         const options = await generateRegistrationOptions({
             rpName: this.config.rpName,
             rpID: this.config.rpID,
-            userName,
-            userID: Buffer.from(userId, "utf-8"),
+            userName: username,
+            userDisplayName: displayName,
+            userID: encodeUserHandle(userId),
             attestationType: "none",
             authenticatorSelection: {
                 residentKey: "required",
-                userVerification: "preferred",
+                userVerification: "required",
                 requireResidentKey: true,
             },
-            excludeCredentials: existing.map((p) => ({id: p.credential_id, transports: p.transports as any})),
+            excludeCredentials: existing.map((p) => ({
+                id: p.credential_id,
+                transports: toTransports(p.transports),
+            })),
         });
 
         await this.storeChallenge(userId, CHALLENGE_PURPOSE_REGISTER, options.challenge);
@@ -103,7 +131,7 @@ export class PasskeyFactorService implements MfaFactor {
                 expectedChallenge: challenge,
                 expectedOrigin: this.config.origins,
                 expectedRPID: this.config.rpID,
-                requireUserVerification: false,
+                requireUserVerification: true,
             });
         } catch (err) {
             this.logger.warn(`Passkey registration verification failed user=${userId} err=${(err as Error).message}`);
@@ -115,6 +143,7 @@ export class PasskeyFactorService implements MfaFactor {
         }
 
         const {credential, credentialDeviceType, credentialBackedUp} = verification.registrationInfo;
+        const transports = toTransports(credential.transports ?? []);
 
         const created = await this.prisma.userPasskeys.create({
             data: {
@@ -122,7 +151,7 @@ export class PasskeyFactorService implements MfaFactor {
                 credential_id: credential.id,
                 public_key: Buffer.from(credential.publicKey),
                 counter: BigInt(credential.counter),
-                transports: credential.transports ?? [],
+                transports,
                 device_type: credentialDeviceType,
                 backed_up: credentialBackedUp,
                 label: trimmedLabel,
@@ -170,7 +199,10 @@ export class PasskeyFactorService implements MfaFactor {
         const options = await generateAuthenticationOptions({
             rpID: this.config.rpID,
             userVerification: "required",
-            allowCredentials: passkeys.map((p) => ({id: p.credential_id, transports: p.transports as any})),
+            allowCredentials: passkeys.map((p) => ({
+                id: p.credential_id,
+                transports: toTransports(p.transports),
+            })),
         });
 
         await this.storeChallenge(userId, purpose, options.challenge);
@@ -201,7 +233,7 @@ export class PasskeyFactorService implements MfaFactor {
                     id: passkey.credential_id,
                     publicKey: new Uint8Array(passkey.public_key),
                     counter: Number(passkey.counter),
-                    transports: passkey.transports as any,
+                    transports: toTransports(passkey.transports),
                 },
             });
         } catch (err) {
@@ -269,26 +301,31 @@ export class PasskeyFactorService implements MfaFactor {
     }
 
     private async storeChallenge(userId: string, purpose: string, challenge: string): Promise<void> {
-        await this.prisma.$transaction([
-            this.prisma.webAuthnChallenges.deleteMany({where: {user_id: userId, purpose}}),
-            this.prisma.webAuthnChallenges.create({
-                data: {
-                    user_id: userId,
-                    challenge,
-                    purpose,
-                    expires_at: new Date(Date.now() + CHALLENGE_TTL_MS),
-                },
-            }),
-        ]);
+        await this.prisma.webAuthnChallenges.upsert({
+            where: {user_id_purpose: {user_id: userId, purpose}},
+            create: {
+                user_id: userId,
+                challenge,
+                purpose,
+                expires_at: new Date(Date.now() + CHALLENGE_TTL_MS),
+            },
+            update: {
+                challenge,
+                expires_at: new Date(Date.now() + CHALLENGE_TTL_MS),
+                created_at: new Date(),
+            },
+        });
     }
 
     private async consumeChallenge(userId: string, purpose: string): Promise<string> {
-        const row = await this.prisma.webAuthnChallenges.findFirst({
-            where: {user_id: userId, purpose},
-            orderBy: {created_at: "desc"},
-        });
-        if (!row) throw new UnauthorizedException("No pending WebAuthn challenge");
-        await this.prisma.webAuthnChallenges.deleteMany({where: {user_id: userId, purpose}});
+        let row;
+        try {
+            row = await this.prisma.webAuthnChallenges.delete({
+                where: {user_id_purpose: {user_id: userId, purpose}},
+            });
+        } catch {
+            throw new UnauthorizedException("No pending WebAuthn challenge");
+        }
         if (row.expires_at.getTime() < Date.now()) {
             throw new UnauthorizedException("WebAuthn challenge expired");
         }

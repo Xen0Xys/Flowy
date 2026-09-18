@@ -42,6 +42,7 @@ describe("MfaController (e2e)", () => {
     });
 
     beforeEach(async () => {
+        await prisma.mfaChallengeTokens.deleteMany();
         await prisma.webAuthnChallenges.deleteMany();
         await prisma.userPasskeys.deleteMany();
         await prisma.mfaBackupCodes.deleteMany();
@@ -171,30 +172,168 @@ describe("MfaController (e2e)", () => {
         expect(verify.status).toBe(401);
     });
 
-    test("backup code verify auto-disables MFA and next login skips challenge", async () => {
+    test("backup code verify consumes only the presented code and keeps MFA enabled", async () => {
         const user = await registerUser(server);
         const {backupCodes} = await setupMfa(user.token, user.password);
 
-        const code = backupCodes[0]!;
+        const [code1, code2] = backupCodes;
 
         const login1 = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
         const verify1 = await agent
             .post("/auth/mfa/backup-codes/verify")
-            .send({challengeToken: login1.body.challengeToken, code});
+            .send({challengeToken: login1.body.challengeToken, code: code1});
         expect(verify1.status).toBe(201);
-        expect(verify1.body.mfaAutoDisabled).toBe(true);
+        expect(verify1.body.mfaAutoDisabled).toBe(false);
         expect(typeof verify1.body.token).toBe("string");
 
         const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
-        expect(dbUser?.mfa_enabled).toBe(false);
+        expect(dbUser?.mfa_enabled).toBe(true);
         const totpRow = await prisma.userTotpSecret.findUnique({where: {user_id: user.user.id}});
-        expect(totpRow).toBeNull();
-        const remainingCodes = await prisma.mfaBackupCodes.count({where: {user_id: user.user.id}});
-        expect(remainingCodes).toBe(0);
+        expect(totpRow).not.toBeNull();
 
+        const usedCodes = await prisma.mfaBackupCodes.count({
+            where: {user_id: user.user.id, used_at: {not: null}},
+        });
+        expect(usedCodes).toBe(1);
+        const remainingCodes = await prisma.mfaBackupCodes.count({
+            where: {user_id: user.user.id, used_at: null},
+        });
+        expect(remainingCodes).toBe(backupCodes.length - 1);
+
+        // Next login still returns a challenge
         const login2 = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
-        expect(login2.body.mfaRequired).toBeUndefined();
-        expect(typeof login2.body.token).toBe("string");
+        expect(login2.body.mfaRequired).toBe(true);
+        expect(typeof login2.body.challengeToken).toBe("string");
+
+        // Second backup code still works
+        const verify2 = await agent
+            .post("/auth/mfa/backup-codes/verify")
+            .send({challengeToken: login2.body.challengeToken, code: code2});
+        expect(verify2.status).toBe(201);
+        expect(typeof verify2.body.token).toBe("string");
+
+        // Same consumed code #1 is rejected on a fresh challenge
+        const login3 = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
+        const verify3 = await agent
+            .post("/auth/mfa/backup-codes/verify")
+            .send({challengeToken: login3.body.challengeToken, code: code1});
+        expect(verify3.status).toBe(401);
+    });
+
+    test("challenge token is single-use: replay after success is rejected", async () => {
+        const user = await registerUser(server);
+        const {secret} = await setupMfa(user.token, user.password);
+        await prisma.userTotpSecret.update({
+            where: {user_id: user.user.id},
+            data: {last_used_step: null},
+        });
+
+        const login = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+        const code = totp.generate();
+
+        const verify1 = await agent
+            .post("/auth/mfa/totp/verify")
+            .send({challengeToken: login.body.challengeToken, code});
+        expect(verify1.status).toBe(201);
+
+        // Replaying the same challenge token is rejected because the DB row
+        // was deleted on the first successful verify.
+        const verify2 = await agent
+            .post("/auth/mfa/totp/verify")
+            .send({challengeToken: login.body.challengeToken, code});
+        expect(verify2.status).toBe(401);
+    });
+
+    test("challenge token is invalidated after 5 wrong attempts", async () => {
+        const user = await registerUser(server);
+        await setupMfa(user.token, user.password);
+
+        const login = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
+        const token = login.body.challengeToken as string;
+
+        for (let i = 0; i < 4; i++) {
+            // oxlint-disable-next-line no-await-in-loop -- sequential to exercise attempt counter decrement
+            const r = await agent.post("/auth/mfa/totp/verify").send({challengeToken: token, code: "000000"});
+            expect(r.status).toBe(401);
+        }
+
+        // 5th attempt exhausts the token and deletes the DB row.
+        const fifth = await agent.post("/auth/mfa/totp/verify").send({challengeToken: token, code: "000000"});
+        expect(fifth.status).toBe(401);
+
+        const remaining = await prisma.mfaChallengeTokens.count({where: {user_id: user.user.id}});
+        expect(remaining).toBe(0);
+
+        // Any further use of the same token, even with a correct format, is rejected.
+        const sixth = await agent.post("/auth/mfa/totp/verify").send({challengeToken: token, code: "000000"});
+        expect(sixth.status).toBe(401);
+    });
+
+    test("cross-user challenge token is rejected", async () => {
+        const alice = await registerUser(server);
+        const bob = await registerUser(server);
+        await setupMfa(alice.token, alice.password);
+        await setupMfa(bob.token, bob.password);
+
+        const loginAlice = await agent.post("/auth/login").send({email: alice.user.email, password: alice.password});
+        // Forge a JWT that pretends Bob signed Alice's challenge: since jti is
+        // bound to Alice's row, it cannot be replayed against Bob's account.
+        const forged = loginAlice.body.challengeToken as string;
+        const verify = await agent
+            .post("/auth/mfa/backup-codes/verify")
+            .send({challengeToken: forged, code: "AAAAAAAA"});
+        // Wrong code against Alice's challenge -> 401 (not a match to Bob's factors).
+        expect(verify.status).toBe(401);
+
+        const usedByAlice = await prisma.mfaBackupCodes.count({
+            where: {user_id: alice.user.id, used_at: {not: null}},
+        });
+        const usedByBob = await prisma.mfaBackupCodes.count({
+            where: {user_id: bob.user.id, used_at: {not: null}},
+        });
+        expect(usedByAlice).toBe(0);
+        expect(usedByBob).toBe(0);
+    });
+
+    test("expired challenge token is rejected", async () => {
+        const user = await registerUser(server);
+        const {secret} = await setupMfa(user.token, user.password);
+
+        const login = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+
+        await prisma.mfaChallengeTokens.updateMany({
+            where: {user_id: user.user.id},
+            data: {expires_at: new Date(Date.now() - 1_000)},
+        });
+
+        const verify = await agent
+            .post("/auth/mfa/totp/verify")
+            .send({challengeToken: login.body.challengeToken, code: totp.generate()});
+        expect(verify.status).toBe(401);
+    });
+
+    test("MFA verify rotates jwt_id so old tokens are invalidated", async () => {
+        const user = await registerUser(server);
+        const {secret} = await setupMfa(user.token, user.password);
+        const preMfaToken = user.token;
+
+        await prisma.userTotpSecret.update({
+            where: {user_id: user.user.id},
+            data: {last_used_step: null},
+        });
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+
+        const login = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
+        const verify = await agent
+            .post("/auth/mfa/totp/verify")
+            .send({challengeToken: login.body.challengeToken, code: totp.generate()});
+        expect(verify.status).toBe(201);
+
+        // The pre-MFA token (from initial registration) is now invalid.
+        const check = await agent.get("/user/me").set("Authorization", `Bearer ${preMfaToken}`);
+        expect(check.status).toBe(401);
     });
 
     test("confirmTotpSetup preserves backup codes when a passkey is already enrolled", async () => {
@@ -360,7 +499,7 @@ describe("MfaController (e2e)", () => {
         expect(stored).not.toBeNull();
     });
 
-    test("admin can reset another user's MFA", async () => {
+    test("admin can reset another user's MFA when admin has no MFA", async () => {
         const owner = await registerUser(server);
         const other = await registerUser(server);
         await setupMfa(other.token, other.password);
@@ -386,5 +525,52 @@ describe("MfaController (e2e)", () => {
         expect(login.status).toBe(201);
         expect(login.body.mfaRequired).toBeUndefined();
         expect(typeof login.body.token).toBe("string");
+    });
+
+    test("admin cannot reset their own MFA via the admin endpoint", async () => {
+        const owner = await registerUser(server);
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        const reset = await agent
+            .delete(`/admin/users/${owner.user.id}/mfa`)
+            .set("Authorization", `Bearer ${owner.token}`)
+            .send({currentPassword: owner.password});
+        expect(reset.status).toBe(401);
+    });
+
+    test("admin with MFA must provide a factor proof to reset another user", async () => {
+        const owner = await registerUser(server);
+        const other = await registerUser(server);
+        const {token: ownerAfterMfa, secret: ownerSecret} = await setupMfa(owner.token, owner.password);
+        await setupMfa(other.token, other.password);
+
+        await prisma.config.upsert({
+            where: {key: "INSTANCE_OWNER" as any},
+            update: {value: owner.user.id},
+            create: {key: "INSTANCE_OWNER" as any, value: owner.user.id},
+        });
+
+        // Without a code the reset is rejected.
+        const missing = await agent
+            .delete(`/admin/users/${other.user.id}/mfa`)
+            .set("Authorization", `Bearer ${ownerAfterMfa}`)
+            .send({currentPassword: owner.password});
+        expect(missing.status).toBe(400);
+
+        // With a valid TOTP code it goes through.
+        await prisma.userTotpSecret.update({
+            where: {user_id: owner.user.id},
+            data: {last_used_step: null},
+        });
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(ownerSecret), digits: 6, period: 30});
+        const withProof = await agent
+            .delete(`/admin/users/${other.user.id}/mfa`)
+            .set("Authorization", `Bearer ${ownerAfterMfa}`)
+            .send({currentPassword: owner.password, code: totp.generate()});
+        expect(withProof.status).toBe(204);
     });
 });

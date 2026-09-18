@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import {computed, onBeforeMount, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
+import {toast} from "vue-sonner";
 import {useRouter} from "#app";
-import {useAuthStore, type MfaMethod} from "@/stores/auth.store";
+import {MfaChallengeExpiredError, useAuthStore, type MfaMethod} from "@/stores/auth.store";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {PinInput, PinInputGroup, PinInputSeparator, PinInputSlot} from "@/components/ui/pin-input";
@@ -47,7 +48,10 @@ onBeforeMount(async () => {
     else if (canUseBackup.value) activeMethod.value = "backup_code";
     else if (canUsePasskey.value) activeMethod.value = "passkey";
 
-    if (canUsePasskey.value && !passkeyAttempted.value) {
+    // Auto-invoke the passkey ceremony only when no other method is available;
+    // otherwise let the user opt in via the "Use a passkey" button so we do not
+    // disrupt keyboard focus on the pin input.
+    if (canUsePasskey.value && !canUseTotp.value && !canUseBackup.value && !passkeyAttempted.value) {
         passkeyAttempted.value = true;
         void submitPasskey();
     }
@@ -68,7 +72,12 @@ async function submit() {
         } else {
             await router.push("/");
         }
-    } catch {
+    } catch (err) {
+        if (err instanceof MfaChallengeExpiredError) {
+            toast.error(t("auth.mfa.errors.challengeExpired"));
+            await router.replace("/auth/login");
+            return;
+        }
         totpDigits.value = [];
         backupCode.value = "";
     } finally {
@@ -82,8 +91,12 @@ async function submitPasskey() {
     try {
         await store.verifyMfaPasskey();
         await router.push("/");
-    } catch {
-        // toast already handled unless it was a cancellation
+    } catch (err) {
+        if (err instanceof MfaChallengeExpiredError) {
+            toast.error(t("auth.mfa.errors.challengeExpired"));
+            await router.replace("/auth/login");
+        }
+        // Cancellation or invalid-code cases already toasted upstream.
     } finally {
         passkeyLoading.value = false;
     }

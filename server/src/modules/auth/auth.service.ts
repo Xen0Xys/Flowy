@@ -7,13 +7,13 @@ import {UserEntity} from "../users/user/models/entities/user.entity";
 import {LoginUserEntity} from "../users/user/models/entities/login-user.entity";
 import {MfaChallengeEntity} from "./mfa/models/entities/mfa-challenge.entity";
 import type {MfaMethod} from "./mfa/mfa-factor.interface";
+import {MFA_CHALLENGE_AUDIENCE, MFA_CHALLENGE_EXPIRES_IN, MFA_CHALLENGE_MAX_ATTEMPTS} from "./mfa/mfa.constants";
 import {InstanceConfigService} from "../helper/instance-config.service";
 import {PrismaService} from "../helper/prisma.service";
 
 export type LoginResponse = LoginUserEntity | MfaChallengeEntity;
 
-const MFA_CHALLENGE_AUDIENCE = "MFA_CHALLENGE";
-const MFA_CHALLENGE_EXPIRES_IN = "5m";
+const MFA_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -135,9 +135,20 @@ export class AuthService {
     }
 
     private async generateMfaChallengeToken(userId: string): Promise<string> {
+        // Persist a per-challenge row so we can enforce single-use and cap the
+        // number of attempts. The jti in the JWT is the row primary key.
+        const jti = crypto.randomUUID();
+        await this.prismaService.mfaChallengeTokens.create({
+            data: {
+                id: jti,
+                user_id: userId,
+                attempts_remaining: MFA_CHALLENGE_MAX_ATTEMPTS,
+                expires_at: new Date(Date.now() + MFA_CHALLENGE_TTL_MS),
+            },
+        });
         return this.jwtService.signAsync(
             {sub: userId},
-            {audience: MFA_CHALLENGE_AUDIENCE, expiresIn: MFA_CHALLENGE_EXPIRES_IN},
+            {audience: MFA_CHALLENGE_AUDIENCE, expiresIn: MFA_CHALLENGE_EXPIRES_IN, jwtid: jti},
         );
     }
 

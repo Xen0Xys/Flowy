@@ -8,12 +8,12 @@ export class WebAuthnConfigService {
     private readonly _origins: string[];
 
     constructor() {
-        const rawOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
+        const rawOrigins = (process.env.WEBAUTHN_ORIGINS ?? process.env.CORS_ORIGINS ?? "http://localhost:3000")
             .split(",")
             .map((o) => o.trim())
             .filter(Boolean);
         if (rawOrigins.length === 0) {
-            throw new Error("CORS_ORIGINS must contain at least one origin for WebAuthn");
+            throw new Error("WEBAUTHN_ORIGINS (or CORS_ORIGINS) must contain at least one origin for WebAuthn");
         }
         this._origins = rawOrigins;
 
@@ -21,6 +21,11 @@ export class WebAuthnConfigService {
         if (explicitRpID) {
             this._rpID = explicitRpID;
         } else {
+            if (process.env.NODE_ENV === "production") {
+                throw new Error(
+                    "WEBAUTHN_RP_ID must be set explicitly in production; changing it invalidates every existing passkey",
+                );
+            }
             try {
                 this._rpID = new URL(rawOrigins[0]!).hostname;
             } catch {
@@ -28,7 +33,7 @@ export class WebAuthnConfigService {
             }
         }
 
-        this._rpName = process.env.APP_NAME || "Flowy";
+        this._rpName = process.env.WEBAUTHN_RP_NAME?.trim() || process.env.APP_NAME || "Flowy";
         this.logger.log(`WebAuthn RP configured id=${this._rpID} origins=${this._origins.join(",")}`);
     }
 

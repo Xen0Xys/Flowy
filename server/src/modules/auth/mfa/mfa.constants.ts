@@ -1,0 +1,3 @@
+export const MFA_CHALLENGE_AUDIENCE = "MFA_CHALLENGE";
+export const MFA_CHALLENGE_EXPIRES_IN = "5m";
+export const MFA_CHALLENGE_MAX_ATTEMPTS = 5;

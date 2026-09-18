@@ -13,6 +13,10 @@ import {
 } from "@nestjs/common";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {Throttle} from "@nestjs/throttler";
+import type {
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/server";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {User} from "../../../common/decorators/user.decorator";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
@@ -20,6 +24,7 @@ import {MfaService} from "./mfa.service";
 import {MfaTotpSetupDto} from "./models/dto/mfa-totp-setup.dto";
 import {MfaTotpConfirmDto} from "./models/dto/mfa-totp-confirm.dto";
 import {MfaDisableDto} from "./models/dto/mfa-disable.dto";
+import {MfaRemoveTotpDto} from "./models/dto/mfa-remove-totp.dto";
 import {MfaRegenerateCodesDto} from "./models/dto/mfa-regenerate-codes.dto";
 import {MfaVerifyDto} from "./models/dto/mfa-verify.dto";
 import {MfaPasskeyRegisterOptionsDto} from "./models/dto/mfa-passkey-register-options.dto";
@@ -71,11 +76,8 @@ export class MfaController {
     @Throttle({default: {limit: 5, ttl: 60_000}})
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiBearerAuth()
-    async removeTotp(@User() user: UserEntity, @Body() body: MfaDisableDto): Promise<void> {
-        await this.mfaService.removeTotpFactor(user, body.currentPassword, {
-            code: body.code,
-            passkeyResponse: body.passkeyResponse,
-        });
+    async removeTotp(@User() user: UserEntity, @Body() body: MfaRemoveTotpDto): Promise<void> {
+        await this.mfaService.removeTotpFactor(user, body.currentPassword, body.code);
     }
 
     @Delete()
@@ -129,7 +131,10 @@ export class MfaController {
     @UseGuards(JwtAuthGuard)
     @Throttle({default: {limit: 5, ttl: 60_000}})
     @ApiBearerAuth()
-    async passkeyRegisterOptions(@User() user: UserEntity, @Body() body: MfaPasskeyRegisterOptionsDto) {
+    async passkeyRegisterOptions(
+        @User() user: UserEntity,
+        @Body() body: MfaPasskeyRegisterOptionsDto,
+    ): Promise<PublicKeyCredentialCreationOptionsJSON> {
         return this.mfaService.startPasskeyRegistration(user, body.currentPassword);
     }
 
@@ -172,12 +177,14 @@ export class MfaController {
         @Param("id", new ParseUUIDPipe()) id: string,
         @Body() body: MfaPasskeyDeleteDto,
     ): Promise<void> {
-        await this.mfaService.deletePasskey(user, id, body.currentPassword);
+        await this.mfaService.deletePasskey(user, id, body.currentPassword, body.passkeyResponse);
     }
 
     @Post("passkey/challenge/options")
     @Throttle({default: {limit: 10, ttl: 60_000}})
-    async passkeyChallengeOptions(@Body() body: MfaPasskeyChallengeOptionsDto) {
+    async passkeyChallengeOptions(
+        @Body() body: MfaPasskeyChallengeOptionsDto,
+    ): Promise<PublicKeyCredentialRequestOptionsJSON> {
         return this.mfaService.startPasskeyChallenge(body.challengeToken);
     }
 
@@ -191,7 +198,7 @@ export class MfaController {
     @UseGuards(JwtAuthGuard)
     @Throttle({default: {limit: 10, ttl: 60_000}})
     @ApiBearerAuth()
-    async passkeySettingsOptions(@User() user: UserEntity) {
+    async passkeySettingsOptions(@User() user: UserEntity): Promise<PublicKeyCredentialRequestOptionsJSON> {
         return this.mfaService.startPasskeySettingsChallenge(user);
     }
 }

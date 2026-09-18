@@ -11,7 +11,6 @@ import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import crypto from "node:crypto";
 import request from "supertest";
-import * as OTPAuth from "otpauth";
 import {createCsrfAgent, ensureInstanceConfig, registerUser} from "./test-utils";
 
 describe("Passkey MFA (e2e)", () => {
@@ -42,6 +41,7 @@ describe("Passkey MFA (e2e)", () => {
     });
 
     beforeEach(async () => {
+        await prisma.mfaChallengeTokens.deleteMany();
         await prisma.webAuthnChallenges.deleteMany();
         await prisma.userPasskeys.deleteMany();
         await prisma.mfaBackupCodes.deleteMany();
@@ -83,20 +83,6 @@ describe("Passkey MFA (e2e)", () => {
         return {id: created.id, credentialId};
     }
 
-    async function setupTotp(token: string, password: string): Promise<{secret: string; token: string}> {
-        const setup = await agent
-            .post("/auth/mfa/totp/setup")
-            .set("Authorization", `Bearer ${token}`)
-            .send({currentPassword: password});
-        const secret = setup.body.secret as string;
-        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
-        const confirm = await agent
-            .post("/auth/mfa/totp/setup/confirm")
-            .set("Authorization", `Bearer ${token}`)
-            .send({code: totp.generate()});
-        return {secret, token: confirm.body.token as string};
-    }
-
     test("register/options rejects with wrong password", async () => {
         const user = await registerUser(server);
         const response = await agent
@@ -115,7 +101,9 @@ describe("Passkey MFA (e2e)", () => {
         expect(response.status).toBe(201);
         expect(typeof response.body.challenge).toBe("string");
         expect(response.body.rp.id).toBeTruthy();
-        expect(response.body.user.name).toBe(user.user.email);
+        expect(response.body.user.name).toBe(user.user.username);
+        expect(response.body.user.displayName).toBe(user.user.email);
+        expect(response.body.authenticatorSelection.userVerification).toBe("required");
 
         const stored = await prisma.webAuthnChallenges.findFirst({where: {user_id: user.user.id}});
         expect(stored?.purpose).toBe("registration");
@@ -148,6 +136,14 @@ describe("Passkey MFA (e2e)", () => {
         expect(row?.label).toBe("MacBook Pro");
     });
 
+    const fakePasskeyAssertion = {
+        id: "fake",
+        rawId: "fake",
+        response: {clientDataJSON: "e30", authenticatorData: "e30", signature: "e30"},
+        type: "public-key",
+        clientExtensionResults: {},
+    } as const;
+
     test("DELETE rejects with wrong password", async () => {
         const user = await registerUser(server);
         const {id} = await seedPasskey(user.user.id);
@@ -155,11 +151,11 @@ describe("Passkey MFA (e2e)", () => {
         const response = await agent
             .delete(`/auth/mfa/passkey/${id}`)
             .set("Authorization", `Bearer ${user.token}`)
-            .send({currentPassword: "wrong"});
+            .send({currentPassword: "wrong", passkeyResponse: fakePasskeyAssertion});
         expect(response.status).toBe(403);
     });
 
-    test("DELETE removes passkey and auto-disables MFA when no other factor remains", async () => {
+    test("DELETE rejects when passkeyResponse is missing (per-factor proof)", async () => {
         const user = await registerUser(server);
         const {id} = await seedPasskey(user.user.id);
 
@@ -167,27 +163,30 @@ describe("Passkey MFA (e2e)", () => {
             .delete(`/auth/mfa/passkey/${id}`)
             .set("Authorization", `Bearer ${user.token}`)
             .send({currentPassword: user.password});
-        expect(response.status).toBe(204);
+        expect(response.status).toBe(400);
 
-        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
-        expect(dbUser?.mfa_enabled).toBe(false);
-        const remaining = await prisma.userPasskeys.count({where: {user_id: user.user.id}});
-        expect(remaining).toBe(0);
+        // Passkey is still present because we short-circuited on validation.
+        const remaining = await prisma.userPasskeys.count({where: {id}});
+        expect(remaining).toBe(1);
     });
 
-    test("DELETE keeps MFA enabled when TOTP is still configured", async () => {
+    test("DELETE rejects an invalid passkey assertion", async () => {
         const user = await registerUser(server);
-        const {token: rotatedToken} = await setupTotp(user.token, user.password);
         const {id} = await seedPasskey(user.user.id);
+
+        // A settings-verify challenge must exist for the consume step to reach
+        // the WebAuthn verifier, otherwise the request 401s at "No pending
+        // WebAuthn challenge". This still exercises the per-factor proof gate.
+        await agent.post("/auth/mfa/passkey/settings/options").set("Authorization", `Bearer ${user.token}`).send({});
 
         const response = await agent
             .delete(`/auth/mfa/passkey/${id}`)
-            .set("Authorization", `Bearer ${rotatedToken}`)
-            .send({currentPassword: user.password});
-        expect(response.status).toBe(204);
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password, passkeyResponse: fakePasskeyAssertion});
+        expect(response.status).toBe(401);
 
-        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
-        expect(dbUser?.mfa_enabled).toBe(true);
+        const remaining = await prisma.userPasskeys.count({where: {id}});
+        expect(remaining).toBe(1);
     });
 
     test("login exposes passkey in methods when enrolled", async () => {

@@ -82,15 +82,20 @@ export class TotpFactorService implements CodeMfaFactor {
         const step = this.validateCode(secret, code);
         if (step === null) return false;
 
-        if (row.last_used_step !== null && BigInt(step) <= row.last_used_step) {
+        // Atomic replay guard: only succeed if we can strictly increase the
+        // stored step. Concurrent calls with the same code race on updateMany
+        // and only one will observe count === 1.
+        const result = await this.prisma.userTotpSecret.updateMany({
+            where: {
+                user_id: userId,
+                OR: [{last_used_step: null}, {last_used_step: {lt: BigInt(step)}}],
+            },
+            data: {last_used_step: BigInt(step)},
+        });
+        if (result.count !== 1) {
             this.logger.warn(`Replay detected user=${userId} step=${step}`);
             return false;
         }
-
-        await this.prisma.userTotpSecret.update({
-            where: {user_id: userId},
-            data: {last_used_step: BigInt(step)},
-        });
         return true;
     }
 

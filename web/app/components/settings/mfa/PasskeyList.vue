@@ -6,14 +6,14 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import PasskeyRegisterDialog from "./PasskeyRegisterDialog.vue";
-import {useMfa, type PasskeyResponse} from "@/composables/useMfa";
+import {PasskeyCancelledError, useMfa, type PasskeyResponse} from "@/composables/useMfa";
 
 const emit = defineEmits<{
     (e: "changed"): void;
 }>();
 
 const {t, d} = useI18n();
-const {listPasskeys, renamePasskey, deletePasskey} = useMfa();
+const {listPasskeys, renamePasskey, deletePasskey, getPasskeySettingsAssertion} = useMfa();
 
 const passkeys = ref<PasskeyResponse[]>([]);
 const loadingList = ref(false);
@@ -66,14 +66,20 @@ async function confirmRename(passkey: PasskeyResponse) {
 
 async function confirmDelete(currentPassword: string) {
     if (!deleteTargetId.value) return;
-    deletingId.value = deleteTargetId.value;
+    const targetId = deleteTargetId.value;
+    deletingId.value = targetId;
     try {
-        await deletePasskey(deleteTargetId.value, currentPassword);
-        passkeys.value = passkeys.value.filter((p) => p.id !== deleteTargetId.value);
+        const assertion = await getPasskeySettingsAssertion();
+        await deletePasskey(targetId, currentPassword, assertion);
+        passkeys.value = passkeys.value.filter((p) => p.id !== targetId);
         deleteTargetId.value = null;
         emit("changed");
-    } catch {
-        // toast handled in composable
+    } catch (err) {
+        if (err instanceof PasskeyCancelledError) {
+            // Silent cancel, keep dialog open so the user can retry.
+            return;
+        }
+        // Other errors already toasted in composable.
     } finally {
         deletingId.value = null;
     }

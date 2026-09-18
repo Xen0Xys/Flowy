@@ -4,7 +4,7 @@ import {ConfigKey, UserRoles} from "../../../prisma/generated/enums";
 import {PrismaService} from "../helper/prisma.service";
 import {UserService} from "../users/user/user.service";
 import {UserEntity} from "../users/user/models/entities/user.entity";
-import {MfaService} from "../auth/mfa/mfa.service";
+import {MfaService, SensitiveActionProof} from "../auth/mfa/mfa.service";
 
 @Injectable()
 export class AdminService {
@@ -102,8 +102,27 @@ export class AdminService {
         this.logger.log(`actor=${currentUser.id} action=admin.setUserPassword target=${targetUserId}`);
     }
 
-    async resetUserMfa(currentUser: UserEntity, targetUserId: string, currentPassword: string): Promise<void> {
+    async resetUserMfa(
+        currentUser: UserEntity,
+        targetUserId: string,
+        currentPassword: string,
+        proof: SensitiveActionProof,
+    ): Promise<void> {
+        // Q4: an admin must not reset their own MFA via the admin endpoint;
+        // the self-service /auth/mfa flow (with proof) is the only path.
+        if (targetUserId === currentUser.id) {
+            throw new UnauthorizedException("Use /auth/mfa endpoints for your own MFA");
+        }
+
         await this.userService.verifyPassword(currentUser, currentPassword);
+
+        // If the admin itself has MFA enabled, require a fresh factor proof so
+        // password-only compromise of the admin cannot silently strip other
+        // users' MFA.
+        if (await this.mfaService.hasMfaEnabled(currentUser.id)) {
+            await this.mfaService.verifyAnyFactor(currentUser.id, proof);
+        }
+
         const target = await this.prisma.users.findUnique({where: {id: targetUserId}});
         if (!target) throw new NotFoundException("User not found");
         await this.mfaService.resetForUser(targetUserId);

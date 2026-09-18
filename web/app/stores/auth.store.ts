@@ -22,7 +22,27 @@ export type MfaChallenge = {
     methods: MfaMethod[];
 };
 
+export class MfaChallengeExpiredError extends Error {
+    constructor(message?: string) {
+        super(message ?? "MFA challenge expired");
+        this.name = "MfaChallengeExpiredError";
+    }
+}
+
 const COOKIE_TOKEN_KEY = "flowy:token";
+
+function isExpiredChallengeError(err: unknown): boolean {
+    const status =
+        (err as {statusCode?: number; status?: number; response?: {status?: number}} | null)?.statusCode ??
+        (err as {status?: number} | null)?.status ??
+        (err as {response?: {status?: number}} | null)?.response?.status;
+    if (status !== 401) return false;
+    const message =
+        (err as {data?: {message?: string}; message?: string} | null)?.data?.message ??
+        (err as {message?: string} | null)?.message ??
+        "";
+    return typeof message === "string" && /challenge/i.test(message);
+}
 
 export const useAuthStore = defineStore("auth", {
     state: () => ({
@@ -44,7 +64,8 @@ export const useAuthStore = defineStore("auth", {
                     maxAge: 60 * 60 * 24 * 30,
                     path: "/",
                     sameSite: "lax",
-                } as any);
+                    secure: import.meta.env.PROD,
+                });
                 cookie.value = token;
             } catch {
                 return;
@@ -92,6 +113,7 @@ export const useAuthStore = defineStore("auth", {
 
         async login(credentials: LoginCredentials): Promise<{mfaRequired: boolean}> {
             const {apiFetch} = useApi();
+            this.mfaChallenge = null;
             try {
                 const data = await apiFetch<any>("/auth/login", {
                     method: "POST",
@@ -133,7 +155,7 @@ export const useAuthStore = defineStore("auth", {
                 return this.verifyMfaPasskey();
             }
             if (!this.mfaChallenge) {
-                throw new Error(i18nT("auth.mfa.errors.noChallenge"));
+                throw new MfaChallengeExpiredError(i18nT("auth.mfa.errors.noChallenge"));
             }
             const {apiFetch} = useApi();
             const endpoint = payload.method === "totp" ? "/auth/mfa/totp/verify" : "/auth/mfa/backup-codes/verify";
@@ -161,6 +183,10 @@ export const useAuthStore = defineStore("auth", {
                 }
                 return {mfaAutoDisabled};
             } catch (err: any) {
+                if (isExpiredChallengeError(err)) {
+                    this.mfaChallenge = null;
+                    throw new MfaChallengeExpiredError();
+                }
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.mfa.errors.invalidCode");
                 toast.error(message);
                 throw new Error(message, {cause: err});
@@ -169,7 +195,7 @@ export const useAuthStore = defineStore("auth", {
 
         async verifyMfaPasskey(): Promise<{mfaAutoDisabled: boolean}> {
             if (!this.mfaChallenge) {
-                throw new Error(i18nT("auth.mfa.errors.noChallenge"));
+                throw new MfaChallengeExpiredError(i18nT("auth.mfa.errors.noChallenge"));
             }
             const {apiFetch} = useApi();
             const challengeToken = this.mfaChallenge.challengeToken;
@@ -197,6 +223,10 @@ export const useAuthStore = defineStore("auth", {
                 if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
                     // User cancelled the passkey prompt: silent no-op so they can retry.
                     throw err;
+                }
+                if (isExpiredChallengeError(err)) {
+                    this.mfaChallenge = null;
+                    throw new MfaChallengeExpiredError();
                 }
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.mfa.errors.invalidCode");
                 toast.error(message);

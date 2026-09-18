@@ -10,15 +10,15 @@ import {BackupCodeFactorService} from "./factors/backup-code-factor.service";
 import {PasskeyFactorService, PasskeySummary} from "./factors/passkey-factor.service";
 import type {
     AuthenticationResponseJSON,
+    PublicKeyCredentialCreationOptionsJSON,
     PublicKeyCredentialRequestOptionsJSON,
     RegistrationResponseJSON,
 } from "@simplewebauthn/server";
-import type {MfaMethod} from "./mfa-factor.interface";
-
-const MFA_CHALLENGE_AUDIENCE = "MFA_CHALLENGE";
+import {MFA_CHALLENGE_AUDIENCE} from "./mfa.constants";
 
 interface MfaChallengePayload {
     sub: string;
+    jti?: string;
     aud?: string;
 }
 
@@ -26,6 +26,13 @@ export interface SensitiveActionProof {
     code?: string;
     passkeyResponse?: AuthenticationResponseJSON;
 }
+
+interface ChallengeSession {
+    userId: string;
+    jti: string;
+}
+
+type CodeMethod = "totp" | "backup_code";
 
 @Injectable()
 export class MfaService {
@@ -60,14 +67,17 @@ export class MfaService {
             return {backupCodes: null, token: null};
         }
 
-        const {backupCodes, token} = await this.enableMfaAndIssueToken(user, {regenerateBackupCodes: true});
+        const {backupCodes, token} = await this.enableMfaAndIssueToken(user);
         this.logger.log(`MFA enabled user=${user.id} via=totp`);
         return {backupCodes: backupCodes ?? [], token};
     }
 
-    async removeTotpFactor(user: UserEntity, currentPassword: string, proof: SensitiveActionProof): Promise<void> {
+    async removeTotpFactor(user: UserEntity, currentPassword: string, code: string): Promise<void> {
+        // Q3: TOTP removal must be authorised by a valid TOTP code (per-factor
+        // proof); passkey assertions are handled by deletePasskey.
         await this.userService.verifyPassword(user, currentPassword);
-        await this.verifyAnyFactor(user.id, proof);
+        const ok = await this.totpFactor.verify(user.id, code);
+        if (!ok) throw new UnauthorizedException("Invalid verification code");
 
         await this.totpFactor.purge(user.id);
 
@@ -105,23 +115,21 @@ export class MfaService {
         return codes;
     }
 
-    async verifyChallenge(challengeToken: string, code: string, method: MfaMethod): Promise<MfaVerifyEntity> {
-        if (method === "passkey") {
-            throw new BadRequestException("Passkey challenges must be verified through the passkey endpoints");
-        }
-        const userId = await this.consumeChallengeToken(challengeToken);
+    async verifyChallenge(challengeToken: string, code: string, method: CodeMethod): Promise<MfaVerifyEntity> {
+        const session = await this.openChallenge(challengeToken);
         const factor = method === "totp" ? this.totpFactor : this.backupCodeFactor;
 
-        const ok = await factor.verify(userId, code);
-        if (!ok) throw new UnauthorizedException("Invalid verification code");
-
-        const mfaAutoDisabled = method === "backup_code";
-        if (mfaAutoDisabled) {
-            await this.purgeMfa(userId);
-            this.logger.log(`MFA auto-disabled after backup code login user=${userId}`);
+        const ok = await factor.verify(session.userId, code);
+        if (!ok) {
+            await this.failChallenge(session);
+            throw new UnauthorizedException("Invalid verification code");
         }
+        await this.completeChallenge(session);
 
-        return this.buildVerifyResult(userId, mfaAutoDisabled);
+        // Q1: never auto-disable MFA after backup-code login. Backup codes are a
+        // per-code recovery escape hatch, not an MFA kill switch: keep TOTP and
+        // passkeys intact.
+        return this.buildVerifyResult(session.userId);
     }
 
     async getFactors(user: UserEntity): Promise<{
@@ -149,9 +157,12 @@ export class MfaService {
         return this.passkeyFactor.listForUser(user.id);
     }
 
-    async startPasskeyRegistration(user: UserEntity, currentPassword: string) {
+    async startPasskeyRegistration(
+        user: UserEntity,
+        currentPassword: string,
+    ): Promise<PublicKeyCredentialCreationOptionsJSON> {
         await this.userService.verifyPassword(user, currentPassword);
-        return this.passkeyFactor.generateRegistrationOptions(user.id, user.email);
+        return this.passkeyFactor.generateRegistrationOptions(user.id, user.username, user.email);
     }
 
     async confirmPasskeyRegistration(
@@ -165,7 +176,7 @@ export class MfaService {
         if (wasEnabled) {
             return {passkey, token: null, backupCodes: null};
         }
-        const {backupCodes, token} = await this.enableMfaAndIssueToken(user, {regenerateBackupCodes: true});
+        const {backupCodes, token} = await this.enableMfaAndIssueToken(user);
         this.logger.log(`MFA enabled user=${user.id} via=passkey`);
         return {passkey, token, backupCodes: backupCodes ?? []};
     }
@@ -174,8 +185,19 @@ export class MfaService {
         return this.passkeyFactor.rename(user.id, passkeyId, label);
     }
 
-    async deletePasskey(user: UserEntity, passkeyId: string, currentPassword: string): Promise<void> {
+    async deletePasskey(
+        user: UserEntity,
+        passkeyId: string,
+        currentPassword: string,
+        passkeyResponse: AuthenticationResponseJSON,
+    ): Promise<void> {
+        // Q3: passkey deletion must be authorised by a passkey assertion
+        // (per-factor proof) so a stolen password alone cannot silently
+        // downgrade a user to password-only.
         await this.userService.verifyPassword(user, currentPassword);
+        const ok = await this.passkeyFactor.verifySettingsAuthentication(user.id, passkeyResponse);
+        if (!ok) throw new UnauthorizedException("Invalid passkey response");
+
         await this.passkeyFactor.delete(user.id, passkeyId);
 
         // If this was the last passkey and no TOTP is enrolled, MFA has no
@@ -197,8 +219,10 @@ export class MfaService {
 
     // Passkey login flow
 
-    async startPasskeyChallenge(challengeToken: string) {
-        const userId = await this.peekChallengeToken(challengeToken);
+    async startPasskeyChallenge(challengeToken: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
+        // Peek without consuming: /passkey/challenge/options is idempotent, the
+        // client may retry it before /verify.
+        const {userId} = await this.peekChallenge(challengeToken);
         return this.passkeyFactor.generateAuthenticationOptions(userId);
     }
 
@@ -206,10 +230,14 @@ export class MfaService {
         challengeToken: string,
         response: AuthenticationResponseJSON,
     ): Promise<MfaVerifyEntity> {
-        const userId = await this.consumeChallengeToken(challengeToken);
-        const ok = await this.passkeyFactor.verifyAuthentication(userId, response);
-        if (!ok) throw new UnauthorizedException("Invalid passkey response");
-        return this.buildVerifyResult(userId, false);
+        const session = await this.openChallenge(challengeToken);
+        const ok = await this.passkeyFactor.verifyAuthentication(session.userId, response);
+        if (!ok) {
+            await this.failChallenge(session);
+            throw new UnauthorizedException("Invalid passkey response");
+        }
+        await this.completeChallenge(session);
+        return this.buildVerifyResult(session.userId);
     }
 
     async resetForUser(userId: string): Promise<void> {
@@ -218,31 +246,33 @@ export class MfaService {
         await this.authService.invalidateTokens(UserService.toUserEntity(user));
     }
 
-    private async verifyAnyFactor(userId: string, proof: SensitiveActionProof): Promise<void> {
-        if (!proof.code && !proof.passkeyResponse) {
-            throw new BadRequestException("A verification code or a passkey response is required");
-        }
+    async hasMfaEnabled(userId: string): Promise<boolean> {
+        const user = await this.prisma.users.findUnique({where: {id: userId}, select: {mfa_enabled: true}});
+        return user?.mfa_enabled === true;
+    }
 
+    async verifyAnyFactor(userId: string, proof: SensitiveActionProof): Promise<void> {
         if (proof.passkeyResponse) {
             const ok = await this.passkeyFactor.verifySettingsAuthentication(userId, proof.passkeyResponse);
             if (!ok) throw new UnauthorizedException("Invalid passkey response");
             return;
         }
 
-        const totpOk = await this.totpFactor.verify(userId, proof.code!);
+        if (!proof.code) {
+            throw new BadRequestException("A verification code or a passkey response is required");
+        }
+
+        const totpOk = await this.totpFactor.verify(userId, proof.code);
         if (totpOk) return;
 
-        const backupOk = await this.backupCodeFactor.verify(userId, proof.code!);
+        const backupOk = await this.backupCodeFactor.verify(userId, proof.code);
         if (backupOk) return;
 
         throw new UnauthorizedException("Invalid verification code");
     }
 
-    private async enableMfaAndIssueToken(
-        user: UserEntity,
-        opts: {regenerateBackupCodes: boolean},
-    ): Promise<{token: string; backupCodes: string[] | null}> {
-        const backupCodes = opts.regenerateBackupCodes ? await this.backupCodeFactor.generate(user.id) : null;
+    private async enableMfaAndIssueToken(user: UserEntity): Promise<{token: string; backupCodes: string[] | null}> {
+        const backupCodes = await this.backupCodeFactor.generate(user.id);
 
         await this.prisma.users.update({
             where: {id: user.id},
@@ -256,12 +286,17 @@ export class MfaService {
         return {token, backupCodes};
     }
 
-    private async buildVerifyResult(userId: string, mfaAutoDisabled: boolean): Promise<MfaVerifyEntity> {
+    private async buildVerifyResult(userId: string): Promise<MfaVerifyEntity> {
         const user = await this.prisma.users.findUnique({where: {id: userId}});
         if (!user) throw new UnauthorizedException("Invalid verification code");
-        const userEntity = UserService.toUserEntity(user);
+        let userEntity = UserService.toUserEntity(user);
+        // Rotate jwt_id after a successful MFA verification: any pre-existing
+        // session token is invalidated, so MFA acts as a hard session boundary.
+        await this.authService.invalidateTokens(userEntity);
+        const refreshed = await this.prisma.users.findUniqueOrThrow({where: {id: userId}});
+        userEntity = UserService.toUserEntity(refreshed);
         const token = await this.authService.generateToken(userEntity);
-        return new MfaVerifyEntity({user: userEntity, token, mfaAutoDisabled});
+        return new MfaVerifyEntity({user: userEntity, token, mfaAutoDisabled: false});
     }
 
     private async purgeMfa(userId: string): Promise<void> {
@@ -270,25 +305,57 @@ export class MfaService {
             this.prisma.mfaBackupCodes.deleteMany({where: {user_id: userId}}),
             this.prisma.userPasskeys.deleteMany({where: {user_id: userId}}),
             this.prisma.webAuthnChallenges.deleteMany({where: {user_id: userId}}),
+            this.prisma.mfaChallengeTokens.deleteMany({where: {user_id: userId}}),
             this.prisma.users.update({where: {id: userId}, data: {mfa_enabled: false}}),
         ]);
     }
 
-    private async consumeChallengeToken(challengeToken: string): Promise<string> {
-        return this.parseChallengeToken(challengeToken);
+    // Challenge lifecycle: parse JWT, ensure the DB row still exists and is not
+    // expired. openChallenge is used before a verify attempt so we can decrement
+    // attempts_remaining on failure and delete the row on success. peekChallenge
+    // is used by /passkey/challenge/options which does not itself consume an
+    // attempt.
+
+    private async openChallenge(challengeToken: string): Promise<ChallengeSession> {
+        const {userId, jti} = await this.parseChallengePayload(challengeToken);
+        const row = await this.prisma.mfaChallengeTokens.findUnique({where: {id: jti}});
+        if (!row || row.user_id !== userId || row.expires_at.getTime() < Date.now()) {
+            if (row) await this.prisma.mfaChallengeTokens.delete({where: {id: jti}}).catch(() => undefined);
+            throw new UnauthorizedException("Invalid or expired challenge token");
+        }
+        return {userId, jti};
     }
 
-    private async peekChallengeToken(challengeToken: string): Promise<string> {
-        return this.parseChallengeToken(challengeToken);
+    private async peekChallenge(challengeToken: string): Promise<ChallengeSession> {
+        return this.openChallenge(challengeToken);
     }
 
-    private async parseChallengeToken(challengeToken: string): Promise<string> {
+    private async completeChallenge(session: ChallengeSession): Promise<void> {
+        await this.prisma.mfaChallengeTokens.delete({where: {id: session.jti}}).catch(() => undefined);
+    }
+
+    private async failChallenge(session: ChallengeSession): Promise<void> {
+        // Atomic decrement + auto-delete when exhausted, keyed by the row id.
+        // Two racing failures cannot double-decrement past 0 because updateMany
+        // requires attempts_remaining > 1.
+        const decremented = await this.prisma.mfaChallengeTokens.updateMany({
+            where: {id: session.jti, attempts_remaining: {gt: 1}},
+            data: {attempts_remaining: {decrement: 1}},
+        });
+        if (decremented.count === 0) {
+            await this.prisma.mfaChallengeTokens.delete({where: {id: session.jti}}).catch(() => undefined);
+        }
+    }
+
+    private async parseChallengePayload(challengeToken: string): Promise<{userId: string; jti: string}> {
         try {
             const payload = await this.jwtService.verifyAsync<MfaChallengePayload>(challengeToken, {
                 audience: MFA_CHALLENGE_AUDIENCE,
             });
-            if (!payload?.sub) throw new BadRequestException("Invalid challenge token");
-            return payload.sub;
+            if (!payload?.sub || !payload.jti) {
+                throw new BadRequestException("Invalid challenge token");
+            }
+            return {userId: payload.sub, jti: payload.jti};
         } catch {
             throw new UnauthorizedException("Invalid or expired challenge token");
         }

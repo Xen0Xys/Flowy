@@ -56,19 +56,28 @@ export class BackupCodeFactorService implements CodeMfaFactor {
             where: {user_id: userId, used_at: null},
         });
 
-        const results = await Promise.all(
-            rows.map((row) => argon2.verify(row.code_hash, normalized).catch(() => false)),
-        );
-        const matched = results.reduce<string | null>(
-            (acc, ok, index) => acc ?? (ok ? (rows[index]?.id ?? null) : null),
-            null,
-        );
+        // Sequential verify with early exit: caps per-request argon2 memory to
+        // one verification at a time (prod params ~256 MiB) instead of fanning
+        // out over every stored code.
+        let matched: string | null = null;
+        for (const row of rows) {
+            // oxlint-disable-next-line no-await-in-loop -- sequential by design: caps memory to one argon2 verify at a time
+            const ok = await argon2.verify(row.code_hash, normalized).catch(() => false);
+            if (ok) {
+                matched = row.id;
+                break;
+            }
+        }
         if (!matched) return false;
 
-        await this.prisma.mfaBackupCodes.update({
-            where: {id: matched},
+        // Atomic single-use consume: reject if the row was already used by a
+        // concurrent request.
+        const result = await this.prisma.mfaBackupCodes.updateMany({
+            where: {id: matched, used_at: null},
             data: {used_at: new Date()},
         });
+        if (result.count !== 1) return false;
+
         this.logger.log(`Backup code consumed user=${userId}`);
         return true;
     }

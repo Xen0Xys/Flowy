@@ -40,7 +40,7 @@ function download() {
 <template>
     <div class="space-y-3">
         <div class="bg-muted grid grid-cols-2 gap-2 rounded-md p-4 font-mono text-sm">
-            <span v-for="c in codes" :key="c" class="tabular-nums">{{ c }}</span>
+            <span v-for="(c, i) in codes" :key="`${i}-${c}`" class="tabular-nums">{{ c }}</span>
         </div>
         <div class="flex gap-2">
             <Button size="sm" type="button" variant="outline" @click="copy">

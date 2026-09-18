@@ -1,6 +1,10 @@
 import {toast} from "vue-sonner";
 import {startAuthentication, startRegistration} from "@simplewebauthn/browser";
-import type {AuthenticationResponseJSON} from "@simplewebauthn/browser";
+import type {
+    AuthenticationResponseJSON,
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/browser";
 import {useApi} from "~/composables/useApi";
 import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
@@ -45,6 +49,25 @@ export type SensitiveActionProof =
     | {kind: "code"; code: string}
     | {kind: "passkey"; response: AuthenticationResponseJSON};
 
+export class PasskeyCancelledError extends Error {
+    constructor() {
+        super("Passkey ceremony cancelled");
+        this.name = "PasskeyCancelledError";
+    }
+}
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+    const data = (err as {data?: {message?: string}} | null)?.data;
+    if (data?.message) return data.message;
+    const message = (err as {message?: string} | null)?.message;
+    return message ?? fallback;
+}
+
+function isPasskeyCancel(err: unknown): boolean {
+    const name = (err as {name?: string} | null)?.name;
+    return name === "NotAllowedError" || name === "AbortError";
+}
+
 export function useMfa() {
     const {apiFetch} = useApi();
     const authStore = useAuthStore();
@@ -56,8 +79,8 @@ export function useMfa() {
                 method: "POST",
                 body: {currentPassword},
             });
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.setupFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.setupFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -73,8 +96,8 @@ export function useMfa() {
             if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: true};
             toast.success(i18nT("profile.mfa.toasts.enabled"));
             return response;
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.confirmFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.confirmFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -85,22 +108,29 @@ export function useMfa() {
     }
 
     async function getPasskeySettingsAssertion(): Promise<AuthenticationResponseJSON> {
-        const options = await apiFetch<any>("/auth/mfa/passkey/settings/options", {method: "POST"});
-        return startAuthentication({optionsJSON: options});
+        const options = await apiFetch<PublicKeyCredentialRequestOptionsJSON>("/auth/mfa/passkey/settings/options", {
+            method: "POST",
+        });
+        try {
+            return await startAuthentication({optionsJSON: options});
+        } catch (err: unknown) {
+            if (isPasskeyCancel(err)) throw new PasskeyCancelledError();
+            throw err;
+        }
     }
 
-    async function disableTotp(currentPassword: string, proof: SensitiveActionProof): Promise<void> {
+    async function disableTotp(currentPassword: string, code: string): Promise<void> {
         try {
             await apiFetch("/auth/mfa/totp", {
                 method: "DELETE",
-                body: {currentPassword, ...proofToBody(proof)},
+                body: {currentPassword, code},
             });
             const passkeys = userStore.user ? await safeListPasskeys() : [];
             const stillEnabled = passkeys.length > 0;
             if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: stillEnabled};
             toast.success(stillEnabled ? i18nT("profile.mfa.toasts.totpRemoved") : i18nT("profile.mfa.toasts.disabled"));
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.disableFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.disableFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -114,8 +144,8 @@ export function useMfa() {
             });
             if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: false};
             toast.success(i18nT("profile.mfa.toasts.disabled"));
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.disableFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.disableFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -129,22 +159,26 @@ export function useMfa() {
             });
             toast.success(i18nT("profile.mfa.toasts.codesRegenerated"));
             return response.codes;
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.regenerateFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.regenerateFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
     }
 
-    async function adminResetUserMfa(userId: string, currentPassword: string): Promise<void> {
+    async function adminResetUserMfa(
+        userId: string,
+        currentPassword: string,
+        proof?: SensitiveActionProof,
+    ): Promise<void> {
         try {
             await apiFetch(`/admin/users/${userId}/mfa`, {
                 method: "DELETE",
-                body: {currentPassword},
+                body: {currentPassword, ...(proof ? proofToBody(proof) : {})},
             });
             toast.success(i18nT("settings.users.mfa.toasts.reset"));
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("settings.users.mfa.errors.resetFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("settings.users.mfa.errors.resetFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -153,8 +187,8 @@ export function useMfa() {
     async function getMfaFactors(): Promise<MfaFactorsResponse> {
         try {
             return await apiFetch<MfaFactorsResponse>("/auth/mfa/factors", {method: "GET"});
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.listPasskeysFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.listPasskeysFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -163,8 +197,8 @@ export function useMfa() {
     async function listPasskeys(): Promise<PasskeyResponse[]> {
         try {
             return await apiFetch<PasskeyResponse[]>("/auth/mfa/passkey", {method: "GET"});
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.listPasskeysFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.errors.listPasskeysFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -180,10 +214,10 @@ export function useMfa() {
 
     async function registerPasskey(currentPassword: string, label: string): Promise<PasskeyRegisterResponse> {
         try {
-            const options = await apiFetch<any>("/auth/mfa/passkey/register/options", {
-                method: "POST",
-                body: {currentPassword},
-            });
+            const options = await apiFetch<PublicKeyCredentialCreationOptionsJSON>(
+                "/auth/mfa/passkey/register/options",
+                {method: "POST", body: {currentPassword}},
+            );
             const response = await startRegistration({optionsJSON: options});
             const result = await apiFetch<PasskeyRegisterResponse>("/auth/mfa/passkey/register/verify", {
                 method: "POST",
@@ -193,16 +227,16 @@ export function useMfa() {
             if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: true};
             toast.success(i18nT("profile.mfa.passkeys.toasts.registered"));
             return result;
-        } catch (err: any) {
-            if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+        } catch (err: unknown) {
+            if (isPasskeyCancel(err)) {
                 throw err;
             }
-            if (err?.name === "InvalidStateError") {
+            if ((err as {name?: string} | null)?.name === "InvalidStateError") {
                 const message = i18nT("profile.mfa.passkeys.errors.alreadyRegistered");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.passkeys.errors.registerFailed");
+            const message = extractErrorMessage(err, i18nT("profile.mfa.passkeys.errors.registerFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
@@ -216,22 +250,26 @@ export function useMfa() {
             });
             toast.success(i18nT("profile.mfa.passkeys.toasts.renamed"));
             return passkey;
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.passkeys.errors.renameFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.passkeys.errors.renameFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }
     }
 
-    async function deletePasskey(id: string, currentPassword: string): Promise<void> {
+    async function deletePasskey(
+        id: string,
+        currentPassword: string,
+        passkeyResponse: AuthenticationResponseJSON,
+    ): Promise<void> {
         try {
             await apiFetch(`/auth/mfa/passkey/${id}`, {
                 method: "DELETE",
-                body: {currentPassword},
+                body: {currentPassword, passkeyResponse},
             });
             toast.success(i18nT("profile.mfa.passkeys.toasts.deleted"));
-        } catch (err: any) {
-            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.passkeys.errors.deleteFailed");
+        } catch (err: unknown) {
+            const message = extractErrorMessage(err, i18nT("profile.mfa.passkeys.errors.deleteFailed"));
             toast.error(message);
             throw new Error(message, {cause: err});
         }

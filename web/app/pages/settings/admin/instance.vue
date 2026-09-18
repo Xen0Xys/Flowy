@@ -25,6 +25,10 @@ import {toast} from "vue-sonner";
 import {useClipboard} from "@vueuse/core";
 import {ChevronsUpDown} from "lucide-vue-next";
 
+definePageMeta({
+    middleware: ["admin"],
+});
+
 type AdminUser = {
     id: string;
     username: string;

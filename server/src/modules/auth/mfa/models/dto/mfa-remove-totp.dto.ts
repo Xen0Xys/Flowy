@@ -1,9 +1,9 @@
 import {IsNotEmpty, IsString, Length} from "class-validator";
 
-export class MfaVerifyDto {
+export class MfaRemoveTotpDto {
     @IsString()
     @IsNotEmpty()
-    challengeToken: string;
+    currentPassword: string;
 
     @IsString()
     @IsNotEmpty()

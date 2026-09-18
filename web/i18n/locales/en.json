@@ -96,7 +96,8 @@
             "autoDisabledToast": "Two-factor authentication was disabled after using a backup code. Please re-enable it from your security settings.",
             "errors": {
                 "noChallenge": "No pending authentication challenge",
-                "invalidCode": "Invalid verification code"
+                "invalidCode": "Invalid verification code",
+                "challengeExpired": "Your verification session expired. Please log in again."
             }
         },
         "store": {
@@ -680,7 +681,8 @@
                 "copied": "Backup codes copied to clipboard",
                 "copyFailed": "Failed to copy backup codes",
                 "download": "Download",
-                "done": "I have saved them"
+                "done": "I have saved them",
+                "saveConfirm": "I have safely stored these backup codes"
             },
             "toasts": {
                 "enabled": "Two-factor authentication enabled",
@@ -778,6 +780,7 @@
             "uuid": "UUID",
             "viewDetails": "View details",
             "copyUuid": "Copy UUID",
+            "copyFamilyUuid": "Copy family UUID",
             "resetPassword": "Reset password",
             "deleteUser": "Delete user",
             "noUsers": "No users found.",
@@ -817,6 +820,7 @@
             },
             "toasts": {
                 "uuidCopied": "UUID copied to clipboard",
+                "familyUuidCopied": "Family UUID copied to clipboard",
                 "passwordGenerated": "Password generated"
             },
             "errors": {

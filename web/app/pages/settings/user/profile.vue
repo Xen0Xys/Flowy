@@ -38,7 +38,7 @@ const localeCookie = useCookie<string | null>("i18n_redirected");
 const {apiFetch} = useApi();
 
 function resolveBrowserLocale(): "en" | "fr" {
-    if (process.client) {
+    if (import.meta.client) {
         const browserLocales = [...(navigator.languages || []), navigator.language].filter(Boolean);
         for (const browserLocale of browserLocales) {
             const normalizedLocale = browserLocale.toLowerCase();
@@ -88,7 +88,7 @@ const initials = computed(() => {
     if (parts.length === 1) return (parts[0] ?? "").slice(0, 2).toUpperCase();
     return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
 });
-const avatarUrl = computed(() => userStore.user?.avatar || "");
+const avatarUrl = computed(() => userStore.user?.avatar ?? "");
 
 const effectiveRole = ref("");
 const roleVariant = ref<"default" | "secondary" | "outline">("secondary");
@@ -115,8 +115,8 @@ const emailChanged = computed(() => email.value.trim() !== (userStore.user?.emai
 const accountDirty = computed(() => usernameChanged.value || emailChanged.value);
 
 function resetAccount() {
-    username.value = userStore.user?.username || "";
-    email.value = userStore.user?.email || "";
+    username.value = userStore.user?.username ?? "";
+    email.value = userStore.user?.email ?? "";
 }
 
 const isEmailConfirmOpen = ref(false);
@@ -244,8 +244,8 @@ async function deleteAccountNow(passwordValue: string) {
 }
 
 watchEffect(() => {
-    username.value = userStore.user?.username || "";
-    email.value = userStore.user?.email || "";
+    username.value = userStore.user?.username ?? "";
+    email.value = userStore.user?.email ?? "";
 });
 
 onMounted(async () => {
@@ -486,6 +486,7 @@ watch(locale, async () => {
                                         </div>
                                         <div v-if="mfaEnabled" class="flex items-center gap-2">
                                             <Button
+                                                :disabled="!userStore.token"
                                                 size="sm"
                                                 type="button"
                                                 variant="outline"
@@ -493,6 +494,7 @@ watch(locale, async () => {
                                                 {{ t("profile.mfa.regenerate.button") }}
                                             </Button>
                                             <Button
+                                                :disabled="!userStore.token"
                                                 size="sm"
                                                 type="button"
                                                 variant="destructive"
@@ -515,6 +517,7 @@ watch(locale, async () => {
                                             </div>
                                             <Button
                                                 v-if="totpEnrolled"
+                                                :disabled="!userStore.token"
                                                 size="sm"
                                                 type="button"
                                                 variant="outline"
@@ -522,7 +525,12 @@ watch(locale, async () => {
                                                 <Icon class="mr-1 size-4" name="iconoir:trash" />
                                                 {{ t("profile.mfa.authenticatorApp.remove") }}
                                             </Button>
-                                            <Button v-else size="sm" type="button" @click="isMfaSetupOpen = true">
+                                            <Button
+                                                v-else
+                                                :disabled="!userStore.token"
+                                                size="sm"
+                                                type="button"
+                                                @click="isMfaSetupOpen = true">
                                                 <Icon class="mr-1 size-4" name="iconoir:plus" />
                                                 {{ t("profile.mfa.authenticatorApp.add") }}
                                             </Button>

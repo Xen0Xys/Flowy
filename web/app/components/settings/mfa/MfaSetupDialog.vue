@@ -35,6 +35,7 @@ const otpauthUrl = ref("");
 const backupCodes = ref<string[]>([]);
 const qrDataUrl = ref("");
 const qrError = ref<string | null>(null);
+const codesSaved = ref(false);
 
 const code = computed(() => codeDigits.value.join(""));
 
@@ -56,6 +57,7 @@ function reset() {
     backupCodes.value = [];
     qrDataUrl.value = "";
     qrError.value = null;
+    codesSaved.value = false;
 }
 
 function close() {
@@ -120,9 +122,10 @@ function finish() {
 }
 
 function handleUpdateOpen(next: boolean) {
-    if (step.value === "backup" || !loading.value) {
-        emit("update:open", next);
-    }
+    if (loading.value && !next) return;
+    // Block accidental close while backup codes are visible and not acknowledged.
+    if (!next && step.value === "backup" && !codesSaved.value) return;
+    emit("update:open", next);
 }
 </script>
 
@@ -213,6 +216,10 @@ function handleUpdateOpen(next: boolean) {
                     </p>
                 </div>
                 <MfaBackupCodesDisplay :codes="backupCodes" />
+                <label class="flex items-center gap-2 text-sm">
+                    <input v-model="codesSaved" type="checkbox" />
+                    <span>{{ t("profile.mfa.backupCodes.saveConfirm") }}</span>
+                </label>
             </div>
 
             <DialogFooter>
@@ -243,7 +250,7 @@ function handleUpdateOpen(next: boolean) {
                     </Button>
                 </template>
                 <template v-else>
-                    <Button type="button" @click="finish">
+                    <Button :disabled="!codesSaved" type="button" @click="finish">
                         {{ t("profile.mfa.backupCodes.done") }}
                     </Button>
                 </template>

@@ -23,7 +23,7 @@ model Config {
 }
 
 model UserSettings {
-  user_id String @id @unique @db.Uuid
+  user_id String @id @db.Uuid
   user    Users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
@@ -47,6 +47,7 @@ model Users {
     backup_codes           MfaBackupCodes[]
     passkeys               UserPasskeys[]
     webauthn_challenges    WebAuthnChallenges[]
+    mfa_challenge_tokens   MfaChallengeTokens[]
     user_settings          UserSettings?
     family_role            UserRoles?
     family_id              String?                 @db.Uuid
@@ -116,9 +117,22 @@ model WebAuthnChallenges {
     expires_at DateTime
     created_at DateTime @default(now())
 
-    @@index([user_id, purpose])
+    @@unique([user_id, purpose])
     @@index([expires_at])
     @@map("webauthn_challenges")
+}
+
+model MfaChallengeTokens {
+    id                 String   @id @db.Uuid
+    user_id            String   @db.Uuid
+    user               Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    attempts_remaining Int
+    expires_at         DateTime
+    created_at         DateTime @default(now())
+
+    @@index([user_id])
+    @@index([expires_at])
+    @@map("mfa_challenge_tokens")
 }
 
 model Family {
