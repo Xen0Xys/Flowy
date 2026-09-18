@@ -22,6 +22,7 @@ const totpDigits = ref<string[]>([]);
 const backupCode = ref("");
 const loading = ref(false);
 const passkeyLoading = ref(false);
+const passkeyAttempted = ref(false);
 
 const availableMethods = computed<MfaMethod[]>(() => store.mfaChallenge?.methods ?? []);
 const canUsePasskey = computed(() => availableMethods.value.includes("passkey"));
@@ -45,6 +46,11 @@ onBeforeMount(async () => {
     if (canUseTotp.value) activeMethod.value = "totp";
     else if (canUseBackup.value) activeMethod.value = "backup_code";
     else if (canUsePasskey.value) activeMethod.value = "passkey";
+
+    if (canUsePasskey.value && !passkeyAttempted.value) {
+        passkeyAttempted.value = true;
+        void submitPasskey();
+    }
 });
 
 watch(activeMethod, () => {
@@ -116,7 +122,13 @@ function cancel() {
                 @click="submitPasskey">
                 <Icon v-if="passkeyLoading" class="mr-2" name="svg-spinners:180-ring-with-bg" />
                 <Icon v-else class="mr-2" name="iconoir:fingerprint" />
-                {{ passkeyLoading ? t("auth.mfa.verifying") : t("auth.mfa.usePasskey") }}
+                {{
+                    passkeyLoading
+                        ? t("auth.mfa.passkeyPrompting")
+                        : passkeyAttempted
+                          ? t("auth.mfa.usePasskeyRetry")
+                          : t("auth.mfa.usePasskey")
+                }}
             </Button>
             <div v-if="canUseTotp || canUseBackup" class="flex items-center gap-3">
                 <span class="bg-border h-px flex-1"></span>

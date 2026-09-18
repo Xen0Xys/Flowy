@@ -89,6 +89,8 @@
             "useBackupCode": "Utiliser un code de récupération",
             "useAuthenticator": "Utiliser l'application d'authentification",
             "usePasskey": "Utiliser une passkey",
+            "usePasskeyRetry": "Réessayer avec la passkey",
+            "passkeyPrompting": "En attente de la passkey...",
             "orDivider": "ou",
             "cancel": "Annuler et se déconnecter",
             "autoDisabledToast": "L'authentification à deux facteurs a été désactivée après l'utilisation d'un code de récupération. Veuillez la réactiver dans vos paramètres de sécurité.",
@@ -652,6 +654,10 @@
                 "codePlaceholder": "123456",
                 "tabTotp": "Application",
                 "tabBackup": "Code de récupération",
+                "tabPasskey": "Passkey",
+                "passkeyDescription": "Autorisez la vérification via votre passkey pour désactiver la 2FA.",
+                "passkeyAction": "Vérifier avec la passkey",
+                "passkeyVerifying": "Vérification...",
                 "backupCodeLabel": "Code de récupération",
                 "backupCodePlaceholder": "XXXX-XXXX",
                 "action": "Désactiver"
@@ -661,6 +667,10 @@
                 "title": "Regénérer les codes de récupération",
                 "description": "Cette action invalide vos codes existants. Saisissez votre mot de passe et un code d'authentification valide.",
                 "codeLabel": "Code d'authentification",
+                "tabTotp": "Application",
+                "tabPasskey": "Passkey",
+                "passkeyDescription": "Autorisez la vérification via votre passkey pour regénérer les codes.",
+                "passkeyAction": "Vérifier avec la passkey",
                 "action": "Regénérer"
             },
             "backupCodes": {
@@ -676,6 +686,7 @@
             "toasts": {
                 "enabled": "Authentification à deux facteurs activée",
                 "disabled": "Authentification à deux facteurs désactivée",
+                "totpRemoved": "Application d'authentification retirée",
                 "codesRegenerated": "Codes de récupération regénérés"
             },
             "errors": {

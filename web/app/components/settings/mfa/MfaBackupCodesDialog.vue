@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import {ref, watch} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {useMfa} from "@/composables/useMfa";
 import MfaBackupCodesDisplay from "./MfaBackupCodesDisplay.vue";
 
@@ -18,15 +19,34 @@ const emit = defineEmits<{
 }>();
 
 const {t} = useI18n();
-const {regenerateBackupCodes} = useMfa();
+const {regenerateBackupCodes, listPasskeys, getPasskeySettingsAssertion} = useMfa();
 
 type Step = "form" | "display";
+type Mode = "totp" | "passkey";
 const step = ref<Step>("form");
+const mode = ref<Mode>("totp");
 const password = ref("");
 const showPassword = ref(false);
 const code = ref("");
 const loading = ref(false);
 const codes = ref<string[]>([]);
+const hasPasskey = ref(false);
+
+const canSubmit = computed(() => {
+    if (!password.value.trim()) return false;
+    if (mode.value === "totp") return code.value.trim().length > 0;
+    return true;
+});
+
+onMounted(async () => {
+    try {
+        const passkeys = await listPasskeys();
+        hasPasskey.value = passkeys.length > 0;
+        if (hasPasskey.value) mode.value = "passkey";
+    } catch {
+        hasPasskey.value = false;
+    }
+});
 
 watch(
     () => props.open,
@@ -35,8 +55,13 @@ watch(
     },
 );
 
+watch(mode, () => {
+    code.value = "";
+});
+
 function reset() {
     step.value = "form";
+    mode.value = hasPasskey.value ? "passkey" : "totp";
     password.value = "";
     showPassword.value = false;
     code.value = "";
@@ -45,10 +70,16 @@ function reset() {
 }
 
 async function submit() {
-    if (!password.value.trim() || !code.value.trim() || loading.value) return;
+    if (!canSubmit.value || loading.value) return;
     loading.value = true;
     try {
-        const generated = await regenerateBackupCodes(password.value, code.value.trim());
+        const generated =
+            mode.value === "passkey"
+                ? await regenerateBackupCodes(password.value, {
+                      kind: "passkey",
+                      response: await getPasskeySettingsAssertion(),
+                  })
+                : await regenerateBackupCodes(password.value, {kind: "code", code: code.value.trim()});
         codes.value = generated;
         step.value = "display";
     } catch {
@@ -101,7 +132,31 @@ function handleUpdateOpen(next: boolean) {
                         </Button>
                     </div>
                 </div>
-                <div class="space-y-2">
+
+                <Tabs v-if="hasPasskey" v-model="mode" class="w-full">
+                    <TabsList class="grid w-full grid-cols-2">
+                        <TabsTrigger value="passkey">{{ t("profile.mfa.regenerate.tabPasskey") }}</TabsTrigger>
+                        <TabsTrigger value="totp">{{ t("profile.mfa.regenerate.tabTotp") }}</TabsTrigger>
+                    </TabsList>
+                    <TabsContent class="space-y-2 pt-3" value="passkey">
+                        <p class="text-muted-foreground text-sm">
+                            {{ t("profile.mfa.regenerate.passkeyDescription") }}
+                        </p>
+                    </TabsContent>
+                    <TabsContent class="space-y-2 pt-3" value="totp">
+                        <Label for="mfa-regen-code">{{ t("profile.mfa.regenerate.codeLabel") }}</Label>
+                        <Input
+                            id="mfa-regen-code"
+                            v-model="code"
+                            :disabled="loading"
+                            autocomplete="one-time-code"
+                            inputmode="numeric"
+                            maxlength="6"
+                            placeholder="123456"
+                            type="text" />
+                    </TabsContent>
+                </Tabs>
+                <div v-else class="space-y-2">
                     <Label for="mfa-regen-code">{{ t("profile.mfa.regenerate.codeLabel") }}</Label>
                     <Input
                         id="mfa-regen-code"
@@ -122,9 +177,13 @@ function handleUpdateOpen(next: boolean) {
                     <Button :disabled="loading" type="button" variant="ghost" @click="emit('update:open', false)">
                         {{ t("common.cancel") }}
                     </Button>
-                    <Button :disabled="loading || !password.trim() || !code.trim()" type="button" @click="submit">
+                    <Button :disabled="loading || !canSubmit" type="button" @click="submit">
                         <Icon v-if="loading" class="mr-1 size-4 animate-spin" name="iconoir:refresh" />
-                        {{ t("profile.mfa.regenerate.action") }}
+                        {{
+                            mode === "passkey"
+                                ? t("profile.mfa.regenerate.passkeyAction")
+                                : t("profile.mfa.regenerate.action")
+                        }}
                     </Button>
                 </template>
                 <template v-else>

@@ -1,5 +1,6 @@
 import {toast} from "vue-sonner";
-import {startRegistration} from "@simplewebauthn/browser";
+import {startAuthentication, startRegistration} from "@simplewebauthn/browser";
+import type {AuthenticationResponseJSON} from "@simplewebauthn/browser";
 import {useApi} from "~/composables/useApi";
 import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
@@ -11,8 +12,8 @@ export type MfaSetupResponse = {
 };
 
 export type MfaConfirmResponse = {
-    token: string;
-    backupCodes: string[];
+    token: string | null;
+    backupCodes: string[] | null;
 };
 
 export type MfaBackupCodesResponse = {
@@ -32,6 +33,10 @@ export type PasskeyRegisterResponse = {
     token: string | null;
     backupCodes: string[] | null;
 };
+
+export type SensitiveActionProof =
+    | {kind: "code"; code: string}
+    | {kind: "passkey"; response: AuthenticationResponseJSON};
 
 export function useMfa() {
     const {apiFetch} = useApi();
@@ -68,11 +73,37 @@ export function useMfa() {
         }
     }
 
-    async function disableMfa(currentPassword: string, code: string): Promise<void> {
+    function proofToBody(proof: SensitiveActionProof): Record<string, unknown> {
+        return proof.kind === "code" ? {code: proof.code} : {passkeyResponse: proof.response};
+    }
+
+    async function getPasskeySettingsAssertion(): Promise<AuthenticationResponseJSON> {
+        const options = await apiFetch<any>("/auth/mfa/passkey/settings/options", {method: "POST"});
+        return startAuthentication({optionsJSON: options});
+    }
+
+    async function disableTotp(currentPassword: string, proof: SensitiveActionProof): Promise<void> {
         try {
             await apiFetch("/auth/mfa/totp", {
                 method: "DELETE",
-                body: {currentPassword, code},
+                body: {currentPassword, ...proofToBody(proof)},
+            });
+            const passkeys = userStore.user ? await safeListPasskeys() : [];
+            const stillEnabled = passkeys.length > 0;
+            if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: stillEnabled};
+            toast.success(stillEnabled ? i18nT("profile.mfa.toasts.totpRemoved") : i18nT("profile.mfa.toasts.disabled"));
+        } catch (err: any) {
+            const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.disableFailed");
+            toast.error(message);
+            throw new Error(message, {cause: err});
+        }
+    }
+
+    async function disableMfa(currentPassword: string, proof: SensitiveActionProof): Promise<void> {
+        try {
+            await apiFetch("/auth/mfa", {
+                method: "DELETE",
+                body: {currentPassword, ...proofToBody(proof)},
             });
             if (userStore.user) userStore.user = {...userStore.user, mfaEnabled: false};
             toast.success(i18nT("profile.mfa.toasts.disabled"));
@@ -83,11 +114,11 @@ export function useMfa() {
         }
     }
 
-    async function regenerateBackupCodes(currentPassword: string, code: string): Promise<string[]> {
+    async function regenerateBackupCodes(currentPassword: string, proof: SensitiveActionProof): Promise<string[]> {
         try {
             const response = await apiFetch<MfaBackupCodesResponse>("/auth/mfa/backup-codes/regenerate", {
                 method: "POST",
-                body: {currentPassword, code},
+                body: {currentPassword, ...proofToBody(proof)},
             });
             toast.success(i18nT("profile.mfa.toasts.codesRegenerated"));
             return response.codes;
@@ -119,6 +150,14 @@ export function useMfa() {
             const message = err?.data?.message ?? err?.message ?? i18nT("profile.mfa.errors.listPasskeysFailed");
             toast.error(message);
             throw new Error(message, {cause: err});
+        }
+    }
+
+    async function safeListPasskeys(): Promise<PasskeyResponse[]> {
+        try {
+            return await apiFetch<PasskeyResponse[]>("/auth/mfa/passkey", {method: "GET"});
+        } catch {
+            return [];
         }
     }
 
@@ -184,6 +223,7 @@ export function useMfa() {
     return {
         setupTotp,
         confirmTotpSetup,
+        disableTotp,
         disableMfa,
         regenerateBackupCodes,
         adminResetUserMfa,
@@ -191,5 +231,6 @@ export function useMfa() {
         registerPasskey,
         renamePasskey,
         deletePasskey,
+        getPasskeySettingsAssertion,
     };
 }

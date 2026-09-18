@@ -9,6 +9,7 @@ import {AppModule} from "../src/app.module";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
+import crypto from "node:crypto";
 import request from "supertest";
 import * as OTPAuth from "otpauth";
 import {createCsrfAgent, ensureInstanceConfig, registerUser} from "./test-utils";
@@ -41,6 +42,8 @@ describe("MfaController (e2e)", () => {
     });
 
     beforeEach(async () => {
+        await prisma.webAuthnChallenges.deleteMany();
+        await prisma.userPasskeys.deleteMany();
         await prisma.mfaBackupCodes.deleteMany();
         await prisma.userTotpSecret.deleteMany();
         await prisma.familyInvites.deleteMany();
@@ -54,12 +57,31 @@ describe("MfaController (e2e)", () => {
         agent = await createCsrfAgent(server);
     });
 
+    async function seedPasskey(userId: string): Promise<void> {
+        await prisma.userPasskeys.create({
+            data: {
+                user_id: userId,
+                credential_id: crypto.randomBytes(32).toString("base64url"),
+                public_key: crypto.randomBytes(65),
+                counter: BigInt(0),
+                transports: ["internal"],
+                device_type: "multiDevice",
+                backed_up: true,
+                label: "Test key",
+            },
+        });
+        await prisma.users.update({where: {id: userId}, data: {mfa_enabled: true}});
+    }
+
     afterAll(async () => {
         if (app) await app.close();
         await prisma?.$disconnect();
     });
 
-    async function setupMfa(token: string, password: string): Promise<{secret: string; backupCodes: string[]}> {
+    async function setupMfa(
+        token: string,
+        password: string,
+    ): Promise<{secret: string; backupCodes: string[]; token: string}> {
         const setup = await agent
             .post("/auth/mfa/totp/setup")
             .set("Authorization", `Bearer ${token}`)
@@ -75,7 +97,11 @@ describe("MfaController (e2e)", () => {
             .set("Authorization", `Bearer ${token}`)
             .send({code});
         expect(confirm.status).toBe(201);
-        return {secret, backupCodes: confirm.body.backupCodes as string[]};
+        return {
+            secret,
+            backupCodes: confirm.body.backupCodes as string[],
+            token: confirm.body.token as string,
+        };
     }
 
     test("setup: rejects setup with wrong password", async () => {
@@ -169,6 +195,146 @@ describe("MfaController (e2e)", () => {
         const login2 = await agent.post("/auth/login").send({email: user.user.email, password: user.password});
         expect(login2.body.mfaRequired).toBeUndefined();
         expect(typeof login2.body.token).toBe("string");
+    });
+
+    test("confirmTotpSetup preserves backup codes when a passkey is already enrolled", async () => {
+        const user = await registerUser(server);
+        await seedPasskey(user.user.id);
+
+        const setup = await agent
+            .post("/auth/mfa/totp/setup")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({currentPassword: user.password});
+        expect(setup.status).toBe(201);
+
+        const secret = setup.body.secret as string;
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+        const confirm = await agent
+            .post("/auth/mfa/totp/setup/confirm")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({code: totp.generate()});
+        expect(confirm.status).toBe(201);
+        expect(confirm.body.token).toBeNull();
+        expect(confirm.body.backupCodes).toBeNull();
+
+        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
+        expect(dbUser?.mfa_enabled).toBe(true);
+        const passkeyCount = await prisma.userPasskeys.count({where: {user_id: user.user.id}});
+        expect(passkeyCount).toBe(1);
+        const totpRow = await prisma.userTotpSecret.findUnique({where: {user_id: user.user.id}});
+        expect(totpRow?.confirmed_at).not.toBeNull();
+    });
+
+    test("DELETE /auth/mfa/totp removes only TOTP when a passkey remains", async () => {
+        const user = await registerUser(server);
+        const {secret, token} = await setupMfa(user.token, user.password);
+        await seedPasskey(user.user.id);
+
+        // Reset last_used_step to allow the same-window code again.
+        await prisma.userTotpSecret.update({
+            where: {user_id: user.user.id},
+            data: {last_used_step: null},
+        });
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+
+        const response = await agent
+            .delete("/auth/mfa/totp")
+            .set("Authorization", `Bearer ${token}`)
+            .send({currentPassword: user.password, code: totp.generate()});
+        expect(response.status).toBe(204);
+
+        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
+        expect(dbUser?.mfa_enabled).toBe(true);
+        const totpRow = await prisma.userTotpSecret.findUnique({where: {user_id: user.user.id}});
+        expect(totpRow).toBeNull();
+        const passkeyCount = await prisma.userPasskeys.count({where: {user_id: user.user.id}});
+        expect(passkeyCount).toBe(1);
+        const backupCount = await prisma.mfaBackupCodes.count({where: {user_id: user.user.id}});
+        expect(backupCount).toBeGreaterThan(0);
+    });
+
+    test("DELETE /auth/mfa/totp fully disables MFA when no passkey remains", async () => {
+        const user = await registerUser(server);
+        const {secret, token} = await setupMfa(user.token, user.password);
+
+        await prisma.userTotpSecret.update({
+            where: {user_id: user.user.id},
+            data: {last_used_step: null},
+        });
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+
+        const response = await agent
+            .delete("/auth/mfa/totp")
+            .set("Authorization", `Bearer ${token}`)
+            .send({currentPassword: user.password, code: totp.generate()});
+        expect(response.status).toBe(204);
+
+        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
+        expect(dbUser?.mfa_enabled).toBe(false);
+        const backupCount = await prisma.mfaBackupCodes.count({where: {user_id: user.user.id}});
+        expect(backupCount).toBe(0);
+    });
+
+    test("DELETE /auth/mfa purges every factor at once", async () => {
+        const user = await registerUser(server);
+        const {secret, token} = await setupMfa(user.token, user.password);
+        await seedPasskey(user.user.id);
+
+        await prisma.userTotpSecret.update({
+            where: {user_id: user.user.id},
+            data: {last_used_step: null},
+        });
+        const totp = new OTPAuth.TOTP({secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30});
+
+        const response = await agent
+            .delete("/auth/mfa")
+            .set("Authorization", `Bearer ${token}`)
+            .send({currentPassword: user.password, code: totp.generate()});
+        expect(response.status).toBe(204);
+
+        const dbUser = await prisma.users.findUnique({where: {id: user.user.id}});
+        expect(dbUser?.mfa_enabled).toBe(false);
+        const totpRow = await prisma.userTotpSecret.findUnique({where: {user_id: user.user.id}});
+        expect(totpRow).toBeNull();
+        const passkeyCount = await prisma.userPasskeys.count({where: {user_id: user.user.id}});
+        expect(passkeyCount).toBe(0);
+    });
+
+    test("regenerate/disable rejects when neither code nor passkey proof is provided", async () => {
+        const user = await registerUser(server);
+        const {token} = await setupMfa(user.token, user.password);
+
+        const response = await agent
+            .delete("/auth/mfa/totp")
+            .set("Authorization", `Bearer ${token}`)
+            .send({currentPassword: user.password});
+        expect(response.status).toBe(400);
+    });
+
+    test("passkey settings/options rejects when no passkey is enrolled", async () => {
+        const user = await registerUser(server);
+        const response = await agent
+            .post("/auth/mfa/passkey/settings/options")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({});
+        expect(response.status).toBe(400);
+    });
+
+    test("passkey settings/options returns a challenge when a passkey is enrolled", async () => {
+        const user = await registerUser(server);
+        await seedPasskey(user.user.id);
+
+        const response = await agent
+            .post("/auth/mfa/passkey/settings/options")
+            .set("Authorization", `Bearer ${user.token}`)
+            .send({});
+        expect(response.status).toBe(201);
+        expect(typeof response.body.challenge).toBe("string");
+
+        const stored = await prisma.webAuthnChallenges.findFirst({
+            where: {user_id: user.user.id, purpose: "settings-verify"},
+        });
+        expect(stored).not.toBeNull();
     });
 
     test("admin can reset another user's MFA", async () => {

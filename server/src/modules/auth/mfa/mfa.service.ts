@@ -8,7 +8,11 @@ import {MfaVerifyEntity} from "./models/entities/mfa-verify.entity";
 import {TotpFactorService, TotpSetupResult} from "./factors/totp-factor.service";
 import {BackupCodeFactorService} from "./factors/backup-code-factor.service";
 import {PasskeyFactorService, PasskeySummary} from "./factors/passkey-factor.service";
-import type {AuthenticationResponseJSON, RegistrationResponseJSON} from "@simplewebauthn/server";
+import type {
+    AuthenticationResponseJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+    RegistrationResponseJSON,
+} from "@simplewebauthn/server";
 import type {MfaMethod} from "./mfa-factor.interface";
 
 const MFA_CHALLENGE_AUDIENCE = "MFA_CHALLENGE";
@@ -16,6 +20,11 @@ const MFA_CHALLENGE_AUDIENCE = "MFA_CHALLENGE";
 interface MfaChallengePayload {
     sub: string;
     aud?: string;
+}
+
+export interface SensitiveActionProof {
+    code?: string;
+    passkeyResponse?: AuthenticationResponseJSON;
 }
 
 @Injectable()
@@ -37,33 +46,59 @@ export class MfaService {
         return this.totpFactor.generateSecret(user.id, user.email);
     }
 
-    async confirmTotpSetup(user: UserEntity, code: string): Promise<{backupCodes: string[]; token: string}> {
+    async confirmTotpSetup(
+        user: UserEntity,
+        code: string,
+    ): Promise<{backupCodes: string[] | null; token: string | null}> {
         const ok = await this.totpFactor.confirmSetup(user.id, code);
         if (!ok) throw new UnauthorizedException("Invalid verification code");
+
+        if (user.mfaEnabled) {
+            // MFA was already enabled via passkey: adding TOTP as an extra
+            // factor should not invalidate existing backup codes or tokens.
+            this.logger.log(`TOTP added to existing MFA user=${user.id}`);
+            return {backupCodes: null, token: null};
+        }
 
         const {backupCodes, token} = await this.enableMfaAndIssueToken(user, {regenerateBackupCodes: true});
         this.logger.log(`MFA enabled user=${user.id} via=totp`);
         return {backupCodes: backupCodes ?? [], token};
     }
 
-    async disableMfa(user: UserEntity, currentPassword: string, code: string): Promise<void> {
+    async removeTotpFactor(user: UserEntity, currentPassword: string, proof: SensitiveActionProof): Promise<void> {
         await this.userService.verifyPassword(user, currentPassword);
+        await this.verifyAnyFactor(user.id, proof);
 
-        const totpOk = await this.totpFactor.verify(user.id, code);
-        const backupOk = totpOk ? false : await this.backupCodeFactor.verify(user.id, code);
-        if (!totpOk && !backupOk) throw new UnauthorizedException("Invalid verification code");
+        await this.totpFactor.purge(user.id);
+
+        const passkeyCount = await this.passkeyFactor.countForUser(user.id);
+        if (passkeyCount === 0) {
+            await this.purgeMfa(user.id);
+            await this.authService.invalidateTokens(user);
+            this.logger.log(`MFA disabled after TOTP removed (no passkey left) user=${user.id}`);
+            return;
+        }
+
+        this.logger.log(`TOTP factor removed user=${user.id} passkeysRemaining=${passkeyCount}`);
+    }
+
+    async disableAllMfa(user: UserEntity, currentPassword: string, proof: SensitiveActionProof): Promise<void> {
+        await this.userService.verifyPassword(user, currentPassword);
+        await this.verifyAnyFactor(user.id, proof);
 
         await this.purgeMfa(user.id);
         await this.authService.invalidateTokens(user);
 
-        this.logger.log(`MFA disabled user=${user.id}`);
+        this.logger.log(`MFA fully disabled user=${user.id}`);
     }
 
-    async regenerateBackupCodes(user: UserEntity, currentPassword: string, code: string): Promise<string[]> {
+    async regenerateBackupCodes(
+        user: UserEntity,
+        currentPassword: string,
+        proof: SensitiveActionProof,
+    ): Promise<string[]> {
         await this.userService.verifyPassword(user, currentPassword);
-
-        const ok = await this.totpFactor.verify(user.id, code);
-        if (!ok) throw new UnauthorizedException("Invalid verification code");
+        await this.verifyAnyFactor(user.id, proof);
 
         const codes = await this.backupCodeFactor.generate(user.id);
         this.logger.log(`Backup codes regenerated user=${user.id}`);
@@ -137,6 +172,10 @@ export class MfaService {
         }
     }
 
+    async startPasskeySettingsChallenge(user: UserEntity): Promise<PublicKeyCredentialRequestOptionsJSON> {
+        return this.passkeyFactor.generateSettingsAuthOptions(user.id);
+    }
+
     // Passkey login flow
 
     async startPasskeyChallenge(challengeToken: string) {
@@ -158,6 +197,26 @@ export class MfaService {
         await this.purgeMfa(userId);
         const user = await this.prisma.users.findUniqueOrThrow({where: {id: userId}});
         await this.authService.invalidateTokens(UserService.toUserEntity(user));
+    }
+
+    private async verifyAnyFactor(userId: string, proof: SensitiveActionProof): Promise<void> {
+        if (!proof.code && !proof.passkeyResponse) {
+            throw new BadRequestException("A verification code or a passkey response is required");
+        }
+
+        if (proof.passkeyResponse) {
+            const ok = await this.passkeyFactor.verifySettingsAuthentication(userId, proof.passkeyResponse);
+            if (!ok) throw new UnauthorizedException("Invalid passkey response");
+            return;
+        }
+
+        const totpOk = await this.totpFactor.verify(userId, proof.code!);
+        if (totpOk) return;
+
+        const backupOk = await this.backupCodeFactor.verify(userId, proof.code!);
+        if (backupOk) return;
+
+        throw new UnauthorizedException("Invalid verification code");
     }
 
     private async enableMfaAndIssueToken(

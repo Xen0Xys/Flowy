@@ -62,8 +62,23 @@ export class MfaController {
     @Throttle({default: {limit: 5, ttl: 60_000}})
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiBearerAuth()
-    async disable(@User() user: UserEntity, @Body() body: MfaDisableDto): Promise<void> {
-        await this.mfaService.disableMfa(user, body.currentPassword, body.code);
+    async removeTotp(@User() user: UserEntity, @Body() body: MfaDisableDto): Promise<void> {
+        await this.mfaService.removeTotpFactor(user, body.currentPassword, {
+            code: body.code,
+            passkeyResponse: body.passkeyResponse,
+        });
+    }
+
+    @Delete()
+    @UseGuards(JwtAuthGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiBearerAuth()
+    async disableAllMfa(@User() user: UserEntity, @Body() body: MfaDisableDto): Promise<void> {
+        await this.mfaService.disableAllMfa(user, body.currentPassword, {
+            code: body.code,
+            passkeyResponse: body.passkeyResponse,
+        });
     }
 
     @Post("backup-codes/regenerate")
@@ -74,7 +89,10 @@ export class MfaController {
         @User() user: UserEntity,
         @Body() body: MfaRegenerateCodesDto,
     ): Promise<MfaBackupCodesEntity> {
-        const codes = await this.mfaService.regenerateBackupCodes(user, body.currentPassword, body.code);
+        const codes = await this.mfaService.regenerateBackupCodes(user, body.currentPassword, {
+            code: body.code,
+            passkeyResponse: body.passkeyResponse,
+        });
         return new MfaBackupCodesEntity({codes});
     }
 
@@ -158,5 +176,13 @@ export class MfaController {
     @Throttle({default: {limit: 10, ttl: 60_000}})
     async passkeyChallengeVerify(@Body() body: MfaPasskeyChallengeVerifyDto): Promise<MfaVerifyEntity> {
         return this.mfaService.verifyPasskeyChallenge(body.challengeToken, body.response);
+    }
+
+    @Post("passkey/settings/options")
+    @UseGuards(JwtAuthGuard)
+    @Throttle({default: {limit: 10, ttl: 60_000}})
+    @ApiBearerAuth()
+    async passkeySettingsOptions(@User() user: UserEntity) {
+        return this.mfaService.startPasskeySettingsChallenge(user);
     }
 }

@@ -89,6 +89,8 @@
             "useBackupCode": "Use a backup code",
             "useAuthenticator": "Use authenticator app",
             "usePasskey": "Use a passkey",
+            "usePasskeyRetry": "Retry with passkey",
+            "passkeyPrompting": "Waiting for passkey...",
             "orDivider": "or",
             "cancel": "Cancel and log out",
             "autoDisabledToast": "Two-factor authentication was disabled after using a backup code. Please re-enable it from your security settings.",
@@ -643,6 +645,10 @@
                 "codePlaceholder": "123456",
                 "tabTotp": "Authenticator",
                 "tabBackup": "Backup code",
+                "tabPasskey": "Passkey",
+                "passkeyDescription": "Authorize the operation with your passkey to disable 2FA.",
+                "passkeyAction": "Verify with passkey",
+                "passkeyVerifying": "Verifying...",
                 "backupCodeLabel": "Backup code",
                 "backupCodePlaceholder": "XXXX-XXXX",
                 "action": "Disable"
@@ -652,6 +658,10 @@
                 "title": "Regenerate backup codes",
                 "description": "This invalidates your existing backup codes. Enter your password and a valid authenticator code.",
                 "codeLabel": "Authenticator code",
+                "tabTotp": "Authenticator",
+                "tabPasskey": "Passkey",
+                "passkeyDescription": "Authorize the operation with your passkey to regenerate the codes.",
+                "passkeyAction": "Verify with passkey",
                 "action": "Regenerate"
             },
             "backupCodes": {
@@ -667,6 +677,7 @@
             "toasts": {
                 "enabled": "Two-factor authentication enabled",
                 "disabled": "Two-factor authentication disabled",
+                "totpRemoved": "Authenticator removed",
                 "codesRegenerated": "Backup codes regenerated"
             },
             "errors": {

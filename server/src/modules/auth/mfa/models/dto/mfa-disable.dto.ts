@@ -1,11 +1,17 @@
-import {IsNotEmpty, IsString} from "class-validator";
+import {IsNotEmpty, IsObject, IsOptional, IsString} from "class-validator";
+import type {AuthenticationResponseJSON} from "@simplewebauthn/server";
 
 export class MfaDisableDto {
     @IsString()
     @IsNotEmpty()
     currentPassword: string;
 
+    @IsOptional()
     @IsString()
     @IsNotEmpty()
-    code: string;
+    code?: string;
+
+    @IsOptional()
+    @IsObject()
+    passkeyResponse?: AuthenticationResponseJSON;
 }

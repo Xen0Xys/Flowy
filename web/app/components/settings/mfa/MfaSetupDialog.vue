@@ -94,9 +94,15 @@ async function submitCode() {
     loading.value = true;
     try {
         const response = await confirmTotpSetup(code.value);
-        backupCodes.value = response.backupCodes;
-        step.value = "backup";
         codeDigits.value = [];
+        if (response.backupCodes && response.backupCodes.length > 0) {
+            backupCodes.value = response.backupCodes;
+            step.value = "backup";
+        } else {
+            // MFA was already enabled (via passkey): no fresh backup codes to display.
+            emit("enabled");
+            emit("update:open", false);
+        }
     } catch {
         codeDigits.value = [];
     } finally {

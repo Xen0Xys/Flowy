@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
@@ -20,9 +20,9 @@ const emit = defineEmits<{
 }>();
 
 const {t} = useI18n();
-const {disableMfa} = useMfa();
+const {disableMfa, listPasskeys, getPasskeySettingsAssertion} = useMfa();
 
-type Mode = "totp" | "backup";
+type Mode = "totp" | "backup" | "passkey";
 
 const mode = ref<Mode>("totp");
 const password = ref("");
@@ -30,13 +30,25 @@ const showPassword = ref(false);
 const totpDigits = ref<string[]>([]);
 const backupCode = ref("");
 const loading = ref(false);
+const hasPasskey = ref(false);
 
 const totpCode = computed(() => totpDigits.value.join(""));
 const normalizedBackup = computed(() => backupCode.value.replace(/[\s-]+/g, "").toUpperCase());
-const submittedCode = computed(() => (mode.value === "totp" ? totpCode.value : normalizedBackup.value));
 const canSubmit = computed(() => {
     if (!password.value.trim()) return false;
-    return mode.value === "totp" ? totpCode.value.length === 6 : normalizedBackup.value.length === 8;
+    if (mode.value === "totp") return totpCode.value.length === 6;
+    if (mode.value === "backup") return normalizedBackup.value.length === 8;
+    return true;
+});
+
+onMounted(async () => {
+    try {
+        const passkeys = await listPasskeys();
+        hasPasskey.value = passkeys.length > 0;
+        if (hasPasskey.value) mode.value = "passkey";
+    } catch {
+        hasPasskey.value = false;
+    }
 });
 
 watch(
@@ -52,7 +64,7 @@ watch(mode, () => {
 });
 
 function reset() {
-    mode.value = "totp";
+    mode.value = hasPasskey.value ? "passkey" : "totp";
     password.value = "";
     showPassword.value = false;
     totpDigits.value = [];
@@ -69,7 +81,13 @@ async function submit() {
     if (!canSubmit.value || loading.value) return;
     loading.value = true;
     try {
-        await disableMfa(password.value, submittedCode.value);
+        if (mode.value === "passkey") {
+            const response = await getPasskeySettingsAssertion();
+            await disableMfa(password.value, {kind: "passkey", response});
+        } else {
+            const code = mode.value === "totp" ? totpCode.value : normalizedBackup.value;
+            await disableMfa(password.value, {kind: "code", code});
+        }
         emit("disabled");
         emit("update:open", false);
     } catch {
@@ -117,10 +135,18 @@ function handleComplete() {
                 </div>
 
                 <Tabs v-model="mode" class="w-full">
-                    <TabsList class="grid w-full grid-cols-2">
+                    <TabsList :class="hasPasskey ? 'grid w-full grid-cols-3' : 'grid w-full grid-cols-2'">
+                        <TabsTrigger v-if="hasPasskey" value="passkey">
+                            {{ t("profile.mfa.disable.tabPasskey") }}
+                        </TabsTrigger>
                         <TabsTrigger value="totp">{{ t("profile.mfa.disable.tabTotp") }}</TabsTrigger>
                         <TabsTrigger value="backup">{{ t("profile.mfa.disable.tabBackup") }}</TabsTrigger>
                     </TabsList>
+                    <TabsContent v-if="hasPasskey" class="space-y-2 pt-3" value="passkey">
+                        <p class="text-muted-foreground text-sm">
+                            {{ t("profile.mfa.disable.passkeyDescription") }}
+                        </p>
+                    </TabsContent>
                     <TabsContent class="space-y-2 pt-3" value="totp">
                         <Label for="mfa-disable-totp">{{ t("profile.mfa.disable.codeLabel") }}</Label>
                         <div class="flex justify-center">
@@ -164,7 +190,7 @@ function handleComplete() {
                 </Button>
                 <Button :disabled="loading || !canSubmit" type="button" variant="destructive" @click="submit">
                     <Icon v-if="loading" class="mr-1 size-4 animate-spin" name="iconoir:refresh" />
-                    {{ t("profile.mfa.disable.action") }}
+                    {{ mode === "passkey" ? t("profile.mfa.disable.passkeyAction") : t("profile.mfa.disable.action") }}
                 </Button>
             </DialogFooter>
         </DialogContent>

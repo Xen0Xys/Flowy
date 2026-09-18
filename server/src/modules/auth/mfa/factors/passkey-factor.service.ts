@@ -18,6 +18,7 @@ import type {MfaFactor, MfaMethod} from "../mfa-factor.interface";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const CHALLENGE_PURPOSE_REGISTER = "registration";
 const CHALLENGE_PURPOSE_AUTH = "authentication";
+const CHALLENGE_PURPOSE_SETTINGS = "settings-verify";
 
 export interface PasskeySummary {
     id: string;
@@ -139,6 +140,25 @@ export class PasskeyFactorService implements MfaFactor {
     }
 
     async generateAuthenticationOptions(userId: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
+        return this.buildAuthenticationOptions(userId, CHALLENGE_PURPOSE_AUTH);
+    }
+
+    async generateSettingsAuthOptions(userId: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
+        return this.buildAuthenticationOptions(userId, CHALLENGE_PURPOSE_SETTINGS);
+    }
+
+    async verifyAuthentication(userId: string, response: AuthenticationResponseJSON): Promise<boolean> {
+        return this.verifyAssertionWithPurpose(userId, response, CHALLENGE_PURPOSE_AUTH);
+    }
+
+    async verifySettingsAuthentication(userId: string, response: AuthenticationResponseJSON): Promise<boolean> {
+        return this.verifyAssertionWithPurpose(userId, response, CHALLENGE_PURPOSE_SETTINGS);
+    }
+
+    private async buildAuthenticationOptions(
+        userId: string,
+        purpose: string,
+    ): Promise<PublicKeyCredentialRequestOptionsJSON> {
         const passkeys = await this.prisma.userPasskeys.findMany({
             where: {user_id: userId},
             select: {credential_id: true, transports: true},
@@ -153,12 +173,16 @@ export class PasskeyFactorService implements MfaFactor {
             allowCredentials: passkeys.map((p) => ({id: p.credential_id, transports: p.transports as any})),
         });
 
-        await this.storeChallenge(userId, CHALLENGE_PURPOSE_AUTH, options.challenge);
+        await this.storeChallenge(userId, purpose, options.challenge);
         return options;
     }
 
-    async verifyAuthentication(userId: string, response: AuthenticationResponseJSON): Promise<boolean> {
-        const challenge = await this.consumeChallenge(userId, CHALLENGE_PURPOSE_AUTH);
+    private async verifyAssertionWithPurpose(
+        userId: string,
+        response: AuthenticationResponseJSON,
+        purpose: string,
+    ): Promise<boolean> {
+        const challenge = await this.consumeChallenge(userId, purpose);
 
         const passkey = await this.prisma.userPasskeys.findUnique({where: {credential_id: response.id}});
         if (!passkey || passkey.user_id !== userId) {
