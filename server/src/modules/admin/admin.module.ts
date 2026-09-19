@@ -5,9 +5,10 @@ import {AdminService} from "./admin.service";
 import {Module} from "@nestjs/common";
 import {AccountModule} from "../accounting/account/account.module";
 import {HelperModule} from "../helper/helper.module";
+import {MfaModule} from "../auth/mfa/mfa.module";
 
 @Module({
-    imports: [HelperModule, FamilyModule, UserModule, AccountModule],
+    imports: [HelperModule, FamilyModule, UserModule, AccountModule, MfaModule],
     controllers: [AdminController],
     providers: [AdminService],
 })

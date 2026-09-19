@@ -38,6 +38,7 @@ Notes:
 - `APP_NAME` is fixed to `Flowy Server` in the Compose files.
 - `DATABASE_URL` is built automatically in services from Postgres variables.
 - Use a strong value for `APP_SECRET` in real environments.
+- `WEBAUTHN_RP_ID` (optional) is the Relying Party ID for passkeys. When unset, the server derives it from the first `CORS_ORIGINS` hostname. Set explicitly when serving multiple origins on different domains.
 
 ### 2.2 Coolify-specific variables
 

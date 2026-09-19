@@ -14,6 +14,7 @@
         "deleting": "Suppression...",
         "cancel": "Annuler",
         "close": "Fermer",
+        "continue": "Continuer",
         "edit": "Modifier",
         "loading": "Chargement...",
         "processing": "Traitement...",
@@ -75,6 +76,28 @@
                 "required": "Tous les champs sont requis.",
                 "usernameLength": "Le nom d'utilisateur doit contenir entre {min} et {max} caractères.",
                 "passwordLength": "Le mot de passe doit contenir au moins {min} caractères."
+            }
+        },
+        "mfa": {
+            "title": "Authentification à deux facteurs",
+            "subtitleTotp": "Saisissez le code à 6 chiffres généré par votre application d'authentification.",
+            "subtitleBackup": "Saisissez l'un de vos codes de récupération.",
+            "codeLabelTotp": "Code d'authentification",
+            "codeLabelBackup": "Code de récupération",
+            "verifyAction": "Vérifier",
+            "verifying": "Vérification...",
+            "useBackupCode": "Utiliser un code de récupération",
+            "useAuthenticator": "Utiliser l'application d'authentification",
+            "usePasskey": "Utiliser une passkey",
+            "usePasskeyRetry": "Réessayer avec la passkey",
+            "passkeyPrompting": "En attente de la passkey...",
+            "orDivider": "ou",
+            "cancel": "Annuler et se déconnecter",
+            "autoDisabledToast": "L'authentification à deux facteurs a été désactivée après l'utilisation d'un code de récupération. Veuillez la réactiver dans vos paramètres de sécurité.",
+            "errors": {
+                "noChallenge": "Aucune vérification en cours",
+                "invalidCode": "Code de vérification invalide",
+                "challengeExpired": "Votre session de vérification a expiré. Veuillez vous reconnecter."
             }
         },
         "store": {
@@ -602,6 +625,122 @@
         },
         "toasts": {
             "accountDeleted": "Compte supprimé"
+        },
+        "mfa": {
+            "title": "Authentification à deux facteurs",
+            "description": "Protégez votre compte avec un code à usage unique fourni par une application d'authentification.",
+            "statusEnabled": "L'authentification à deux facteurs est activée",
+            "statusDisabled": "L'authentification à deux facteurs est désactivée",
+            "enabledHelp": "Un code de vérification vous sera demandé à chaque connexion.",
+            "disabledHelp": "Toute personne ayant votre mot de passe peut se connecter. Activez la 2FA pour renforcer la sécurité.",
+            "setup": {
+                "title": "Activer l'authentification à deux facteurs",
+                "descriptionPassword": "Confirmez votre mot de passe pour démarrer la configuration.",
+                "descriptionScan": "Scannez le QR code avec votre application d'authentification.",
+                "descriptionVerify": "Saisissez le code à 6 chiffres affiché par votre application pour finaliser la configuration.",
+                "descriptionBackup": "Sauvegardez ces codes de récupération à usage unique pour vous connecter si vous perdez l'accès à votre application.",
+                "qrAlt": "QR code pour la configuration",
+                "qrError": "Impossible d'afficher le QR code",
+                "manualLabel": "Ou saisissez ce secret manuellement",
+                "manualHelp": "Réglez le type sur Temps, les chiffres sur 6 et la période sur 30 secondes.",
+                "codeLabel": "Code de vérification",
+                "activate": "Activer"
+            },
+            "disable": {
+                "button": "Désactiver",
+                "title": "Désactiver l'authentification à deux facteurs",
+                "description": "La 2FA sera retirée et vos codes de récupération supprimés. Saisissez votre mot de passe et un code valide pour confirmer.",
+                "codeLabel": "Code d'authentification",
+                "tabTotp": "Application",
+                "tabBackup": "Code de récupération",
+                "tabPasskey": "Passkey",
+                "passkeyDescription": "Autorisez la vérification via votre passkey pour désactiver la 2FA.",
+                "passkeyAction": "Vérifier avec la passkey",
+                "backupCodeLabel": "Code de récupération",
+                "backupCodePlaceholder": "XXXX-XXXX",
+                "action": "Désactiver"
+            },
+            "authenticatorApp": {
+                "title": "Application d'authentification",
+                "description": "Utilisez une app comme Google Authenticator ou 1Password.",
+                "add": "Ajouter",
+                "remove": "Retirer"
+            },
+            "removeTotp": {
+                "title": "Retirer l'application d'authentification",
+                "description": "Le TOTP sera retiré. Si aucun autre facteur ne reste, la 2FA sera désactivée.",
+                "action": "Retirer"
+            },
+            "regenerate": {
+                "button": "Regénérer les codes de récupération",
+                "title": "Regénérer les codes de récupération",
+                "description": "Cette action invalide vos codes existants. Saisissez votre mot de passe et un code d'authentification valide.",
+                "codeLabel": "Code d'authentification",
+                "tabTotp": "Application",
+                "tabPasskey": "Passkey",
+                "passkeyDescription": "Autorisez la vérification via votre passkey pour regénérer les codes.",
+                "passkeyAction": "Vérifier avec la passkey",
+                "action": "Regénérer"
+            },
+            "backupCodes": {
+                "warningTitle": "Conservez ces codes en lieu sûr",
+                "warningBody": "Chaque code est utilisable une seule fois. Ils ne seront plus affichés.",
+                "copy": "Tout copier",
+                "copiedShort": "Copié",
+                "copied": "Codes de récupération copiés dans le presse-papiers",
+                "copyFailed": "Échec de la copie des codes",
+                "download": "Télécharger",
+                "done": "Je les ai enregistrés",
+                "saveConfirm": "J'ai enregistré ces codes de récupération en lieu sûr"
+            },
+            "toasts": {
+                "enabled": "Authentification à deux facteurs activée",
+                "disabled": "Authentification à deux facteurs désactivée",
+                "totpRemoved": "Application d'authentification retirée",
+                "codesRegenerated": "Codes de récupération regénérés"
+            },
+            "errors": {
+                "setupFailed": "Échec du démarrage de la configuration MFA",
+                "confirmFailed": "Échec de l'activation MFA",
+                "disableFailed": "Échec de la désactivation MFA",
+                "regenerateFailed": "Échec de la regénération des codes",
+                "listPasskeysFailed": "Échec du chargement des passkeys"
+            },
+            "passkeys": {
+                "title": "Passkeys",
+                "description": "Connectez-vous via biométrie ou le verrouillage de votre appareil.",
+                "add": "Ajouter une passkey",
+                "empty": "Aucune passkey enregistrée.",
+                "register": {
+                    "title": "Enregistrer une passkey",
+                    "description": "Nommez cette passkey, confirmez votre mot de passe, puis suivez les instructions de votre navigateur.",
+                    "labelField": "Nom de la passkey",
+                    "labelPlaceholder": "ex. MacBook, iPhone, YubiKey",
+                    "action": "Enregistrer"
+                },
+                "list": {
+                    "rename": "Renommer",
+                    "delete": "Supprimer",
+                    "createdOn": "Ajoutée le {date}",
+                    "lastUsed": "dernière utilisation {date}",
+                    "never": "jamais"
+                },
+                "delete": {
+                    "title": "Supprimer la passkey",
+                    "description": "Cette passkey ne pourra plus servir à vous connecter. Si c'est votre dernier facteur MFA, l'authentification à deux facteurs sera désactivée."
+                },
+                "toasts": {
+                    "registered": "Passkey enregistrée",
+                    "renamed": "Passkey renommée",
+                    "deleted": "Passkey supprimée"
+                },
+                "errors": {
+                    "registerFailed": "Échec de l'enregistrement de la passkey",
+                    "alreadyRegistered": "Cette passkey est déjà enregistrée sur votre compte",
+                    "renameFailed": "Échec du renommage de la passkey",
+                    "deleteFailed": "Échec de la suppression de la passkey"
+                }
+            }
         }
     },
     "settings": {
@@ -641,6 +780,7 @@
             "uuid": "UUID",
             "viewDetails": "Voir les détails",
             "copyUuid": "Copier l'UUID",
+            "copyFamilyUuid": "Copier l'UUID de la famille",
             "resetPassword": "Réinitialiser le mot de passe",
             "deleteUser": "Supprimer l'utilisateur",
             "noUsers": "Aucun utilisateur trouvé.",
@@ -667,8 +807,20 @@
                 "familyMember": "Membre",
                 "noFamily": "Sans famille"
             },
+            "mfa": {
+                "badge": "Authentification à deux facteurs activée",
+                "resetAction": "Réinitialiser la 2FA",
+                "resetDescription": "Ceci désactive l'authentification à deux facteurs pour {username} et supprime ses codes de récupération. Saisissez votre mot de passe pour confirmer.",
+                "toasts": {
+                    "reset": "Authentification à deux facteurs réinitialisée"
+                },
+                "errors": {
+                    "resetFailed": "Échec de la réinitialisation MFA"
+                }
+            },
             "toasts": {
                 "uuidCopied": "UUID copié dans le presse-papiers",
+                "familyUuidCopied": "UUID de la famille copié dans le presse-papiers",
                 "passwordGenerated": "Mot de passe généré"
             },
             "errors": {

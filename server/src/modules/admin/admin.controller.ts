@@ -18,6 +18,7 @@ import {ApiBearerAuth} from "@nestjs/swagger";
 import {User} from "../../common/decorators/user.decorator";
 import {UserEntity} from "../users/user/models/entities/user.entity";
 import {AdminDeleteUserDto} from "./models/dto/admin-delete-user.dto";
+import {AdminResetMfaDto} from "./models/dto/admin-reset-mfa.dto";
 import {RegistrationEnabledDto} from "./models/dto/registration-enabled.dto";
 import {UpdateOwnerDto} from "./models/dto/update-owner.dto";
 import {InstanceSettingsDto} from "./models/dto/instance-settings.dto";
@@ -105,5 +106,21 @@ export class AdminController {
     @ApiBearerAuth()
     async runAccountIntegrityCheck(): Promise<void> {
         await this.accountService.checkIntegrity();
+    }
+
+    @Delete("users/:id/mfa")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
+    @ApiBearerAuth()
+    async resetUserMfa(
+        @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
+        @User() user: UserEntity,
+        @Body() body: AdminResetMfaDto,
+    ): Promise<void> {
+        return this.adminService.resetUserMfa(user, id, body.currentPassword, {
+            code: body.code,
+            passkeyResponse: body.passkeyResponse,
+        });
     }
 }

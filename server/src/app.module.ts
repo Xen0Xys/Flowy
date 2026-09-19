@@ -13,6 +13,7 @@ import {ConfigModule, ConfigService} from "@nestjs/config";
 import {AdminModule} from "./modules/admin/admin.module";
 import {APP_FILTER, APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthModule} from "./modules/auth/auth.module";
+import {MfaModule} from "./modules/auth/mfa/mfa.module";
 import {CsrfGuard} from "./common/guards/csrf.guard";
 import {AppThrottlerGuard} from "./common/guards/app-throttler.guard";
 import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
@@ -31,7 +32,14 @@ import Joi from "joi";
                 APP_NAME: Joi.string().required(),
                 DATABASE_URL: Joi.string().uri().required(),
                 NODE_ENV: Joi.string().valid("development", "production", "test").default("production"),
-            }),
+                WEBAUTHN_RP_ID: Joi.string().when("NODE_ENV", {
+                    is: "production",
+                    then: Joi.required(),
+                    otherwise: Joi.optional(),
+                }),
+                WEBAUTHN_RP_NAME: Joi.string().optional().allow(""),
+                WEBAUTHN_ORIGINS: Joi.string().optional().allow(""),
+            }).unknown(true),
         }),
         JwtModule.registerAsync({
             global: true,
@@ -59,6 +67,7 @@ import Joi from "joi";
         HelperModule,
         UserModule,
         AuthModule,
+        MfaModule,
         AdminModule,
         FamilyModule,
         AccountModule,

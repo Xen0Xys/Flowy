@@ -20,22 +20,17 @@ const {t} = useI18n();
 
 const form = ref({email: "", password: ""});
 const loading = ref(false);
-const error = ref<string | null>(null);
 
 function validate() {
     const email = form.value.email.trim();
 
     if (!email || !form.value.password) {
-        const msg = t("auth.login.errors.required");
-        toast.error(msg);
-        error.value = null;
+        toast.error(t("auth.login.errors.required"));
         return false;
     }
 
     if (!isValidEmail(email)) {
-        const msg = t("auth.common.errors.invalidEmail");
-        toast.error(msg);
-        error.value = null;
+        toast.error(t("auth.common.errors.invalidEmail"));
         return false;
     }
 
@@ -44,17 +39,23 @@ function validate() {
 }
 
 async function submit() {
-    error.value = null;
     if (!validate()) return;
+    // Drop any leftover MFA challenge from a previous aborted attempt so the
+    // next store.login call starts from a clean slate.
+    store.clearMfaChallenge();
     loading.value = true;
     try {
-        await store.login({
+        const result = await store.login({
             email: form.value.email,
             password: form.value.password,
         });
-        await router.push("/");
-    } catch (err: any) {
-        error.value = null;
+        if (result.mfaRequired) {
+            await router.push("/auth/mfa");
+        } else {
+            await router.push("/");
+        }
+    } catch {
+        // Toast already handled by the store.
     } finally {
         loading.value = false;
     }
@@ -102,10 +103,6 @@ async function submit() {
                     <FormMessage />
                 </FormField>
             </FormItem>
-
-            <div v-if="error" class="text-destructive text-sm" role="alert">
-                {{ error }}
-            </div>
 
             <div class="pt-2">
                 <Button

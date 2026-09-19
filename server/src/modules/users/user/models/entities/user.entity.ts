@@ -11,6 +11,7 @@ export class UserEntity {
     familyRole: UserRoles | null;
     @Exclude()
     password: string;
+    mfaEnabled: boolean;
 
     constructor(partial: Partial<UserEntity>) {
         Object.assign(this, partial);
