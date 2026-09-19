@@ -48,7 +48,7 @@
         "tailwind-merge": "3.7.0",
         "tailwindcss": "^4.3.3",
         "vee-validate": "4.15.1",
-        "vue": "3.5.42",
+        "vue": "3.5.43",
         "vue-i18n": "11.4.12",
         "vue-router": "5.3.1",
         "vue-sonner": "2.0.9",
