@@ -12,15 +12,24 @@ import {Badge} from "~/components/ui/badge";
 import {Label} from "~/components/ui/label";
 import {ScrollArea} from "~/components/ui/scroll-area";
 import type {Account} from "~/stores/account.store";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
+import type {BudgetedFilter} from "~/stores/report.store";
 import {REPORT_RANGES, type ReportRange, buildReportDateRange} from "~/utils/reports";
 
 const props = defineProps<{
     accounts: Account[];
+    categories: TransactionCategory[];
+    merchants: TransactionMerchant[];
     range: ReportRange;
     startDate: string;
     endDate: string;
     accountIds: string[];
+    categoryIds: string[];
+    merchantIds: string[];
     includeShared: boolean;
+    excludeTransfers: boolean;
+    includeRebalances: boolean;
+    budgeted: BudgetedFilter;
     loading?: boolean;
 }>();
 
@@ -29,7 +38,12 @@ const emit = defineEmits<{
     "update:startDate": [string];
     "update:endDate": [string];
     "update:accountIds": [string[]];
+    "update:categoryIds": [string[]];
+    "update:merchantIds": [string[]];
     "update:includeShared": [boolean];
+    "update:excludeTransfers": [boolean];
+    "update:includeRebalances": [boolean];
+    "update:budgeted": [BudgetedFilter];
 }>();
 
 const {t, locale} = useI18n();
@@ -39,6 +53,9 @@ const localTz = getLocalTimeZone();
 const rangeDraft = ref<DateRange>({start: undefined, end: undefined});
 const isCustomOpen = ref(false);
 const isAccountsOpen = ref(false);
+const isCategoriesOpen = ref(false);
+const isMerchantsOpen = ref(false);
+const isBudgetedOpen = ref(false);
 
 function isoToDateValue(iso: string): DateValue | undefined {
     try {
@@ -155,6 +172,81 @@ const accountsSummary = computed(() => {
     return t("reports.filters.accountsCount", {count});
 });
 
+const sortedCategories = computed(() => [...props.categories].sort((a, b) => a.name.localeCompare(b.name)));
+const selectedCategoryIdsSet = computed(() => new Set(props.categoryIds));
+
+function toggleCategory(id: string) {
+    const set = new Set(props.categoryIds);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    emit("update:categoryIds", [...set]);
+}
+
+function selectAllCategories() {
+    emit(
+        "update:categoryIds",
+        sortedCategories.value.map((c) => c.id),
+    );
+}
+
+function clearCategories() {
+    emit("update:categoryIds", []);
+}
+
+const categoriesSummary = computed(() => {
+    const count = props.categoryIds.length;
+    if (count === 0) return t("reports.filters.categoriesAll");
+    if (count === 1) {
+        const single = props.categories.find((c) => c.id === props.categoryIds[0]);
+        return single?.name ?? t("reports.filters.categoriesCount", {count});
+    }
+    return t("reports.filters.categoriesCount", {count});
+});
+
+const sortedMerchants = computed(() => [...props.merchants].sort((a, b) => a.name.localeCompare(b.name)));
+const selectedMerchantIdsSet = computed(() => new Set(props.merchantIds));
+
+function toggleMerchant(id: string) {
+    const set = new Set(props.merchantIds);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    emit("update:merchantIds", [...set]);
+}
+
+function selectAllMerchants() {
+    emit(
+        "update:merchantIds",
+        sortedMerchants.value.map((m) => m.id),
+    );
+}
+
+function clearMerchants() {
+    emit("update:merchantIds", []);
+}
+
+const merchantsSummary = computed(() => {
+    const count = props.merchantIds.length;
+    if (count === 0) return t("reports.filters.merchantsAll");
+    if (count === 1) {
+        const single = props.merchants.find((m) => m.id === props.merchantIds[0]);
+        return single?.name ?? t("reports.filters.merchantsCount", {count});
+    }
+    return t("reports.filters.merchantsCount", {count});
+});
+
+const budgetedOptions: {value: BudgetedFilter; icon: string}[] = [
+    {value: "all", icon: "iconoir:list"},
+    {value: "budgeted", icon: "iconoir:piggy-bank"},
+    {value: "unbudgeted", icon: "iconoir:eye-closed"},
+];
+
+function selectBudgeted(value: BudgetedFilter) {
+    emit("update:budgeted", value);
+    isBudgetedOpen.value = false;
+}
+
+const budgetedSummary = computed(() => t(`reports.filters.budgeted.${props.budgeted}`));
+
 // When toggling includeShared off, drop any shared account currently selected.
 watch(
     () => props.includeShared,
@@ -270,15 +362,175 @@ const yearRange = computed(() => {
             </PopoverContent>
         </Popover>
 
-        <div class="flex items-center gap-2">
-            <Switch
-                id="report-include-shared"
-                :model-value="includeShared"
-                size="sm"
-                @update:model-value="emit('update:includeShared', Boolean($event))" />
-            <Label for="report-include-shared" class="text-muted-foreground cursor-pointer text-xs">
-                {{ t("reports.filters.includeShared") }}
-            </Label>
+        <Popover :open="isCategoriesOpen" @update:open="isCategoriesOpen = $event">
+            <PopoverTrigger as-child>
+                <Button variant="outline" size="sm" class="justify-start gap-2">
+                    <Icon class="size-4" name="iconoir:pizza-slice" />
+                    <span class="truncate">{{ categoriesSummary }}</span>
+                    <Badge v-if="categoryIds.length > 0" variant="secondary" class="ml-1">
+                        {{ categoryIds.length }}
+                    </Badge>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-72 p-3" align="start">
+                <div class="mb-2 flex items-center justify-between">
+                    <p class="text-sm font-medium">{{ t("reports.filters.categoriesTitle") }}</p>
+                    <div class="flex gap-1">
+                        <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="selectAllCategories">
+                            {{ t("reports.filters.selectAll") }}
+                        </Button>
+                        <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="clearCategories">
+                            {{ t("reports.filters.clear") }}
+                        </Button>
+                    </div>
+                </div>
+                <p class="text-muted-foreground mb-2 text-xs">{{ t("reports.filters.categoriesHint") }}</p>
+                <ScrollArea class="max-h-72">
+                    <ul class="flex flex-col gap-0.5">
+                        <li v-for="category in sortedCategories" :key="category.id">
+                            <button
+                                type="button"
+                                :class="[
+                                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                                    selectedCategoryIdsSet.has(category.id)
+                                        ? 'bg-primary/10 text-foreground'
+                                        : 'hover:bg-muted text-muted-foreground',
+                                ]"
+                                @click="toggleCategory(category.id)">
+                                <Icon
+                                    :name="
+                                        selectedCategoryIdsSet.has(category.id)
+                                            ? 'iconoir:check-square'
+                                            : 'iconoir:square'
+                                    "
+                                    class="size-4 shrink-0" />
+                                <span
+                                    class="inline-block size-2 shrink-0 rounded-full"
+                                    :style="{backgroundColor: category.hexColor}"></span>
+                                <span class="truncate">{{ category.name }}</span>
+                            </button>
+                        </li>
+                    </ul>
+                </ScrollArea>
+            </PopoverContent>
+        </Popover>
+
+        <Popover :open="isMerchantsOpen" @update:open="isMerchantsOpen = $event">
+            <PopoverTrigger as-child>
+                <Button variant="outline" size="sm" class="justify-start gap-2">
+                    <Icon class="size-4" name="iconoir:shop" />
+                    <span class="truncate">{{ merchantsSummary }}</span>
+                    <Badge v-if="merchantIds.length > 0" variant="secondary" class="ml-1">
+                        {{ merchantIds.length }}
+                    </Badge>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-72 p-3" align="start">
+                <div class="mb-2 flex items-center justify-between">
+                    <p class="text-sm font-medium">{{ t("reports.filters.merchantsTitle") }}</p>
+                    <div class="flex gap-1">
+                        <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="selectAllMerchants">
+                            {{ t("reports.filters.selectAll") }}
+                        </Button>
+                        <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="clearMerchants">
+                            {{ t("reports.filters.clear") }}
+                        </Button>
+                    </div>
+                </div>
+                <p class="text-muted-foreground mb-2 text-xs">{{ t("reports.filters.merchantsHint") }}</p>
+                <ScrollArea class="max-h-72">
+                    <ul class="flex flex-col gap-0.5">
+                        <li v-for="merchant in sortedMerchants" :key="merchant.id">
+                            <button
+                                type="button"
+                                :class="[
+                                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                                    selectedMerchantIdsSet.has(merchant.id)
+                                        ? 'bg-primary/10 text-foreground'
+                                        : 'hover:bg-muted text-muted-foreground',
+                                ]"
+                                @click="toggleMerchant(merchant.id)">
+                                <Icon
+                                    :name="
+                                        selectedMerchantIdsSet.has(merchant.id)
+                                            ? 'iconoir:check-square'
+                                            : 'iconoir:square'
+                                    "
+                                    class="size-4 shrink-0" />
+                                <span class="truncate">{{ merchant.name }}</span>
+                            </button>
+                        </li>
+                    </ul>
+                </ScrollArea>
+            </PopoverContent>
+        </Popover>
+
+        <Popover :open="isBudgetedOpen" @update:open="isBudgetedOpen = $event">
+            <PopoverTrigger as-child>
+                <Button variant="outline" size="sm" class="justify-start gap-2">
+                    <Icon class="size-4" name="iconoir:piggy-bank" />
+                    <span class="truncate">{{ budgetedSummary }}</span>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-56 p-2" align="start">
+                <p class="text-muted-foreground mb-1 px-2 pt-1 text-[0.68rem] font-medium tracking-[0.08em] uppercase">
+                    {{ t("reports.filters.budgetedTitle") }}
+                </p>
+                <ul class="flex flex-col gap-0.5">
+                    <li v-for="option in budgetedOptions" :key="option.value">
+                        <button
+                            type="button"
+                            :class="[
+                                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                                budgeted === option.value
+                                    ? 'bg-primary/10 text-foreground'
+                                    : 'hover:bg-muted text-muted-foreground',
+                            ]"
+                            @click="selectBudgeted(option.value)">
+                            <Icon
+                                :name="budgeted === option.value ? 'iconoir:check-circle' : 'iconoir:circle'"
+                                class="size-4 shrink-0" />
+                            <Icon :name="option.icon" class="text-muted-foreground size-3.5 shrink-0" />
+                            <span class="truncate">{{ t(`reports.filters.budgeted.${option.value}`) }}</span>
+                        </button>
+                    </li>
+                </ul>
+            </PopoverContent>
+        </Popover>
+
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2">
+                <Switch
+                    id="report-include-shared"
+                    :model-value="includeShared"
+                    size="sm"
+                    @update:model-value="emit('update:includeShared', Boolean($event))" />
+                <Label for="report-include-shared" class="text-muted-foreground cursor-pointer text-xs">
+                    {{ t("reports.filters.includeShared") }}
+                </Label>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <Switch
+                    id="report-exclude-transfers"
+                    :model-value="excludeTransfers"
+                    size="sm"
+                    @update:model-value="emit('update:excludeTransfers', Boolean($event))" />
+                <Label for="report-exclude-transfers" class="text-muted-foreground cursor-pointer text-xs">
+                    {{ t("reports.filters.excludeTransfers") }}
+                </Label>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <Switch
+                    id="report-include-rebalances"
+                    :model-value="includeRebalances"
+                    size="sm"
+                    @update:model-value="emit('update:includeRebalances', Boolean($event))" />
+                <Label for="report-include-rebalances" class="text-muted-foreground cursor-pointer text-xs">
+                    {{ t("reports.filters.includeRebalances") }}
+                </Label>
+            </div>
         </div>
 
         <div v-if="loading" class="text-muted-foreground ml-auto flex items-center gap-1 text-xs">

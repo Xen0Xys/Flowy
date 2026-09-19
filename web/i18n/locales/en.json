@@ -1477,9 +1477,29 @@
             "accountsCount": "{count} accounts",
             "accountsOwned": "Owned",
             "accountsSharedBy": "Shared by {name}",
+            "categoriesTitle": "Filter categories",
+            "categoriesHint": "Leave empty to include every category.",
+            "categoriesAll": "All categories",
+            "categoriesCount": "{count} categories",
+            "merchantsTitle": "Filter merchants",
+            "merchantsHint": "Leave empty to include every merchant.",
+            "merchantsAll": "All merchants",
+            "merchantsCount": "{count} merchants",
             "selectAll": "Select all",
             "clear": "Clear",
             "includeShared": "Include shared",
+            "excludeTransfers": "Exclude transfers",
+            "includeRebalances": "Include rebalances",
+            "budgetedTitle": "Budget scope",
+            "budgeted": {
+                "all": "All transactions",
+                "budgeted": "Budgeted only",
+                "unbudgeted": "Non-budgeted only"
+            },
+            "chips": {
+                "excludeShared": "Owned accounts only"
+            },
+            "resetAll": "Reset filters",
             "presets": {
                 "7D": "7D",
                 "1M": "1M",

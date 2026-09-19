@@ -3,8 +3,10 @@ import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
+import {useReferenceStore} from "~/stores/reference.store";
 import {
     type AccountBreakdown,
+    type BudgetedFilter,
     type BudgetVsActualPoint,
     type CashFlowPoint,
     type CashFlowSankey,
@@ -17,6 +19,7 @@ import {
 } from "~/stores/report.store";
 import {buildReportDateRange, type ReportRange} from "~/utils/reports";
 import ReportFiltersBar from "~/components/reports/ReportFiltersBar.vue";
+import ReportFiltersSummary from "~/components/reports/ReportFiltersSummary.vue";
 import ReportKpiCards from "~/components/reports/ReportKpiCards.vue";
 import ReportChartCard from "~/components/reports/ReportChartCard.vue";
 import NetWorthChart from "~/components/reports/NetWorthChart.vue";
@@ -35,6 +38,7 @@ const router = useRouter();
 
 const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
+const referenceStore = useReferenceStore();
 const reportStore = useReportStore();
 
 const currency = computed(() => familyStore.family?.currency ?? "USD");
@@ -57,7 +61,7 @@ function parseRange(value: unknown): ReportRange {
     return "1M";
 }
 
-function parseAccountIdsQuery(value: unknown): string[] {
+function parseIdListQuery(value: unknown): string[] {
     const raw = Array.isArray(value) ? value[0] : value;
     if (typeof raw !== "string" || raw.length === 0) return [];
     return raw.split(",").filter((v) => v.length > 0);
@@ -67,6 +71,17 @@ function parseIncludeShared(value: unknown): boolean {
     const raw = Array.isArray(value) ? value[0] : value;
     if (raw === "false" || raw === "0") return false;
     return true;
+}
+
+function parseBooleanQuery(value: unknown): boolean {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return raw === "true" || raw === "1";
+}
+
+function parseBudgeted(value: unknown): BudgetedFilter {
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (raw === "budgeted" || raw === "unbudgeted") return raw;
+    return "all";
 }
 
 const initialRange = parseRange(route.query.range);
@@ -84,8 +99,13 @@ const {startDate: defaultStart, endDate: defaultEnd} = buildReportDateRange(
 );
 const startDate = ref<string>(initialCustom?.startDate || defaultStart);
 const endDate = ref<string>(initialCustom?.endDate || defaultEnd);
-const accountIds = ref<string[]>(parseAccountIdsQuery(route.query.accountIds));
+const accountIds = ref<string[]>(parseIdListQuery(route.query.accountIds));
+const categoryIds = ref<string[]>(parseIdListQuery(route.query.categoryIds));
+const merchantIds = ref<string[]>(parseIdListQuery(route.query.merchantIds));
 const includeShared = ref<boolean>(parseIncludeShared(route.query.includeShared));
+const excludeTransfers = ref<boolean>(parseBooleanQuery(route.query.excludeTransfers));
+const includeRebalances = ref<boolean>(parseBooleanQuery(route.query.includeRebalances));
+const budgeted = ref<BudgetedFilter>(parseBudgeted(route.query.budgeted));
 
 // Data buckets
 const kpis = ref<ReportKpi | null>(null);
@@ -106,7 +126,12 @@ function currentFilters() {
         startDate: startDate.value,
         endDate: endDate.value,
         accountIds: accountIds.value.length > 0 ? accountIds.value : undefined,
+        categoryIds: categoryIds.value.length > 0 ? categoryIds.value : undefined,
+        merchantIds: merchantIds.value.length > 0 ? merchantIds.value : undefined,
         includeShared: includeShared.value,
+        excludeTransfers: excludeTransfers.value || undefined,
+        includeRebalances: includeRebalances.value || undefined,
+        budgeted: budgeted.value !== "all" ? budgeted.value : undefined,
     };
 }
 
@@ -164,7 +189,12 @@ function syncQuery() {
         query.end = endDate.value;
     }
     if (accountIds.value.length > 0) query.accountIds = accountIds.value.join(",");
+    if (categoryIds.value.length > 0) query.categoryIds = categoryIds.value.join(",");
+    if (merchantIds.value.length > 0) query.merchantIds = merchantIds.value.join(",");
     if (!includeShared.value) query.includeShared = "false";
+    if (excludeTransfers.value) query.excludeTransfers = "true";
+    if (includeRebalances.value) query.includeRebalances = "true";
+    if (budgeted.value !== "all") query.budgeted = budgeted.value;
     router.replace({query});
 }
 
@@ -177,12 +207,47 @@ function scheduleReload() {
     }, 200);
 }
 
-watch([range, startDate, endDate, accountIds, includeShared], () => {
-    scheduleReload();
-});
+watch(
+    [
+        range,
+        startDate,
+        endDate,
+        accountIds,
+        categoryIds,
+        merchantIds,
+        includeShared,
+        excludeTransfers,
+        includeRebalances,
+        budgeted,
+    ],
+    () => {
+        scheduleReload();
+    },
+);
+
+const hasActiveFilters = computed(
+    () =>
+        accountIds.value.length > 0 ||
+        categoryIds.value.length > 0 ||
+        merchantIds.value.length > 0 ||
+        !includeShared.value ||
+        excludeTransfers.value ||
+        includeRebalances.value ||
+        budgeted.value !== "all",
+);
+
+function resetAllFilters() {
+    accountIds.value = [];
+    categoryIds.value = [];
+    merchantIds.value = [];
+    includeShared.value = true;
+    excludeTransfers.value = false;
+    includeRebalances.value = false;
+    budgeted.value = "all";
+}
 
 onMounted(async () => {
-    await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily()]);
+    await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily(), referenceStore.fetchReferences()]);
     await loadAllReports();
 });
 
@@ -229,16 +294,49 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                     <ReportFiltersBar
                         :account-ids="accountIds"
                         :accounts="accountStore.accounts"
+                        :budgeted="budgeted"
+                        :categories="referenceStore.categories"
+                        :category-ids="categoryIds"
                         :end-date="endDate"
+                        :exclude-transfers="excludeTransfers"
+                        :include-rebalances="includeRebalances"
                         :include-shared="includeShared"
                         :loading="isLoading"
+                        :merchant-ids="merchantIds"
+                        :merchants="referenceStore.merchants"
                         :range="range"
                         :start-date="startDate"
                         @update:range="(v) => (range = v)"
                         @update:start-date="(v) => (startDate = v)"
                         @update:end-date="(v) => (endDate = v)"
                         @update:account-ids="(v) => (accountIds = v)"
-                        @update:include-shared="(v) => (includeShared = v)" />
+                        @update:category-ids="(v) => (categoryIds = v)"
+                        @update:merchant-ids="(v) => (merchantIds = v)"
+                        @update:include-shared="(v) => (includeShared = v)"
+                        @update:exclude-transfers="(v) => (excludeTransfers = v)"
+                        @update:include-rebalances="(v) => (includeRebalances = v)"
+                        @update:budgeted="(v) => (budgeted = v)" />
+
+                    <ReportFiltersSummary
+                        v-if="hasActiveFilters"
+                        :account-ids="accountIds"
+                        :accounts="accountStore.accounts"
+                        :budgeted="budgeted"
+                        :categories="referenceStore.categories"
+                        :category-ids="categoryIds"
+                        :exclude-transfers="excludeTransfers"
+                        :include-rebalances="includeRebalances"
+                        :include-shared="includeShared"
+                        :merchant-ids="merchantIds"
+                        :merchants="referenceStore.merchants"
+                        @remove:account="(id) => (accountIds = accountIds.filter((x) => x !== id))"
+                        @remove:category="(id) => (categoryIds = categoryIds.filter((x) => x !== id))"
+                        @remove:merchant="(id) => (merchantIds = merchantIds.filter((x) => x !== id))"
+                        @reset:include-shared="includeShared = true"
+                        @reset:exclude-transfers="excludeTransfers = false"
+                        @reset:include-rebalances="includeRebalances = false"
+                        @reset:budgeted="budgeted = 'all'"
+                        @reset:all="resetAllFilters" />
 
                     <ReportKpiCards :currency="currency" :data="kpis" :loading="isLoading" />
 

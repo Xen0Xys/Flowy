@@ -4,11 +4,18 @@ import {useApi} from "~/composables/useApi";
 import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
+export type BudgetedFilter = "all" | "budgeted" | "unbudgeted";
+
 export type ReportFilters = {
     startDate: string;
     endDate: string;
     accountIds?: string[];
+    categoryIds?: string[];
+    merchantIds?: string[];
     includeShared?: boolean;
+    excludeTransfers?: boolean;
+    includeRebalances?: boolean;
+    budgeted?: BudgetedFilter;
 };
 
 export type ReportKpiPeriod = {
@@ -120,8 +127,23 @@ function buildQuery(filters: ReportFilters, extras: Record<string, string | numb
     if (filters.accountIds && filters.accountIds.length > 0) {
         params.set("accountIds", filters.accountIds.join(","));
     }
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+        params.set("categoryIds", filters.categoryIds.join(","));
+    }
+    if (filters.merchantIds && filters.merchantIds.length > 0) {
+        params.set("merchantIds", filters.merchantIds.join(","));
+    }
     if (filters.includeShared !== undefined) {
         params.set("includeShared", String(filters.includeShared));
+    }
+    if (filters.excludeTransfers) {
+        params.set("excludeTransfers", "true");
+    }
+    if (filters.includeRebalances) {
+        params.set("includeRebalances", "true");
+    }
+    if (filters.budgeted && filters.budgeted !== "all") {
+        params.set("budgeted", filters.budgeted);
     }
     for (const [key, value] of Object.entries(extras)) {
         if (value !== undefined) params.set(key, String(value));

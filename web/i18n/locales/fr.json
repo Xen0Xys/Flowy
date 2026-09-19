@@ -1477,9 +1477,29 @@
             "accountsCount": "{count} comptes",
             "accountsOwned": "Mes comptes",
             "accountsSharedBy": "Partagé par {name}",
+            "categoriesTitle": "Filtrer les catégories",
+            "categoriesHint": "Laissez vide pour inclure toutes les catégories.",
+            "categoriesAll": "Toutes les catégories",
+            "categoriesCount": "{count} catégories",
+            "merchantsTitle": "Filtrer les marchands",
+            "merchantsHint": "Laissez vide pour inclure tous les marchands.",
+            "merchantsAll": "Tous les marchands",
+            "merchantsCount": "{count} marchands",
             "selectAll": "Tout sélectionner",
             "clear": "Effacer",
             "includeShared": "Inclure les partagés",
+            "excludeTransfers": "Exclure les transferts",
+            "includeRebalances": "Inclure les rééquilibrages",
+            "budgetedTitle": "Statut budgétaire",
+            "budgeted": {
+                "all": "Toutes les transactions",
+                "budgeted": "Uniquement budgétisées",
+                "unbudgeted": "Uniquement non budgétisées"
+            },
+            "chips": {
+                "excludeShared": "Comptes personnels uniquement"
+            },
+            "resetAll": "Réinitialiser les filtres",
             "presets": {
                 "7D": "7J",
                 "1M": "1M",
