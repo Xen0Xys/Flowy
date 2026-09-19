@@ -29,11 +29,6 @@ const successColor = useCssVar("--success");
 const destructiveColor = useCssVar("--destructive");
 const mutedFgVar = useCssVar("--muted-foreground");
 
-function computeRate(income: number, expense: number): number {
-    if (income <= 0) return 0;
-    return Math.round(((income - expense) / income) * 1000) / 10;
-}
-
 type Row = {
     periodMs: number;
     income: number;
@@ -45,19 +40,15 @@ type Row = {
 };
 
 const dataset = computed<Row[]>(() =>
-    props.data.map((p) => {
-        const previousIncome = p.previousIncome ?? 0;
-        const previousExpense = p.previousExpense ?? 0;
-        return {
-            periodMs: new Date(p.period).getTime(),
-            income: p.income,
-            expense: p.expense,
-            previousIncome,
-            previousExpense,
-            savingsRate: computeRate(p.income, p.expense),
-            previousSavingsRate: computeRate(previousIncome, previousExpense),
-        };
-    }),
+    props.data.map((p) => ({
+        periodMs: new Date(p.period).getTime(),
+        income: p.income,
+        expense: p.expense,
+        previousIncome: p.previousIncome ?? 0,
+        previousExpense: p.previousExpense ?? 0,
+        savingsRate: p.savingsRate,
+        previousSavingsRate: p.previousSavingsRate ?? 0,
+    })),
 );
 
 const hasPrevious = computed(() =>

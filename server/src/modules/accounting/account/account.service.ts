@@ -237,18 +237,27 @@ export class AccountService implements OnModuleInit {
         accountId: string,
         startDate: string,
         endDate: string,
-        options?: {skipAccessCheck?: boolean; resolution?: "day" | "month"},
+        options?: {
+            skipAccessCheck?: boolean;
+            resolution?: "day" | "month";
+            preloaded?: {
+                createdAt: Date;
+                transactions: {date: Date; amount: number}[];
+                balanceBeforeStart: number;
+            };
+        },
     ): Promise<Array<{date: Date; balance: number}>> {
-        // `skipAccessCheck` is reserved for internal callers that have already
-        // resolved the account against `AccountAccessService`. When set, we
-        // still need `account.created_at` for the ALL-preset clamp below, so
-        // we do a lightweight lookup instead of the full assertAccess call.
-        const account = options?.skipAccessCheck
-            ? await this.prismaService.accounts.findUniqueOrThrow({
-                  where: {id: accountId},
-                  select: {id: true, created_at: true},
-              })
-            : await this.accountAccess.assertAccess(user, accountId, "read");
+        // `preloaded` lets internal callers hand over pre-fetched data so
+        // callers doing this per account (e.g. net worth) can batch the
+        // underlying queries and avoid an N+1.
+        const account = options?.preloaded
+            ? {id: accountId, created_at: options.preloaded.createdAt}
+            : options?.skipAccessCheck
+              ? await this.prismaService.accounts.findUniqueOrThrow({
+                    where: {id: accountId},
+                    select: {id: true, created_at: true},
+                })
+              : await this.accountAccess.assertAccess(user, accountId, "read");
 
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -257,32 +266,39 @@ export class AccountService implements OnModuleInit {
             throw new BadRequestException("startDate must be before endDate");
         }
 
-        const transactions = await this.prismaService.transactions.findMany({
-            where: {
-                account_id: accountId,
-                date: {
-                    gte: start,
-                    lte: end,
+        const transactions =
+            options?.preloaded?.transactions ??
+            (await this.prismaService.transactions.findMany({
+                where: {
+                    account_id: accountId,
+                    date: {
+                        gte: start,
+                        lte: end,
+                    },
                 },
-            },
-            orderBy: {
-                date: "asc",
-            },
-        });
-
-        const balanceBeforeStartRaw = await this.prismaService.transactions.aggregate({
-            where: {
-                account_id: accountId,
-                date: {
-                    lt: start,
+                orderBy: {
+                    date: "asc",
                 },
-            },
-            _sum: {
-                amount: true,
-            },
-        });
+            }));
 
-        let runningBalance = this.toDecimal(balanceBeforeStartRaw._sum.amount ?? 0);
+        const balanceBeforeStart =
+            options?.preloaded !== undefined
+                ? options.preloaded.balanceBeforeStart
+                : ((
+                      await this.prismaService.transactions.aggregate({
+                          where: {
+                              account_id: accountId,
+                              date: {
+                                  lt: start,
+                              },
+                          },
+                          _sum: {
+                              amount: true,
+                          },
+                      })
+                  )._sum.amount ?? 0);
+
+        let runningBalance = this.toDecimal(balanceBeforeStart);
 
         const transactionsByDate = new Map<string, number>();
         for (const t of transactions) {

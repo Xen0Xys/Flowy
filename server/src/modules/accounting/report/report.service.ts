@@ -39,8 +39,9 @@ export class ReportService {
     async getKpis(user: UserEntity, filters: ReportFiltersDto): Promise<ReportKpiEntity> {
         const {scoped: scopedIds} = await this.resolveAccountIds(user, filters);
         const {start, end} = this.parseRange(filters);
-        const rangeMs = end.getTime() - start.getTime();
-        const previousStart = new Date(start.getTime() - rangeMs);
+        const resolution = this.resolveResolution(filters);
+        const bucketCount = this.buildPeriodKeys(start, end, resolution).length;
+        const previousStart = this.shiftDateBackward(start, resolution, bucketCount);
         const previousEnd = new Date(start.getTime() - 1);
 
         if (scopedIds.length === 0) {
@@ -71,9 +72,9 @@ export class ReportService {
         const resolution = this.resolveResolution(filters);
         const truncSql = this.dateTruncSql(resolution);
 
-        const rangeMs = end.getTime() - start.getTime();
-        const previousStart = new Date(start.getTime() - rangeMs);
+        const bucketCount = this.buildPeriodKeys(start, end, resolution).length;
         const previousEnd = new Date(start.getTime() - 1);
+        const previousStart = this.shiftDateBackward(start, resolution, bucketCount);
 
         const [currentRows, previousRows] = await Promise.all([
             this.fetchCashFlowRows(scopedIds, start, end, filters, truncSql),
@@ -89,6 +90,7 @@ export class ReportService {
             currentPoints[i]!.previousIncome = prev.income;
             currentPoints[i]!.previousExpense = prev.expense;
             currentPoints[i]!.previousNet = prev.net;
+            currentPoints[i]!.previousSavingsRate = prev.savingsRate;
         }
 
         return currentPoints;
@@ -280,8 +282,9 @@ export class ReportService {
 
         if (scopedIds.length === 0) return [];
 
-        const rangeMs = end.getTime() - start.getTime();
-        const previousStart = new Date(start.getTime() - rangeMs);
+        const resolution = this.resolveResolution(filters);
+        const bucketCount = this.buildPeriodKeys(start, end, resolution).length;
+        const previousStart = this.shiftDateBackward(start, resolution, bucketCount);
         const previousEnd = new Date(start.getTime() - 1);
 
         const [grouped, previousGrouped] = await Promise.all([
@@ -525,29 +528,65 @@ export class ReportService {
 
         if (scopedIds.length === 0) return [];
 
-        const accounts = await this.prismaService.accounts.findMany({
-            where: {id: {in: scopedIds}},
-            select: {id: true, type: true},
-        });
-        const typeById = new Map(accounts.map((a) => [a.id, a.type as string]));
-
         const resolution = this.resolveResolution(filters);
         const evolutionResolution: "day" | "month" = resolution === "day" || resolution === "week" ? "day" : "month";
+
+        // Batch the underlying reads once for all accounts so we avoid the
+        // per-account fanout that `getAccountBalanceEvolution` would otherwise
+        // trigger (3 queries per account).
+        const [accounts, allTransactions, balancesBeforeStart] = await Promise.all([
+            this.prismaService.accounts.findMany({
+                where: {id: {in: scopedIds}},
+                select: {id: true, type: true, created_at: true},
+            }),
+            this.prismaService.transactions.findMany({
+                where: {account_id: {in: scopedIds}, date: {gte: start, lte: end}},
+                select: {account_id: true, date: true, amount: true},
+                orderBy: {date: "asc"},
+            }),
+            this.prismaService.transactions.groupBy({
+                by: ["account_id"],
+                where: {account_id: {in: scopedIds}, date: {lt: start}},
+                _sum: {amount: true},
+            }),
+        ]);
+
+        const typeById = new Map(accounts.map((a) => [a.id, a.type as string]));
+        const createdAtById = new Map(accounts.map((a) => [a.id, a.created_at]));
+        const txByAccount = new Map<string, {date: Date; amount: number}[]>();
+        for (const t of allTransactions) {
+            const bucket = txByAccount.get(t.account_id);
+            if (bucket) bucket.push({date: t.date, amount: t.amount});
+            else txByAccount.set(t.account_id, [{date: t.date, amount: t.amount}]);
+        }
+        const balanceByAccount = new Map(balancesBeforeStart.map((b) => [b.account_id, b._sum.amount ?? 0]));
+
         const evolutionSeries = await Promise.all(
-            scopedIds.map((id) =>
-                this.accountService.getAccountBalanceEvolution(user, id, start.toISOString(), end.toISOString(), {
-                    skipAccessCheck: true,
-                    resolution: evolutionResolution,
-                }),
+            accounts.map((account) =>
+                this.accountService.getAccountBalanceEvolution(
+                    user,
+                    account.id,
+                    start.toISOString(),
+                    end.toISOString(),
+                    {
+                        skipAccessCheck: true,
+                        resolution: evolutionResolution,
+                        preloaded: {
+                            createdAt: createdAtById.get(account.id) ?? account.created_at,
+                            transactions: txByAccount.get(account.id) ?? [],
+                            balanceBeforeStart: balanceByAccount.get(account.id) ?? 0,
+                        },
+                    },
+                ),
             ),
         );
 
         const pointMap = new Map<string, NetWorthPointEntity>();
 
-        for (let i = 0; i < scopedIds.length; i++) {
-            const accountId = scopedIds[i];
-            const series = evolutionSeries[i];
-            const accountType = typeById.get(accountId) ?? "OTHER";
+        for (let i = 0; i < accounts.length; i++) {
+            const account = accounts[i]!;
+            const series = evolutionSeries[i] ?? [];
+            const accountType = typeById.get(account.id) ?? "OTHER";
 
             for (const point of series) {
                 const dateKey = point.date.toISOString().slice(0, 10);
@@ -840,6 +879,31 @@ export class ReportService {
         }
     }
 
+    // Shift a date backward by `count` periods of the given resolution. Used to
+    // build a previous-period window that is aligned on the same resolution
+    // buckets as the current window, so index-based pairing stays correct.
+    private shiftDateBackward(date: Date, resolution: ReportResolution, count: number): Date {
+        const shifted = new Date(date);
+        switch (resolution) {
+            case "day":
+                shifted.setUTCDate(shifted.getUTCDate() - count);
+                break;
+            case "week":
+                shifted.setUTCDate(shifted.getUTCDate() - count * 7);
+                break;
+            case "month":
+                shifted.setUTCMonth(shifted.getUTCMonth() - count);
+                break;
+            case "quarter":
+                shifted.setUTCMonth(shifted.getUTCMonth() - count * 3);
+                break;
+            case "year":
+                shifted.setUTCFullYear(shifted.getUTCFullYear() - count);
+                break;
+        }
+        return shifted;
+    }
+
     private resolveResolution(filters: ReportFiltersDto): ReportResolution {
         return filters.resolution ?? "month";
     }
@@ -847,18 +911,20 @@ export class ReportService {
     private dateTruncSql(resolution: ReportResolution): Prisma.Sql {
         // Whitelist: `resolution` is validated by @IsIn on the DTO, but we
         // re-check here so SQL injection is impossible even if the caller
-        // bypasses the DTO.
+        // bypasses the DTO. `AT TIME ZONE 'UTC'` pins the bucket boundaries to
+        // UTC regardless of the Postgres session timezone, matching how the JS
+        // side re-keys periods via `toISOString().slice(0, 10)`.
         switch (resolution) {
             case "day":
-                return Prisma.sql`date_trunc('day', "date")`;
+                return Prisma.sql`date_trunc('day', "date" AT TIME ZONE 'UTC')`;
             case "week":
-                return Prisma.sql`date_trunc('week', "date")`;
+                return Prisma.sql`date_trunc('week', "date" AT TIME ZONE 'UTC')`;
             case "month":
-                return Prisma.sql`date_trunc('month', "date")`;
+                return Prisma.sql`date_trunc('month', "date" AT TIME ZONE 'UTC')`;
             case "quarter":
-                return Prisma.sql`date_trunc('quarter', "date")`;
+                return Prisma.sql`date_trunc('quarter', "date" AT TIME ZONE 'UTC')`;
             case "year":
-                return Prisma.sql`date_trunc('year', "date")`;
+                return Prisma.sql`date_trunc('year', "date" AT TIME ZONE 'UTC')`;
         }
     }
 
@@ -892,7 +958,14 @@ export class ReportService {
         return this.buildPeriodKeys(start, end, resolution).map((key) => {
             const entry = byKey.get(key) ?? {income: 0, expense: 0};
             const net = Math.round((entry.income - entry.expense) * 100) / 100;
-            return new CashFlowPointEntity({period: key, income: entry.income, expense: entry.expense, net});
+            const savingsRate = entry.income > 0 ? Math.round((net / entry.income) * 10000) / 100 : 0;
+            return new CashFlowPointEntity({
+                period: key,
+                income: entry.income,
+                expense: entry.expense,
+                net,
+                savingsRate,
+            });
         });
     }
 }

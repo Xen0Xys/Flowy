@@ -38,9 +38,11 @@ export type CashFlowPoint = {
     income: number;
     expense: number;
     net: number;
+    savingsRate: number;
     previousIncome?: number;
     previousExpense?: number;
     previousNet?: number;
+    previousSavingsRate?: number;
 };
 
 export type CashFlowSankeyNode = {

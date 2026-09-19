@@ -1585,7 +1585,7 @@
             },
             "budgetVsActual": {
                 "title": "Budget vs réel",
-                "subtitle": "Dépenses planifiées vs dépenses réelles",
+                "subtitle": "Dépenses planifiées vs dépenses réelles (utilise toujours les transactions budgétisées)",
                 "budgeted": "Prévu",
                 "actual": "Réel",
                 "difference": "Écart"

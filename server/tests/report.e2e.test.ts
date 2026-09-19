@@ -310,11 +310,13 @@ describe("ReportController (e2e)", () => {
         expect(res.body[0].income).toBe(2000);
         expect(res.body[0].expense).toBe(175);
         expect(res.body[0].net).toBe(1825);
-        // previousIncome is index-aligned on the previous window: for a 31-day
-        // current window, the previous window truncates to Jan+Feb at month
-        // resolution and current[0] (March) pairs with previous[0] (January),
-        // which has no data.
-        expect(res.body[0].previousIncome).toBe(0);
+        expect(res.body[0].savingsRate).toBe(91.25);
+        // Previous window is shifted by 1 bucket of the resolution (month), so
+        // March compares against February, which carries the seeded 1000/110.
+        expect(res.body[0].previousIncome).toBe(1000);
+        expect(res.body[0].previousExpense).toBe(110);
+        expect(res.body[0].previousNet).toBe(890);
+        expect(res.body[0].previousSavingsRate).toBe(89);
     });
 
     test("cash-flow: honors day resolution", async () => {

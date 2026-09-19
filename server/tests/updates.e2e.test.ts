@@ -21,12 +21,15 @@ describe("UpdatesController (e2e)", () => {
     let agent: ReturnType<typeof request.agent>;
 
     beforeAll(async () => {
-        // Stub fetch so the module's onModuleInit doesn't hit GitHub during the whole suite.
+        // Belt-and-braces: NODE_ENV=test already skips the update poll (see
+        // updates.task.ts), but we also stub fetch in case any test triggers
+        // an explicit refresh().
         globalThis.fetch = (async () =>
             ({
                 ok: true,
                 status: 200,
                 statusText: "OK",
+                headers: {get: () => null},
                 json: async () => [],
             }) as unknown as Response) as unknown as typeof fetch;
 

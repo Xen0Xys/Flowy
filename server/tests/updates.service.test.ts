@@ -13,12 +13,15 @@ function makeConfig(version: string | undefined): ConfigService {
 
 const originalFetch = globalThis.fetch;
 
-function stubFetch(response: unknown, ok = true, status = 200): void {
+function stubFetch(response: unknown, ok = true, status = 200, headers: Record<string, string> = {}): void {
     globalThis.fetch = mock(async () => {
         return {
             ok,
             status,
             statusText: ok ? "OK" : "Error",
+            headers: {
+                get: (name: string) => headers[name.toLowerCase()] ?? null,
+            },
             json: async () => response,
         } as unknown as Response;
     }) as unknown as typeof fetch;
@@ -163,6 +166,7 @@ describe("UpdatesService", () => {
                 ok: true,
                 status: 200,
                 statusText: "OK",
+                headers: {get: () => null},
                 json: async () => [],
             } as unknown as Response;
         }) as unknown as typeof fetch;
@@ -173,5 +177,81 @@ describe("UpdatesService", () => {
         await Promise.all([first, second]);
 
         expect((globalThis.fetch as unknown as {mock: {calls: unknown[]}}).mock.calls.length).toBe(1);
+    });
+
+    test("refresh: sends If-None-Match on second call after receiving an ETag", async () => {
+        const service = new UpdatesService(makeConfig("1.0.0"));
+        stubFetch([], true, 200, {etag: '"abc"'});
+        await service.refresh();
+
+        // Second call: server returns 304, latest stays null but checkedAt updates.
+        const previousCheckedAt = service.getState().checkedAt;
+        await new Promise((r) => setTimeout(r, 5));
+        stubFetch(null, false, 304, {});
+        await service.refresh();
+        const calls = (globalThis.fetch as unknown as {mock: {calls: unknown[][]}}).mock.calls;
+        const sentHeaders = (calls[0]?.[1] as {headers: Record<string, string>} | undefined)?.headers;
+        expect(sentHeaders?.["If-None-Match"]).toBe('"abc"');
+        expect(service.getState().checkedAt).not.toBe(previousCheckedAt);
+    });
+
+    test("refresh: surfaces GitHub rate-limit as a warn without changing state", async () => {
+        const service = new UpdatesService(makeConfig("1.0.0"));
+        // First run seeds a "no update" state so we can verify it stays put.
+        stubFetch([], true, 200, {});
+        await service.refresh();
+        const before = service.getState();
+
+        stubFetch(null, false, 403, {"x-ratelimit-remaining": "0", "x-ratelimit-reset": "1234"});
+        await service.refresh();
+        const after = service.getState();
+
+        expect(after.updateAvailable).toBe(before.updateAvailable);
+        expect(after.latest).toBe(before.latest);
+    });
+
+    test("parseVersion: strips SemVer +build metadata", async () => {
+        // Indirect check via compareVersions through refresh path: build tag
+        // should not be considered newer than base version.
+        const service = new UpdatesService(makeConfig("2.0.0"));
+        stubFetch(
+            [
+                {
+                    tag_name: "v2.0.0+build.42",
+                    name: "2.0.0+build.42",
+                    html_url: "https://example/build",
+                    published_at: "2026-03-01T00:00:00Z",
+                    draft: false,
+                    prerelease: false,
+                },
+            ],
+            true,
+            200,
+            {},
+        );
+        await service.refresh();
+        expect(service.getState().updateAvailable).toBe(false);
+    });
+
+    test("parseVersion: rejects malformed core segments (e.g. '1a.0.0')", async () => {
+        // A malformed tag must not be considered a valid upgrade candidate.
+        const service = new UpdatesService(makeConfig("1.0.0"));
+        stubFetch(
+            [
+                {
+                    tag_name: "v1a.0.0",
+                    name: "1a.0.0",
+                    html_url: "https://example/junk",
+                    published_at: "2026-03-01T00:00:00Z",
+                    draft: false,
+                    prerelease: false,
+                },
+            ],
+            true,
+            200,
+            {},
+        );
+        await service.refresh();
+        expect(service.getState().updateAvailable).toBe(false);
     });
 });

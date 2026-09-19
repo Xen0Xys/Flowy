@@ -9,12 +9,17 @@ export class UpdatesTask implements OnModuleInit {
     constructor(private readonly updatesService: UpdatesService) {}
 
     async onModuleInit(): Promise<void> {
+        if (process.env.NODE_ENV === "test") {
+            this.logger.debug("Skipping bootstrap update check in test environment");
+            return;
+        }
         this.logger.log("Startup: fetching latest release from GitHub");
         await this.updatesService.refresh();
     }
 
     @Cron(CronExpression.EVERY_5_MINUTES)
     async runScheduled(): Promise<void> {
+        if (process.env.NODE_ENV === "test") return;
         await this.updatesService.refresh();
     }
 }

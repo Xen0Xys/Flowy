@@ -1585,7 +1585,7 @@
             },
             "budgetVsActual": {
                 "title": "Budget vs actual",
-                "subtitle": "Planned expense against real spending",
+                "subtitle": "Planned expense against real spending (always uses budgeted transactions)",
                 "budgeted": "Budgeted",
                 "actual": "Actual",
                 "difference": "Difference"

@@ -4,6 +4,7 @@ import {LatestReleaseEntity, UpdateStatusEntity} from "./models/entities/update-
 
 const GITHUB_REPO = "Xen0Xys/Flowy";
 const GITHUB_RELEASES_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases`;
+const FETCH_TIMEOUT_MS = 5_000;
 
 type GithubRelease = {
     tag_name: string;
@@ -28,9 +29,10 @@ function isPrereleaseVersion(v: string): boolean {
 }
 
 function parseVersion(v: string): ParsedVersion | null {
-    const normalized = normalizeVersion(v);
+    // Strip SemVer build metadata (everything after `+`) before splitting on `-`.
+    const normalized = normalizeVersion(v).split("+", 1)[0] ?? "";
     const [coreStr, prereleaseStr] = normalized.split("-", 2);
-    const core = (coreStr ?? "").split(".").map((s) => parseInt(s, 10));
+    const core = (coreStr ?? "").split(".").map((s) => (/^\d+$/.test(s) ? parseInt(s, 10) : NaN));
     if (core.length === 0 || core.some((n) => Number.isNaN(n))) return null;
     const prerelease =
         prereleaseStr === undefined
@@ -83,6 +85,7 @@ export class UpdatesService {
     private latest: LatestReleaseEntity | null = null;
     private checkedAt: Date | null = null;
     private isFetching = false;
+    private lastEtag: string | null = null;
 
     constructor(private readonly configService: ConfigService) {
         this.currentVersion = normalizeVersion(this.configService.get<string>("npm_package_version") || "");
@@ -109,6 +112,11 @@ export class UpdatesService {
         this.isFetching = true;
         try {
             const releases = await this.fetchReleases();
+            if (releases === "not-modified") {
+                this.checkedAt = new Date();
+                this.logger.debug("Update check: 304 Not Modified");
+                return;
+            }
             const includePrerelease = isPrereleaseVersion(this.currentVersion);
             const candidates = releases
                 .filter((r) => !r.draft && (!r.prerelease || includePrerelease))
@@ -137,16 +145,29 @@ export class UpdatesService {
         }
     }
 
-    private async fetchReleases(): Promise<GithubRelease[]> {
+    private async fetchReleases(): Promise<GithubRelease[] | "not-modified"> {
+        const headers: Record<string, string> = {
+            Accept: "application/vnd.github+json",
+            "User-Agent": `Flowy-Server/${this.currentVersion || "unknown"}`,
+        };
+        if (this.lastEtag) headers["If-None-Match"] = this.lastEtag;
+
         const response = await fetch(GITHUB_RELEASES_URL, {
-            headers: {
-                Accept: "application/vnd.github+json",
-                "User-Agent": `Flowy-Server/${this.currentVersion || "unknown"}`,
-            },
+            headers,
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
+
+        if (response.status === 304) return "not-modified";
+        if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
+            const reset = response.headers.get("x-ratelimit-reset");
+            throw new Error(`GitHub rate limit exceeded, resets at ${reset ?? "unknown"}`);
+        }
         if (!response.ok) {
             throw new Error(`GitHub responded with ${response.status} ${response.statusText}`);
         }
+
+        const etag = response.headers.get("etag");
+        if (etag) this.lastEtag = etag;
         return (await response.json()) as GithubRelease[];
     }
 }

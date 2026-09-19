@@ -1,6 +1,5 @@
 import {IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min, ValidateIf} from "class-validator";
 import {Transform, Type} from "class-transformer";
-import {ApiProperty} from "@nestjs/swagger";
 
 export enum TransactionSearchType {
     ALL = "all",
@@ -46,11 +45,6 @@ export class TransactionFiltersDto {
     @IsUUID("7")
     accountId?: string;
 
-    @ApiProperty({
-        required: false,
-        description: "UUID v7 de la catégorie, ou 'none' pour ne renvoyer que les transactions sans catégorie.",
-        example: "018f8e00-0000-7000-8000-000000000000",
-    })
     @IsOptional()
     @IsString()
     @ValidateIf((o) => o.categoryId !== "none")
