@@ -1,6 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
+import {useAuthStore} from "~/stores/auth.store";
 import {type User, useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
@@ -31,8 +32,8 @@ export const useFamilyStore = defineStore("family", {
 
     actions: {
         async fetchFamily() {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const family = await apiFetch<Family>("/family/family");
@@ -46,8 +47,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async createFamily(payload: {name: string; currency: string}) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const family = await apiFetch<Family>("/family/create", {
@@ -55,7 +56,7 @@ export const useFamilyStore = defineStore("family", {
                     body: payload,
                 });
                 // server updates user's family; refresh profile to keep store in sync
-                await userStore.fetchProfile();
+                await useUserStore().fetchProfile();
                 toast.success(i18nT("family.store.success.familyCreated"));
                 return family;
             } catch (err: any) {
@@ -66,8 +67,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async inviteMember(email: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const data = await apiFetch<InviteMemberResponse>("/family/invite", {
@@ -85,8 +86,8 @@ export const useFamilyStore = defineStore("family", {
 
         async inviteMembers(emails: string[]) {
             if (!emails.length) return {sent: [] as string[], failed: [] as {email: string; error: unknown}[]};
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             const results = await Promise.allSettled(
@@ -114,8 +115,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async getInvites() {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<FamilyInvite[]>("/family/invites");
@@ -127,8 +128,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async revokeInvite(code: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/family/invites/${code}`, {
@@ -143,15 +144,15 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async joinFamily(code: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/family/join/${code}`, {
                     method: "POST",
                 });
                 // server changed user's family; refresh profile
-                await userStore.fetchProfile();
+                await useUserStore().fetchProfile();
                 toast.success(i18nT("family.store.success.joinedFamily"));
             } catch (err: any) {
                 const message = err?.message ?? i18nT("family.store.errors.joinFamily");
@@ -161,13 +162,13 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async quitFamily(currentPassword: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch("/family/quit", {method: "DELETE", body: {currentPassword}});
                 // server removed user's family; refresh profile
-                await userStore.fetchProfile();
+                await useUserStore().fetchProfile();
                 toast.success(i18nT("family.store.success.leftFamily"));
             } catch (err: any) {
                 const message = err?.data?.message ?? err?.message ?? i18nT("family.store.errors.leaveFamily");
@@ -177,8 +178,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async updateFamilySettings(body: {name?: string; currency?: string}) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const family = await apiFetch<Family>("/family/settings", {
@@ -199,8 +200,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async removeFamilyMember(memberId: string, currentPassword: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/family/members/${memberId}`, {
@@ -208,7 +209,7 @@ export const useFamilyStore = defineStore("family", {
                     body: {currentPassword},
                 });
                 // refresh profile and return success
-                await userStore.fetchProfile();
+                await useUserStore().fetchProfile();
                 toast.success(i18nT("family.store.success.memberRemoved"));
                 return true;
             } catch (err: any) {
@@ -225,13 +226,13 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async deleteFamily(currentPassword: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/family`, {method: "DELETE", body: {currentPassword}});
                 // After deletion, clear user's family info by refreshing profile
-                await userStore.fetchProfile();
+                await useUserStore().fetchProfile();
                 toast.success(i18nT("family.store.success.familyDeleted"));
                 return true;
             } catch (err: any) {
@@ -247,8 +248,8 @@ export const useFamilyStore = defineStore("family", {
         },
 
         async adminGetFamily(familyId: string): Promise<Family> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<Family>(`/admin/family/${familyId}`);

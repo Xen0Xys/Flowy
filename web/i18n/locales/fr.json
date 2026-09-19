@@ -1329,6 +1329,19 @@
         "dismiss": "Compris",
         "noBody": "Aucune note de version disponible."
     },
+    "updates": {
+        "title": "Mise à jour disponible",
+        "description": "Une nouvelle version de Flowy a été publiée en amont.",
+        "popoverTitle": "Mise à jour disponible",
+        "popoverAdminHelp": "Consultez les paramètres d'instance, puis redéployez.",
+        "popoverUserHelp": "Prévenez l'administrateur de votre instance pour qu'il mette à jour.",
+        "currentVersion": "Installée",
+        "latestVersion": "Disponible",
+        "publishedAt": "Publiée le",
+        "viewOnGithub": "Voir sur GitHub",
+        "goToInstanceSettings": "Paramètres d'instance",
+        "sidebarBadge": "Une nouvelle version de Flowy est disponible"
+    },
     "recurring": {
         "page": {
             "title": "Transactions récurrentes",
@@ -1477,9 +1490,37 @@
             "accountsCount": "{count} comptes",
             "accountsOwned": "Mes comptes",
             "accountsSharedBy": "Partagé par {name}",
+            "categoriesTitle": "Filtrer les catégories",
+            "categoriesHint": "Laissez vide pour inclure toutes les catégories.",
+            "categoriesAll": "Toutes les catégories",
+            "categoriesCount": "{count} catégories",
+            "merchantsTitle": "Filtrer les marchands",
+            "merchantsHint": "Laissez vide pour inclure tous les marchands.",
+            "merchantsAll": "Tous les marchands",
+            "merchantsCount": "{count} marchands",
             "selectAll": "Tout sélectionner",
             "clear": "Effacer",
             "includeShared": "Inclure les partagés",
+            "excludeTransfers": "Exclure les transferts",
+            "includeRebalances": "Inclure les rééquilibrages",
+            "budgetedTitle": "Statut budgétaire",
+            "budgeted": {
+                "all": "Toutes les transactions",
+                "budgeted": "Uniquement budgétisées",
+                "unbudgeted": "Uniquement non budgétisées"
+            },
+            "resolution": {
+                "auto": "Auto ({value})",
+                "day": "Journalier",
+                "week": "Hebdomadaire",
+                "month": "Mensuel",
+                "quarter": "Trimestriel",
+                "year": "Annuel"
+            },
+            "chips": {
+                "excludeShared": "Comptes personnels uniquement"
+            },
+            "resetAll": "Réinitialiser les filtres",
             "presets": {
                 "7D": "7J",
                 "1M": "1M",
@@ -1506,7 +1547,15 @@
             },
             "cashFlow": {
                 "title": "Flux de trésorerie",
-                "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net"
+                "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net",
+                "titleSavings": "Taux d'épargne",
+                "subtitleSavings": "Part de vos revenus conservée chaque période",
+                "previousIncome": "Revenus précédents",
+                "previousExpense": "Dépenses précédentes",
+                "previousSavingsRate": "Taux d'épargne précédent",
+                "averageSavings": "Taux d'épargne moyen",
+                "modeFlow": "Flux",
+                "modeSavings": "Épargne"
             },
             "cashFlowSankey": {
                 "title": "Flux d'argent",
@@ -1520,7 +1569,8 @@
             "byCategory": {
                 "title": "Dépenses par catégorie",
                 "subtitle": "Répartition sur la période sélectionnée",
-                "totalSpent": "dépensés"
+                "totalSpent": "dépensés",
+                "vsPrevious": "vs période précédente"
             },
             "categoryTrend": {
                 "title": "Tendance par catégorie",
@@ -1535,7 +1585,7 @@
             },
             "budgetVsActual": {
                 "title": "Budget vs réel",
-                "subtitle": "Dépenses planifiées vs dépenses réelles",
+                "subtitle": "Dépenses planifiées vs dépenses réelles (utilise toujours les transactions budgétisées)",
                 "budgeted": "Prévu",
                 "actual": "Réel",
                 "difference": "Écart"
@@ -1544,12 +1594,24 @@
                 "title": "Répartition par compte",
                 "subtitle": "Activité répartie sur vos comptes",
                 "activity": "Activité"
+            }
+        },
+        "sections": {
+            "overview": {
+                "title": "Vue d'ensemble",
+                "subtitle": "Indicateurs clés et évolution du patrimoine"
             },
-            "savingsRate": {
-                "title": "Taux d'épargne dans le temps",
-                "subtitle": "Part de vos revenus conservée chaque mois",
-                "average": "Moyenne",
-                "monthsCount": "{count} mois"
+            "flow": {
+                "title": "Flux de trésorerie",
+                "subtitle": "Revenus, dépenses et circulation de l'argent"
+            },
+            "breakdown": {
+                "title": "Répartition",
+                "subtitle": "Sur quoi et chez qui vous dépensez"
+            },
+            "budgetAccounts": {
+                "title": "Budget & comptes",
+                "subtitle": "Prévu vs réel et activité par compte"
             }
         },
         "empty": {
@@ -1558,6 +1620,11 @@
             "noData": "Aucune donnée sur la période sélectionnée.",
             "noSpending": "Aucune dépense sur cette période.",
             "noBudgets": "Aucun budget trouvé sur les mois sélectionnés."
+        },
+        "drilldown": {
+            "categoryApplied": "Filtre ajouté : {name}",
+            "merchantApplied": "Filtre ajouté : {name}",
+            "undo": "Annuler"
         },
         "store": {
             "errors": {

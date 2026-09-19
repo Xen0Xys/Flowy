@@ -5,6 +5,7 @@ export class CategoryBreakdownEntity {
     icon!: string;
     spent!: number;
     count!: number;
+    previousSpent?: number;
 
     constructor(partial: Partial<CategoryBreakdownEntity>) {
         Object.assign(this, partial);

@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {i18nT} from "~/utils/i18n";
 
 export type AccountAccess = "owner" | "write" | "read";
@@ -82,8 +82,8 @@ export const useAccountStore = defineStore("account", {
 
     actions: {
         async fetchAccounts() {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -99,8 +99,8 @@ export const useAccountStore = defineStore("account", {
         },
 
         async fetchAccountById(id: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -115,8 +115,8 @@ export const useAccountStore = defineStore("account", {
         },
 
         async createAccount(payload: CreateAccountPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -135,8 +135,8 @@ export const useAccountStore = defineStore("account", {
         },
 
         async deleteAccount(id: string, currentPassword: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -157,8 +157,8 @@ export const useAccountStore = defineStore("account", {
         },
 
         async updateAccount(id: string, payload: UpdateAccountPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -183,8 +183,8 @@ export const useAccountStore = defineStore("account", {
         },
 
         async fetchAccountBalanceEvolution(id: string, startDate: string, endDate: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {

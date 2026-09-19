@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
+import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {toast} from "vue-sonner";
@@ -41,6 +42,7 @@ import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
 import {ChevronsUpDown} from "lucide-vue-next";
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const familyStore = useFamilyStore();
 const {t} = useI18n();
 const {copy} = useClipboard();
@@ -124,7 +126,7 @@ const allMembers = computed(() => {
 });
 
 async function loadFamily() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     familyLoaded.value = false;
     loading.value = true;
     try {
@@ -141,7 +143,7 @@ async function loadFamily() {
 }
 
 async function handleInvite() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     const nextInviteEmail = inviteEmail.value.trim();
     if (!nextInviteEmail) {
         toast.error(t("auth.common.errors.emailRequired"));
@@ -169,7 +171,7 @@ function requestRevoke(invite: {code: string; email: string}) {
 
 async function confirmRevoke() {
     const invite = inviteToRevoke.value;
-    if (!invite || !userStore.token) return;
+    if (!invite || !authStore.token) return;
     revokingInvite.value = true;
     try {
         await familyStore.revokeInvite(invite.code);
@@ -191,7 +193,7 @@ async function copyInviteCode(code: string) {
 }
 
 async function handleDangerZoneConfirm(currentPassword: string) {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     familyActionLoading.value = true;
     try {
         if (userStore.isFamilyAdmin) {
@@ -214,7 +216,7 @@ function resetSettings() {
 }
 
 async function saveSettings() {
-    if (!userStore.token || !userStore.isFamilyAdmin || !family.value) return;
+    if (!authStore.token || !userStore.isFamilyAdmin || !family.value) return;
 
     const name = editFamilyName.value.trim();
     const currency = normalizeCurrencyCode(editFamilyCurrency.value);
@@ -255,7 +257,7 @@ function requestRemoveMember(member: {id: string; username: string}) {
 
 async function confirmRemoveMember(currentPassword: string) {
     const target = memberToRemove.value;
-    if (!target || !userStore.token || !userStore.isFamilyAdmin) return;
+    if (!target || !authStore.token || !userStore.isFamilyAdmin) return;
     removingMemberId.value = target.id;
     try {
         await familyStore.removeFamilyMember(target.id, currentPassword);

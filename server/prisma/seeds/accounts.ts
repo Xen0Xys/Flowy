@@ -1,7 +1,7 @@
 import {Faker} from "@faker-js/faker";
 
-const MIN_ACCOUNTS_PER_USER = 1;
-const MAX_ACCOUNTS_PER_USER = 4;
+const MIN_ACCOUNTS_PER_USER = 2;
+const MAX_ACCOUNTS_PER_USER = 6;
 
 const ACCOUNT_TYPES = ["CHECKING", "SAVINGS", "CREDIT", "CASH", "INVESTMENT", "OTHER"] as const;
 

@@ -41,6 +41,7 @@ import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue
 import {useMfa} from "@/composables/useMfa";
 import {valueUpdater} from "@/lib/table";
 import {isValidPassword, PASSWORD_MIN_LENGTH} from "@/lib/validation";
+import {useAuthStore} from "~/stores/auth.store";
 import type {Family} from "~/stores/family.store";
 import type {User} from "~/stores/user.store";
 
@@ -63,6 +64,7 @@ type DetailsState = {
 };
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const familyStore = useFamilyStore();
 const {copy, isSupported} = useClipboard({legacy: true});
 const {adminResetUserMfa} = useMfa();
@@ -182,7 +184,7 @@ const table = useTable({
 });
 
 async function loadUsers() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     loading.value = true;
     try {
         users.value = (await userStore.listAdminUsers()) as AdminUser[];
@@ -198,7 +200,7 @@ async function loadUsers() {
 }
 
 watch(
-    () => userStore.token,
+    () => authStore.token,
     (token) => {
         if (token) loadUsers();
     },

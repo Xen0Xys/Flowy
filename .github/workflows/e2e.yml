@@ -12,6 +12,9 @@ on:
             - "server/**"
             - ".github/workflows/e2e.yml"
 
+permissions:
+    contents: read
+
 jobs:
     test-server-e2e:
         runs-on: ubuntu-latest

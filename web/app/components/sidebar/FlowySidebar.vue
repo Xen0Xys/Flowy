@@ -29,17 +29,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {Badge} from "~/components/ui/badge";
 import {Kbd, KbdGroup} from "~/components/ui/kbd";
+import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
 import {CATEGORY_ORDER, groupAccountsByType} from "~/utils/accounts";
 import AccountSharedBadge from "~/components/accounts/AccountSharedBadge.vue";
+import {useUpdateAvailable} from "~/composables/useUpdateAvailable";
 
 const route = useRoute();
-const {t} = useI18n();
+const {t, locale} = useI18n();
 const isActiveFunction = (path: string) => route.path === path;
 const inSettings = computed(() => route.path.startsWith("/settings"));
 
 const config = useRuntimeConfig();
 const version = computed(() => {
     return config.public.appVersion as string;
+});
+
+const {updateAvailable, latestRelease, currentVersion: serverVersion} = useUpdateAvailable();
+const publishedAtFormatted = computed(() => {
+    const iso = latestRelease.value?.published_at;
+    if (!iso) return "";
+    try {
+        return new Intl.DateTimeFormat(locale.value, {dateStyle: "medium"}).format(new Date(iso));
+    } catch {
+        return iso;
+    }
 });
 
 // show/hide instance/admin settings links depending on permissions
@@ -89,7 +102,7 @@ async function computeAdminVisibility() {
 }
 
 async function loadAccountsForSidebar() {
-    if (!userStore.token || userAccounts.value.length > 0) return;
+    if (!authStore.token || userAccounts.value.length > 0) return;
 
     try {
         await accountStore.fetchAccounts();
@@ -104,7 +117,7 @@ onMounted(async () => {
 });
 
 watch(
-    () => userStore.token,
+    () => authStore.token,
     async (token) => {
         if (token) {
             await Promise.all([computeAdminVisibility(), loadAccountsForSidebar()]);
@@ -144,7 +157,81 @@ const isMac = computed(() => {
                             </div>
                             <div class="flex flex-col gap-0.5 leading-none">
                                 <span class="font-heading text-base font-semibold tracking-tight">Flowy</span>
-                                <span class="text-muted-foreground text-[0.7rem] tabular-nums">v{{ version }}</span>
+                                <Popover v-if="updateAvailable && latestRelease">
+                                    <PopoverTrigger as-child>
+                                        <button
+                                            type="button"
+                                            :aria-label="t('updates.sidebarBadge')"
+                                            class="text-muted-foreground hover:text-foreground inline-flex w-fit cursor-pointer items-center gap-1.5 text-[0.7rem] tabular-nums transition-colors"
+                                            @click.stop>
+                                            <span>v{{ version }}</span>
+                                            <span
+                                                aria-hidden="true"
+                                                class="bg-primary ring-background relative flex size-1.5 rounded-full ring-2">
+                                                <span
+                                                    class="bg-primary absolute inset-0 animate-ping rounded-full opacity-60"></span>
+                                            </span>
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent :side="isMobile ? 'bottom' : 'right'" align="start" class="w-72">
+                                        <div class="space-y-3">
+                                            <div>
+                                                <p class="text-sm font-semibold">{{ t("updates.popoverTitle") }}</p>
+                                                <p class="text-muted-foreground text-xs">
+                                                    {{
+                                                        showAdminLinks
+                                                            ? t("updates.popoverAdminHelp")
+                                                            : t("updates.popoverUserHelp")
+                                                    }}
+                                                </p>
+                                            </div>
+                                            <div class="border-border/60 space-y-2 rounded-md border p-3">
+                                                <div class="flex items-center justify-between gap-2 text-xs">
+                                                    <span class="text-muted-foreground">
+                                                        {{ t("updates.currentVersion") }}
+                                                    </span>
+                                                    <span class="font-mono">v{{ serverVersion || version }}</span>
+                                                </div>
+                                                <div class="flex items-center justify-between gap-2 text-xs">
+                                                    <span class="text-muted-foreground">
+                                                        {{ t("updates.latestVersion") }}
+                                                    </span>
+                                                    <span class="text-primary font-mono">
+                                                        {{ latestRelease.tag_name }}
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    v-if="publishedAtFormatted"
+                                                    class="flex items-center justify-between gap-2 text-xs">
+                                                    <span class="text-muted-foreground">
+                                                        {{ t("updates.publishedAt") }}
+                                                    </span>
+                                                    <span>{{ publishedAtFormatted }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-col gap-2">
+                                                <NuxtLink
+                                                    v-if="showAdminLinks"
+                                                    class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                                                    to="/settings/admin/instance">
+                                                    <Icon class="size-3.5" name="iconoir:server" />
+                                                    {{ t("updates.goToInstanceSettings") }}
+                                                </NuxtLink>
+                                                <a
+                                                    :href="latestRelease.html_url"
+                                                    class="border-border hover:bg-accent inline-flex items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+                                                    rel="noopener noreferrer nofollow"
+                                                    target="_blank">
+                                                    <Icon class="size-3.5" name="iconoir:github" />
+                                                    {{ t("updates.viewOnGithub") }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <span v-else class="text-muted-foreground text-[0.7rem] tabular-nums">
+                                    v{{ version }}
+                                </span>
                             </div>
                         </div>
                     </SidebarMenuButton>
@@ -324,6 +411,11 @@ const isMac = computed(() => {
                                         <NuxtLink to="/settings/admin/instance">
                                             <Icon name="iconoir:server"></Icon>
                                             {{ t("sidebar.instance") }}
+                                            <span
+                                                v-if="updateAvailable"
+                                                :aria-label="t('updates.sidebarBadge')"
+                                                :title="t('updates.sidebarBadge')"
+                                                class="bg-primary ring-background ml-auto flex size-2 rounded-full ring-2"></span>
                                         </NuxtLink>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

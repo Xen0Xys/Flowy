@@ -124,7 +124,7 @@ const pendingEmail = ref("");
 const savingEmail = ref(false);
 
 async function saveAccount() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     const nextUsername = username.value.trim();
     const nextEmail = email.value.trim();
 
@@ -172,7 +172,7 @@ const changingPassword = ref(false);
 const passwordDirty = computed(() => Boolean(currentPassword.value && newPassword.value));
 
 async function changePasswordNow() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     const current = currentPassword.value.trim();
     const next = newPassword.value;
 
@@ -223,7 +223,7 @@ const deleting = ref(false);
 const isDeleteAccountOpen = ref(false);
 
 async function deleteAccountNow(passwordValue: string) {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     deleting.value = true;
     try {
         await apiFetch("/user/me", {
@@ -331,7 +331,7 @@ watch(locale, async () => {
                                             {{ t("profile.discardChanges") }}
                                         </Button>
                                         <Button
-                                            :disabled="!accountDirty || savingAccount || !userStore.token"
+                                            :disabled="!accountDirty || savingAccount || !authStore.token"
                                             size="sm"
                                             @click="saveAccount">
                                             <span v-if="!savingAccount">{{ t("profile.saveChanges") }}</span>
@@ -437,7 +437,7 @@ watch(locale, async () => {
                                     </div>
                                     <div class="flex justify-end pt-2">
                                         <Button
-                                            :disabled="!passwordDirty || changingPassword || !userStore.token"
+                                            :disabled="!passwordDirty || changingPassword || !authStore.token"
                                             size="sm"
                                             @click="changePasswordNow">
                                             <span v-if="!changingPassword">{{ t("profile.changePasswordButton") }}</span>
@@ -486,7 +486,7 @@ watch(locale, async () => {
                                         </div>
                                         <div v-if="mfaEnabled" class="flex items-center gap-2">
                                             <Button
-                                                :disabled="!userStore.token"
+                                                :disabled="!authStore.token"
                                                 size="sm"
                                                 type="button"
                                                 variant="outline"
@@ -494,7 +494,7 @@ watch(locale, async () => {
                                                 {{ t("profile.mfa.regenerate.button") }}
                                             </Button>
                                             <Button
-                                                :disabled="!userStore.token"
+                                                :disabled="!authStore.token"
                                                 size="sm"
                                                 type="button"
                                                 variant="destructive"
@@ -517,7 +517,7 @@ watch(locale, async () => {
                                             </div>
                                             <Button
                                                 v-if="totpEnrolled"
-                                                :disabled="!userStore.token"
+                                                :disabled="!authStore.token"
                                                 size="sm"
                                                 type="button"
                                                 variant="outline"
@@ -527,7 +527,7 @@ watch(locale, async () => {
                                             </Button>
                                             <Button
                                                 v-else
-                                                :disabled="!userStore.token"
+                                                :disabled="!authStore.token"
                                                 size="sm"
                                                 type="button"
                                                 @click="isMfaSetupOpen = true">

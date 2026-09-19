@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
+import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 import {useApi} from "~/composables/useApi";
+import {useUpdateAvailable} from "~/composables/useUpdateAvailable";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import {Switch} from "@/components/ui/switch";
@@ -38,13 +40,25 @@ type AdminUser = {
 };
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const {apiFetch} = useApi();
 const config = useRuntimeConfig();
-const {t} = useI18n();
+const {t, locale} = useI18n();
 const {copy} = useClipboard();
 
 const frontendVersion = computed(() => config.public.appVersion as string);
 const backendVersion = ref("...");
+
+const {updateAvailable, latestRelease, currentVersion: serverVersion} = useUpdateAvailable();
+const publishedAtFormatted = computed(() => {
+    const iso = latestRelease.value?.published_at;
+    if (!iso) return "";
+    try {
+        return new Intl.DateTimeFormat(locale.value, {dateStyle: "long"}).format(new Date(iso));
+    } catch {
+        return iso;
+    }
+});
 
 const loading = ref(false);
 const registrationEnabled = ref(true);
@@ -69,7 +83,7 @@ function computeInitials(name: string | undefined | null): string {
 }
 
 async function load() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     loading.value = true;
     try {
         const s = await userStore.getInstanceSettings();
@@ -157,6 +171,54 @@ async function copyVersions() {
                     <p class="text-muted-foreground text-sm">{{ t("settings.instance.subtitle") }}</p>
                 </div>
             </div>
+
+            <Card v-if="updateAvailable && latestRelease" class="border-primary/40 bg-primary/5">
+                <CardHeader>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <div
+                                class="bg-primary/10 border-primary/30 flex size-10 items-center justify-center rounded-lg border">
+                                <Icon class="text-primary size-5" name="iconoir:sparks" />
+                            </div>
+                            <div>
+                                <CardTitle class="flex items-center gap-2">
+                                    {{ t("updates.title") }}
+                                    <Badge class="text-[0.65rem]" variant="default">
+                                        {{ latestRelease.tag_name }}
+                                    </Badge>
+                                </CardTitle>
+                                <CardDescription>{{ t("updates.description") }}</CardDescription>
+                            </div>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-4">
+                        <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div class="border-border/60 rounded-lg border p-3">
+                                <dt class="text-muted-foreground text-xs">{{ t("updates.currentVersion") }}</dt>
+                                <dd class="mt-1 font-mono text-sm">v{{ serverVersion || frontendVersion }}</dd>
+                            </div>
+                            <div class="border-primary/40 bg-background rounded-lg border p-3">
+                                <dt class="text-muted-foreground text-xs">{{ t("updates.latestVersion") }}</dt>
+                                <dd class="text-primary mt-1 font-mono text-sm">{{ latestRelease.tag_name }}</dd>
+                            </div>
+                            <div v-if="publishedAtFormatted" class="border-border/60 rounded-lg border p-3">
+                                <dt class="text-muted-foreground text-xs">{{ t("updates.publishedAt") }}</dt>
+                                <dd class="mt-1 text-sm">{{ publishedAtFormatted }}</dd>
+                            </div>
+                        </dl>
+                        <div class="flex flex-wrap gap-2">
+                            <Button as-child variant="default">
+                                <a :href="latestRelease.html_url" rel="noopener noreferrer nofollow" target="_blank">
+                                    <Icon class="size-4" name="iconoir:github" />
+                                    {{ t("updates.viewOnGithub") }}
+                                </a>
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
