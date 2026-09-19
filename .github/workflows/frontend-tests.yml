@@ -12,6 +12,9 @@ on:
             - "web/**"
             - ".github/workflows/frontend-tests.yml"
 
+permissions:
+    contents: read
+
 jobs:
     test-frontend-e2e:
         runs-on: ubuntu-latest

@@ -18,6 +18,9 @@ on:
             - "web/package.json"
             - ".github/workflows/i18n.yml"
 
+permissions:
+    contents: read
+
 jobs:
     check-i18n:
         runs-on: ubuntu-latest
