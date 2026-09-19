@@ -1535,8 +1535,14 @@
             "cashFlow": {
                 "title": "Cash flow",
                 "subtitle": "Monthly income vs expense with net line",
+                "titleSavings": "Savings rate",
+                "subtitleSavings": "Share of income you keep each period",
                 "previousIncome": "Previous income",
-                "previousExpense": "Previous expense"
+                "previousExpense": "Previous expense",
+                "previousSavingsRate": "Previous savings rate",
+                "averageSavings": "Average savings rate",
+                "modeFlow": "Flow",
+                "modeSavings": "Savings"
             },
             "cashFlowSankey": {
                 "title": "Money flow",
@@ -1581,6 +1587,24 @@
                 "subtitle": "Percentage of income you kept each month",
                 "average": "Average",
                 "monthsCount": "{count} months"
+            }
+        },
+        "sections": {
+            "overview": {
+                "title": "Overview",
+                "subtitle": "Headline numbers and net worth trend"
+            },
+            "flow": {
+                "title": "Cash flow",
+                "subtitle": "Income, expense and where money goes"
+            },
+            "breakdown": {
+                "title": "Breakdown",
+                "subtitle": "What you spend on and with whom"
+            },
+            "budgetAccounts": {
+                "title": "Budget & accounts",
+                "subtitle": "Planned vs actual and per-account activity"
             }
         },
         "empty": {

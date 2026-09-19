@@ -1535,8 +1535,14 @@
             "cashFlow": {
                 "title": "Flux de trésorerie",
                 "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net",
+                "titleSavings": "Taux d'épargne",
+                "subtitleSavings": "Part de vos revenus conservée chaque période",
                 "previousIncome": "Revenus précédents",
-                "previousExpense": "Dépenses précédentes"
+                "previousExpense": "Dépenses précédentes",
+                "previousSavingsRate": "Taux d'épargne précédent",
+                "averageSavings": "Taux d'épargne moyen",
+                "modeFlow": "Flux",
+                "modeSavings": "Épargne"
             },
             "cashFlowSankey": {
                 "title": "Flux d'argent",
@@ -1581,6 +1587,24 @@
                 "subtitle": "Part de vos revenus conservée chaque mois",
                 "average": "Moyenne",
                 "monthsCount": "{count} mois"
+            }
+        },
+        "sections": {
+            "overview": {
+                "title": "Vue d'ensemble",
+                "subtitle": "Indicateurs clés et évolution du patrimoine"
+            },
+            "flow": {
+                "title": "Flux de trésorerie",
+                "subtitle": "Revenus, dépenses et circulation de l'argent"
+            },
+            "breakdown": {
+                "title": "Répartition",
+                "subtitle": "Sur quoi et chez qui vous dépensez"
+            },
+            "budgetAccounts": {
+                "title": "Budget & comptes",
+                "subtitle": "Prévu vs réel et activité par compte"
             }
         },
         "empty": {
