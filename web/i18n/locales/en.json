@@ -1594,12 +1594,6 @@
                 "title": "Account distribution",
                 "subtitle": "Activity spread across your accounts",
                 "activity": "Activity"
-            },
-            "savingsRate": {
-                "title": "Savings rate over time",
-                "subtitle": "Percentage of income you kept each month",
-                "average": "Average",
-                "monthsCount": "{count} months"
             }
         },
         "sections": {

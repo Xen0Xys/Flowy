@@ -1594,12 +1594,6 @@
                 "title": "Répartition par compte",
                 "subtitle": "Activité répartie sur vos comptes",
                 "activity": "Activité"
-            },
-            "savingsRate": {
-                "title": "Taux d'épargne dans le temps",
-                "subtitle": "Part de vos revenus conservée chaque mois",
-                "average": "Moyenne",
-                "monthsCount": "{count} mois"
             }
         },
         "sections": {
