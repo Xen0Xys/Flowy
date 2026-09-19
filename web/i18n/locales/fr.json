@@ -1614,6 +1614,11 @@
             "noSpending": "Aucune dépense sur cette période.",
             "noBudgets": "Aucun budget trouvé sur les mois sélectionnés."
         },
+        "drilldown": {
+            "categoryApplied": "Filtre ajouté : {name}",
+            "merchantApplied": "Filtre ajouté : {name}",
+            "undo": "Annuler"
+        },
         "store": {
             "errors": {
                 "fetch": "Impossible de charger les données des rapports"

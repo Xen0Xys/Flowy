@@ -11,7 +11,15 @@ const props = defineProps<{
     currency: string;
 }>();
 
+const emit = defineEmits<{
+    select: [string | null];
+}>();
+
 const {t} = useI18n();
+
+function handleSelect(categoryId: string | null) {
+    emit("select", categoryId);
+}
 
 const total = computed(() => props.data.reduce((sum, d) => sum + d.spent, 0));
 
@@ -93,6 +101,7 @@ const topThree = computed(() => items.value.slice(0, 3));
                     :fill="seg.item.hexColor"
                     :opacity="hoveredIndex === null || hoveredIndex === idx ? 0.9 : 0.4"
                     class="cursor-pointer transition-opacity"
+                    @click="handleSelect(seg.item.categoryId)"
                     @mouseenter="handleHover($event, idx)"
                     @mouseleave="handleLeave"
                     @mousemove="handleHover($event, idx)" />
@@ -136,15 +145,20 @@ const topThree = computed(() => items.value.slice(0, 3));
         </div>
 
         <ul v-if="topThree.length > 0" class="w-full space-y-1.5 text-sm">
-            <li v-for="(item, idx) in topThree" :key="idx" class="flex items-center justify-between gap-3">
-                <span class="flex min-w-0 items-center gap-2">
-                    <span
-                        class="inline-block size-2 shrink-0 rounded-full"
-                        :style="{backgroundColor: item.hexColor}"></span>
-                    <Icon v-if="item.icon" :name="item.icon" class="text-muted-foreground size-3.5 shrink-0" />
-                    <span class="truncate">{{ item.label }}</span>
-                </span>
-                <span class="text-muted-foreground shrink-0 tabular-nums">{{ formatCurrency(item.spent) }}</span>
+            <li v-for="(item, idx) in topThree" :key="idx">
+                <button
+                    type="button"
+                    class="hover:bg-muted flex w-full items-center justify-between gap-3 rounded-md px-2 py-1 text-left transition-colors"
+                    @click="handleSelect(item.categoryId)">
+                    <span class="flex min-w-0 items-center gap-2">
+                        <span
+                            class="inline-block size-2 shrink-0 rounded-full"
+                            :style="{backgroundColor: item.hexColor}"></span>
+                        <Icon v-if="item.icon" :name="item.icon" class="text-muted-foreground size-3.5 shrink-0" />
+                        <span class="truncate">{{ item.label }}</span>
+                    </span>
+                    <span class="text-muted-foreground shrink-0 tabular-nums">{{ formatCurrency(item.spent) }}</span>
+                </button>
             </li>
         </ul>
     </div>

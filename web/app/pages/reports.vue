@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
+import {toast} from "vue-sonner";
 import {useAccountStore} from "~/stores/account.store";
 import {useFamilyStore} from "~/stores/family.store";
 import {useReferenceStore} from "~/stores/reference.store";
@@ -286,6 +287,38 @@ function resetAllFilters() {
     budgeted.value = "all";
 }
 
+function drillDownCategory(id: string | null) {
+    if (id === null) return;
+    if (categoryIds.value.includes(id)) return;
+    const previous = [...categoryIds.value];
+    const category = referenceStore.categories.find((c) => c.id === id);
+    categoryIds.value = [...previous, id];
+    toast.success(t("reports.drilldown.categoryApplied", {name: category?.name ?? id}), {
+        action: {
+            label: t("reports.drilldown.undo"),
+            onClick: () => {
+                categoryIds.value = previous;
+            },
+        },
+    });
+}
+
+function drillDownMerchant(id: string | null) {
+    if (id === null) return;
+    if (merchantIds.value.includes(id)) return;
+    const previous = [...merchantIds.value];
+    const merchant = referenceStore.merchants.find((m) => m.id === id);
+    merchantIds.value = [...previous, id];
+    toast.success(t("reports.drilldown.merchantApplied", {name: merchant?.name ?? id}), {
+        action: {
+            label: t("reports.drilldown.undo"),
+            onClick: () => {
+                merchantIds.value = previous;
+            },
+        },
+    });
+}
+
 onMounted(async () => {
     await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily(), referenceStore.fetchReferences()]);
     loadAllReports();
@@ -487,7 +520,10 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                                 :subtitle="t('reports.charts.byCategory.subtitle')"
                                 :title="t('reports.charts.byCategory.title')"
                                 icon="iconoir:pizza-slice">
-                                <CategoryDonutChart :currency="currency" :data="byCategory" />
+                                <CategoryDonutChart
+                                    :currency="currency"
+                                    :data="byCategory"
+                                    @select="drillDownCategory" />
                             </ReportChartCard>
 
                             <ReportChartCard
@@ -502,7 +538,10 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                                 :subtitle="t('reports.charts.topMerchants.subtitle')"
                                 :title="t('reports.charts.topMerchants.title')"
                                 icon="iconoir:shop">
-                                <TopMerchantsChart :currency="currency" :data="topMerchants" />
+                                <TopMerchantsChart
+                                    :currency="currency"
+                                    :data="topMerchants"
+                                    @select="drillDownMerchant" />
                             </ReportChartCard>
                         </div>
 
