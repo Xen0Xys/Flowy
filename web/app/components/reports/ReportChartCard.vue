@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import {Button} from "~/components/ui/button";
+import {Skeleton} from "~/components/ui/skeleton";
+
 defineProps<{
     title: string;
     subtitle?: string;
@@ -6,6 +9,7 @@ defineProps<{
     loading?: boolean;
     empty?: boolean;
     emptyMessage?: string;
+    emptyAction?: {label: string; onClick: () => void};
 }>();
 </script>
 
@@ -32,16 +36,26 @@ defineProps<{
         </header>
 
         <div class="relative min-h-0 flex-1">
-            <div v-if="loading" class="flex h-full min-h-40 items-center justify-center">
-                <div class="flex flex-col items-center gap-2">
-                    <Icon class="text-muted-foreground size-6 animate-spin" name="svg-spinners:180-ring-with-bg" />
-                </div>
+            <div v-if="loading">
+                <slot name="skeleton">
+                    <div class="flex flex-col gap-3">
+                        <Skeleton class="h-4 w-32" />
+                        <Skeleton class="h-40 w-full" />
+                        <div class="flex gap-3">
+                            <Skeleton class="h-3 w-24" />
+                            <Skeleton class="h-3 w-16" />
+                        </div>
+                    </div>
+                </slot>
             </div>
-            <div v-else-if="empty" class="flex h-full min-h-40 flex-col items-center justify-center text-center">
-                <Icon class="text-muted-foreground mb-2 size-8" name="iconoir:journal-page" />
+            <div v-else-if="empty" class="flex h-full min-h-40 flex-col items-center justify-center gap-3 text-center">
+                <Icon class="text-muted-foreground size-8" name="iconoir:journal-page" />
                 <p class="text-muted-foreground text-sm">
                     {{ emptyMessage || $t("reports.emptyGeneric") }}
                 </p>
+                <Button v-if="emptyAction" size="sm" variant="outline" @click="emptyAction.onClick">
+                    {{ emptyAction.label }}
+                </Button>
             </div>
             <slot v-else />
         </div>

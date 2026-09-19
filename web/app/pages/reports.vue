@@ -132,7 +132,30 @@ const byAccount = ref<AccountBreakdown[]>([]);
 const netWorth = ref<NetWorthPoint[]>([]);
 const budgetVsActual = ref<BudgetVsActualPoint[]>([]);
 
-const isLoading = ref(true);
+// Per-card loading state so cards render progressively as each request settles.
+const kpisLoading = ref(true);
+const cashFlowLoading = ref(true);
+const cashFlowSankeyLoading = ref(true);
+const byCategoryLoading = ref(true);
+const categoryTrendLoading = ref(true);
+const topMerchantsLoading = ref(true);
+const byAccountLoading = ref(true);
+const netWorthLoading = ref(true);
+const budgetVsActualLoading = ref(true);
+
+const isAnyLoading = computed(
+    () =>
+        kpisLoading.value ||
+        cashFlowLoading.value ||
+        cashFlowSankeyLoading.value ||
+        byCategoryLoading.value ||
+        categoryTrendLoading.value ||
+        topMerchantsLoading.value ||
+        byAccountLoading.value ||
+        netWorthLoading.value ||
+        budgetVsActualLoading.value,
+);
+
 const latestRequestId = ref(0);
 
 function currentFilters() {
@@ -150,49 +173,49 @@ function currentFilters() {
     };
 }
 
-async function loadAllReports() {
-    const requestId = ++latestRequestId.value;
-    isLoading.value = true;
-
-    const filters = currentFilters();
+async function fetchInto<T>(
+    requestId: number,
+    dataRef: {value: T},
+    loadingRef: {value: boolean},
+    fetcher: () => Promise<T>,
+    fallback: T,
+): Promise<void> {
+    loadingRef.value = true;
     try {
-        const emptySankey: CashFlowSankey = {nodes: [], links: [], totals: {income: 0, expense: 0, net: 0}};
-        const [
-            kpisRes,
-            cashFlowRes,
-            sankeyRes,
-            byCategoryRes,
-            trendRes,
-            merchantsRes,
-            byAccountRes,
-            netWorthRes,
-            budgetVsActualRes,
-        ] = await Promise.all([
-            reportStore.fetchKpis(filters).catch(() => null),
-            reportStore.fetchCashFlow(filters).catch(() => []),
-            reportStore.fetchCashFlowSankey(filters).catch(() => emptySankey),
-            reportStore.fetchByCategory(filters).catch(() => []),
-            reportStore.fetchCategoryTrend(filters).catch(() => ({categories: [], points: []})),
-            reportStore.fetchByMerchant(filters, 10).catch(() => []),
-            reportStore.fetchByAccount(filters).catch(() => []),
-            reportStore.fetchNetWorth(filters).catch(() => []),
-            reportStore.fetchBudgetVsActual(filters).catch(() => []),
-        ]);
-
+        const result = await fetcher();
         if (requestId !== latestRequestId.value) return;
-
-        kpis.value = kpisRes;
-        cashFlow.value = cashFlowRes;
-        cashFlowSankey.value = sankeyRes;
-        byCategory.value = byCategoryRes;
-        categoryTrend.value = trendRes;
-        topMerchants.value = merchantsRes;
-        byAccount.value = byAccountRes;
-        netWorth.value = netWorthRes;
-        budgetVsActual.value = budgetVsActualRes;
+        dataRef.value = result;
+    } catch {
+        if (requestId !== latestRequestId.value) return;
+        dataRef.value = fallback;
     } finally {
-        if (requestId === latestRequestId.value) isLoading.value = false;
+        if (requestId === latestRequestId.value) loadingRef.value = false;
     }
+}
+
+function loadAllReports(): void {
+    const requestId = ++latestRequestId.value;
+    const filters = currentFilters();
+    const emptySankey: CashFlowSankey = {nodes: [], links: [], totals: {income: 0, expense: 0, net: 0}};
+
+    fetchInto(requestId, kpis, kpisLoading, () => reportStore.fetchKpis(filters), null);
+    fetchInto(requestId, cashFlow, cashFlowLoading, () => reportStore.fetchCashFlow(filters), []);
+    fetchInto(
+        requestId,
+        cashFlowSankey,
+        cashFlowSankeyLoading,
+        () => reportStore.fetchCashFlowSankey(filters),
+        emptySankey,
+    );
+    fetchInto(requestId, byCategory, byCategoryLoading, () => reportStore.fetchByCategory(filters), []);
+    fetchInto(requestId, categoryTrend, categoryTrendLoading, () => reportStore.fetchCategoryTrend(filters), {
+        categories: [],
+        points: [],
+    });
+    fetchInto(requestId, topMerchants, topMerchantsLoading, () => reportStore.fetchByMerchant(filters, 10), []);
+    fetchInto(requestId, byAccount, byAccountLoading, () => reportStore.fetchByAccount(filters), []);
+    fetchInto(requestId, netWorth, netWorthLoading, () => reportStore.fetchNetWorth(filters), []);
+    fetchInto(requestId, budgetVsActual, budgetVsActualLoading, () => reportStore.fetchBudgetVsActual(filters), []);
 }
 
 function syncQuery() {
@@ -265,7 +288,7 @@ function resetAllFilters() {
 
 onMounted(async () => {
     await Promise.all([accountStore.fetchAccounts(), familyStore.fetchFamily(), referenceStore.fetchReferences()]);
-    await loadAllReports();
+    loadAllReports();
 });
 
 const hasAccounts = computed(() => accountStore.accounts.length > 0);
@@ -300,7 +323,7 @@ const cashFlowMode = ref<CashFlowMode>("flow");
 
                 <!-- Empty state when user has no accounts -->
                 <div
-                    v-if="!isLoading && !hasAccounts"
+                    v-if="!isAnyLoading && !hasAccounts"
                     class="border-border/60 bg-brand-gradient-soft/30 flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
                     <Icon class="text-primary mb-3 size-10" name="iconoir:stats-report" />
                     <h3 class="font-heading text-xl font-semibold">{{ t("reports.empty.noAccountsTitle") }}</h3>
@@ -310,66 +333,73 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                 </div>
 
                 <template v-else>
-                    <ReportFiltersBar
-                        :account-ids="accountIds"
-                        :accounts="accountStore.accounts"
-                        :budgeted="budgeted"
-                        :categories="referenceStore.categories"
-                        :category-ids="categoryIds"
-                        :effective-resolution="effectiveResolution"
-                        :end-date="endDate"
-                        :exclude-transfers="excludeTransfers"
-                        :include-rebalances="includeRebalances"
-                        :include-shared="includeShared"
-                        :loading="isLoading"
-                        :merchant-ids="merchantIds"
-                        :merchants="referenceStore.merchants"
-                        :range="range"
-                        :resolution-override="resolutionOverride"
-                        :start-date="startDate"
-                        @update:range="(v) => (range = v)"
-                        @update:start-date="(v) => (startDate = v)"
-                        @update:end-date="(v) => (endDate = v)"
-                        @update:account-ids="(v) => (accountIds = v)"
-                        @update:category-ids="(v) => (categoryIds = v)"
-                        @update:merchant-ids="(v) => (merchantIds = v)"
-                        @update:include-shared="(v) => (includeShared = v)"
-                        @update:exclude-transfers="(v) => (excludeTransfers = v)"
-                        @update:include-rebalances="(v) => (includeRebalances = v)"
-                        @update:budgeted="(v) => (budgeted = v)"
-                        @update:resolution-override="(v) => (resolutionOverride = v)" />
+                    <div class="bg-background/80 sticky top-0 z-30 -mx-4 flex flex-col gap-2 px-4 py-2 backdrop-blur">
+                        <ReportFiltersBar
+                            :account-ids="accountIds"
+                            :accounts="accountStore.accounts"
+                            :budgeted="budgeted"
+                            :categories="referenceStore.categories"
+                            :category-ids="categoryIds"
+                            :effective-resolution="effectiveResolution"
+                            :end-date="endDate"
+                            :exclude-transfers="excludeTransfers"
+                            :include-rebalances="includeRebalances"
+                            :include-shared="includeShared"
+                            :loading="isAnyLoading"
+                            :merchant-ids="merchantIds"
+                            :merchants="referenceStore.merchants"
+                            :range="range"
+                            :resolution-override="resolutionOverride"
+                            :start-date="startDate"
+                            @update:range="(v) => (range = v)"
+                            @update:start-date="(v) => (startDate = v)"
+                            @update:end-date="(v) => (endDate = v)"
+                            @update:account-ids="(v) => (accountIds = v)"
+                            @update:category-ids="(v) => (categoryIds = v)"
+                            @update:merchant-ids="(v) => (merchantIds = v)"
+                            @update:include-shared="(v) => (includeShared = v)"
+                            @update:exclude-transfers="(v) => (excludeTransfers = v)"
+                            @update:include-rebalances="(v) => (includeRebalances = v)"
+                            @update:budgeted="(v) => (budgeted = v)"
+                            @update:resolution-override="(v) => (resolutionOverride = v)" />
 
-                    <ReportFiltersSummary
-                        v-if="hasActiveFilters"
-                        :account-ids="accountIds"
-                        :accounts="accountStore.accounts"
-                        :budgeted="budgeted"
-                        :categories="referenceStore.categories"
-                        :category-ids="categoryIds"
-                        :exclude-transfers="excludeTransfers"
-                        :include-rebalances="includeRebalances"
-                        :include-shared="includeShared"
-                        :merchant-ids="merchantIds"
-                        :merchants="referenceStore.merchants"
-                        @remove:account="(id) => (accountIds = accountIds.filter((x) => x !== id))"
-                        @remove:category="(id) => (categoryIds = categoryIds.filter((x) => x !== id))"
-                        @remove:merchant="(id) => (merchantIds = merchantIds.filter((x) => x !== id))"
-                        @reset:include-shared="includeShared = true"
-                        @reset:exclude-transfers="excludeTransfers = false"
-                        @reset:include-rebalances="includeRebalances = false"
-                        @reset:budgeted="budgeted = 'all'"
-                        @reset:all="resetAllFilters" />
+                        <ReportFiltersSummary
+                            v-if="hasActiveFilters"
+                            :account-ids="accountIds"
+                            :accounts="accountStore.accounts"
+                            :budgeted="budgeted"
+                            :categories="referenceStore.categories"
+                            :category-ids="categoryIds"
+                            :exclude-transfers="excludeTransfers"
+                            :include-rebalances="includeRebalances"
+                            :include-shared="includeShared"
+                            :merchant-ids="merchantIds"
+                            :merchants="referenceStore.merchants"
+                            @remove:account="(id) => (accountIds = accountIds.filter((x) => x !== id))"
+                            @remove:category="(id) => (categoryIds = categoryIds.filter((x) => x !== id))"
+                            @remove:merchant="(id) => (merchantIds = merchantIds.filter((x) => x !== id))"
+                            @reset:include-shared="includeShared = true"
+                            @reset:exclude-transfers="excludeTransfers = false"
+                            @reset:include-rebalances="includeRebalances = false"
+                            @reset:budgeted="budgeted = 'all'"
+                            @reset:all="resetAllFilters" />
+                    </div>
 
                     <ReportSection
                         :title="t('reports.sections.overview.title')"
                         :subtitle="t('reports.sections.overview.subtitle')"
                         icon="iconoir:reports">
-                        <ReportKpiCards :currency="currency" :data="kpis" :loading="isLoading" />
+                        <ReportKpiCards :currency="currency" :data="kpis" :loading="kpisLoading" />
 
                         <ReportChartCard
-                            :empty="!isLoading && netWorth.length === 0"
+                            :empty="!netWorthLoading && netWorth.length === 0"
+                            :empty-action="
+                                hasActiveFilters
+                                    ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                    : undefined
+                            "
                             :empty-message="t('reports.empty.noData')"
-                            :loading="isLoading"
+                            :loading="netWorthLoading"
                             :subtitle="t('reports.charts.netWorth.subtitle')"
                             :title="t('reports.charts.netWorth.title')"
                             class="mt-4"
@@ -383,9 +413,14 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                         :subtitle="t('reports.sections.flow.subtitle')"
                         icon="iconoir:data-transfer-both">
                         <ReportChartCard
-                            :empty="!isLoading && cashFlow.length === 0"
+                            :empty="!cashFlowLoading && cashFlow.length === 0"
+                            :empty-action="
+                                hasActiveFilters
+                                    ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                    : undefined
+                            "
                             :empty-message="t('reports.empty.noData')"
-                            :loading="isLoading"
+                            :loading="cashFlowLoading"
                             :subtitle="
                                 cashFlowMode === 'savings'
                                     ? t('reports.charts.cashFlow.subtitleSavings')
@@ -419,9 +454,14 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                         </ReportChartCard>
 
                         <ReportChartCard
-                            :empty="!isLoading && cashFlowSankey.links.length === 0"
+                            :empty="!cashFlowSankeyLoading && cashFlowSankey.links.length === 0"
+                            :empty-action="
+                                hasActiveFilters
+                                    ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                    : undefined
+                            "
                             :empty-message="t('reports.empty.noData')"
-                            :loading="isLoading"
+                            :loading="cashFlowSankeyLoading"
                             :subtitle="t('reports.charts.cashFlowSankey.subtitle')"
                             :title="t('reports.charts.cashFlowSankey.title')"
                             class="mt-4"
@@ -436,9 +476,14 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                         icon="iconoir:pizza-slice">
                         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <ReportChartCard
-                                :empty="!isLoading && byCategory.length === 0"
+                                :empty="!byCategoryLoading && byCategory.length === 0"
+                                :empty-action="
+                                    hasActiveFilters
+                                        ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                        : undefined
+                                "
                                 :empty-message="t('reports.empty.noSpending')"
-                                :loading="isLoading"
+                                :loading="byCategoryLoading"
                                 :subtitle="t('reports.charts.byCategory.subtitle')"
                                 :title="t('reports.charts.byCategory.title')"
                                 icon="iconoir:pizza-slice">
@@ -446,9 +491,14 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                             </ReportChartCard>
 
                             <ReportChartCard
-                                :empty="!isLoading && topMerchants.length === 0"
+                                :empty="!topMerchantsLoading && topMerchants.length === 0"
+                                :empty-action="
+                                    hasActiveFilters
+                                        ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                        : undefined
+                                "
                                 :empty-message="t('reports.empty.noSpending')"
-                                :loading="isLoading"
+                                :loading="topMerchantsLoading"
                                 :subtitle="t('reports.charts.topMerchants.subtitle')"
                                 :title="t('reports.charts.topMerchants.title')"
                                 icon="iconoir:shop">
@@ -457,9 +507,14 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                         </div>
 
                         <ReportChartCard
-                            :empty="!isLoading && categoryTrend.points.length === 0"
+                            :empty="!categoryTrendLoading && categoryTrend.points.length === 0"
+                            :empty-action="
+                                hasActiveFilters
+                                    ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                    : undefined
+                            "
                             :empty-message="t('reports.empty.noData')"
-                            :loading="isLoading"
+                            :loading="categoryTrendLoading"
                             :subtitle="t('reports.charts.categoryTrend.subtitle')"
                             :title="t('reports.charts.categoryTrend.title')"
                             class="mt-4"
@@ -477,9 +532,9 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                         icon="iconoir:piggy-bank">
                         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <ReportChartCard
-                                :empty="!isLoading && budgetVsActual.length === 0"
+                                :empty="!budgetVsActualLoading && budgetVsActual.length === 0"
                                 :empty-message="t('reports.empty.noBudgets')"
-                                :loading="isLoading"
+                                :loading="budgetVsActualLoading"
                                 :subtitle="t('reports.charts.budgetVsActual.subtitle')"
                                 :title="t('reports.charts.budgetVsActual.title')"
                                 icon="iconoir:piggy-bank">
@@ -487,9 +542,14 @@ const cashFlowMode = ref<CashFlowMode>("flow");
                             </ReportChartCard>
 
                             <ReportChartCard
-                                :empty="!isLoading && byAccount.length === 0"
+                                :empty="!byAccountLoading && byAccount.length === 0"
+                                :empty-action="
+                                    hasActiveFilters
+                                        ? {label: t('reports.filters.resetAll'), onClick: resetAllFilters}
+                                        : undefined
+                                "
                                 :empty-message="t('reports.empty.noData')"
-                                :loading="isLoading"
+                                :loading="byAccountLoading"
                                 :subtitle="t('reports.charts.byAccount.subtitle')"
                                 :title="t('reports.charts.byAccount.title')"
                                 icon="iconoir:wallet">
