@@ -5,6 +5,7 @@ import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, Di
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
+import {Switch} from "@/components/ui/switch";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {PasskeyCancelledError, useMfa} from "@/composables/useMfa";
 import MfaBackupCodesDisplay from "./MfaBackupCodesDisplay.vue";
@@ -181,10 +182,10 @@ function handleUpdateOpen(next: boolean) {
 
             <div v-else class="space-y-3">
                 <MfaBackupCodesDisplay :codes="codes" />
-                <label class="flex items-center gap-2 text-sm">
-                    <input v-model="codesSaved" type="checkbox" />
-                    <span>{{ t("profile.mfa.backupCodes.saveConfirm") }}</span>
-                </label>
+                <div class="flex items-center gap-2 text-sm">
+                    <Switch id="backup-codes-saved" v-model="codesSaved" />
+                    <Label for="backup-codes-saved">{{ t("profile.mfa.backupCodes.saveConfirm") }}</Label>
+                </div>
             </div>
 
             <DialogFooter>

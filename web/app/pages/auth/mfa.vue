@@ -48,10 +48,9 @@ onBeforeMount(async () => {
     else if (canUseBackup.value) activeMethod.value = "backup_code";
     else if (canUsePasskey.value) activeMethod.value = "passkey";
 
-    // Auto-invoke the passkey ceremony only when no other method is available;
-    // otherwise let the user opt in via the "Use a passkey" button so we do not
-    // disrupt keyboard focus on the pin input.
-    if (canUsePasskey.value && !canUseTotp.value && !canUseBackup.value && !passkeyAttempted.value) {
+    // Auto-invoke the passkey ceremony whenever the user has a passkey enrolled;
+    // if they cancel the browser prompt, the TOTP/backup form remains usable.
+    if (canUsePasskey.value && !passkeyAttempted.value) {
         passkeyAttempted.value = true;
         void submitPasskey();
     }
