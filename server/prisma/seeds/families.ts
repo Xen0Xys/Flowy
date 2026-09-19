@@ -1,6 +1,6 @@
 import {Faker} from "@faker-js/faker";
 
-export const FAMILIES_COUNT = 10;
+export const FAMILIES_COUNT = 6;
 
 const FRONTEND_SUPPORTED_CURRENCIES = [
     "EUR",

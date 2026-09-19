@@ -2,7 +2,7 @@ import {Faker} from "@faker-js/faker";
 import * as crypto from "crypto";
 import argon2 from "argon2";
 
-export const USERS_COUNT = 40;
+export const USERS_COUNT = 20;
 
 export async function seedUsers(prisma: any, familyIds: string[] = [], faker: Faker) {
     const passwordHash = await argon2.hash(faker.internet.password());
