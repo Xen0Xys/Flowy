@@ -1,4 +1,4 @@
-import {IsArray, IsBoolean, IsDateString, IsInt, IsOptional, IsUUID, Max, Min} from "class-validator";
+import {IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsUUID, Max, Min} from "class-validator";
 import {Transform, Type} from "class-transformer";
 
 function parseBoolean(value: unknown): unknown {
@@ -11,7 +11,7 @@ function parseBoolean(value: unknown): unknown {
     return value;
 }
 
-function parseAccountIds(value: unknown): unknown {
+function parseStringArray(value: unknown): unknown {
     if (Array.isArray(value)) return value;
     if (typeof value === "string") {
         return value
@@ -22,6 +22,8 @@ function parseAccountIds(value: unknown): unknown {
     return value;
 }
 
+export type BudgetedFilter = "all" | "budgeted" | "unbudgeted";
+
 export class ReportFiltersDto {
     @IsDateString()
     startDate!: string;
@@ -30,15 +32,41 @@ export class ReportFiltersDto {
     endDate!: string;
 
     @IsOptional()
-    @Transform(({value}) => parseAccountIds(value))
+    @Transform(({value}) => parseStringArray(value))
     @IsArray()
     @IsUUID("7", {each: true})
     accountIds?: string[];
 
     @IsOptional()
+    @Transform(({value}) => parseStringArray(value))
+    @IsArray()
+    @IsUUID("7", {each: true})
+    categoryIds?: string[];
+
+    @IsOptional()
+    @Transform(({value}) => parseStringArray(value))
+    @IsArray()
+    @IsUUID("7", {each: true})
+    merchantIds?: string[];
+
+    @IsOptional()
     @Transform(({value}) => parseBoolean(value))
     @IsBoolean()
     includeShared?: boolean;
+
+    @IsOptional()
+    @Transform(({value}) => parseBoolean(value))
+    @IsBoolean()
+    excludeTransfers?: boolean;
+
+    @IsOptional()
+    @Transform(({value}) => parseBoolean(value))
+    @IsBoolean()
+    includeRebalances?: boolean;
+
+    @IsOptional()
+    @IsIn(["all", "budgeted", "unbudgeted"])
+    budgeted?: BudgetedFilter;
 }
 
 export class TopMerchantsDto extends ReportFiltersDto {

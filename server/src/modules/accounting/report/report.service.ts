@@ -55,8 +55,8 @@ export class ReportService {
         }
 
         const [current, previous] = await Promise.all([
-            this.computeKpisForRange(scopedIds, start, end),
-            this.computeKpisForRange(scopedIds, previousStart, previousEnd),
+            this.computeKpisForRange(scopedIds, start, end, filters),
+            this.computeKpisForRange(scopedIds, previousStart, previousEnd, filters),
         ]);
 
         return new ReportKpiEntity({current, previous});
@@ -68,16 +68,14 @@ export class ReportService {
 
         if (scopedIds.length === 0) return [];
 
+        const whereSql = this.buildTransactionScopeSql(scopedIds, start, end, filters);
         const rows = await this.prismaService.$queryRaw<{period: Date; income: number | null; expense: number | null}[]>`
             SELECT
                 date_trunc('month', "date") AS period,
                 COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS income,
                 COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0)::float AS expense
             FROM transactions
-            WHERE account_id IN (${Prisma.join(scopedIds)})
-              AND is_rebalance = false
-              AND "date" >= ${start}
-              AND "date" <= ${end}
+            WHERE ${whereSql}
             GROUP BY period
             ORDER BY period ASC
         `;
@@ -100,22 +98,12 @@ export class ReportService {
         const [incomeGrouped, expenseGrouped] = await Promise.all([
             this.prismaService.transactions.groupBy({
                 by: ["category_id"],
-                where: {
-                    account_id: {in: scopedIds},
-                    is_rebalance: false,
-                    amount: {gt: 0},
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {gt: 0}}),
                 _sum: {amount: true},
             }),
             this.prismaService.transactions.groupBy({
                 by: ["category_id"],
-                where: {
-                    account_id: {in: scopedIds},
-                    is_rebalance: false,
-                    amount: {lt: 0},
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {lt: 0}}),
                 _sum: {amount: true},
             }),
         ]);
@@ -263,12 +251,7 @@ export class ReportService {
 
         const grouped = await this.prismaService.transactions.groupBy({
             by: ["category_id"],
-            where: {
-                account_id: {in: scopedIds},
-                is_rebalance: false,
-                amount: {lt: 0},
-                date: {gte: start, lte: end},
-            },
+            where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {lt: 0}}),
             _sum: {amount: true},
             _count: {_all: true},
         });
@@ -315,6 +298,7 @@ export class ReportService {
 
         if (scopedIds.length === 0) return new CategoryTrendEntity({categories: [], points: []});
 
+        const whereSql = this.buildTransactionScopeSql(scopedIds, start, end, filters, Prisma.sql`amount < 0`);
         const rows = await this.prismaService.$queryRaw<
             {period: Date; category_id: string | null; spent: number | null}[]
         >`
@@ -323,11 +307,7 @@ export class ReportService {
                 category_id,
                 COALESCE(SUM(ABS(amount)), 0)::float AS spent
             FROM transactions
-            WHERE account_id IN (${Prisma.join(scopedIds)})
-              AND is_rebalance = false
-              AND amount < 0
-              AND "date" >= ${start}
-              AND "date" <= ${end}
+            WHERE ${whereSql}
             GROUP BY period, category_id
             ORDER BY period ASC
         `;
@@ -401,12 +381,7 @@ export class ReportService {
 
         const grouped = await this.prismaService.transactions.groupBy({
             by: ["merchant_id"],
-            where: {
-                account_id: {in: scopedIds},
-                is_rebalance: false,
-                amount: {lt: 0},
-                date: {gte: start, lte: end},
-            },
+            where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {lt: 0}}),
             _sum: {amount: true},
             _count: {_all: true},
         });
@@ -455,22 +430,12 @@ export class ReportService {
             }),
             this.prismaService.transactions.groupBy({
                 by: ["account_id"],
-                where: {
-                    account_id: {in: scopedIds},
-                    is_rebalance: false,
-                    amount: {gt: 0},
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {gt: 0}}),
                 _sum: {amount: true},
             }),
             this.prismaService.transactions.groupBy({
                 by: ["account_id"],
-                where: {
-                    account_id: {in: scopedIds},
-                    is_rebalance: false,
-                    amount: {lt: 0},
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {lt: 0}}),
                 _sum: {amount: true},
             }),
         ]);
@@ -582,6 +547,12 @@ export class ReportService {
             budgetsByPeriod.get(key)!.push(budget);
         }
 
+        // Budget vs Actual intrinsically compares against `in_budget=true`
+        // transactions, so we ignore the caller's `budgeted` filter here.
+        // Other filters (transfers, categories, merchants, rebalances) still
+        // apply to keep the comparison consistent with the rest of the page.
+        const actualFilters: ReportFiltersDto = {...filters, budgeted: "budgeted"};
+
         const monthPromises = months.map(async ({year, month}) => {
             const key = `${year}-${month}`;
             const monthBudgets = budgetsByPeriod.get(key) ?? [];
@@ -600,23 +571,15 @@ export class ReportService {
 
             const [incomeAgg, expenseAgg] = await this.prismaService.$transaction([
                 this.prismaService.transactions.aggregate({
-                    where: {
-                        account_id: {in: targetAccountIds},
-                        is_rebalance: false,
-                        in_budget: true,
+                    where: this.buildTransactionScope(targetAccountIds, monthStart, monthEnd, actualFilters, {
                         amount: {gt: 0},
-                        date: {gte: monthStart, lte: monthEnd},
-                    },
+                    }),
                     _sum: {amount: true},
                 }),
                 this.prismaService.transactions.aggregate({
-                    where: {
-                        account_id: {in: targetAccountIds},
-                        is_rebalance: false,
-                        in_budget: true,
+                    where: this.buildTransactionScope(targetAccountIds, monthStart, monthEnd, actualFilters, {
                         amount: {lt: 0},
-                        date: {gte: monthStart, lte: monthEnd},
-                    },
+                    }),
                     _sum: {amount: true},
                 }),
             ]);
@@ -635,32 +598,23 @@ export class ReportService {
         return Promise.all(monthPromises);
     }
 
-    private async computeKpisForRange(accountIds: string[], start: Date, end: Date): Promise<ReportKpiPeriodEntity> {
+    private async computeKpisForRange(
+        accountIds: string[],
+        start: Date,
+        end: Date,
+        filters: ReportFiltersDto,
+    ): Promise<ReportKpiPeriodEntity> {
         const [incomeAgg, expenseAgg, countAgg] = await this.prismaService.$transaction([
             this.prismaService.transactions.aggregate({
-                where: {
-                    account_id: {in: accountIds},
-                    is_rebalance: false,
-                    amount: {gt: 0},
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(accountIds, start, end, filters, {amount: {gt: 0}}),
                 _sum: {amount: true},
             }),
             this.prismaService.transactions.aggregate({
-                where: {
-                    account_id: {in: accountIds},
-                    is_rebalance: false,
-                    amount: {lt: 0},
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(accountIds, start, end, filters, {amount: {lt: 0}}),
                 _sum: {amount: true},
             }),
             this.prismaService.transactions.count({
-                where: {
-                    account_id: {in: accountIds},
-                    is_rebalance: false,
-                    date: {gte: start, lte: end},
-                },
+                where: this.buildTransactionScope(accountIds, start, end, filters),
             }),
         ]);
 
@@ -676,6 +630,63 @@ export class ReportService {
             savingsRate,
             transactionCount: countAgg,
         });
+    }
+
+    private buildTransactionScope(
+        scopedIds: string[],
+        start: Date,
+        end: Date,
+        filters: ReportFiltersDto,
+        extra: Prisma.TransactionsWhereInput = {},
+    ): Prisma.TransactionsWhereInput {
+        const where: Prisma.TransactionsWhereInput = {
+            account_id: {in: scopedIds},
+            date: {gte: start, lte: end},
+        };
+        if (!filters.includeRebalances) where.is_rebalance = false;
+        if (filters.excludeTransfers) {
+            where.debit_transfer = {is: null};
+            where.credit_transfer = {is: null};
+        }
+        if (filters.budgeted === "budgeted") where.in_budget = true;
+        else if (filters.budgeted === "unbudgeted") where.in_budget = false;
+        if (filters.categoryIds && filters.categoryIds.length > 0) {
+            where.category_id = {in: filters.categoryIds};
+        }
+        if (filters.merchantIds && filters.merchantIds.length > 0) {
+            where.merchant_id = {in: filters.merchantIds};
+        }
+        return {...where, ...extra};
+    }
+
+    private buildTransactionScopeSql(
+        scopedIds: string[],
+        start: Date,
+        end: Date,
+        filters: ReportFiltersDto,
+        extraSql?: Prisma.Sql,
+    ): Prisma.Sql {
+        const clauses: Prisma.Sql[] = [
+            Prisma.sql`account_id IN (${Prisma.join(scopedIds)})`,
+            Prisma.sql`"date" >= ${start}`,
+            Prisma.sql`"date" <= ${end}`,
+        ];
+        if (!filters.includeRebalances) clauses.push(Prisma.sql`is_rebalance = false`);
+        if (filters.excludeTransfers) {
+            clauses.push(
+                Prisma.sql`NOT EXISTS (SELECT 1 FROM transfers t WHERE t.debit_transaction_id = transactions.id OR t.credit_transaction_id = transactions.id)`,
+            );
+        }
+        if (filters.budgeted === "budgeted") clauses.push(Prisma.sql`in_budget = true`);
+        else if (filters.budgeted === "unbudgeted") clauses.push(Prisma.sql`in_budget = false`);
+        if (filters.categoryIds && filters.categoryIds.length > 0) {
+            clauses.push(Prisma.sql`category_id IN (${Prisma.join(filters.categoryIds)})`);
+        }
+        if (filters.merchantIds && filters.merchantIds.length > 0) {
+            clauses.push(Prisma.sql`merchant_id IN (${Prisma.join(filters.merchantIds)})`);
+        }
+        if (extraSql) clauses.push(extraSql);
+        return Prisma.join(clauses, " AND ");
     }
 
     private async resolveAccountIds(
