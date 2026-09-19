@@ -1,11 +1,11 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {i18nT} from "~/utils/i18n";
+import type {ReportResolution} from "~/utils/reports";
 
 export type BudgetedFilter = "all" | "budgeted" | "unbudgeted";
-export type ReportResolution = "day" | "week" | "month" | "quarter" | "year";
 
 export type ReportFilters = {
     startDate: string;
@@ -161,8 +161,8 @@ function buildQuery(filters: ReportFilters, extras: Record<string, string | numb
 }
 
 async function apiGet<T>(endpoint: string): Promise<T> {
-    const userStore = useUserStore();
-    if (!userStore.token) throw new Error("No token available");
+    const authStore = useAuthStore();
+    if (!authStore.token) throw new Error("No token available");
     const {apiFetch} = useApi();
 
     try {
@@ -174,7 +174,7 @@ async function apiGet<T>(endpoint: string): Promise<T> {
     }
 }
 
-export const useReportStore = defineStore("report", {
+const reportStoreOptions = {
     state: () => ({}),
 
     actions: {
@@ -214,4 +214,6 @@ export const useReportStore = defineStore("report", {
             return apiGet<BudgetVsActualPoint[]>(`/report/budget-vs-actual?${buildQuery(filters)}`);
         },
     },
-});
+};
+
+export const useReportStore = defineStore("report", reportStoreOptions);

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
+import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 import {useApi} from "~/composables/useApi";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
@@ -38,6 +39,7 @@ type AdminUser = {
 };
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 const {apiFetch} = useApi();
 const config = useRuntimeConfig();
 const {t} = useI18n();
@@ -69,7 +71,7 @@ function computeInitials(name: string | undefined | null): string {
 }
 
 async function load() {
-    if (!userStore.token) return;
+    if (!authStore.token) return;
     loading.value = true;
     try {
         const s = await userStore.getInstanceSettings();

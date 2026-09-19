@@ -89,7 +89,7 @@ async function computeAdminVisibility() {
 }
 
 async function loadAccountsForSidebar() {
-    if (!userStore.token || userAccounts.value.length > 0) return;
+    if (!authStore.token || userAccounts.value.length > 0) return;
 
     try {
         await accountStore.fetchAccounts();
@@ -104,7 +104,7 @@ onMounted(async () => {
 });
 
 watch(
-    () => userStore.token,
+    () => authStore.token,
     async (token) => {
         if (token) {
             await Promise.all([computeAdminVisibility(), loadAccountsForSidebar()]);

@@ -37,6 +37,7 @@ import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 const {t} = useI18n();
 const route = useRoute();
 const router = useRouter();
+const nuxtApp = useNuxtApp();
 
 const accountStore = useAccountStore();
 const familyStore = useFamilyStore();
@@ -242,8 +243,10 @@ let debounceHandle: ReturnType<typeof setTimeout> | null = null;
 function scheduleReload() {
     if (debounceHandle !== null) clearTimeout(debounceHandle);
     debounceHandle = setTimeout(() => {
-        syncQuery();
-        loadAllReports();
+        nuxtApp.runWithContext(() => {
+            syncQuery();
+            loadAllReports();
+        });
     }, 200);
 }
 

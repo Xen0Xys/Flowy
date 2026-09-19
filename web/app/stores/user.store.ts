@@ -22,9 +22,6 @@ export const useUserStore = defineStore("user", {
     getters: {
         hasFamily: (state) => !!state.user?.familyId,
         getUser: (state) => state.user,
-        token: () => useAuthStore().token,
-        isAuthenticated: () => useAuthStore().isAuthenticated,
-        getToken: () => useAuthStore().getToken,
         isFamilyAdmin: (state) => state.user?.familyRole === "ADMIN",
     },
 

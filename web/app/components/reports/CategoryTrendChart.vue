@@ -6,7 +6,8 @@ import {VisAxis, VisStackedBar, VisXYContainer} from "@unovis/vue";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {toCurrency} from "~/lib/currency";
 import {escapeHtml} from "~/lib/utils";
-import type {CategoryTrend, ReportResolution} from "~/stores/report.store";
+import type {CategoryTrend} from "~/stores/report.store";
+import type {ReportResolution} from "~/utils/reports";
 
 const props = defineProps<{
     data: CategoryTrend;

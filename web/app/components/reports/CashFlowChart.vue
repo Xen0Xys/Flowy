@@ -6,7 +6,8 @@ import {VisArea, VisAxis, VisGroupedBar, VisLine, VisXYContainer} from "@unovis/
 import {CurveType} from "@unovis/ts";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {toCurrency} from "~/lib/currency";
-import type {CashFlowPoint, ReportResolution} from "~/stores/report.store";
+import type {CashFlowPoint} from "~/stores/report.store";
+import type {ReportResolution} from "~/utils/reports";
 
 export type CashFlowMode = "flow" | "savings";
 
