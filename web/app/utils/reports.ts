@@ -2,6 +2,28 @@ export type ReportRange = "7D" | "1M" | "3M" | "6M" | "1Y" | "YTD" | "ALL" | "CU
 
 export const REPORT_RANGES: Exclude<ReportRange, "CUSTOM">[] = ["7D", "1M", "3M", "6M", "1Y", "YTD", "ALL"];
 
+export type ReportResolution = "day" | "week" | "month" | "quarter" | "year";
+
+export const REPORT_RESOLUTIONS: ReportResolution[] = ["day", "week", "month", "quarter", "year"];
+
+export function defaultResolutionFor(range: ReportRange): ReportResolution {
+    switch (range) {
+        case "7D":
+            return "day";
+        case "1M":
+        case "3M":
+            return "week";
+        case "6M":
+        case "1Y":
+        case "YTD":
+            return "month";
+        case "ALL":
+            return "quarter";
+        case "CUSTOM":
+            return "month";
+    }
+}
+
 export function buildReportDateRange(preset: Exclude<ReportRange, "CUSTOM">): {startDate: string; endDate: string} {
     const now = new Date();
     const y = now.getUTCFullYear();

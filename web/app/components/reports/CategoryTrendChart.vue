@@ -6,13 +6,14 @@ import {VisAxis, VisStackedBar, VisXYContainer} from "@unovis/vue";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {toCurrency} from "~/lib/currency";
 import {escapeHtml} from "~/lib/utils";
-import type {CategoryTrend} from "~/stores/report.store";
+import type {CategoryTrend, ReportResolution} from "~/stores/report.store";
 
 const props = defineProps<{
     data: CategoryTrend;
     currency: string;
     height?: number;
     maxCategories?: number;
+    resolution?: ReportResolution;
 }>();
 
 const {t, locale} = useI18n();
@@ -90,13 +91,35 @@ function formatCurrency(value: number) {
 }
 
 function formatPeriodTick(ms: number) {
-    return new Date(ms).toLocaleDateString(locale.value || "en-US", {month: "short", year: "2-digit"});
+    const loc = locale.value || "en-US";
+    const date = new Date(ms);
+    switch (props.resolution) {
+        case "day":
+        case "week":
+            return date.toLocaleDateString(loc, {month: "short", day: "numeric"});
+        case "year":
+            return date.toLocaleDateString(loc, {year: "numeric"});
+        default:
+            return date.toLocaleDateString(loc, {month: "short", year: "2-digit"});
+    }
+}
+
+function formatCrosshairDate(ms: number): string {
+    const loc = locale.value || "en-US";
+    const date = new Date(ms);
+    switch (props.resolution) {
+        case "day":
+        case "week":
+            return date.toLocaleDateString(loc, {year: "numeric", month: "long", day: "numeric"});
+        case "year":
+            return date.toLocaleDateString(loc, {year: "numeric"});
+        default:
+            return date.toLocaleDateString(loc, {year: "numeric", month: "long"});
+    }
 }
 
 function crosshairTemplate(d: Row): string {
-    const date = escapeHtml(
-        new Date(d.periodMs).toLocaleDateString(locale.value || "en-US", {year: "numeric", month: "long"}),
-    );
+    const date = escapeHtml(formatCrosshairDate(d.periodMs));
     const rows = seriesKeys.value
         .map((key, idx) => {
             const value = d[key] ?? 0;

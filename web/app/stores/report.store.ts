@@ -5,6 +5,7 @@ import {useUserStore} from "~/stores/user.store";
 import {i18nT} from "~/utils/i18n";
 
 export type BudgetedFilter = "all" | "budgeted" | "unbudgeted";
+export type ReportResolution = "day" | "week" | "month" | "quarter" | "year";
 
 export type ReportFilters = {
     startDate: string;
@@ -16,6 +17,7 @@ export type ReportFilters = {
     excludeTransfers?: boolean;
     includeRebalances?: boolean;
     budgeted?: BudgetedFilter;
+    resolution?: ReportResolution;
 };
 
 export type ReportKpiPeriod = {
@@ -144,6 +146,9 @@ function buildQuery(filters: ReportFilters, extras: Record<string, string | numb
     }
     if (filters.budgeted && filters.budgeted !== "all") {
         params.set("budgeted", filters.budgeted);
+    }
+    if (filters.resolution) {
+        params.set("resolution", filters.resolution);
     }
     for (const [key, value] of Object.entries(extras)) {
         if (value !== undefined) params.set(key, String(value));

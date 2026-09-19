@@ -1496,6 +1496,14 @@
                 "budgeted": "Budgeted only",
                 "unbudgeted": "Non-budgeted only"
             },
+            "resolution": {
+                "auto": "Auto ({value})",
+                "day": "Daily",
+                "week": "Weekly",
+                "month": "Monthly",
+                "quarter": "Quarterly",
+                "year": "Yearly"
+            },
             "chips": {
                 "excludeShared": "Owned accounts only"
             },

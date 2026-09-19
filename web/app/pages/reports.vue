@@ -17,7 +17,7 @@ import {
     type ReportKpi,
     useReportStore,
 } from "~/stores/report.store";
-import {buildReportDateRange, type ReportRange} from "~/utils/reports";
+import {buildReportDateRange, defaultResolutionFor, type ReportRange, type ReportResolution} from "~/utils/reports";
 import ReportFiltersBar from "~/components/reports/ReportFiltersBar.vue";
 import ReportFiltersSummary from "~/components/reports/ReportFiltersSummary.vue";
 import ReportKpiCards from "~/components/reports/ReportKpiCards.vue";
@@ -84,6 +84,14 @@ function parseBudgeted(value: unknown): BudgetedFilter {
     return "all";
 }
 
+function parseResolution(value: unknown): ReportResolution | null {
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (raw === "day" || raw === "week" || raw === "month" || raw === "quarter" || raw === "year") {
+        return raw;
+    }
+    return null;
+}
+
 const initialRange = parseRange(route.query.range);
 const initialCustom =
     initialRange === "CUSTOM"
@@ -106,6 +114,11 @@ const includeShared = ref<boolean>(parseIncludeShared(route.query.includeShared)
 const excludeTransfers = ref<boolean>(parseBooleanQuery(route.query.excludeTransfers));
 const includeRebalances = ref<boolean>(parseBooleanQuery(route.query.includeRebalances));
 const budgeted = ref<BudgetedFilter>(parseBudgeted(route.query.budgeted));
+const resolutionOverride = ref<ReportResolution | null>(parseResolution(route.query.resolution));
+
+const effectiveResolution = computed<ReportResolution>(
+    () => resolutionOverride.value ?? defaultResolutionFor(range.value),
+);
 
 // Data buckets
 const kpis = ref<ReportKpi | null>(null);
@@ -132,6 +145,7 @@ function currentFilters() {
         excludeTransfers: excludeTransfers.value || undefined,
         includeRebalances: includeRebalances.value || undefined,
         budgeted: budgeted.value !== "all" ? budgeted.value : undefined,
+        resolution: effectiveResolution.value,
     };
 }
 
@@ -195,6 +209,7 @@ function syncQuery() {
     if (excludeTransfers.value) query.excludeTransfers = "true";
     if (includeRebalances.value) query.includeRebalances = "true";
     if (budgeted.value !== "all") query.budgeted = budgeted.value;
+    if (resolutionOverride.value !== null) query.resolution = resolutionOverride.value;
     router.replace({query});
 }
 
@@ -219,6 +234,7 @@ watch(
         excludeTransfers,
         includeRebalances,
         budgeted,
+        resolutionOverride,
     ],
     () => {
         scheduleReload();
@@ -297,6 +313,7 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                         :budgeted="budgeted"
                         :categories="referenceStore.categories"
                         :category-ids="categoryIds"
+                        :effective-resolution="effectiveResolution"
                         :end-date="endDate"
                         :exclude-transfers="excludeTransfers"
                         :include-rebalances="includeRebalances"
@@ -305,6 +322,7 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                         :merchant-ids="merchantIds"
                         :merchants="referenceStore.merchants"
                         :range="range"
+                        :resolution-override="resolutionOverride"
                         :start-date="startDate"
                         @update:range="(v) => (range = v)"
                         @update:start-date="(v) => (startDate = v)"
@@ -315,7 +333,8 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                         @update:include-shared="(v) => (includeShared = v)"
                         @update:exclude-transfers="(v) => (excludeTransfers = v)"
                         @update:include-rebalances="(v) => (includeRebalances = v)"
-                        @update:budgeted="(v) => (budgeted = v)" />
+                        @update:budgeted="(v) => (budgeted = v)"
+                        @update:resolution-override="(v) => (resolutionOverride = v)" />
 
                     <ReportFiltersSummary
                         v-if="hasActiveFilters"
@@ -360,7 +379,7 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                             :title="t('reports.charts.cashFlow.title')"
                             class="lg:col-span-2"
                             icon="iconoir:data-transfer-both">
-                            <CashFlowChart :currency="currency" :data="cashFlow" />
+                            <CashFlowChart :currency="currency" :data="cashFlow" :resolution="effectiveResolution" />
                         </ReportChartCard>
 
                         <ReportChartCard
@@ -402,7 +421,10 @@ const hasAccounts = computed(() => accountStore.accounts.length > 0);
                             :title="t('reports.charts.categoryTrend.title')"
                             class="lg:col-span-2"
                             icon="iconoir:stats-up-square">
-                            <CategoryTrendChart :currency="currency" :data="categoryTrend" />
+                            <CategoryTrendChart
+                                :currency="currency"
+                                :data="categoryTrend"
+                                :resolution="effectiveResolution" />
                         </ReportChartCard>
 
                         <ReportChartCard

@@ -6,6 +6,7 @@ import type {DateRange, DateValue} from "reka-ui";
 import {Button} from "~/components/ui/button";
 import {Popover, PopoverContent, PopoverTrigger} from "~/components/ui/popover";
 import {RangeCalendar} from "~/components/ui/range-calendar";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
 import {Switch} from "~/components/ui/switch";
 import {Tabs, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Badge} from "~/components/ui/badge";
@@ -14,7 +15,13 @@ import {ScrollArea} from "~/components/ui/scroll-area";
 import type {Account} from "~/stores/account.store";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import type {BudgetedFilter} from "~/stores/report.store";
-import {REPORT_RANGES, type ReportRange, buildReportDateRange} from "~/utils/reports";
+import {
+    REPORT_RANGES,
+    REPORT_RESOLUTIONS,
+    type ReportRange,
+    type ReportResolution,
+    buildReportDateRange,
+} from "~/utils/reports";
 
 const props = defineProps<{
     accounts: Account[];
@@ -30,6 +37,8 @@ const props = defineProps<{
     excludeTransfers: boolean;
     includeRebalances: boolean;
     budgeted: BudgetedFilter;
+    resolutionOverride: ReportResolution | null;
+    effectiveResolution: ReportResolution;
     loading?: boolean;
 }>();
 
@@ -44,6 +53,7 @@ const emit = defineEmits<{
     "update:excludeTransfers": [boolean];
     "update:includeRebalances": [boolean];
     "update:budgeted": [BudgetedFilter];
+    "update:resolutionOverride": [ReportResolution | null];
 }>();
 
 const {t, locale} = useI18n();
@@ -246,6 +256,14 @@ function selectBudgeted(value: BudgetedFilter) {
 }
 
 const budgetedSummary = computed(() => t(`reports.filters.budgeted.${props.budgeted}`));
+
+const resolutionSelectValue = computed({
+    get: () => props.resolutionOverride ?? "auto",
+    set: (v: string) => {
+        if (v === "auto") emit("update:resolutionOverride", null);
+        else emit("update:resolutionOverride", v as ReportResolution);
+    },
+});
 
 // When toggling includeShared off, drop any shared account currently selected.
 watch(
@@ -497,6 +515,25 @@ const yearRange = computed(() => {
                 </ul>
             </PopoverContent>
         </Popover>
+
+        <Select v-model="resolutionSelectValue">
+            <SelectTrigger class="h-9 w-auto min-w-[9rem] gap-2 text-sm">
+                <Icon class="size-4" name="iconoir:hourglass" />
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="auto">
+                    {{
+                        t("reports.filters.resolution.auto", {
+                            value: t(`reports.filters.resolution.${effectiveResolution}`),
+                        })
+                    }}
+                </SelectItem>
+                <SelectItem v-for="res in REPORT_RESOLUTIONS" :key="res" :value="res">
+                    {{ t(`reports.filters.resolution.${res}`) }}
+                </SelectItem>
+            </SelectContent>
+        </Select>
 
         <div class="flex flex-wrap items-center gap-4">
             <div class="flex items-center gap-2">

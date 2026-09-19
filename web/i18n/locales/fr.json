@@ -1496,6 +1496,14 @@
                 "budgeted": "Uniquement budgétisées",
                 "unbudgeted": "Uniquement non budgétisées"
             },
+            "resolution": {
+                "auto": "Auto ({value})",
+                "day": "Journalier",
+                "week": "Hebdomadaire",
+                "month": "Mensuel",
+                "quarter": "Trimestriel",
+                "year": "Annuel"
+            },
             "chips": {
                 "excludeShared": "Comptes personnels uniquement"
             },

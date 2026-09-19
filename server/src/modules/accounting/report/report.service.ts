@@ -3,7 +3,7 @@ import {PrismaService} from "../../helper/prisma.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {AccountAccessService} from "../account/account-access.service";
 import {AccountService} from "../account/account.service";
-import {ReportFiltersDto, TopMerchantsDto} from "./models/dto/report-filters.dto";
+import {ReportFiltersDto, ReportResolution, TopMerchantsDto} from "./models/dto/report-filters.dto";
 import {ReportKpiEntity, ReportKpiPeriodEntity} from "./models/entities/report-kpi.entity";
 import {CashFlowPointEntity} from "./models/entities/cash-flow.entity";
 import {
@@ -68,10 +68,12 @@ export class ReportService {
 
         if (scopedIds.length === 0) return [];
 
+        const resolution = this.resolveResolution(filters);
+        const truncSql = this.dateTruncSql(resolution);
         const whereSql = this.buildTransactionScopeSql(scopedIds, start, end, filters);
         const rows = await this.prismaService.$queryRaw<{period: Date; income: number | null; expense: number | null}[]>`
             SELECT
-                date_trunc('month', "date") AS period,
+                ${truncSql} AS period,
                 COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS income,
                 COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0)::float AS expense
             FROM transactions
@@ -80,7 +82,7 @@ export class ReportService {
             ORDER BY period ASC
         `;
 
-        return this.fillCashFlowGaps(rows, start, end);
+        return this.fillCashFlowGaps(rows, start, end, resolution);
     }
 
     async getCashFlowSankey(user: UserEntity, filters: ReportFiltersDto): Promise<CashFlowSankeyEntity> {
@@ -298,12 +300,14 @@ export class ReportService {
 
         if (scopedIds.length === 0) return new CategoryTrendEntity({categories: [], points: []});
 
+        const resolution = this.resolveResolution(filters);
+        const truncSql = this.dateTruncSql(resolution);
         const whereSql = this.buildTransactionScopeSql(scopedIds, start, end, filters, Prisma.sql`amount < 0`);
         const rows = await this.prismaService.$queryRaw<
             {period: Date; category_id: string | null; spent: number | null}[]
         >`
             SELECT
-                date_trunc('month', "date") AS period,
+                ${truncSql} AS period,
                 category_id,
                 COALESCE(SUM(ABS(amount)), 0)::float AS spent
             FROM transactions
@@ -354,9 +358,9 @@ export class ReportService {
         }
         categoriesOut.sort((a, b) => b.total - a.total);
 
-        const monthKeys = this.buildMonthKeys(start, end);
+        const periodKeys = this.buildPeriodKeys(start, end, resolution);
         const pointMap = new Map<string, CategoryTrendPointEntity>();
-        for (const key of monthKeys) {
+        for (const key of periodKeys) {
             pointMap.set(key, new CategoryTrendPointEntity({period: key, spentByCategoryId: {}}));
         }
 
@@ -477,11 +481,13 @@ export class ReportService {
         });
         const typeById = new Map(accounts.map((a) => [a.id, a.type as string]));
 
+        const resolution = this.resolveResolution(filters);
+        const evolutionResolution: "day" | "month" = resolution === "day" || resolution === "week" ? "day" : "month";
         const evolutionSeries = await Promise.all(
             scopedIds.map((id) =>
                 this.accountService.getAccountBalanceEvolution(user, id, start.toISOString(), end.toISOString(), {
                     skipAccessCheck: true,
-                    resolution: "month",
+                    resolution: evolutionResolution,
                 }),
             ),
         );
@@ -723,15 +729,87 @@ export class ReportService {
     }
 
     private buildMonthKeys(start: Date, end: Date): string[] {
+        return this.buildPeriodKeys(start, end, "month");
+    }
+
+    private buildPeriodKeys(start: Date, end: Date, resolution: ReportResolution): string[] {
         const keys: string[] = [];
-        const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
-        const stop = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+        const cursor = this.truncateDateUtc(start, resolution);
+        const stop = this.truncateDateUtc(end, resolution);
         // oxlint-disable-next-line no-unmodified-loop-condition
         while (cursor <= stop) {
             keys.push(cursor.toISOString().slice(0, 10));
-            cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+            this.advanceCursor(cursor, resolution);
         }
         return keys;
+    }
+
+    private truncateDateUtc(date: Date, resolution: ReportResolution): Date {
+        const y = date.getUTCFullYear();
+        const m = date.getUTCMonth();
+        const d = date.getUTCDate();
+        switch (resolution) {
+            case "day":
+                return new Date(Date.UTC(y, m, d));
+            case "week": {
+                // Match PostgreSQL date_trunc('week', ...): ISO week starting Monday.
+                const base = new Date(Date.UTC(y, m, d));
+                const day = base.getUTCDay(); // 0 = Sun ... 6 = Sat
+                const diff = (day + 6) % 7; // days since Monday
+                base.setUTCDate(base.getUTCDate() - diff);
+                return base;
+            }
+            case "month":
+                return new Date(Date.UTC(y, m, 1));
+            case "quarter": {
+                const quarterStartMonth = Math.floor(m / 3) * 3;
+                return new Date(Date.UTC(y, quarterStartMonth, 1));
+            }
+            case "year":
+                return new Date(Date.UTC(y, 0, 1));
+        }
+    }
+
+    private advanceCursor(cursor: Date, resolution: ReportResolution): void {
+        switch (resolution) {
+            case "day":
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+                break;
+            case "week":
+                cursor.setUTCDate(cursor.getUTCDate() + 7);
+                break;
+            case "month":
+                cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+                break;
+            case "quarter":
+                cursor.setUTCMonth(cursor.getUTCMonth() + 3);
+                break;
+            case "year":
+                cursor.setUTCFullYear(cursor.getUTCFullYear() + 1);
+                break;
+        }
+    }
+
+    private resolveResolution(filters: ReportFiltersDto): ReportResolution {
+        return filters.resolution ?? "month";
+    }
+
+    private dateTruncSql(resolution: ReportResolution): Prisma.Sql {
+        // Whitelist: `resolution` is validated by @IsIn on the DTO, but we
+        // re-check here so SQL injection is impossible even if the caller
+        // bypasses the DTO.
+        switch (resolution) {
+            case "day":
+                return Prisma.sql`date_trunc('day', "date")`;
+            case "week":
+                return Prisma.sql`date_trunc('week', "date")`;
+            case "month":
+                return Prisma.sql`date_trunc('month', "date")`;
+            case "quarter":
+                return Prisma.sql`date_trunc('quarter', "date")`;
+            case "year":
+                return Prisma.sql`date_trunc('year', "date")`;
+        }
     }
 
     private buildMonthEntries(start: Date, end: Date): {year: number; month: number}[] {
@@ -750,6 +828,7 @@ export class ReportService {
         rows: {period: Date; income: number | null; expense: number | null}[],
         start: Date,
         end: Date,
+        resolution: ReportResolution,
     ): CashFlowPointEntity[] {
         const byKey = new Map<string, {income: number; expense: number}>();
         for (const row of rows) {
@@ -760,7 +839,7 @@ export class ReportService {
             });
         }
 
-        return this.buildMonthKeys(start, end).map((key) => {
+        return this.buildPeriodKeys(start, end, resolution).map((key) => {
             const entry = byKey.get(key) ?? {income: 0, expense: 0};
             const net = Math.round((entry.income - entry.expense) * 100) / 100;
             return new CashFlowPointEntity({period: key, income: entry.income, expense: entry.expense, net});

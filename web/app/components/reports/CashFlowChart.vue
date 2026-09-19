@@ -5,12 +5,13 @@ import {useCssVar, useMediaQuery} from "@vueuse/core";
 import {VisAxis, VisGroupedBar, VisXYContainer} from "@unovis/vue";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {toCurrency} from "~/lib/currency";
-import type {CashFlowPoint} from "~/stores/report.store";
+import type {CashFlowPoint, ReportResolution} from "~/stores/report.store";
 
 const props = defineProps<{
     data: CashFlowPoint[];
     currency: string;
     height?: number;
+    resolution?: ReportResolution;
 }>();
 
 const {t, locale} = useI18n();
@@ -50,11 +51,36 @@ function formatCurrency(value: number) {
 }
 
 function formatPeriodTick(ms: number) {
-    return new Date(ms).toLocaleDateString(locale.value || "en-US", {month: "short", year: "2-digit"});
+    const loc = locale.value || "en-US";
+    const date = new Date(ms);
+    switch (props.resolution) {
+        case "day":
+        case "week":
+            return date.toLocaleDateString(loc, {month: "short", day: "numeric"});
+        case "year":
+            return date.toLocaleDateString(loc, {year: "numeric"});
+        default:
+            return date.toLocaleDateString(loc, {month: "short", year: "2-digit"});
+    }
+}
+
+function formatCrosshairDate(ms: number): string {
+    const loc = locale.value || "en-US";
+    const date = new Date(ms);
+    switch (props.resolution) {
+        case "day":
+            return date.toLocaleDateString(loc, {year: "numeric", month: "long", day: "numeric"});
+        case "week":
+            return date.toLocaleDateString(loc, {year: "numeric", month: "long", day: "numeric"});
+        case "year":
+            return date.toLocaleDateString(loc, {year: "numeric"});
+        default:
+            return date.toLocaleDateString(loc, {year: "numeric", month: "long"});
+    }
 }
 
 function crosshairTemplate(d: Row): string {
-    const date = new Date(d.periodMs).toLocaleDateString(locale.value || "en-US", {year: "numeric", month: "long"});
+    const date = formatCrosshairDate(d.periodMs);
     const rowHtml = (label: string, value: string, color: string) => `
         <div class="flex items-center justify-between gap-3 text-xs">
             <span class="flex items-center gap-1.5">

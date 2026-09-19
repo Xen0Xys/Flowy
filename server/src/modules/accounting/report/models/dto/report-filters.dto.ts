@@ -23,6 +23,8 @@ function parseStringArray(value: unknown): unknown {
 }
 
 export type BudgetedFilter = "all" | "budgeted" | "unbudgeted";
+export type ReportResolution = "day" | "week" | "month" | "quarter" | "year";
+export const REPORT_RESOLUTIONS: ReportResolution[] = ["day", "week", "month", "quarter", "year"];
 
 export class ReportFiltersDto {
     @IsDateString()
@@ -67,6 +69,10 @@ export class ReportFiltersDto {
     @IsOptional()
     @IsIn(["all", "budgeted", "unbudgeted"])
     budgeted?: BudgetedFilter;
+
+    @IsOptional()
+    @IsIn(REPORT_RESOLUTIONS)
+    resolution?: ReportResolution;
 }
 
 export class TopMerchantsDto extends ReportFiltersDto {
