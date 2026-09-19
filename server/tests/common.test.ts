@@ -143,7 +143,7 @@ function makeReply(): {reply: any; trigger: () => void} {
     const listeners: Array<() => void> = [];
     const reply: any = {
         statusCode: 200,
-        getHeader: (_: string) => "42",
+        getHeader: () => "42",
         on(event: string, cb: () => void) {
             if (event === "finish") listeners.push(cb);
         },
@@ -160,9 +160,7 @@ describe("LoggerMiddleware", () => {
     const middleware = new LoggerMiddleware();
 
     test("getClientIp prefers x-forwarded-for, then x-real-ip, then cf-connecting-ip, then req.ip", () => {
-        expect(LoggerMiddleware.getClientIp({headers: {"x-forwarded-for": "1.1.1.1, 2.2.2.2"}} as any)).toBe(
-            "1.1.1.1",
-        );
+        expect(LoggerMiddleware.getClientIp({headers: {"x-forwarded-for": "1.1.1.1, 2.2.2.2"}} as any)).toBe("1.1.1.1");
         expect(LoggerMiddleware.getClientIp({headers: {"x-real-ip": "3.3.3.3"}} as any)).toBe("3.3.3.3");
         expect(LoggerMiddleware.getClientIp({headers: {"cf-connecting-ip": "4.4.4.4"}} as any)).toBe("4.4.4.4");
         expect(LoggerMiddleware.getClientIp({headers: {}, ip: "5.5.5.5"} as any)).toBe("5.5.5.5");
@@ -429,5 +427,3 @@ describe("CsrfGuard", () => {
         await expect(guard.canActivate(ctx)).resolves.toBe(true);
     });
 });
-
-

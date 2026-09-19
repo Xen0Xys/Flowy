@@ -20,9 +20,7 @@ describe("ReferenceMatcherService.findBestMatch", () => {
 
     test("matches against the entity name", () => {
         const service = makeService();
-        const entities: Entity[] = [
-            {id: "cat-1", name: "Groceries", keywords: [], auto_complete_enabled: true},
-        ];
+        const entities: Entity[] = [{id: "cat-1", name: "Groceries", keywords: [], auto_complete_enabled: true}];
         expect(service.findBestMatch("Weekly groceries at market", entities)).toBe("cat-1");
     });
 
@@ -45,17 +43,13 @@ describe("ReferenceMatcherService.findBestMatch", () => {
 
     test("ignores entities where auto_complete_enabled is false", () => {
         const service = makeService();
-        const entities: Entity[] = [
-            {id: "off", name: "Groceries", keywords: [], auto_complete_enabled: false},
-        ];
+        const entities: Entity[] = [{id: "off", name: "Groceries", keywords: [], auto_complete_enabled: false}];
         expect(service.findBestMatch("Weekly groceries", entities)).toBe(null);
     });
 
     test("strips diacritics before comparing", () => {
         const service = makeService();
-        const entities: Entity[] = [
-            {id: "id-1", name: "Épicerie", keywords: [], auto_complete_enabled: true},
-        ];
+        const entities: Entity[] = [{id: "id-1", name: "Épicerie", keywords: [], auto_complete_enabled: true}];
         expect(service.findBestMatch("Achat Epicerie du coin", entities)).toBe("id-1");
     });
 
@@ -69,9 +63,7 @@ describe("ReferenceMatcherService.findBestMatch", () => {
 
     test("skips blank/whitespace-only candidates in keywords", () => {
         const service = makeService();
-        const entities: Entity[] = [
-            {id: "id-1", name: "  ", keywords: ["   ", "sushi"], auto_complete_enabled: true},
-        ];
+        const entities: Entity[] = [{id: "id-1", name: "  ", keywords: ["   ", "sushi"], auto_complete_enabled: true}];
         expect(service.findBestMatch("Dinner sushi tonight", entities)).toBe("id-1");
     });
 });

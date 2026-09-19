@@ -240,6 +240,7 @@ describe("ReportController (e2e)", () => {
             "/report/budget-vs-actual",
         ];
         for (const route of routes) {
+            // oxlint-disable-next-line no-await-in-loop
             const res = await agent.get(route).query({startDate: "2026-03-01", endDate: "2026-03-31"});
             expect(res.status).toBe(401);
         }
@@ -320,14 +321,11 @@ describe("ReportController (e2e)", () => {
         const u = await seedUser("cashflow-day");
         await seedTransactions(u);
 
-        const res = await agent
-            .get("/report/cash-flow")
-            .set("Authorization", `Bearer ${u.token}`)
-            .query({
-                startDate: "2026-03-01",
-                endDate: "2026-03-31T23:59:59.999Z",
-                resolution: "day",
-            });
+        const res = await agent.get("/report/cash-flow").set("Authorization", `Bearer ${u.token}`).query({
+            startDate: "2026-03-01",
+            endDate: "2026-03-31T23:59:59.999Z",
+            resolution: "day",
+        });
         expect(res.status).toBe(200);
         expect(res.body.length).toBe(31);
     });
@@ -337,14 +335,12 @@ describe("ReportController (e2e)", () => {
         await seedTransactions(u);
 
         for (const resolution of ["week", "quarter", "year"] as const) {
-            const res = await agent
-                .get("/report/cash-flow")
-                .set("Authorization", `Bearer ${u.token}`)
-                .query({
-                    startDate: "2026-01-01",
-                    endDate: "2026-12-31T23:59:59.999Z",
-                    resolution,
-                });
+            // oxlint-disable-next-line no-await-in-loop
+            const res = await agent.get("/report/cash-flow").set("Authorization", `Bearer ${u.token}`).query({
+                startDate: "2026-01-01",
+                endDate: "2026-12-31T23:59:59.999Z",
+                resolution,
+            });
             expect(res.status).toBe(200);
             expect(Array.isArray(res.body)).toBe(true);
         }
@@ -461,14 +457,11 @@ describe("ReportController (e2e)", () => {
         const u = await seedUser("bycat-budgeted");
         await seedTransactions(u);
 
-        const res = await agent
-            .get("/report/by-category")
-            .set("Authorization", `Bearer ${u.token}`)
-            .query({
-                startDate: "2026-03-01",
-                endDate: "2026-03-31T23:59:59.999Z",
-                budgeted: "budgeted",
-            });
+        const res = await agent.get("/report/by-category").set("Authorization", `Bearer ${u.token}`).query({
+            startDate: "2026-03-01",
+            endDate: "2026-03-31T23:59:59.999Z",
+            budgeted: "budgeted",
+        });
 
         expect(res.status).toBe(200);
         // Uncategorized -25 is in_budget=false → excluded
@@ -480,14 +473,11 @@ describe("ReportController (e2e)", () => {
         const u = await seedUser("bycat-unbudgeted");
         await seedTransactions(u);
 
-        const res = await agent
-            .get("/report/by-category")
-            .set("Authorization", `Bearer ${u.token}`)
-            .query({
-                startDate: "2026-03-01",
-                endDate: "2026-03-31T23:59:59.999Z",
-                budgeted: "unbudgeted",
-            });
+        const res = await agent.get("/report/by-category").set("Authorization", `Bearer ${u.token}`).query({
+            startDate: "2026-03-01",
+            endDate: "2026-03-31T23:59:59.999Z",
+            budgeted: "unbudgeted",
+        });
 
         expect(res.status).toBe(200);
         const groceries = res.body.find((c: any) => c.categoryId === u.groceriesId);
@@ -595,14 +585,11 @@ describe("ReportController (e2e)", () => {
         const u = await seedUser("nw-day");
         await seedTransactions(u);
 
-        const res = await agent
-            .get("/report/net-worth")
-            .set("Authorization", `Bearer ${u.token}`)
-            .query({
-                startDate: "2026-03-01",
-                endDate: "2026-03-31T23:59:59.999Z",
-                resolution: "day",
-            });
+        const res = await agent.get("/report/net-worth").set("Authorization", `Bearer ${u.token}`).query({
+            startDate: "2026-03-01",
+            endDate: "2026-03-31T23:59:59.999Z",
+            resolution: "day",
+        });
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body)).toBe(true);
     });
@@ -669,16 +656,13 @@ describe("ReportController (e2e)", () => {
         const u = await seedUser("filters");
         await seedTransactions(u);
 
-        const byCat = await agent
-            .get("/report/by-category")
-            .set("Authorization", `Bearer ${u.token}`)
-            .query({
-                startDate: "2026-03-01",
-                endDate: "2026-03-31T23:59:59.999Z",
-                categoryIds: u.groceriesId,
-                merchantIds: u.storeAId,
-                accountIds: u.checkingId,
-            });
+        const byCat = await agent.get("/report/by-category").set("Authorization", `Bearer ${u.token}`).query({
+            startDate: "2026-03-01",
+            endDate: "2026-03-31T23:59:59.999Z",
+            categoryIds: u.groceriesId,
+            merchantIds: u.storeAId,
+            accountIds: u.checkingId,
+        });
         expect(byCat.status).toBe(200);
         const groceries = byCat.body.find((c: any) => c.categoryId === u.groceriesId);
         expect(groceries).toBeDefined();
@@ -689,14 +673,11 @@ describe("ReportController (e2e)", () => {
         const u = await seedUser("filters-owned");
         await seedTransactions(u);
 
-        const res = await agent
-            .get("/report/kpis")
-            .set("Authorization", `Bearer ${u.token}`)
-            .query({
-                startDate: "2026-03-01",
-                endDate: "2026-03-31T23:59:59.999Z",
-                includeShared: "false",
-            });
+        const res = await agent.get("/report/kpis").set("Authorization", `Bearer ${u.token}`).query({
+            startDate: "2026-03-01",
+            endDate: "2026-03-31T23:59:59.999Z",
+            includeShared: "false",
+        });
         expect(res.status).toBe(200);
         expect(res.body.current.income).toBe(2000);
     });
