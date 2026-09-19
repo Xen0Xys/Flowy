@@ -1534,7 +1534,9 @@
             },
             "cashFlow": {
                 "title": "Cash flow",
-                "subtitle": "Monthly income vs expense with net line"
+                "subtitle": "Monthly income vs expense with net line",
+                "previousIncome": "Previous income",
+                "previousExpense": "Previous expense"
             },
             "cashFlowSankey": {
                 "title": "Money flow",
@@ -1548,7 +1550,8 @@
             "byCategory": {
                 "title": "Spending by category",
                 "subtitle": "Distribution over the selected period",
-                "totalSpent": "spent"
+                "totalSpent": "spent",
+                "vsPrevious": "vs previous period"
             },
             "categoryTrend": {
                 "title": "Category trend",

@@ -3,6 +3,7 @@ import {computed, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {arc, pie} from "d3-shape";
 import {toCurrency} from "~/lib/currency";
+import {formatPercentDelta} from "~/utils/reports";
 import type {CategoryBreakdown} from "~/stores/report.store";
 
 const props = defineProps<{
@@ -15,10 +16,19 @@ const {t} = useI18n();
 const total = computed(() => props.data.reduce((sum, d) => sum + d.spent, 0));
 
 const items = computed(() =>
-    props.data.map((c) => ({
-        ...c,
-        label: c.categoryId ? c.name : t("budget.category.uncategorized"),
-    })),
+    props.data.map((c) => {
+        const previousSpent = c.previousSpent ?? 0;
+        // Reverse `positive` semantic: for expenses, less is better.
+        const rawDelta = formatPercentDelta(c.spent, previousSpent);
+        return {
+            ...c,
+            label: c.categoryId ? c.name : t("budget.category.uncategorized"),
+            previousSpent,
+            deltaLabel: rawDelta.label,
+            deltaPositive: !rawDelta.positive,
+            hasPrevious: previousSpent > 0,
+        };
+    }),
 );
 
 const pieLayout = computed(() => {
@@ -115,6 +125,13 @@ const topThree = computed(() => items.value.slice(0, 3));
                 <span v-if="total > 0" class="ml-1">
                     ({{ (((items[hoveredIndex]?.spent ?? 0) / total) * 100).toFixed(1) }}%)
                 </span>
+            </div>
+            <div v-if="items[hoveredIndex]?.hasPrevious" class="mt-1 flex items-center gap-1 text-[0.7rem]">
+                <span
+                    :class="['tabular-nums', items[hoveredIndex]?.deltaPositive ? 'text-success' : 'text-destructive']">
+                    {{ items[hoveredIndex]?.deltaLabel }}
+                </span>
+                <span class="text-muted-foreground">{{ t("reports.charts.byCategory.vsPrevious") }}</span>
             </div>
         </div>
 

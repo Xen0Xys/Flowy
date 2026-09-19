@@ -38,6 +38,9 @@ export type CashFlowPoint = {
     income: number;
     expense: number;
     net: number;
+    previousIncome?: number;
+    previousExpense?: number;
+    previousNet?: number;
 };
 
 export type CashFlowSankeyNode = {
@@ -67,6 +70,7 @@ export type CategoryBreakdown = {
     icon: string;
     spent: number;
     count: number;
+    previousSpent?: number;
 };
 
 export type CategoryTrendCategory = {

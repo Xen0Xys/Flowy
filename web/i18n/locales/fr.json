@@ -1534,7 +1534,9 @@
             },
             "cashFlow": {
                 "title": "Flux de trésorerie",
-                "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net"
+                "subtitle": "Revenus vs dépenses mensuels avec ligne du solde net",
+                "previousIncome": "Revenus précédents",
+                "previousExpense": "Dépenses précédentes"
             },
             "cashFlowSankey": {
                 "title": "Flux d'argent",
@@ -1548,7 +1550,8 @@
             "byCategory": {
                 "title": "Dépenses par catégorie",
                 "subtitle": "Répartition sur la période sélectionnée",
-                "totalSpent": "dépensés"
+                "totalSpent": "dépensés",
+                "vsPrevious": "vs période précédente"
             },
             "categoryTrend": {
                 "title": "Tendance par catégorie",

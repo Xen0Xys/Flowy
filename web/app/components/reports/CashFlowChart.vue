@@ -2,7 +2,8 @@
 import {computed} from "vue";
 import {useI18n} from "vue-i18n";
 import {useCssVar, useMediaQuery} from "@vueuse/core";
-import {VisAxis, VisGroupedBar, VisXYContainer} from "@unovis/vue";
+import {VisAxis, VisGroupedBar, VisLine, VisXYContainer} from "@unovis/vue";
+import {CurveType} from "@unovis/ts";
 import {ChartContainer, ChartCrosshair, ChartTooltip, ChartTooltipContent} from "~/components/ui/chart";
 import {toCurrency} from "~/lib/currency";
 import type {CashFlowPoint, ReportResolution} from "~/stores/report.store";
@@ -20,14 +21,20 @@ const isMobile = useMediaQuery("(max-width: 768px)");
 const successColor = useCssVar("--success");
 const destructiveColor = useCssVar("--destructive");
 
-type Row = {periodMs: number; income: number; expense: number};
+type Row = {periodMs: number; income: number; expense: number; previousIncome: number; previousExpense: number};
 
 const dataset = computed<Row[]>(() =>
     props.data.map((p) => ({
         periodMs: new Date(p.period).getTime(),
         income: p.income,
         expense: p.expense,
+        previousIncome: p.previousIncome ?? 0,
+        previousExpense: p.previousExpense ?? 0,
     })),
+);
+
+const hasPrevious = computed(() =>
+    props.data.some((p) => p.previousIncome !== undefined || p.previousExpense !== undefined),
 );
 
 const height = computed(() => props.height ?? 280);
@@ -40,6 +47,8 @@ const chartConfig = computed(() => ({
 const xAcc = (d: Row) => d.periodMs;
 const yIncome = (d: Row) => d.income;
 const yExpense = (d: Row) => d.expense;
+const yPreviousIncome = (d: Row) => d.previousIncome;
+const yPreviousExpense = (d: Row) => d.previousExpense;
 
 const incomeColor = computed(() => successColor.value?.trim() || "oklch(0.7 0.15 145)");
 const expenseColor = computed(() => destructiveColor.value?.trim() || "oklch(0.6 0.2 25)");
@@ -89,10 +98,23 @@ function crosshairTemplate(d: Row): string {
             </span>
             <span class="tabular-nums font-medium">${value}</span>
         </div>`;
+    const dashRow = (label: string, value: string, color: string) => `
+        <div class="flex items-center justify-between gap-3 text-xs">
+            <span class="flex items-center gap-1.5">
+                <span class="inline-block h-[2px] w-3 rounded-full" style="background-color: ${color}"></span>
+                <span class="text-muted-foreground">${label}</span>
+            </span>
+            <span class="tabular-nums font-medium">${value}</span>
+        </div>`;
+    const prevRows = hasPrevious.value
+        ? dashRow(t("reports.charts.cashFlow.previousIncome"), formatCurrency(d.previousIncome), incomeColor.value) +
+          dashRow(t("reports.charts.cashFlow.previousExpense"), formatCurrency(d.previousExpense), expenseColor.value)
+        : "";
     return `<div class="flex flex-col gap-1 rounded-lg border bg-background p-2 shadow-sm min-w-40">
         <span class="text-[0.70rem] uppercase text-muted-foreground">${date}</span>
         ${rowHtml(t("reports.kpi.income"), formatCurrency(d.income), incomeColor.value)}
         ${rowHtml(t("reports.kpi.expense"), formatCurrency(d.expense), expenseColor.value)}
+        ${prevRows}
     </div>`;
 }
 </script>
@@ -103,6 +125,22 @@ function crosshairTemplate(d: Row): string {
             <ChartContainer :config="chartConfig">
                 <VisXYContainer :data="dataset" :padding="{top: 10, bottom: 10, left: 0, right: 0}">
                     <VisGroupedBar :x="xAcc" :y="[yIncome, yExpense]" :color="barColors" :roundedCorners="4" />
+                    <template v-if="hasPrevious">
+                        <VisLine
+                            :curveType="CurveType.MonotoneX"
+                            :x="xAcc"
+                            :y="yPreviousIncome"
+                            :color="incomeColor"
+                            :lineWidth="1.5"
+                            :lineDashArray="[4, 3]" />
+                        <VisLine
+                            :curveType="CurveType.MonotoneX"
+                            :x="xAcc"
+                            :y="yPreviousExpense"
+                            :color="expenseColor"
+                            :lineWidth="1.5"
+                            :lineDashArray="[4, 3]" />
+                    </template>
                     <VisAxis
                         type="x"
                         :gridLine="false"

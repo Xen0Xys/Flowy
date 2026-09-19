@@ -70,8 +70,39 @@ export class ReportService {
 
         const resolution = this.resolveResolution(filters);
         const truncSql = this.dateTruncSql(resolution);
+
+        const rangeMs = end.getTime() - start.getTime();
+        const previousStart = new Date(start.getTime() - rangeMs);
+        const previousEnd = new Date(start.getTime() - 1);
+
+        const [currentRows, previousRows] = await Promise.all([
+            this.fetchCashFlowRows(scopedIds, start, end, filters, truncSql),
+            this.fetchCashFlowRows(scopedIds, previousStart, previousEnd, filters, truncSql),
+        ]);
+
+        const currentPoints = this.fillCashFlowGaps(currentRows, start, end, resolution);
+        const previousPoints = this.fillCashFlowGaps(previousRows, previousStart, previousEnd, resolution);
+
+        for (let i = 0; i < currentPoints.length; i++) {
+            const prev = previousPoints[i];
+            if (!prev) continue;
+            currentPoints[i]!.previousIncome = prev.income;
+            currentPoints[i]!.previousExpense = prev.expense;
+            currentPoints[i]!.previousNet = prev.net;
+        }
+
+        return currentPoints;
+    }
+
+    private async fetchCashFlowRows(
+        scopedIds: string[],
+        start: Date,
+        end: Date,
+        filters: ReportFiltersDto,
+        truncSql: Prisma.Sql,
+    ): Promise<{period: Date; income: number | null; expense: number | null}[]> {
         const whereSql = this.buildTransactionScopeSql(scopedIds, start, end, filters);
-        const rows = await this.prismaService.$queryRaw<{period: Date; income: number | null; expense: number | null}[]>`
+        return this.prismaService.$queryRaw<{period: Date; income: number | null; expense: number | null}[]>`
             SELECT
                 ${truncSql} AS period,
                 COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS income,
@@ -81,8 +112,6 @@ export class ReportService {
             GROUP BY period
             ORDER BY period ASC
         `;
-
-        return this.fillCashFlowGaps(rows, start, end, resolution);
     }
 
     async getCashFlowSankey(user: UserEntity, filters: ReportFiltersDto): Promise<CashFlowSankeyEntity> {
@@ -251,12 +280,29 @@ export class ReportService {
 
         if (scopedIds.length === 0) return [];
 
-        const grouped = await this.prismaService.transactions.groupBy({
-            by: ["category_id"],
-            where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {lt: 0}}),
-            _sum: {amount: true},
-            _count: {_all: true},
-        });
+        const rangeMs = end.getTime() - start.getTime();
+        const previousStart = new Date(start.getTime() - rangeMs);
+        const previousEnd = new Date(start.getTime() - 1);
+
+        const [grouped, previousGrouped] = await Promise.all([
+            this.prismaService.transactions.groupBy({
+                by: ["category_id"],
+                where: this.buildTransactionScope(scopedIds, start, end, filters, {amount: {lt: 0}}),
+                _sum: {amount: true},
+                _count: {_all: true},
+            }),
+            this.prismaService.transactions.groupBy({
+                by: ["category_id"],
+                where: this.buildTransactionScope(scopedIds, previousStart, previousEnd, filters, {amount: {lt: 0}}),
+                _sum: {amount: true},
+            }),
+        ]);
+
+        const previousSpentByKey = new Map<string, number>();
+        for (const g of previousGrouped) {
+            const key = g.category_id ?? "__uncategorized__";
+            previousSpentByKey.set(key, Math.round(Math.abs(g._sum.amount ?? 0) * 100) / 100);
+        }
 
         const categoryIds = grouped.map((g) => g.category_id).filter((id): id is string => id !== null);
         const categories = categoryIds.length
@@ -269,6 +315,8 @@ export class ReportService {
 
         const result: CategoryBreakdownEntity[] = grouped.map((g) => {
             const spent = Math.round(Math.abs(g._sum.amount ?? 0) * 100) / 100;
+            const previousKey = g.category_id ?? "__uncategorized__";
+            const previousSpent = previousSpentByKey.get(previousKey) ?? 0;
             if (g.category_id === null) {
                 return new CategoryBreakdownEntity({
                     categoryId: null,
@@ -277,6 +325,7 @@ export class ReportService {
                     icon: UNCATEGORIZED_ICON,
                     spent,
                     count: g._count._all,
+                    previousSpent,
                 });
             }
             const cat = categoryMap.get(g.category_id);
@@ -287,6 +336,7 @@ export class ReportService {
                 icon: cat?.icon ?? UNCATEGORIZED_ICON,
                 spent,
                 count: g._count._all,
+                previousSpent,
             });
         });
 
