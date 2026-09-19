@@ -5,6 +5,7 @@ import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, Di
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
+import {Switch} from "@/components/ui/switch";
 import {useMfa} from "@/composables/useMfa";
 import MfaBackupCodesDisplay from "./MfaBackupCodesDisplay.vue";
 
@@ -140,10 +141,10 @@ function finish() {
                     </p>
                 </div>
                 <MfaBackupCodesDisplay :codes="backupCodes" />
-                <label class="flex items-center gap-2 text-sm">
-                    <input v-model="codesSaved" type="checkbox" />
-                    <span>{{ t("profile.mfa.backupCodes.saveConfirm") }}</span>
-                </label>
+                <div class="flex items-center gap-2 text-sm">
+                    <Switch id="passkey-codes-saved" v-model="codesSaved" />
+                    <Label for="passkey-codes-saved">{{ t("profile.mfa.backupCodes.saveConfirm") }}</Label>
+                </div>
             </div>
 
             <DialogFooter>
