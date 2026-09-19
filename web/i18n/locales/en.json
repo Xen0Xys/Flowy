@@ -1329,6 +1329,19 @@
         "dismiss": "Got it",
         "noBody": "No release notes available."
     },
+    "updates": {
+        "title": "Update available",
+        "description": "A newer version of Flowy has been published upstream.",
+        "popoverTitle": "Update available",
+        "popoverAdminHelp": "Head to instance settings for details, then redeploy.",
+        "popoverUserHelp": "Let your instance administrator know so they can update.",
+        "currentVersion": "Installed",
+        "latestVersion": "Available",
+        "publishedAt": "Published",
+        "viewOnGithub": "View on GitHub",
+        "goToInstanceSettings": "Instance settings",
+        "sidebarBadge": "A new Flowy release is available"
+    },
     "recurring": {
         "page": {
             "title": "Recurring transactions",

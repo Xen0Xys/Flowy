@@ -1329,6 +1329,19 @@
         "dismiss": "Compris",
         "noBody": "Aucune note de version disponible."
     },
+    "updates": {
+        "title": "Mise à jour disponible",
+        "description": "Une nouvelle version de Flowy a été publiée en amont.",
+        "popoverTitle": "Mise à jour disponible",
+        "popoverAdminHelp": "Consultez les paramètres d'instance, puis redéployez.",
+        "popoverUserHelp": "Prévenez l'administrateur de votre instance pour qu'il mette à jour.",
+        "currentVersion": "Installée",
+        "latestVersion": "Disponible",
+        "publishedAt": "Publiée le",
+        "viewOnGithub": "Voir sur GitHub",
+        "goToInstanceSettings": "Paramètres d'instance",
+        "sidebarBadge": "Une nouvelle version de Flowy est disponible"
+    },
     "recurring": {
         "page": {
             "title": "Transactions récurrentes",
