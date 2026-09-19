@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {i18nT} from "~/utils/i18n";
 
@@ -99,8 +99,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
 
     actions: {
         async fetchAll(filters: {accountId?: string; enabled?: boolean} = {}) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             const params = new URLSearchParams();
             if (filters.accountId) params.set("accountId", filters.accountId);
@@ -123,8 +123,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async fetchById(id: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<RecurringTransaction>(`/recurring-transaction/${id}`);
@@ -136,8 +136,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async fetchCalendar(year: number, month: number) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<RecurringCalendar>(`/recurring-transaction/calendar?year=${year}&month=${month}`);
@@ -149,8 +149,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async fetchExecutions(id: string, page = 1, pageSize = 20) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<ListExecutionsResult>(
@@ -164,8 +164,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async create(accountId: string, payload: CreateRecurringTransactionPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const created = await apiFetch<RecurringTransaction>(`/recurring-transaction/account/${accountId}`, {
@@ -183,8 +183,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async update(id: string, payload: UpdateRecurringTransactionPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const updated = await apiFetch<RecurringTransaction>(`/recurring-transaction/${id}`, {
@@ -202,8 +202,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async toggle(id: string, isEnabled: boolean) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 const updated = await apiFetch<RecurringTransaction>(`/recurring-transaction/${id}/toggle`, {
@@ -220,8 +220,8 @@ export const useRecurringTransactionStore = defineStore("recurring-transaction",
         },
 
         async remove(id: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 await apiFetch(`/recurring-transaction/${id}`, {method: "DELETE"});

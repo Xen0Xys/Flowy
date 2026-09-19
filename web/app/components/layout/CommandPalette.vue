@@ -33,7 +33,7 @@ const open = useState<boolean>("commandPalette:open", () => false);
 const showAdminLinks = ref(false);
 
 async function refreshAdminVisibility() {
-    if (!userStore.token) {
+    if (!authStore.token) {
         showAdminLinks.value = false;
         return;
     }
@@ -45,7 +45,7 @@ async function refreshAdminVisibility() {
 }
 
 onMounted(refreshAdminVisibility);
-watch(() => userStore.token, refreshAdminVisibility);
+watch(() => authStore.token, refreshAdminVisibility);
 
 useEventListener("keydown", (e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {

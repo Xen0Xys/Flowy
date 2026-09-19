@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {i18nT} from "~/utils/i18n";
 import type {AccountAccess} from "~/stores/account.store";
 
@@ -94,8 +94,8 @@ export const useBudgetStore = defineStore("budget", {
         },
 
         async getBudgetsByPeriod(year: number, month: number): Promise<Budget[]> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             this.isLoading = true;
 
@@ -132,8 +132,8 @@ export const useBudgetStore = defineStore("budget", {
         },
 
         async createBudget(payload: CreateBudgetPayload): Promise<Budget> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -152,8 +152,8 @@ export const useBudgetStore = defineStore("budget", {
         },
 
         async updateBudget(budgetId: string, payload: UpdateBudgetPayload): Promise<Budget> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -173,8 +173,8 @@ export const useBudgetStore = defineStore("budget", {
         },
 
         async deleteBudget(budgetId: string): Promise<void> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -192,8 +192,8 @@ export const useBudgetStore = defineStore("budget", {
         },
 
         async getSpending(budgetId: string): Promise<BudgetSpending> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -207,8 +207,8 @@ export const useBudgetStore = defineStore("budget", {
         },
 
         async getRenewableBudgets(): Promise<RenewableBudget[]> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -226,8 +226,8 @@ export const useBudgetStore = defineStore("budget", {
             month: number;
             accountIds: string[];
         }): Promise<BudgetSpendingCategory[]> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             if (params.accountIds.length === 0) return [];
             const {apiFetch} = useApi();
 

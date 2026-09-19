@@ -1329,6 +1329,19 @@
         "dismiss": "Got it",
         "noBody": "No release notes available."
     },
+    "updates": {
+        "title": "Update available",
+        "description": "A newer version of Flowy has been published upstream.",
+        "popoverTitle": "Update available",
+        "popoverAdminHelp": "Head to instance settings for details, then redeploy.",
+        "popoverUserHelp": "Let your instance administrator know so they can update.",
+        "currentVersion": "Installed",
+        "latestVersion": "Available",
+        "publishedAt": "Published",
+        "viewOnGithub": "View on GitHub",
+        "goToInstanceSettings": "Instance settings",
+        "sidebarBadge": "A new Flowy release is available"
+    },
     "recurring": {
         "page": {
             "title": "Recurring transactions",
@@ -1477,9 +1490,37 @@
             "accountsCount": "{count} accounts",
             "accountsOwned": "Owned",
             "accountsSharedBy": "Shared by {name}",
+            "categoriesTitle": "Filter categories",
+            "categoriesHint": "Leave empty to include every category.",
+            "categoriesAll": "All categories",
+            "categoriesCount": "{count} categories",
+            "merchantsTitle": "Filter merchants",
+            "merchantsHint": "Leave empty to include every merchant.",
+            "merchantsAll": "All merchants",
+            "merchantsCount": "{count} merchants",
             "selectAll": "Select all",
             "clear": "Clear",
             "includeShared": "Include shared",
+            "excludeTransfers": "Exclude transfers",
+            "includeRebalances": "Include rebalances",
+            "budgetedTitle": "Budget scope",
+            "budgeted": {
+                "all": "All transactions",
+                "budgeted": "Budgeted only",
+                "unbudgeted": "Non-budgeted only"
+            },
+            "resolution": {
+                "auto": "Auto ({value})",
+                "day": "Daily",
+                "week": "Weekly",
+                "month": "Monthly",
+                "quarter": "Quarterly",
+                "year": "Yearly"
+            },
+            "chips": {
+                "excludeShared": "Owned accounts only"
+            },
+            "resetAll": "Reset filters",
             "presets": {
                 "7D": "7D",
                 "1M": "1M",
@@ -1506,7 +1547,15 @@
             },
             "cashFlow": {
                 "title": "Cash flow",
-                "subtitle": "Monthly income vs expense with net line"
+                "subtitle": "Monthly income vs expense with net line",
+                "titleSavings": "Savings rate",
+                "subtitleSavings": "Share of income you keep each period",
+                "previousIncome": "Previous income",
+                "previousExpense": "Previous expense",
+                "previousSavingsRate": "Previous savings rate",
+                "averageSavings": "Average savings rate",
+                "modeFlow": "Flow",
+                "modeSavings": "Savings"
             },
             "cashFlowSankey": {
                 "title": "Money flow",
@@ -1520,7 +1569,8 @@
             "byCategory": {
                 "title": "Spending by category",
                 "subtitle": "Distribution over the selected period",
-                "totalSpent": "spent"
+                "totalSpent": "spent",
+                "vsPrevious": "vs previous period"
             },
             "categoryTrend": {
                 "title": "Category trend",
@@ -1544,12 +1594,24 @@
                 "title": "Account distribution",
                 "subtitle": "Activity spread across your accounts",
                 "activity": "Activity"
+            }
+        },
+        "sections": {
+            "overview": {
+                "title": "Overview",
+                "subtitle": "Headline numbers and net worth trend"
             },
-            "savingsRate": {
-                "title": "Savings rate over time",
-                "subtitle": "Percentage of income you kept each month",
-                "average": "Average",
-                "monthsCount": "{count} months"
+            "flow": {
+                "title": "Cash flow",
+                "subtitle": "Income, expense and where money goes"
+            },
+            "breakdown": {
+                "title": "Breakdown",
+                "subtitle": "What you spend on and with whom"
+            },
+            "budgetAccounts": {
+                "title": "Budget & accounts",
+                "subtitle": "Planned vs actual and per-account activity"
             }
         },
         "empty": {
@@ -1558,6 +1620,11 @@
             "noData": "No data for the selected period.",
             "noSpending": "No spending in this period.",
             "noBudgets": "No budgets found for the selected months."
+        },
+        "drilldown": {
+            "categoryApplied": "Filter added: {name}",
+            "merchantApplied": "Filter added: {name}",
+            "undo": "Undo"
         },
         "store": {
             "errors": {

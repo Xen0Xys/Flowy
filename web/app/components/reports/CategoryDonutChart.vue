@@ -3,6 +3,7 @@ import {computed, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {arc, pie} from "d3-shape";
 import {toCurrency} from "~/lib/currency";
+import {formatPercentDelta} from "~/utils/reports";
 import type {CategoryBreakdown} from "~/stores/report.store";
 
 const props = defineProps<{
@@ -10,15 +11,32 @@ const props = defineProps<{
     currency: string;
 }>();
 
+const emit = defineEmits<{
+    select: [string | null];
+}>();
+
 const {t} = useI18n();
+
+function handleSelect(categoryId: string | null) {
+    emit("select", categoryId);
+}
 
 const total = computed(() => props.data.reduce((sum, d) => sum + d.spent, 0));
 
 const items = computed(() =>
-    props.data.map((c) => ({
-        ...c,
-        label: c.categoryId ? c.name : t("budget.category.uncategorized"),
-    })),
+    props.data.map((c) => {
+        const previousSpent = c.previousSpent ?? 0;
+        // Reverse `positive` semantic: for expenses, less is better.
+        const rawDelta = formatPercentDelta(c.spent, previousSpent);
+        return {
+            ...c,
+            label: c.categoryId ? c.name : t("budget.category.uncategorized"),
+            previousSpent,
+            deltaLabel: rawDelta.label,
+            deltaPositive: !rawDelta.positive,
+            hasPrevious: previousSpent > 0,
+        };
+    }),
 );
 
 const pieLayout = computed(() => {
@@ -83,6 +101,7 @@ const topThree = computed(() => items.value.slice(0, 3));
                     :fill="seg.item.hexColor"
                     :opacity="hoveredIndex === null || hoveredIndex === idx ? 0.9 : 0.4"
                     class="cursor-pointer transition-opacity"
+                    @click="handleSelect(seg.item.categoryId)"
                     @mouseenter="handleHover($event, idx)"
                     @mouseleave="handleLeave"
                     @mousemove="handleHover($event, idx)" />
@@ -116,18 +135,30 @@ const topThree = computed(() => items.value.slice(0, 3));
                     ({{ (((items[hoveredIndex]?.spent ?? 0) / total) * 100).toFixed(1) }}%)
                 </span>
             </div>
+            <div v-if="items[hoveredIndex]?.hasPrevious" class="mt-1 flex items-center gap-1 text-[0.7rem]">
+                <span
+                    :class="['tabular-nums', items[hoveredIndex]?.deltaPositive ? 'text-success' : 'text-destructive']">
+                    {{ items[hoveredIndex]?.deltaLabel }}
+                </span>
+                <span class="text-muted-foreground">{{ t("reports.charts.byCategory.vsPrevious") }}</span>
+            </div>
         </div>
 
         <ul v-if="topThree.length > 0" class="w-full space-y-1.5 text-sm">
-            <li v-for="(item, idx) in topThree" :key="idx" class="flex items-center justify-between gap-3">
-                <span class="flex min-w-0 items-center gap-2">
-                    <span
-                        class="inline-block size-2 shrink-0 rounded-full"
-                        :style="{backgroundColor: item.hexColor}"></span>
-                    <Icon v-if="item.icon" :name="item.icon" class="text-muted-foreground size-3.5 shrink-0" />
-                    <span class="truncate">{{ item.label }}</span>
-                </span>
-                <span class="text-muted-foreground shrink-0 tabular-nums">{{ formatCurrency(item.spent) }}</span>
+            <li v-for="(item, idx) in topThree" :key="idx">
+                <button
+                    type="button"
+                    class="hover:bg-muted flex w-full items-center justify-between gap-3 rounded-md px-2 py-1 text-left transition-colors"
+                    @click="handleSelect(item.categoryId)">
+                    <span class="flex min-w-0 items-center gap-2">
+                        <span
+                            class="inline-block size-2 shrink-0 rounded-full"
+                            :style="{backgroundColor: item.hexColor}"></span>
+                        <Icon v-if="item.icon" :name="item.icon" class="text-muted-foreground size-3.5 shrink-0" />
+                        <span class="truncate">{{ item.label }}</span>
+                    </span>
+                    <span class="text-muted-foreground shrink-0 tabular-nums">{{ formatCurrency(item.spent) }}</span>
+                </button>
             </li>
         </ul>
     </div>

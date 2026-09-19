@@ -1,7 +1,7 @@
 import {Faker} from "@faker-js/faker";
 
-const MIN_MERCHANTS_PER_USER = 0;
-const MAX_MERCHANTS_PER_USER = 4;
+const MIN_MERCHANTS_PER_USER = 3;
+const MAX_MERCHANTS_PER_USER = 10;
 
 const MERCHANT_NAME_POOL = [
     "Fresh Market",

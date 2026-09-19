@@ -11,6 +11,7 @@ import {HelperModule} from "./modules/helper/helper.module";
 import {UserModule} from "./modules/users/user/user.module";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import {AdminModule} from "./modules/admin/admin.module";
+import {UpdatesModule} from "./modules/updates/updates.module";
 import {APP_FILTER, APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthModule} from "./modules/auth/auth.module";
 import {MfaModule} from "./modules/auth/mfa/mfa.module";
@@ -69,6 +70,7 @@ import Joi from "joi";
         AuthModule,
         MfaModule,
         AdminModule,
+        UpdatesModule,
         FamilyModule,
         AccountModule,
         TransactionModule,

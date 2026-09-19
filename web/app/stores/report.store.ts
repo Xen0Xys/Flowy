@@ -1,14 +1,23 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {i18nT} from "~/utils/i18n";
+import type {ReportResolution} from "~/utils/reports";
+
+export type BudgetedFilter = "all" | "budgeted" | "unbudgeted";
 
 export type ReportFilters = {
     startDate: string;
     endDate: string;
     accountIds?: string[];
+    categoryIds?: string[];
+    merchantIds?: string[];
     includeShared?: boolean;
+    excludeTransfers?: boolean;
+    includeRebalances?: boolean;
+    budgeted?: BudgetedFilter;
+    resolution?: ReportResolution;
 };
 
 export type ReportKpiPeriod = {
@@ -29,6 +38,9 @@ export type CashFlowPoint = {
     income: number;
     expense: number;
     net: number;
+    previousIncome?: number;
+    previousExpense?: number;
+    previousNet?: number;
 };
 
 export type CashFlowSankeyNode = {
@@ -58,6 +70,7 @@ export type CategoryBreakdown = {
     icon: string;
     spent: number;
     count: number;
+    previousSpent?: number;
 };
 
 export type CategoryTrendCategory = {
@@ -120,8 +133,26 @@ function buildQuery(filters: ReportFilters, extras: Record<string, string | numb
     if (filters.accountIds && filters.accountIds.length > 0) {
         params.set("accountIds", filters.accountIds.join(","));
     }
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+        params.set("categoryIds", filters.categoryIds.join(","));
+    }
+    if (filters.merchantIds && filters.merchantIds.length > 0) {
+        params.set("merchantIds", filters.merchantIds.join(","));
+    }
     if (filters.includeShared !== undefined) {
         params.set("includeShared", String(filters.includeShared));
+    }
+    if (filters.excludeTransfers) {
+        params.set("excludeTransfers", "true");
+    }
+    if (filters.includeRebalances) {
+        params.set("includeRebalances", "true");
+    }
+    if (filters.budgeted && filters.budgeted !== "all") {
+        params.set("budgeted", filters.budgeted);
+    }
+    if (filters.resolution) {
+        params.set("resolution", filters.resolution);
     }
     for (const [key, value] of Object.entries(extras)) {
         if (value !== undefined) params.set(key, String(value));
@@ -130,8 +161,8 @@ function buildQuery(filters: ReportFilters, extras: Record<string, string | numb
 }
 
 async function apiGet<T>(endpoint: string): Promise<T> {
-    const userStore = useUserStore();
-    if (!userStore.token) throw new Error("No token available");
+    const authStore = useAuthStore();
+    if (!authStore.token) throw new Error("No token available");
     const {apiFetch} = useApi();
 
     try {
@@ -143,7 +174,7 @@ async function apiGet<T>(endpoint: string): Promise<T> {
     }
 }
 
-export const useReportStore = defineStore("report", {
+const reportStoreOptions = {
     state: () => ({}),
 
     actions: {
@@ -183,4 +214,6 @@ export const useReportStore = defineStore("report", {
             return apiGet<BudgetVsActualPoint[]>(`/report/budget-vs-actual?${buildQuery(filters)}`);
         },
     },
-});
+};
+
+export const useReportStore = defineStore("report", reportStoreOptions);

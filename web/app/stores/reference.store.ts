@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {invalidateAccountScopedReferences} from "~/composables/useAccountScopedReferences";
 import {i18nT} from "~/utils/i18n";
 
@@ -71,8 +71,8 @@ export const useReferenceStore = defineStore("reference", {
 
     actions: {
         async fetchReferences() {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             if (this.isLoaded) return;
 
@@ -103,8 +103,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async fetchCategoriesForAccount(accountId: string): Promise<TransactionCategory[]> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<TransactionCategory[]>(
@@ -118,8 +118,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async fetchMerchantsForAccount(accountId: string): Promise<TransactionMerchant[]> {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
             try {
                 return await apiFetch<TransactionMerchant[]>(
@@ -133,8 +133,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async createCategory(payload: CreateCategoryPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -159,8 +159,8 @@ export const useReferenceStore = defineStore("reference", {
             if (!payloads.length) {
                 return {created: [] as TransactionCategory[], failed: [] as {name: string; error: unknown}[]};
             }
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             const results = await Promise.allSettled(
@@ -192,8 +192,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async updateCategory(categoryId: string, payload: UpdateCategoryPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -217,8 +217,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async deleteCategory(categoryId: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -239,8 +239,8 @@ export const useReferenceStore = defineStore("reference", {
 
         async bulkDeleteCategories(ids: string[]) {
             if (!ids.length) return;
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -264,8 +264,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async createMerchant(payload: CreateMerchantPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -287,8 +287,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async updateMerchant(merchantId: string, payload: UpdateMerchantPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -312,8 +312,8 @@ export const useReferenceStore = defineStore("reference", {
         },
 
         async deleteMerchant(merchantId: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 
@@ -334,8 +334,8 @@ export const useReferenceStore = defineStore("reference", {
 
         async bulkDeleteMerchants(ids: string[]) {
             if (!ids.length) return;
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
 
             const {apiFetch} = useApi();
 

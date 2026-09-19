@@ -1,6 +1,6 @@
 import {Faker} from "@faker-js/faker";
 
-const MIN_CATEGORIES_PER_USER = 0;
+const MIN_CATEGORIES_PER_USER = 3;
 const MAX_CATEGORIES_PER_USER = 10;
 
 const CATEGORY_NAMES = [

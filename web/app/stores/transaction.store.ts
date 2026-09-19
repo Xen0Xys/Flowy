@@ -1,7 +1,7 @@
 import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
-import {useUserStore} from "~/stores/user.store";
+import {useAuthStore} from "~/stores/auth.store";
 import {i18nT} from "~/utils/i18n";
 import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 
@@ -117,13 +117,13 @@ function buildTransactionSearchParams(filters: TransactionSearchFilters): URLSea
     return params;
 }
 
-export const useTransactionStore = defineStore("transaction", {
+const transactionStoreOptions = {
     state: () => ({}),
 
     actions: {
         async fetchTransactionById(transactionId: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -136,8 +136,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async searchTransactions(filters: TransactionSearchFilters = {}) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             const queryString = buildTransactionSearchParams(filters).toString();
@@ -153,8 +153,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async fetchTransactionsSummary(filters: Omit<TransactionSearchFilters, "page" | "pageSize"> = {}) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             const queryString = buildTransactionSearchParams(filters).toString();
@@ -170,8 +170,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async createTransaction(accountId: string, payload: CreateTransactionPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -190,8 +190,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async testBulkTransactions(accountId: string, payload: CreateTransactionPayload[]) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -207,8 +207,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async createBulkTransactions(accountId: string, payload: CreateTransactionPayload[]) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -227,8 +227,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async updateTransaction(transactionId: string, payload: UpdateTransactionPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -247,8 +247,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async deleteTransaction(transactionId: string, options: DeleteTransactionOptions = {}) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             const params = new URLSearchParams();
@@ -276,8 +276,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async createTransfer(payload: CreateTransferPayload) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -296,8 +296,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async unlinkTransfer(transactionId: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -315,8 +315,8 @@ export const useTransactionStore = defineStore("transaction", {
         },
 
         async linkTransactions(transactionId1: string, transactionId2: string) {
-            const userStore = useUserStore();
-            if (!userStore.token) throw new Error("No token available");
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
             const {apiFetch} = useApi();
 
             try {
@@ -336,4 +336,6 @@ export const useTransactionStore = defineStore("transaction", {
             }
         },
     },
-});
+};
+
+export const useTransactionStore = defineStore("transaction", transactionStoreOptions);

@@ -2,7 +2,7 @@
 import {Faker} from "@faker-js/faker";
 import {PrismaClient} from "../generated/client";
 
-const MIN_TRANSFERS_PER_USER = 0;
+const MIN_TRANSFERS_PER_USER = 2;
 const MAX_TRANSFERS_PER_USER = 24;
 
 type SeedAccountRef = {
