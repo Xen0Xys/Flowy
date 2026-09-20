@@ -25,20 +25,27 @@ POSTGRES_USER=flowy
 POSTGRES_PASSWORD=flowy
 
 # API (Nest)
-APP_SECRET=change-me
-APP_PREFIX=
+APP_SECRET=            # openssl rand -hex 32
+APP_PREFIX=            # optional API path prefix, e.g. /api
 CORS_ORIGINS=http://localhost:3000
 
 # Web (Nuxt)
 NUXT_PUBLIC_API_BASE=http://localhost:4000
+
+# WebAuthn (RP_ID required in production, i.e. Docker)
+WEBAUTHN_RP_ID=flowy.example.com
+WEBAUTHN_RP_NAME=
+WEBAUTHN_ORIGINS=
 ```
 
 Notes:
 
 - `APP_NAME` is fixed to `Flowy Server` in the Compose files.
 - `DATABASE_URL` is built automatically in services from Postgres variables.
-- Use a strong value for `APP_SECRET` in real environments.
-- `WEBAUTHN_RP_ID` (optional) is the Relying Party ID for passkeys. When unset, the server derives it from the first `CORS_ORIGINS` hostname. Set explicitly when serving multiple origins on different domains.
+- `APP_SECRET` must be a strong random value in real environments (also seeds the MFA TOTP AEAD key, keep it stable across restarts).
+- `APP_PREFIX` maps to the backend `PREFIX` env var; leave empty unless the API is mounted under a subpath.
+- **`WEBAUTHN_RP_ID` is required in production** (Docker defaults `NODE_ENV` to `production`). It is the passkey Relying Party ID: hostname only, no scheme, no port. Changing it invalidates every registered passkey, so set it explicitly and keep it stable across deploys. In dev/test only, it is derived from the first `CORS_ORIGINS` hostname.
+- `WEBAUTHN_RP_NAME` and `WEBAUTHN_ORIGINS` are optional. When unset, they default to `APP_NAME` and `CORS_ORIGINS` respectively.
 
 ### 2.2 Coolify-specific variables
 
@@ -54,23 +61,43 @@ Notes:
 
 You can keep `POSTGRES_DB` and `APP_PREFIX` if you need to override defaults.
 
+`FRONTEND_URL`, `BACKEND_URL` and `WEBAUTHN_*` are wired to the Coolify-generated URLs automatically, so SSO globals work out of the box once at least one provider is declared.
+
+Adding an SSO provider on Coolify: declare `SSO_<N>_KIND`, `SSO_<N>_CLIENT_ID`, ... under **Environment Variables** in the Coolify UI, then add the matching short-form entries in the `environment:` block of `flowy-server` so they reach the container:
+
+```yaml
+- SSO_1_KIND
+- SSO_1_SLUG
+- SSO_1_DISPLAY_NAME
+- SSO_1_ICON
+- SSO_1_CLIENT_ID
+- SSO_1_CLIENT_SECRET
+# ...remaining fields per §2.3
+```
+
 ### 2.3 Single Sign-On (SSO)
+
+> **Breaking change**: `SSO_CALLBACK_BASE_URL` has been renamed to `BACKEND_URL`. Rename the variable in your `.env` files before upgrading.
 
 Flowy supports any number of OAuth 2.0 or OIDC providers, configured entirely through environment variables. Providers are declared with the `SSO_<N>_*` prefix, where `<N>` is any positive integer that groups the variables belonging to the same provider. The order of `<N>` values controls the display order on the login page.
 
 Restart the backend after any change to reload the configuration.
 
-**Shared globals** (required if at least one provider is defined):
+The provider examples below are the source of truth. `server/.env.example` only keeps a Discord template plus a pointer to this section, to stay readable.
+
+**Shared globals** (required as soon as at least one provider is defined):
+
+| Variable       | Role                                                                                                     | Required when                                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `FRONTEND_URL` | Absolute URL of the frontend. Users are redirected back here after the OAuth callback.                   | At least one SSO provider is declared.                                                                                            |
+| `BACKEND_URL`  | Public URL of the backend as seen by the browser. Used as the `redirect_uri` host in the OAuth exchange. | Backend behind a reverse proxy, on a public host, or with HTTPS terminated upstream. Defaults to `http://localhost:$PORT$PREFIX`. |
 
 ```bash
-# Absolute URL of the frontend, used to redirect users back after callback.
 FRONTEND_URL=https://flowy.example.com
-
-# Optional: override the base URL the backend uses to build callback URLs.
-# Defaults to http://localhost:$PORT for local dev; set this when the backend
-# is behind a reverse proxy or exposed on a public hostname.
-SSO_CALLBACK_BASE_URL=https://flowy.example.com/api
+BACKEND_URL=https://flowy.example.com/api
 ```
+
+`FRONTEND_URL` and `BACKEND_URL` can point to the same host with a path prefix (single-domain setup) or to distinct hosts (frontend and backend on separate subdomains).
 
 **Common fields** (every provider):
 
@@ -109,7 +136,7 @@ SSO_CALLBACK_BASE_URL=https://flowy.example.com/api
 The callback URL to declare in each identity provider console is:
 
 ```
-${SSO_CALLBACK_BASE_URL or backend URL}/auth/sso/<slug>/callback
+${BACKEND_URL}/auth/sso/<slug>/callback
 ```
 
 The admin page `Settings > SSO` (visible to the instance owner) shows the exact callback URL for each configured provider, with a copy-to-clipboard button.
@@ -133,7 +160,7 @@ SSO_1_USERNAME_CLAIM=login
 SSO_1_SUB_CLAIM=id
 ```
 
-Register the app at <https://github.com/settings/developers> and set the "Authorization callback URL" to `${FRONTEND_URL}/auth/sso/github/callback` (adjust with `SSO_CALLBACK_BASE_URL` if the backend is exposed on a distinct host).
+Register the app at <https://github.com/settings/developers> and set the "Authorization callback URL" to `${BACKEND_URL}/auth/sso/github/callback`.
 
 #### 2.3.2 Google (OIDC)
 
@@ -236,8 +263,8 @@ Adjust the realm segment for Authentik (`https://sso.corp.example.com/applicatio
 This file uses:
 
 - `tensorchord/vchord-postgres:pg18-v1.1.1`
-- `flowy-server:latest`
-- `flowy-web:latest`
+- `xen0xys/flowy-server:latest`
+- `xen0xys/flowy-web:latest`
 
 Commands:
 
@@ -252,7 +279,7 @@ Access:
 - Frontend: `http://localhost:3000`
 - API: `http://localhost:4000`
 
-Important: this variant has no `build` section for `server` and `web`. Make sure `flowy-server:latest` and `flowy-web:latest` are available locally or in your registry.
+Important: this variant has no `build` section for `server` and `web`. Make sure `xen0xys/flowy-server:latest` and `xen0xys/flowy-web:latest` are available locally or in your registry.
 
 ## 4. `docker-compose.dev.yaml` variant (local build)
 
@@ -300,12 +327,15 @@ In production, deploy this file via the Coolify UI with all required `SERVICE_*`
 
 ## 7. Quick troubleshooting
 
-| Symptom                         | Likely cause                           | Fix                                                                          |
-| ------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
-| API healthcheck failing         | Missing `APP_SECRET` or unreachable DB | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server` |
-| Frontend cannot reach API       | Wrong `NUXT_PUBLIC_API_BASE`           | Set the API public URL (Coolify) or `http://localhost:4000` locally          |
-| Postgres auth errors            | Credentials mismatch                   | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify)      |
-| `flowy-server:latest` not found | Image unavailable                      | Use `docker-compose.dev.yaml` or publish images to a registry                |
+| Symptom                                                           | Likely cause                                                 | Fix                                                                                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| API healthcheck failing                                           | Missing `APP_SECRET` or unreachable DB                       | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server`                                                                 |
+| Frontend cannot reach API                                         | Wrong `NUXT_PUBLIC_API_BASE`                                 | Set the API public URL (Coolify) or `http://localhost:4000` locally                                                                          |
+| Postgres auth errors                                              | Credentials mismatch                                         | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify)                                                                      |
+| `xen0xys/flowy-server:latest` not found                           | Image unavailable                                            | Use `docker-compose.dev.yaml` or publish images to a registry                                                                                |
+| SSO login: `redirect_uri_mismatch`                                | `BACKEND_URL` missing or misconfigured                       | Set `BACKEND_URL` to the public backend URL (see §2.3), then restart                                                                         |
+| SSO providers ignored on startup                                  | `SSO_*` vars not propagated to the container                 | For Compose: `.env` is loaded via `env_file:`. For Coolify: add short-form `- SSO_<N>_*` entries in `flowy-server` `environment:` (see §2.2) |
+| Boot fails: `WEBAUTHN_RP_ID must be set explicitly in production` | Variable missing; Docker defaults `NODE_ENV` to `production` | Set `WEBAUTHN_RP_ID=<frontend-hostname>` in `.env` (no scheme, no port)                                                                      |
 
 ---
 

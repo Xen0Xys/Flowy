@@ -139,7 +139,7 @@ export class SsoConfigService implements OnModuleInit {
     }
 
     private serverOrigin(): string {
-        const explicit = process.env.SSO_CALLBACK_BASE_URL?.trim();
+        const explicit = process.env.BACKEND_URL?.trim();
         if (explicit) return explicit.replace(/\/+$/, "");
         const port = process.env.PORT ?? "4000";
         const prefix = process.env.PREFIX ?? "";
