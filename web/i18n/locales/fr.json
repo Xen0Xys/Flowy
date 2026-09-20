@@ -601,9 +601,11 @@
         "selectLanguage": "Sélectionner la langue",
         "browser": "Navigateur",
         "changePasswordDescription": "Saisissez votre mot de passe actuel puis choisissez-en un nouveau.",
+        "setPasswordDescription": "Votre compte a été créé via SSO. Définissez un mot de passe pour activer la connexion email/mot de passe et débloquer les actions du compte.",
         "currentPassword": "Mot de passe actuel",
         "newPassword": "Nouveau mot de passe",
         "changePasswordButton": "Changer le mot de passe",
+        "setPasswordButton": "Définir le mot de passe",
         "updating": "Mise à jour...",
         "dangerZone": "Zone de danger",
         "dangerZoneDescription": "Supprimez définitivement votre compte",
@@ -623,6 +625,7 @@
             "deleteAccountFailed": "Échec de suppression du compte",
             "usernameLength": "Le nom d'utilisateur doit contenir entre {min} et {max} caractères.",
             "passwordsRequired": "Le mot de passe actuel et le nouveau mot de passe sont requis.",
+            "newPasswordRequired": "Veuillez saisir un nouveau mot de passe.",
             "passwordLength": "Le nouveau mot de passe doit contenir au moins {min} caractères."
         },
         "toasts": {
@@ -978,6 +981,7 @@
                 "usernameUpdated": "Nom d'utilisateur mis à jour",
                 "emailUpdated": "Email mis à jour",
                 "passwordUpdated": "Mot de passe mis à jour",
+                "passwordSet": "Mot de passe défini",
                 "registrationUpdated": "Paramètre d'inscription mis à jour",
                 "instanceOwnerUpdated": "Propriétaire d'instance mis à jour",
                 "userDeleted": "Utilisateur supprimé"
@@ -987,6 +991,7 @@
                 "updateUsername": "Échec de mise à jour du nom d'utilisateur",
                 "updateEmail": "Échec de mise à jour de l'email",
                 "updatePassword": "Échec de mise à jour du mot de passe",
+                "setPassword": "Échec de la définition du mot de passe",
                 "listUsers": "Échec du chargement des utilisateurs",
                 "fetchInstanceSettings": "Échec du chargement des paramètres d'instance",
                 "updateRegistration": "Échec de mise à jour du paramètre d'inscription",

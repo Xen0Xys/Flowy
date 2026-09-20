@@ -11,6 +11,7 @@ export class UserEntity {
     familyRole: UserRoles | null;
     @Exclude()
     password: string | null;
+    hasPassword: boolean;
     mfaEnabled: boolean;
 
     constructor(partial: Partial<UserEntity>) {

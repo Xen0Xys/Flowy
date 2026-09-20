@@ -181,6 +181,92 @@ describe("UserController (e2e)", () => {
         expect(weak.body.message).toEqual(expect.arrayContaining([expect.objectContaining({property: "newPassword"})]));
     });
 
+    test("sets initial password on SSO-only account, rotates jwt_id and returns a fresh token", async () => {
+        // Mimic an SSO-created account: a Users row with password=null and a
+        // valid jwt_id, then sign a token exactly like AuthService does.
+        const payload = buildRegisterPayload();
+        const reg = await agent.post("/auth/register").send(payload);
+        expect(reg.status).toBe(201);
+        const seedToken = reg.body.token;
+
+        // Wipe the password to mimic an SSO-only account.
+        await prisma.users.update({
+            where: {email: payload.email},
+            data: {password: null},
+        });
+
+        // /user/me should now report hasPassword=false.
+        const meBefore = await agent.get("/user/me").set("Authorization", `Bearer ${seedToken}`);
+        expect(meBefore.status).toBe(200);
+        expect(meBefore.body.hasPassword).toBe(false);
+        expect(meBefore.body).not.toHaveProperty("password");
+
+        // Changing password without a current password is impossible.
+        const changeAttempt = await agent
+            .patch("/user/me/password")
+            .set("Authorization", `Bearer ${seedToken}`)
+            .send({currentPassword: "anything-goes", newPassword: `Fresh${PASSWORD_BASE}`});
+        expect(changeAttempt.status).toBe(403);
+
+        // Setting the initial password should succeed.
+        const setResp = await agent
+            .post("/user/me/password")
+            .set("Authorization", `Bearer ${seedToken}`)
+            .send({newPassword: `Fresh${PASSWORD_BASE}`});
+        expect(setResp.status).toBe(201);
+        expect(typeof setResp.body.token).toBe("string");
+        expect(setResp.body.token).not.toBe(seedToken);
+        expect(setResp.body.user?.hasPassword).toBe(true);
+
+        // Seed token is invalidated (jwt_id rotated).
+        const seedCheck = await agent.get("/user/me").set("Authorization", `Bearer ${seedToken}`);
+        expect(seedCheck.status).toBe(401);
+
+        // Fresh token authenticates and reports hasPassword=true.
+        const meAfter = await agent.get("/user/me").set("Authorization", `Bearer ${setResp.body.token}`);
+        expect(meAfter.status).toBe(200);
+        expect(meAfter.body.hasPassword).toBe(true);
+
+        // Login with the freshly set password works.
+        const login = await agent.post("/auth/login").send({email: payload.email, password: `Fresh${PASSWORD_BASE}`});
+        expect(login.status).toBe(201);
+        expect(typeof login.body.token).toBe("string");
+    });
+
+    test("rejects setting initial password when one is already set", async () => {
+        const payload = buildRegisterPayload();
+        const reg = await agent.post("/auth/register").send(payload);
+        expect(reg.status).toBe(201);
+        const token = reg.body.token;
+
+        const conflict = await agent
+            .post("/user/me/password")
+            .set("Authorization", `Bearer ${token}`)
+            .send({newPassword: `Fresh${PASSWORD_BASE}`});
+        expect(conflict.status).toBe(400);
+        expect(conflict.body.message).toContain("Password already set");
+    });
+
+    test("rejects setting initial password with a weak value", async () => {
+        const payload = buildRegisterPayload();
+        const reg = await agent.post("/auth/register").send(payload);
+        expect(reg.status).toBe(201);
+        const token = reg.body.token;
+
+        await prisma.users.update({
+            where: {email: payload.email},
+            data: {password: null},
+        });
+
+        const weak = await agent
+            .post("/user/me/password")
+            .set("Authorization", `Bearer ${token}`)
+            .send({newPassword: "weak"});
+        expect(weak.status).toBe(400);
+        expect(Array.isArray(weak.body.message)).toBe(true);
+        expect(weak.body.message).toEqual(expect.arrayContaining([expect.objectContaining({property: "newPassword"})]));
+    });
+
     // Additional admin-related tests (edge cases)
     test("user cannot access admin endpoints even if token present", async () => {
         const payload = buildRegisterPayload();

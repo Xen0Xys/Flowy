@@ -601,9 +601,11 @@
         "selectLanguage": "Select language",
         "browser": "Browser",
         "changePasswordDescription": "Enter your current password and choose a new password.",
+        "setPasswordDescription": "Your account was created via SSO. Set a password to enable email/password sign-in and unlock account actions.",
         "currentPassword": "Current password",
         "newPassword": "New password",
         "changePasswordButton": "Change password",
+        "setPasswordButton": "Set password",
         "updating": "Updating...",
         "dangerZone": "Danger zone",
         "dangerZoneDescription": "Permanently delete your account",
@@ -739,6 +741,7 @@
             "deleteAccountFailed": "Failed deleting account",
             "usernameLength": "Username must be between {min} and {max} characters.",
             "passwordsRequired": "Current password and new password are required.",
+            "newPasswordRequired": "Please enter a new password.",
             "passwordLength": "New password must be at least {min} characters."
         },
         "toasts": {
@@ -978,6 +981,7 @@
                 "usernameUpdated": "Username updated",
                 "emailUpdated": "Email updated",
                 "passwordUpdated": "Password updated",
+                "passwordSet": "Password set",
                 "registrationUpdated": "Registration setting updated",
                 "instanceOwnerUpdated": "Instance owner updated",
                 "userDeleted": "User deleted"
@@ -987,6 +991,7 @@
                 "updateUsername": "Failed updating username",
                 "updateEmail": "Failed updating email",
                 "updatePassword": "Failed updating password",
+                "setPassword": "Failed setting password",
                 "listUsers": "Failed listing users",
                 "fetchInstanceSettings": "Failed fetching instance settings",
                 "updateRegistration": "Failed updating registration setting",

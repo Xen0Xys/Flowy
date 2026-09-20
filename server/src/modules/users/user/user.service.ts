@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     ConflictException,
     ForbiddenException,
     forwardRef,
@@ -34,6 +35,7 @@ export class UserService {
             familyId: user.family_id,
             familyRole: user.family_role,
             password: user.password,
+            hasPassword: !!user.password,
             mfaEnabled: user.mfa_enabled,
         });
     }
@@ -119,6 +121,25 @@ export class UserService {
         const refreshedEntity = UserService.toUserEntity(refreshed);
         const token = await this.authService.generateToken(refreshedEntity);
         this.logger.log(`Password changed by user ${user.id}`);
+        return new LoginUserEntity({user: refreshedEntity, token});
+    }
+
+    // public API: set the first password on an SSO-only account. Refuses when a
+    // password is already set (use changePassword instead) so the "no current
+    // password required" branch cannot be abused to bypass verifyPassword.
+    // Rotates jwt_id and returns a freshly signed token, same shape as changePassword.
+    async setInitialPassword(user: UserEntity, newPassword: string): Promise<LoginUserEntity> {
+        const db = await this.prismaService.users.findUnique({where: {id: user.id}});
+        if (!db) throw new NotFoundException("User not found");
+        if (db.password) {
+            throw new BadRequestException("Password already set; use PATCH /user/me/password to change it");
+        }
+        const updated = await this.persistPassword(user.id, newPassword);
+        await this.authService.invalidateTokens(updated);
+        const refreshed = await this.prismaService.users.findUniqueOrThrow({where: {id: updated.id}});
+        const refreshedEntity = UserService.toUserEntity(refreshed);
+        const token = await this.authService.generateToken(refreshedEntity);
+        this.logger.log(`actor=${user.id} action=user.setInitialPassword`);
         return new LoginUserEntity({user: refreshedEntity, token});
     }
 

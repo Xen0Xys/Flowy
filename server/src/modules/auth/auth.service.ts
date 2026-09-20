@@ -168,6 +168,7 @@ export class AuthService {
             familyId: user.family_id,
             familyRole: user.family_role,
             password: user.password,
+            hasPassword: !!user.password,
             mfaEnabled: user.mfa_enabled,
         });
     }
