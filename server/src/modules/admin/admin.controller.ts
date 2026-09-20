@@ -28,6 +28,8 @@ import {FamilyEntity} from "../users/family/models/entities/family.entity";
 import {FamilyService} from "../users/family/family.service";
 import {UserService} from "../users/user/user.service";
 import {AccountService} from "../accounting/account/account.service";
+import {SsoConfigService} from "../auth/sso/sso-config.service";
+import {SsoAdminProviderEntity} from "../auth/sso/models/entities/sso-admin-provider.entity";
 
 @Controller("admin")
 export class AdminController {
@@ -36,6 +38,7 @@ export class AdminController {
         private readonly familyService: FamilyService,
         private readonly usersService: UserService,
         private readonly accountService: AccountService,
+        private readonly ssoConfig: SsoConfigService,
     ) {}
 
     @Get("instance/settings")
@@ -122,5 +125,29 @@ export class AdminController {
             code: body.code,
             passkeyResponse: body.passkeyResponse,
         });
+    }
+
+    @Get("sso/providers")
+    @UseGuards(JwtAuthGuard, InstanceOwnerGuard)
+    @ApiBearerAuth()
+    async listSsoProviders(): Promise<SsoAdminProviderEntity[]> {
+        return this.ssoConfig.getEnabledProviders().map(
+            (provider) =>
+                new SsoAdminProviderEntity({
+                    slug: provider.slug,
+                    displayName: provider.displayName,
+                    icon: provider.icon,
+                    kind: provider.kind,
+                    scopes: provider.scopes,
+                    allowSignup: provider.allowSignup,
+                    allowedEmailDomains: provider.allowedEmailDomains,
+                    discoveryUrl: provider.discoveryUrl,
+                    authorizationUrl: provider.authorizationUrl,
+                    tokenUrl: provider.tokenUrl,
+                    userinfoUrl: provider.userinfoUrl,
+                    emailsUrl: provider.emailsUrl,
+                    callbackUrl: this.ssoConfig.callbackUrl(provider.slug, "login"),
+                }),
+        );
     }
 }

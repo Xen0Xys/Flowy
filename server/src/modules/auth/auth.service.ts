@@ -91,6 +91,13 @@ export class AuthService {
         });
         if (!user) throw new UnauthorizedException("Invalid email or password");
 
+        if (!user.password) {
+            // SSO-only account: no local password to verify against. Give the
+            // same generic error as a bad password to avoid leaking whether
+            // the account exists but is SSO-only.
+            throw new UnauthorizedException("Invalid email or password");
+        }
+
         const valid = await argon2.verify(user.password, password);
         if (!valid) throw new UnauthorizedException("Invalid email or password");
 

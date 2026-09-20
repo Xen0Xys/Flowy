@@ -40,7 +40,7 @@ model Users {
     id                     String                  @id @default(uuid(7)) @db.Uuid
     username               String                  @db.VarChar(30)
     email                  String                  @unique
-    password               String
+    password               String?
     jwt_id                 String                  @unique
     mfa_enabled            Boolean                 @default(false)
     totp_secret            UserTotpSecret?
@@ -48,6 +48,7 @@ model Users {
     passkeys               UserPasskeys[]
     webauthn_challenges    WebAuthnChallenges[]
     mfa_challenge_tokens   MfaChallengeTokens[]
+    sso_identities         UserSsoIdentities[]
     user_settings          UserSettings?
     family_role            UserRoles?
     family_id              String?                 @db.Uuid
@@ -62,6 +63,37 @@ model Users {
     shared_accounts        AccountShares[]         @relation("SharedAccounts")
 
     @@map("users")
+}
+
+model UserSsoIdentities {
+    id               String   @id @default(uuid(7)) @db.Uuid
+    user_id          String   @db.Uuid
+    user             Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    provider_slug    String   @db.VarChar(64)
+    provider_user_id String   @db.VarChar(255)
+    email_at_link    String?  @db.VarChar(320)
+    linked_at        DateTime @default(now())
+    last_login_at    DateTime?
+
+    @@unique([provider_slug, provider_user_id])
+    @@unique([user_id, provider_slug])
+    @@index([user_id])
+    @@map("user_sso_identities")
+}
+
+model SsoStates {
+    id                String   @id @db.VarChar(64)
+    provider_slug     String   @db.VarChar(64)
+    code_verifier     String   @db.VarChar(128)
+    nonce             String?  @db.VarChar(64)
+    purpose           String   @db.VarChar(16)
+    link_user_id      String?  @db.Uuid
+    redirect_after    String?  @db.VarChar(255)
+    expires_at        DateTime
+    created_at        DateTime @default(now())
+
+    @@index([expires_at])
+    @@map("sso_states")
 }
 
 model UserTotpSecret {

@@ -427,6 +427,14 @@ const isMac = computed(() => {
                                         </NuxtLink>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton :is-active="isActiveFunction('/settings/admin/sso')" as-child>
+                                        <NuxtLink to="/settings/admin/sso">
+                                            <Icon name="iconoir:lock-key"></Icon>
+                                            {{ t("sidebar.sso") }}
+                                        </NuxtLink>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </SidebarGroup>

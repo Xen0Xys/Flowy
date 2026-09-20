@@ -17,6 +17,7 @@ const pageTitle = computed(() => {
     if (path.startsWith("/onboarding")) return t("app.pageTitle.onboarding");
     if (path.startsWith("/settings/admin/instance")) return t("app.pageTitle.instanceSettings");
     if (path.startsWith("/settings/admin/users")) return t("app.pageTitle.adminUsers");
+    if (path.startsWith("/settings/admin/sso")) return t("app.pageTitle.adminSso");
     if (path.startsWith("/settings/user/profile")) return t("app.pageTitle.profile");
     if (path.startsWith("/settings/user/family")) return t("app.pageTitle.family");
     if (path.startsWith("/settings")) return t("app.pageTitle.settings");

@@ -8,6 +8,7 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {isValidEmail} from "@/lib/validation";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import SsoProviderButtons from "@/components/auth/SsoProviderButtons.vue";
 
 definePageMeta({
     layout: "auth",
@@ -116,6 +117,8 @@ async function submit() {
                 </Button>
             </div>
         </form>
+
+        <SsoProviderButtons mode="login" />
 
         <p class="text-muted-foreground mt-6 text-center text-sm">
             {{ t("auth.login.noAccount") }}

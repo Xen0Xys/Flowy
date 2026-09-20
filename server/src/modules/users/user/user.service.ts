@@ -45,6 +45,14 @@ export class UserService {
         });
         if (!db) throw new NotFoundException("User not found");
 
+        if (!db.password) {
+            // SSO-only account without a local password: password-gated actions
+            // cannot proceed until the user sets a password from their profile.
+            throw new ForbiddenException(
+                "This account has no password set. Set a password from your profile before performing this action.",
+            );
+        }
+
         const valid = await argon2.verify(db.password, currentPassword).catch(() => false);
         if (!valid) throw new ForbiddenException("Invalid current password");
     }

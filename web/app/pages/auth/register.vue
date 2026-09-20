@@ -15,6 +15,7 @@ import {
     USERNAME_MIN_LENGTH,
 } from "@/lib/validation";
 import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import SsoProviderButtons from "@/components/auth/SsoProviderButtons.vue";
 
 definePageMeta({
     layout: "auth",
@@ -163,6 +164,8 @@ async function submit() {
                 </Button>
             </div>
         </form>
+
+        <SsoProviderButtons mode="register" />
 
         <p class="text-muted-foreground mt-6 text-center text-sm">
             {{ t("auth.register.hasAccount") }}

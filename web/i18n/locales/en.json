@@ -39,6 +39,7 @@
             "onboarding": "Onboarding",
             "instanceSettings": "Instance Settings",
             "adminUsers": "Admin Users",
+            "adminSso": "SSO",
             "profile": "Profile",
             "family": "Family",
             "settings": "Settings",
@@ -286,6 +287,7 @@
         "instanceManagement": "Instance Management",
         "instance": "Instance",
         "users": "Users",
+        "sso": "SSO",
         "getHelp": "Get Help",
         "search": "Search",
         "wip": "WIP",
@@ -1629,6 +1631,82 @@
         "store": {
             "errors": {
                 "fetch": "Failed to load report data"
+            }
+        }
+    },
+    "sso": {
+        "loginDivider": "Or continue with",
+        "registerDivider": "Or sign up with",
+        "continueWith": "Continue with {name}",
+        "complete": {
+            "title": "Signing you in...",
+            "pending": "Finalizing your session, please wait.",
+            "backToLogin": "Back to login"
+        },
+        "toasts": {
+            "unlinked": "SSO provider unlinked",
+            "linked": "Linked {name} to your account"
+        },
+        "errors": {
+            "internal": "Something went wrong. Please try again.",
+            "invalidCallback": "Invalid SSO callback",
+            "invalid_request": "Invalid SSO request",
+            "provider_error": "The identity provider returned an error",
+            "unknown_provider": "Unknown SSO provider",
+            "unauthorized": "Authentication failed",
+            "email_conflict": "This email is already registered on this instance. Sign in with your password and link this provider from your profile.",
+            "tokenMissing": "Session cookie missing after SSO callback",
+            "profileFetch": "Failed to load your profile after SSO login",
+            "mfaChallengeMissing": "MFA challenge missing after SSO login",
+            "listIdentities": "Failed to list linked accounts",
+            "unlink": "Failed to unlink SSO provider",
+            "listAdminProviders": "Failed to list SSO providers"
+        },
+        "profile": {
+            "title": "Linked accounts",
+            "description": "Sign in to Flowy through other identity providers.",
+            "linked": "Linked",
+            "noneLinked": "No SSO provider linked to your account yet.",
+            "noEmail": "Email not provided",
+            "linkedOn": "Linked on {date}",
+            "unlink": "Unlink {name}",
+            "unlinkAction": "Unlink",
+            "confirmUnlink": "Unlink {name} from your account?",
+            "linkNew": "Link a new provider",
+            "linkWith": "Link with {name}"
+        },
+        "admin": {
+            "title": "Single Sign-On",
+            "subtitle": "OAuth 2.0 and OIDC providers exposed on the login page.",
+            "status": {
+                "title": "Status",
+                "description": "SSO providers are configured through environment variables and loaded at server startup.",
+                "count": "{count} provider(s) enabled",
+                "envHint": "Restart the backend after changing SSO_* environment variables to reload the configuration."
+            },
+            "empty": {
+                "title": "No SSO provider configured",
+                "description": "Define SSO_1_*, SSO_2_*, ... environment variables to expose providers on the login page.",
+                "hint": "See the deployment documentation for ready-to-copy examples (GitHub, Google, Microsoft, Discord, GitLab, custom OIDC)."
+            },
+            "provider": {
+                "envSource": "Configured via environment variables",
+                "scopes": "Scopes",
+                "signup": "Sign-up",
+                "signupAllowed": "New accounts allowed (if instance registration is enabled)",
+                "signupDisallowed": "New accounts refused; existing users only",
+                "domains": "Allowed email domains",
+                "discoveryUrl": "OIDC discovery URL",
+                "authorizationUrl": "Authorization URL",
+                "tokenUrl": "Token URL",
+                "userinfoUrl": "Userinfo URL",
+                "emailsUrl": "Emails fallback URL",
+                "callback": "Redirect URI to register with the provider",
+                "callbackHint": "Copy this URL and register it as an authorized redirect URI in the identity provider console.",
+                "copyCallback": "Copy redirect URI"
+            },
+            "toasts": {
+                "callbackCopied": "Redirect URI copied to clipboard"
             }
         }
     }

@@ -30,6 +30,7 @@
         "dotenv": "18.0.0",
         "fastify": "5.12.5",
         "joi": "18.2.9",
+        "openid-client": "6.8.8",
         "otpauth": "9.5.2",
         "pg": "8.23.0",
         "reflect-metadata": "0.2.2",

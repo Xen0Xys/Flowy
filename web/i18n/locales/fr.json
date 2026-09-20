@@ -39,6 +39,7 @@
             "onboarding": "Démarrage",
             "instanceSettings": "Paramètres d'instance",
             "adminUsers": "Utilisateurs admin",
+            "adminSso": "SSO",
             "profile": "Profil",
             "family": "Famille",
             "settings": "Paramètres",
@@ -286,6 +287,7 @@
         "instanceManagement": "Gestion de l'instance",
         "instance": "Instance",
         "users": "Utilisateurs",
+        "sso": "SSO",
         "getHelp": "Obtenir de l'aide",
         "search": "Rechercher",
         "wip": "WIP",
@@ -1629,6 +1631,82 @@
         "store": {
             "errors": {
                 "fetch": "Impossible de charger les données des rapports"
+            }
+        }
+    },
+    "sso": {
+        "loginDivider": "Ou continuer avec",
+        "registerDivider": "Ou s'inscrire avec",
+        "continueWith": "Continuer avec {name}",
+        "complete": {
+            "title": "Connexion en cours...",
+            "pending": "Finalisation de votre session, veuillez patienter.",
+            "backToLogin": "Retour à la connexion"
+        },
+        "toasts": {
+            "unlinked": "Fournisseur SSO délié",
+            "linked": "{name} lié à votre compte"
+        },
+        "errors": {
+            "internal": "Une erreur est survenue. Veuillez réessayer.",
+            "invalidCallback": "Callback SSO invalide",
+            "invalid_request": "Requête SSO invalide",
+            "provider_error": "Le fournisseur d'identité a retourné une erreur",
+            "unknown_provider": "Fournisseur SSO inconnu",
+            "unauthorized": "Échec de l'authentification",
+            "email_conflict": "Cet email est déjà utilisé sur cette instance. Connectez-vous par mot de passe puis liez ce fournisseur depuis votre profil.",
+            "tokenMissing": "Cookie de session manquant après le callback SSO",
+            "profileFetch": "Impossible de charger votre profil après le login SSO",
+            "mfaChallengeMissing": "Challenge MFA manquant après le login SSO",
+            "listIdentities": "Impossible de lister les comptes liés",
+            "unlink": "Impossible de délier le fournisseur SSO",
+            "listAdminProviders": "Impossible de lister les fournisseurs SSO"
+        },
+        "profile": {
+            "title": "Comptes liés",
+            "description": "Connectez-vous à Flowy via d'autres fournisseurs d'identité.",
+            "linked": "Lié",
+            "noneLinked": "Aucun fournisseur SSO lié à votre compte pour l'instant.",
+            "noEmail": "Email non fourni",
+            "linkedOn": "Lié le {date}",
+            "unlink": "Délier {name}",
+            "unlinkAction": "Délier",
+            "confirmUnlink": "Délier {name} de votre compte ?",
+            "linkNew": "Lier un nouveau fournisseur",
+            "linkWith": "Lier avec {name}"
+        },
+        "admin": {
+            "title": "Single Sign-On",
+            "subtitle": "Fournisseurs OAuth 2.0 et OIDC exposés sur la page de connexion.",
+            "status": {
+                "title": "État",
+                "description": "Les fournisseurs SSO sont configurés via variables d'environnement et chargés au démarrage du serveur.",
+                "count": "{count} fournisseur(s) activé(s)",
+                "envHint": "Redémarrez le backend après modification des variables SSO_* pour recharger la configuration."
+            },
+            "empty": {
+                "title": "Aucun fournisseur SSO configuré",
+                "description": "Définissez les variables SSO_1_*, SSO_2_*, ... pour exposer des fournisseurs sur la page de connexion.",
+                "hint": "Consultez la documentation de déploiement pour des exemples prêts à copier (GitHub, Google, Microsoft, Discord, GitLab, OIDC personnalisé)."
+            },
+            "provider": {
+                "envSource": "Configuré via variables d'environnement",
+                "scopes": "Scopes",
+                "signup": "Inscription",
+                "signupAllowed": "Nouveaux comptes autorisés (si l'inscription globale est activée)",
+                "signupDisallowed": "Nouveaux comptes refusés ; utilisateurs existants uniquement",
+                "domains": "Domaines email autorisés",
+                "discoveryUrl": "URL de discovery OIDC",
+                "authorizationUrl": "URL d'autorisation",
+                "tokenUrl": "URL du token",
+                "userinfoUrl": "URL userinfo",
+                "emailsUrl": "URL fallback pour les emails",
+                "callback": "URL de redirection à déclarer chez le fournisseur",
+                "callbackHint": "Copiez cette URL et déclarez-la comme URI de redirection autorisée dans la console du fournisseur d'identité.",
+                "copyCallback": "Copier l'URI de redirection"
+            },
+            "toasts": {
+                "callbackCopied": "URI de redirection copiée dans le presse-papier"
             }
         }
     }

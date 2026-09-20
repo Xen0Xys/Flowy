@@ -15,6 +15,7 @@ import MfaSetupDialog from "@/components/settings/mfa/MfaSetupDialog.vue";
 import MfaDisableDialog from "@/components/settings/mfa/MfaDisableDialog.vue";
 import MfaBackupCodesDialog from "@/components/settings/mfa/MfaBackupCodesDialog.vue";
 import PasskeyList from "@/components/settings/mfa/PasskeyList.vue";
+import LinkedAccountsSection from "@/components/settings/user/LinkedAccountsSection.vue";
 import {useMfa, type MfaFactorsResponse} from "@/composables/useMfa";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
@@ -542,6 +543,8 @@ watch(locale, async () => {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <LinkedAccountsSection />
 
                             <Card class="border-destructive/40">
                                 <CardHeader>
