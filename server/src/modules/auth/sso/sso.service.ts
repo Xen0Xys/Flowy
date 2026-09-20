@@ -69,34 +69,22 @@ export class SsoService {
         return this.buildAuthorizationUrl(provider, SSO_STATE_PURPOSE_LINK, user.id);
     }
 
-    async handleLoginCallback(slug: string, stateParam: string, code: string, callbackUrl: URL): Promise<SsoOutcome> {
-        const {provider, state, profile} = await this.consumeCallback(
-            slug,
-            stateParam,
-            code,
-            callbackUrl,
-            SSO_STATE_PURPOSE_LOGIN,
-        );
-
-        if (state.link_user_id) {
-            throw new BadRequestException("Invalid callback: linking state used on login endpoint");
+    async handleCallback(slug: string, stateParam: string, code: string, callbackUrl: URL): Promise<SsoOutcome> {
+        const {provider, state, profile} = await this.consumeCallback(slug, stateParam, code, callbackUrl);
+        if (state.purpose === SSO_STATE_PURPOSE_LINK) {
+            if (!state.link_user_id) {
+                throw new BadRequestException("Invalid callback: link state missing user id");
+            }
+            const identity = await this.linkIdentity(state.link_user_id, provider, profile);
+            return {kind: "linked", identity};
         }
-        return this.resolveOrCreateUser(provider, profile);
-    }
-
-    async handleLinkCallback(slug: string, stateParam: string, code: string, callbackUrl: URL): Promise<SsoOutcome> {
-        const {provider, state, profile} = await this.consumeCallback(
-            slug,
-            stateParam,
-            code,
-            callbackUrl,
-            SSO_STATE_PURPOSE_LINK,
-        );
-        if (!state.link_user_id) {
-            throw new BadRequestException("Invalid callback: link state missing user id");
+        if (state.purpose === SSO_STATE_PURPOSE_LOGIN) {
+            if (state.link_user_id) {
+                throw new BadRequestException("Invalid callback: login state carries a link user id");
+            }
+            return this.resolveOrCreateUser(provider, profile);
         }
-        const identity = await this.linkIdentity(state.link_user_id, provider, profile);
-        return {kind: "linked", identity};
+        throw new BadRequestException("SSO state has an unknown purpose");
     }
 
     async listIdentitiesFor(user: UserEntity): Promise<SsoIdentityEntity[]> {
@@ -139,10 +127,7 @@ export class SsoService {
         linkUserId: string | null,
     ): Promise<string> {
         const stateId = crypto.randomBytes(24).toString("base64url");
-        const callbackUrl = this.config.callbackUrl(
-            provider.slug,
-            purpose === SSO_STATE_PURPOSE_LINK ? "link" : "login",
-        );
+        const callbackUrl = this.config.callbackUrl(provider.slug);
 
         let codeVerifier: string;
         let nonce: string | null = null;
@@ -179,16 +164,12 @@ export class SsoService {
         stateParam: string,
         code: string,
         callbackUrl: URL,
-        expectedPurpose: string,
     ): Promise<{provider: SsoProviderConfig; state: SsoStateRow; profile: SsoNormalizedProfile}> {
         const provider = this.requireProvider(slug);
         const state = await this.loadState(stateParam);
         try {
             if (state.provider_slug !== provider.slug) {
                 throw new BadRequestException("SSO state does not match provider");
-            }
-            if (state.purpose !== expectedPurpose) {
-                throw new BadRequestException("SSO state used with the wrong endpoint");
             }
             const profile =
                 provider.kind === "oidc"
@@ -202,10 +183,7 @@ export class SsoService {
                     : await this.oauth2Provider.exchangeCallback(
                           provider,
                           code,
-                          this.config.callbackUrl(
-                              provider.slug,
-                              expectedPurpose === SSO_STATE_PURPOSE_LINK ? "link" : "login",
-                          ),
+                          this.config.callbackUrl(provider.slug),
                           state.code_verifier,
                       );
             return {provider, state, profile};

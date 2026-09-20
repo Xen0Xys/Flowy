@@ -84,7 +84,7 @@ export class SsoController {
 
     @Get(":slug/callback")
     @Throttle({default: {limit: 20, ttl: 60_000}})
-    async handleLoginCallback(
+    async handleCallback(
         @Param("slug") slug: string,
         @Query("state") state: string,
         @Query("code") code: string,
@@ -93,6 +93,10 @@ export class SsoController {
         @Req() req: FastifyRequest,
         @Res() reply: FastifyReply,
     ): Promise<void> {
+        // Single callback route for both login and link flows: the state row
+        // persisted at /start time carries the purpose and (for link) the
+        // authenticated user id, so the IdP only ever needs one redirect_uri
+        // whitelisted per provider.
         try {
             if (providerError) {
                 this.logger.warn(`SSO provider ${slug} returned error: ${providerError} ${providerErrorDesc ?? ""}`);
@@ -101,8 +105,11 @@ export class SsoController {
             if (!state || !code) {
                 return this.redirectError(reply, "invalid_request");
             }
-            const callbackUrl = this.reconstructCallbackUrl(req, slug, "callback");
-            const outcome = await this.ssoService.handleLoginCallback(slug, state, code, callbackUrl);
+            const callbackUrl = this.reconstructCallbackUrl(req, slug);
+            const outcome = await this.ssoService.handleCallback(slug, state, code, callbackUrl);
+            if (outcome.kind === "linked") {
+                return this.redirectLinkResult(reply, "ok", outcome.identity.providerSlug);
+            }
             if (outcome.kind === "authenticated") {
                 this.setAuthCookie(reply, outcome.token);
                 return reply.redirect(
@@ -120,41 +127,8 @@ export class SsoController {
             return this.redirectError(reply, "internal_error");
         } catch (error: any) {
             const errorCode = this.mapErrorCode(error);
-            this.logger.warn(`SSO login callback failed slug=${slug} code=${errorCode} err=${error?.message ?? error}`);
+            this.logger.warn(`SSO callback failed slug=${slug} code=${errorCode} err=${error?.message ?? error}`);
             return this.redirectError(reply, errorCode);
-        }
-    }
-
-    @Get(":slug/link/callback")
-    @Throttle({default: {limit: 20, ttl: 60_000}})
-    async handleLinkCallback(
-        @Param("slug") slug: string,
-        @Query("state") state: string,
-        @Query("code") code: string,
-        @Query("error") providerError: string,
-        @Req() req: FastifyRequest,
-        @Res() reply: FastifyReply,
-    ): Promise<void> {
-        try {
-            if (providerError) {
-                return this.redirectLinkResult(reply, "error", "provider_error");
-            }
-            if (!state || !code) {
-                return this.redirectLinkResult(reply, "error", "invalid_request");
-            }
-            const callbackUrl = this.reconstructCallbackUrl(req, slug, "link/callback");
-            // The user id is bound to the SsoState row at start time, so the
-            // callback trusts the state rather than the Bearer header (which
-            // IdP redirects do not carry).
-            const outcome = await this.ssoService.handleLinkCallback(slug, state, code, callbackUrl);
-            if (outcome.kind === "linked") {
-                return this.redirectLinkResult(reply, "ok", outcome.identity.providerSlug);
-            }
-            return this.redirectLinkResult(reply, "error", "internal_error");
-        } catch (error: any) {
-            const errorCode = this.mapErrorCode(error);
-            this.logger.warn(`SSO link callback failed slug=${slug} code=${errorCode} err=${error?.message ?? error}`);
-            return this.redirectLinkResult(reply, "error", errorCode);
         }
     }
 
@@ -193,11 +167,11 @@ export class SsoController {
         );
     }
 
-    private reconstructCallbackUrl(req: FastifyRequest, slug: string, suffix: string): URL {
+    private reconstructCallbackUrl(req: FastifyRequest, slug: string): URL {
         // The openid-client library validates state/code from the URL itself.
         // We reconstruct it from the same base used to build the authorize URL
         // so PKCE / state checks match exactly.
-        const base = this.config.callbackUrl(slug, suffix === "link/callback" ? "link" : "login");
+        const base = this.config.callbackUrl(slug);
         const url = new URL(base);
         const query = req.query as Record<string, unknown>;
         for (const [key, value] of Object.entries(query ?? {})) {

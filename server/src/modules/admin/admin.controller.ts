@@ -146,7 +146,7 @@ export class AdminController {
                     tokenUrl: provider.tokenUrl,
                     userinfoUrl: provider.userinfoUrl,
                     emailsUrl: provider.emailsUrl,
-                    callbackUrl: this.ssoConfig.callbackUrl(provider.slug, "login"),
+                    callbackUrl: this.ssoConfig.callbackUrl(provider.slug),
                 }),
         );
     }

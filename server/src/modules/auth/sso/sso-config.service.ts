@@ -124,10 +124,9 @@ export class SsoConfigService implements OnModuleInit {
         return this.frontendUrlValue;
     }
 
-    callbackUrl(slug: string, purpose: "login" | "link"): string {
+    callbackUrl(slug: string): string {
         const base = this.serverOrigin();
-        const suffix = purpose === "login" ? "callback" : "link/callback";
-        return `${base}/auth/sso/${encodeURIComponent(slug)}/${suffix}`;
+        return `${base}/auth/sso/${encodeURIComponent(slug)}/callback`;
     }
 
     frontendRedirectUrl(path: string, query: Record<string, string> = {}): string {
