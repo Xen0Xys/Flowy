@@ -1,8 +1,10 @@
+
+
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](./LICENSE)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A585%25-brightgreen)](./.github/workflows/e2e.yml)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](./DEPLOYMENT.md)
 [![Nuxt 4](https://img.shields.io/badge/Nuxt-4-00DC82?logo=nuxtdotjs&logoColor=white)](https://nuxt.com)
-[![NestJS 12](https://img.shields.io/badge/NestJS-12-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![NestJS 11](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
 [![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 
 # Flowy
@@ -62,7 +64,7 @@ Actively developed. Currently planned:
 
 - Runtime: Bun 1.4+, Node 20+
 - Frontend: Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, shadcn-nuxt
-- Backend: NestJS 12, Fastify, Prisma, JWT
+- Backend: NestJS 11, Fastify, Prisma, JWT
 - Database: PostgreSQL (tensorchord/vchord-postgres)
 
 ## Repository layout
