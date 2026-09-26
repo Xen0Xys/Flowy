@@ -1,6 +1,6 @@
 import {IsNotEmpty, IsString, IsStrongPassword, Length} from "class-validator";
 
-export class SetPasswordDto {
+export class AdminSetPasswordDto {
     @IsString()
     @Length(15, 256)
     @IsStrongPassword({

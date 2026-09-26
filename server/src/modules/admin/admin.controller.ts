@@ -23,7 +23,7 @@ import {RegistrationEnabledDto} from "./models/dto/registration-enabled.dto";
 import {UpdateOwnerDto} from "./models/dto/update-owner.dto";
 import {InstanceSettingsDto} from "./models/dto/instance-settings.dto";
 import {AdminService} from "./admin.service";
-import {SetPasswordDto} from "./models/dto/set-password.dto";
+import {AdminSetPasswordDto} from "./models/dto/set-password.dto";
 import {FamilyEntity} from "../users/family/models/entities/family.entity";
 import {FamilyService} from "../users/family/family.service";
 import {UserService} from "../users/user/user.service";
@@ -98,7 +98,7 @@ export class AdminController {
     async adminUpdateUserPassword(
         @User() user: UserEntity,
         @Param("id", new ParseUUIDPipe({version: "7"})) id: string,
-        @Body() body: SetPasswordDto,
+        @Body() body: AdminSetPasswordDto,
     ) {
         return this.adminService.setUserPassword(user, id, body.password, body.currentPassword);
     }
