@@ -16,7 +16,7 @@ export class InstanceOwnerGuard implements CanActivate {
 
         // Check configured INSTANCE_OWNER in DB
         const instanceOwner = await this.prisma.config.findUnique({
-            where: {key: ConfigKey.INSTANCE_OWNER as any},
+            where: {key: ConfigKey.INSTANCE_OWNER},
         });
         const ownerId: string | null = instanceOwner?.value || null;
         if (!ownerId || ownerId !== user.id) throw new UnauthorizedException("Only instance owner can access");

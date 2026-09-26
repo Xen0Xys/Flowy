@@ -7,6 +7,8 @@ import {
     UnauthorizedException,
 } from "@nestjs/common";
 import crypto from "crypto";
+import {Users} from "../../../../prisma/generated/client";
+import {ConfigKey} from "../../../../prisma/generated/enums";
 import {PrismaService} from "../../helper/prisma.service";
 import {InstanceConfigService} from "../../helper/instance-config.service";
 import {AuthService} from "../auth.service";
@@ -269,9 +271,9 @@ export class SsoService {
                 },
             });
             await tx.config.upsert({
-                where: {key: "INSTANCE_OWNER" as any},
+                where: {key: ConfigKey.INSTANCE_OWNER},
                 update: {},
-                create: {key: "INSTANCE_OWNER" as any, value: newUser.id},
+                create: {key: ConfigKey.INSTANCE_OWNER, value: newUser.id},
             });
             return newUser;
         });
@@ -320,17 +322,8 @@ export class SsoService {
         return this.toIdentityEntity(row);
     }
 
-    private async finalizeLogin(user: {
-        id: string;
-        username: string;
-        email: string;
-        jwt_id: string;
-        password: string | null;
-        mfa_enabled: boolean;
-        family_id: string | null;
-        family_role: any;
-    }): Promise<SsoOutcome> {
-        const userEntity = UserService.toUserEntity(user as any);
+    private async finalizeLogin(user: Users): Promise<SsoOutcome> {
+        const userEntity = UserService.toUserEntity(user);
 
         if (user.mfa_enabled) {
             const methods = await this.mfaChallengeService.getEnrolledMethods(user.id);

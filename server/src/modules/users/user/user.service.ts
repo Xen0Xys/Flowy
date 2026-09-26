@@ -13,6 +13,7 @@ import {UserEntity} from "./models/entities/user.entity";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {PrismaService} from "../../helper/prisma.service";
 import {Users} from "../../../../prisma/generated/client";
+import {ConfigKey} from "../../../../prisma/generated/enums";
 import {AuthService} from "../../auth/auth.service";
 import argon2 from "argon2";
 
@@ -72,7 +73,7 @@ export class UserService {
                 }),
                 // remove instance owner config if set to this user
                 this.prismaService.config.deleteMany({
-                    where: {key: "INSTANCE_OWNER" as any, value: user.id},
+                    where: {key: ConfigKey.INSTANCE_OWNER, value: user.id},
                 }),
                 // finally delete the user
                 this.prismaService.users.delete({where: {id: user.id}}),

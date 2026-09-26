@@ -3,6 +3,7 @@ import {JwtService} from "@nestjs/jwt";
 import crypto from "crypto";
 import argon2 from "argon2";
 import {Users} from "../../../prisma/generated/client";
+import {ConfigKey} from "../../../prisma/generated/enums";
 import {UserEntity} from "../users/user/models/entities/user.entity";
 import {LoginUserEntity} from "../users/user/models/entities/login-user.entity";
 import {MfaChallengeEntity} from "./mfa/models/entities/mfa-challenge.entity";
@@ -71,9 +72,9 @@ export class AuthService {
         });
 
         await this.prismaService.config.upsert({
-            where: {key: "INSTANCE_OWNER" as any},
+            where: {key: ConfigKey.INSTANCE_OWNER},
             update: {},
-            create: {key: "INSTANCE_OWNER" as any, value: user.id},
+            create: {key: ConfigKey.INSTANCE_OWNER, value: user.id},
         });
 
         const userEntity: UserEntity = this.toUserEntity(user);
