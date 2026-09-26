@@ -1,6 +1,6 @@
 {
     "name": "flowy-monorepo",
-    "version": "2.0.0-beta.3",
+    "version": "2.0.0-beta.4",
     "license": "AGPL-3.0-only",
     "author": "Tom CZEKAJ aka Xen0Xys",
     "workspaces": [
