@@ -47,7 +47,6 @@ CREATE TABLE "sso_states" (
     "nonce" VARCHAR(64),
     "purpose" VARCHAR(16) NOT NULL,
     "link_user_id" UUID,
-    "redirect_after" VARCHAR(255),
     "expires_at" TIMESTAMP(3) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -56,3 +55,6 @@ CREATE TABLE "sso_states" (
 
 -- CreateIndex
 CREATE INDEX "sso_states_expires_at_idx" ON "sso_states"("expires_at");
+
+-- AddForeignKey
+ALTER TABLE "sso_states" ADD CONSTRAINT "sso_states_link_user_id_fkey" FOREIGN KEY ("link_user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
