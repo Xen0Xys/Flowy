@@ -11,6 +11,8 @@ export type User = {
     jwtId?: string;
     familyId?: string | null;
     familyRole?: string | null;
+    hasPassword?: boolean;
+    mfaEnabled?: boolean;
     [key: string]: any;
 };
 
@@ -117,6 +119,27 @@ export const useUserStore = defineStore("user", {
                 toast.success(i18nT("user.store.success.passwordUpdated"));
             } catch (err: any) {
                 const message = err?.data?.message ?? err?.message ?? i18nT("user.store.errors.updatePassword");
+                toast.error(message);
+                throw new Error(message, {cause: err});
+            }
+        },
+
+        async setInitialPassword(newPassword: string) {
+            const authStore = useAuthStore();
+            if (!authStore.token) throw new Error("No token available");
+            const {apiFetch} = useApi();
+            try {
+                // Same jwt_id rotation as changePassword; swap tokens so the
+                // SSO-only session stays alive after gaining a local password.
+                const response = await apiFetch<{user: User; token: string}>("/user/me/password", {
+                    method: "POST",
+                    body: {newPassword},
+                });
+                if (response?.token) authStore.setToken(response.token);
+                if (response?.user) this.user = response.user;
+                toast.success(i18nT("user.store.success.passwordSet"));
+            } catch (err: any) {
+                const message = err?.data?.message ?? err?.message ?? i18nT("user.store.errors.setPassword");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }

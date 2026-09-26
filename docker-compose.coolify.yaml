@@ -25,6 +25,14 @@ services:
             - APP_SECRET=${SERVICE_BASE64_128_APPSECRET}
             - PREFIX=${APP_PREFIX:-}
             - CORS_ORIGINS=${SERVICE_URL_FLOWY_WEB}
+            - FRONTEND_URL=${SERVICE_URL_FLOWY_WEB}
+            - BACKEND_URL=${SERVICE_URL_FLOWY_SERVER}
+            - WEBAUTHN_RP_ID
+            - WEBAUTHN_RP_NAME
+            - WEBAUTHN_ORIGINS
+            # SSO providers: for each provider declared under Coolify > Environment Variables,
+            # add its fields here in short-form (e.g. `- SSO_1_KIND`, `- SSO_1_CLIENT_ID`, ...).
+            # See DEPLOYMENT.md §2.2 and §2.3.
         healthcheck:
             test: ["CMD", "curl", "-f", "http://flowy-server:4000/version"]
             interval: 10s

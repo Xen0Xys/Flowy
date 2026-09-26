@@ -198,7 +198,7 @@ describe("AuthController (e2e)", () => {
         });
         expect(dbUser).not.toBeNull();
         expect(dbUser?.password).not.toBe(payload.password);
-        expect(dbUser?.password.startsWith("$argon2")).toBe(true);
+        expect(dbUser?.password?.startsWith("$argon2")).toBe(true);
     });
 
     test("invalidates current token on logout/all", async () => {

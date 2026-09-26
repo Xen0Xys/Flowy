@@ -15,6 +15,7 @@ import MfaSetupDialog from "@/components/settings/mfa/MfaSetupDialog.vue";
 import MfaDisableDialog from "@/components/settings/mfa/MfaDisableDialog.vue";
 import MfaBackupCodesDialog from "@/components/settings/mfa/MfaBackupCodesDialog.vue";
 import PasskeyList from "@/components/settings/mfa/PasskeyList.vue";
+import LinkedAccountsSection from "@/components/settings/user/LinkedAccountsSection.vue";
 import {useMfa, type MfaFactorsResponse} from "@/composables/useMfa";
 import {useApi} from "@/composables/useApi";
 import {toast} from "vue-sonner";
@@ -169,7 +170,10 @@ const newPassword = ref("");
 const showNewPassword = ref(false);
 const changingPassword = ref(false);
 
-const passwordDirty = computed(() => Boolean(currentPassword.value && newPassword.value));
+const hasPassword = computed(() => userStore.user?.hasPassword !== false);
+const passwordDirty = computed(() =>
+    hasPassword.value ? Boolean(currentPassword.value && newPassword.value) : Boolean(newPassword.value),
+);
 
 async function changePasswordNow() {
     if (!authStore.token) return;
@@ -190,6 +194,30 @@ async function changePasswordNow() {
     try {
         await userStore.changePassword(current, next);
         currentPassword.value = "";
+        newPassword.value = "";
+        showNewPassword.value = false;
+    } finally {
+        changingPassword.value = false;
+    }
+}
+
+async function setPasswordNow() {
+    if (!authStore.token) return;
+    const next = newPassword.value;
+
+    if (!next) {
+        toast.error(t("profile.errors.newPasswordRequired"));
+        return;
+    }
+
+    if (!isValidPassword(next)) {
+        toast.error(t("profile.errors.passwordLength", {min: PASSWORD_MIN_LENGTH}));
+        return;
+    }
+
+    changingPassword.value = true;
+    try {
+        await userStore.setInitialPassword(next);
         newPassword.value = "";
         showNewPassword.value = false;
     } finally {
@@ -394,11 +422,22 @@ watch(locale, async () => {
                             <Card>
                                 <CardHeader>
                                     <CardTitle>{{ t("profile.sections.security") }}</CardTitle>
-                                    <CardDescription>{{ t("profile.changePasswordDescription") }}</CardDescription>
+                                    <CardDescription>
+                                        {{
+                                            hasPassword
+                                                ? t("profile.changePasswordDescription")
+                                                : t("profile.setPasswordDescription")
+                                        }}
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent class="space-y-4">
-                                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                        <div class="space-y-2">
+                                    <div
+                                        :class="
+                                            hasPassword
+                                                ? 'grid grid-cols-1 gap-4 sm:grid-cols-2'
+                                                : 'grid grid-cols-1 gap-4'
+                                        ">
+                                        <div v-if="hasPassword" class="space-y-2">
                                             <Label for="profile-current-password">{{
                                                 t("profile.currentPassword")
                                             }}</Label>
@@ -406,7 +445,8 @@ watch(locale, async () => {
                                                 id="profile-current-password"
                                                 v-model="currentPassword"
                                                 :placeholder="t('profile.currentPassword')"
-                                                type="password" />
+                                                type="password"
+                                                autocomplete="current-password" />
                                         </div>
                                         <div class="space-y-2">
                                             <Label for="profile-new-password">{{ t("profile.newPassword") }}</Label>
@@ -416,6 +456,7 @@ watch(locale, async () => {
                                                     v-model="newPassword"
                                                     :placeholder="t('profile.newPassword')"
                                                     :type="showNewPassword ? 'text' : 'password'"
+                                                    autocomplete="new-password"
                                                     class="pr-10" />
                                                 <Button
                                                     :aria-label="
@@ -439,8 +480,14 @@ watch(locale, async () => {
                                         <Button
                                             :disabled="!passwordDirty || changingPassword || !authStore.token"
                                             size="sm"
-                                            @click="changePasswordNow">
-                                            <span v-if="!changingPassword">{{ t("profile.changePasswordButton") }}</span>
+                                            @click="hasPassword ? changePasswordNow() : setPasswordNow()">
+                                            <span v-if="!changingPassword">
+                                                {{
+                                                    hasPassword
+                                                        ? t("profile.changePasswordButton")
+                                                        : t("profile.setPasswordButton")
+                                                }}
+                                            </span>
                                             <span v-else>{{ t("profile.updating") }}</span>
                                         </Button>
                                     </div>
@@ -542,6 +589,8 @@ watch(locale, async () => {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <LinkedAccountsSection />
 
                             <Card class="border-destructive/40">
                                 <CardHeader>

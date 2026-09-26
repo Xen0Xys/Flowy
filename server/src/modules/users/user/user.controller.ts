@@ -1,6 +1,7 @@
-import {Body, Controller, Delete, Get, HttpCode, Patch, UseGuards} from "@nestjs/common";
+import {Body, Controller, Delete, Get, HttpCode, Patch, Post, UseGuards} from "@nestjs/common";
 import {Throttle} from "@nestjs/throttler";
 import {UpdatePasswordDto} from "./models/dto/update-password.dto";
+import {SetPasswordDto} from "./models/dto/set-password.dto";
 import {UpdateUsernameDto} from "./models/dto/update-username.dto";
 import {DeleteAccountDto} from "./models/dto/delete-account.dto";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
@@ -43,6 +44,14 @@ export class UserController {
     @ApiBearerAuth()
     async updatePassword(@User() user: UserEntity, @Body() body: UpdatePasswordDto): Promise<LoginUserEntity> {
         return this.userService.changePassword(user, body.currentPassword, body.newPassword);
+    }
+
+    @Post("me/password")
+    @UseGuards(JwtAuthGuard)
+    @Throttle({default: {limit: 5, ttl: 60_000}})
+    @ApiBearerAuth()
+    async setPassword(@User() user: UserEntity, @Body() body: SetPasswordDto): Promise<LoginUserEntity> {
+        return this.userService.setInitialPassword(user, body.newPassword);
     }
 
     @Delete("me")

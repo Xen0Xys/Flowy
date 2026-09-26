@@ -22,6 +22,9 @@ services:
             dockerfile: Dockerfile
             args:
                 DATABASE_URL: postgres://${POSTGRES_USER:-flowy}:${POSTGRES_PASSWORD:-flowy}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
+        env_file:
+            - path: .env
+              required: false
         environment:
             DATABASE_URL: postgres://${POSTGRES_USER:-flowy}:${POSTGRES_PASSWORD:-flowy}@flowy-postgres:5432/${POSTGRES_DB:-flowy}
             APP_NAME: Flowy Server

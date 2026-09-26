@@ -111,6 +111,10 @@ export const useAuthStore = defineStore("auth", {
             this.mfaChallenge = null;
         },
 
+        setMfaChallenge(challenge: MfaChallenge | null) {
+            this.mfaChallenge = challenge;
+        },
+
         async login(credentials: LoginCredentials): Promise<{mfaRequired: boolean}> {
             const {apiFetch} = useApi();
             this.mfaChallenge = null;

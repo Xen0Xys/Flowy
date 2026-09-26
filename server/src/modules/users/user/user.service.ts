@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     ConflictException,
     ForbiddenException,
     forwardRef,
@@ -12,6 +13,7 @@ import {UserEntity} from "./models/entities/user.entity";
 import {LoginUserEntity} from "./models/entities/login-user.entity";
 import {PrismaService} from "../../helper/prisma.service";
 import {Users} from "../../../../prisma/generated/client";
+import {ConfigKey} from "../../../../prisma/generated/enums";
 import {AuthService} from "../../auth/auth.service";
 import argon2 from "argon2";
 
@@ -34,6 +36,7 @@ export class UserService {
             familyId: user.family_id,
             familyRole: user.family_role,
             password: user.password,
+            hasPassword: !!user.password,
             mfaEnabled: user.mfa_enabled,
         });
     }
@@ -44,6 +47,14 @@ export class UserService {
             where: {id: user.id},
         });
         if (!db) throw new NotFoundException("User not found");
+
+        if (!db.password) {
+            // SSO-only account without a local password: password-gated actions
+            // cannot proceed until the user sets a password from their profile.
+            throw new ForbiddenException(
+                "This account has no password set. Set a password from your profile before performing this action.",
+            );
+        }
 
         const valid = await argon2.verify(db.password, currentPassword).catch(() => false);
         if (!valid) throw new ForbiddenException("Invalid current password");
@@ -62,7 +73,7 @@ export class UserService {
                 }),
                 // remove instance owner config if set to this user
                 this.prismaService.config.deleteMany({
-                    where: {key: "INSTANCE_OWNER" as any, value: user.id},
+                    where: {key: ConfigKey.INSTANCE_OWNER, value: user.id},
                 }),
                 // finally delete the user
                 this.prismaService.users.delete({where: {id: user.id}}),
@@ -111,6 +122,25 @@ export class UserService {
         const refreshedEntity = UserService.toUserEntity(refreshed);
         const token = await this.authService.generateToken(refreshedEntity);
         this.logger.log(`Password changed by user ${user.id}`);
+        return new LoginUserEntity({user: refreshedEntity, token});
+    }
+
+    // public API: set the first password on an SSO-only account. Refuses when a
+    // password is already set (use changePassword instead) so the "no current
+    // password required" branch cannot be abused to bypass verifyPassword.
+    // Rotates jwt_id and returns a freshly signed token, same shape as changePassword.
+    async setInitialPassword(user: UserEntity, newPassword: string): Promise<LoginUserEntity> {
+        const db = await this.prismaService.users.findUnique({where: {id: user.id}});
+        if (!db) throw new NotFoundException("User not found");
+        if (db.password) {
+            throw new BadRequestException("Password already set; use PATCH /user/me/password to change it");
+        }
+        const updated = await this.persistPassword(user.id, newPassword);
+        await this.authService.invalidateTokens(updated);
+        const refreshed = await this.prismaService.users.findUniqueOrThrow({where: {id: updated.id}});
+        const refreshedEntity = UserService.toUserEntity(refreshed);
+        const token = await this.authService.generateToken(refreshedEntity);
+        this.logger.log(`actor=${user.id} action=user.setInitialPassword`);
         return new LoginUserEntity({user: refreshedEntity, token});
     }
 

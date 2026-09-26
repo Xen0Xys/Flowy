@@ -25,20 +25,27 @@ POSTGRES_USER=flowy
 POSTGRES_PASSWORD=flowy
 
 # API (Nest)
-APP_SECRET=change-me
-APP_PREFIX=
+APP_SECRET=            # openssl rand -hex 32
+APP_PREFIX=            # optional API path prefix, e.g. /api
 CORS_ORIGINS=http://localhost:3000
 
 # Web (Nuxt)
 NUXT_PUBLIC_API_BASE=http://localhost:4000
+
+# WebAuthn (RP_ID required in production, i.e. Docker)
+WEBAUTHN_RP_ID=flowy.example.com
+WEBAUTHN_RP_NAME=
+WEBAUTHN_ORIGINS=
 ```
 
 Notes:
 
 - `APP_NAME` is fixed to `Flowy Server` in the Compose files.
 - `DATABASE_URL` is built automatically in services from Postgres variables.
-- Use a strong value for `APP_SECRET` in real environments.
-- `WEBAUTHN_RP_ID` (optional) is the Relying Party ID for passkeys. When unset, the server derives it from the first `CORS_ORIGINS` hostname. Set explicitly when serving multiple origins on different domains.
+- `APP_SECRET` must be a strong random value in real environments (also seeds the MFA TOTP AEAD key, keep it stable across restarts).
+- `APP_PREFIX` maps to the backend `PREFIX` env var; leave empty unless the API is mounted under a subpath.
+- **`WEBAUTHN_RP_ID` is required in production** (Docker defaults `NODE_ENV` to `production`). It is the passkey Relying Party ID: hostname only, no scheme, no port. Changing it invalidates every registered passkey, so set it explicitly and keep it stable across deploys. In dev/test only, it is derived from the first `CORS_ORIGINS` hostname.
+- `WEBAUTHN_RP_NAME` and `WEBAUTHN_ORIGINS` are optional. When unset, they default to `APP_NAME` and `CORS_ORIGINS` respectively.
 
 ### 2.2 Coolify-specific variables
 
@@ -54,13 +61,211 @@ Notes:
 
 You can keep `POSTGRES_DB` and `APP_PREFIX` if you need to override defaults.
 
+`FRONTEND_URL`, `BACKEND_URL` and `WEBAUTHN_*` are wired to the Coolify-generated URLs automatically, so SSO globals work out of the box once at least one provider is declared.
+
+Adding an SSO provider on Coolify: declare `SSO_<N>_KIND`, `SSO_<N>_CLIENT_ID`, ... under **Environment Variables** in the Coolify UI, then add the matching short-form entries in the `environment:` block of `flowy-server` so they reach the container:
+
+```yaml
+- SSO_1_KIND
+- SSO_1_SLUG
+- SSO_1_DISPLAY_NAME
+- SSO_1_ICON
+- SSO_1_CLIENT_ID
+- SSO_1_CLIENT_SECRET
+# ...remaining fields per §2.3
+```
+
+### 2.3 Single Sign-On (SSO)
+
+> **Breaking change**: `SSO_CALLBACK_BASE_URL` has been renamed to `BACKEND_URL`. Rename the variable in your `.env` files before upgrading.
+
+Flowy supports any number of OAuth 2.0 or OIDC providers, configured entirely through environment variables. Providers are declared with the `SSO_<N>_*` prefix, where `<N>` is any positive integer that groups the variables belonging to the same provider. The order of `<N>` values controls the display order on the login page.
+
+Restart the backend after any change to reload the configuration.
+
+The provider examples below are the source of truth. `server/.env.example` only keeps a Discord template plus a pointer to this section, to stay readable.
+
+**Shared globals** (required as soon as at least one provider is defined):
+
+| Variable       | Role                                                                                                     | Required when                                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `FRONTEND_URL` | Absolute URL of the frontend. Users are redirected back here after the OAuth callback.                   | At least one SSO provider is declared.                                                                                            |
+| `BACKEND_URL`  | Public URL of the backend as seen by the browser. Used as the `redirect_uri` host in the OAuth exchange. | Backend behind a reverse proxy, on a public host, or with HTTPS terminated upstream. Defaults to `http://localhost:$PORT$PREFIX`. |
+
+```bash
+FRONTEND_URL=https://flowy.example.com
+BACKEND_URL=https://flowy.example.com/api
+```
+
+`FRONTEND_URL` and `BACKEND_URL` can point to the same host with a path prefix (single-domain setup) or to distinct hosts (frontend and backend on separate subdomains).
+
+**Common fields** (every provider):
+
+| Variable                        | Required                                                           | Description                                                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `SSO_<N>_KIND`                  | yes                                                                | `oidc` or `oauth2`                                                                                                                      |
+| `SSO_<N>_SLUG`                  | yes                                                                | Unique lowercase identifier (`[a-z0-9-]`), appears in URLs                                                                              |
+| `SSO_<N>_DISPLAY_NAME`          | yes                                                                | Label shown on the login button                                                                                                         |
+| `SSO_<N>_ICON`                  | yes                                                                | Iconify icon name (`simple-icons:github`, `iconoir:key`, ...)                                                                           |
+| `SSO_<N>_CLIENT_ID`             | yes                                                                | OAuth client ID                                                                                                                         |
+| `SSO_<N>_CLIENT_SECRET`         | yes                                                                | OAuth client secret                                                                                                                     |
+| `SSO_<N>_SCOPES`                | yes for OAuth2, optional for OIDC (default `openid,email,profile`) | Comma-separated                                                                                                                         |
+| `SSO_<N>_ALLOW_SIGNUP`          | optional (default `true`)                                          | Whether to create a new account if the SSO email is unknown. Only effective when the global `REGISTRATION_ENABLED` flag is also `true`. |
+| `SSO_<N>_ALLOWED_EMAIL_DOMAINS` | optional                                                           | Comma-separated allowlist                                                                                                               |
+
+**OIDC-only fields** (OpenID Connect, when `KIND=oidc`):
+
+| Variable                | Required | Description                            |
+| ----------------------- | -------- | -------------------------------------- |
+| `SSO_<N>_DISCOVERY_URL` | yes      | `.well-known/openid-configuration` URL |
+
+**OAuth2-only fields** (plain OAuth 2.0, when `KIND=oauth2`):
+
+| Variable                    | Required | Description                                                                                                                          |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `SSO_<N>_AUTHORIZATION_URL` | yes      | Authorization endpoint                                                                                                               |
+| `SSO_<N>_TOKEN_URL`         | yes      | Token endpoint                                                                                                                       |
+| `SSO_<N>_USERINFO_URL`      | yes      | Endpoint returning the current user's profile                                                                                        |
+| `SSO_<N>_EMAIL_CLAIM`       | yes      | JSON path in the userinfo response holding the email                                                                                 |
+| `SSO_<N>_USERNAME_CLAIM`    | yes      | JSON path holding the username                                                                                                       |
+| `SSO_<N>_SUB_CLAIM`         | yes      | JSON path holding the stable subject id                                                                                              |
+| `SSO_<N>_EMAILS_URL`        | optional | Fallback endpoint returning a list of `{email, primary, verified}` (used when the userinfo response has no email, typical of GitHub) |
+
+**Redirect URI to register with the provider**:
+
+The callback URL to declare in each identity provider console is:
+
+```
+${BACKEND_URL}/auth/sso/<slug>/callback
+```
+
+The admin page `Settings > SSO` (visible to the instance owner) shows the exact callback URL for each configured provider, with a copy-to-clipboard button.
+
+#### 2.3.1 GitHub (OAuth 2.0)
+
+```bash
+SSO_1_KIND=oauth2
+SSO_1_SLUG=github
+SSO_1_DISPLAY_NAME=GitHub
+SSO_1_ICON=simple-icons:github
+SSO_1_CLIENT_ID=Iv23xxxxxxxxxxxxxxxx
+SSO_1_CLIENT_SECRET=ghs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SSO_1_AUTHORIZATION_URL=https://github.com/login/oauth/authorize
+SSO_1_TOKEN_URL=https://github.com/login/oauth/access_token
+SSO_1_USERINFO_URL=https://api.github.com/user
+SSO_1_EMAILS_URL=https://api.github.com/user/emails
+SSO_1_SCOPES=read:user,user:email
+SSO_1_EMAIL_CLAIM=email
+SSO_1_USERNAME_CLAIM=login
+SSO_1_SUB_CLAIM=id
+```
+
+Register the app at <https://github.com/settings/developers> and set the "Authorization callback URL" to `${BACKEND_URL}/auth/sso/github/callback`.
+
+#### 2.3.2 Google (OIDC)
+
+```bash
+SSO_2_KIND=oidc
+SSO_2_SLUG=google
+SSO_2_DISPLAY_NAME=Google
+SSO_2_ICON=simple-icons:google
+SSO_2_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
+SSO_2_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxxxx
+SSO_2_DISCOVERY_URL=https://accounts.google.com/.well-known/openid-configuration
+SSO_2_SCOPES=openid,email,profile
+```
+
+Configure the OAuth 2.0 client at <https://console.cloud.google.com/apis/credentials> and add the redirect URI reported by the SSO admin page.
+
+#### 2.3.3 Microsoft Entra ID (OIDC, with tenant)
+
+The Microsoft OIDC discovery URL embeds the tenant. Replace `<tenant>` with one of:
+
+- `common` — any Microsoft account (personal, work, school)
+- `organizations` — any work / school account
+- `consumers` — personal accounts only
+- `<tenant-guid>` — a specific Entra ID tenant (single-org SSO)
+- `<domain>.onmicrosoft.com` — same, referenced by primary domain
+
+```bash
+SSO_3_KIND=oidc
+SSO_3_SLUG=microsoft
+SSO_3_DISPLAY_NAME=Microsoft
+SSO_3_ICON=simple-icons:microsoftazure
+SSO_3_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+SSO_3_CLIENT_SECRET=your-client-secret
+SSO_3_DISCOVERY_URL=https://login.microsoftonline.com/<tenant>/v2.0/.well-known/openid-configuration
+SSO_3_SCOPES=openid,email,profile
+```
+
+Register the app at <https://entra.microsoft.com/> under "App registrations" and add the redirect URI reported by the SSO admin page.
+
+#### 2.3.4 Discord (OAuth 2.0)
+
+```bash
+SSO_4_KIND=oauth2
+SSO_4_SLUG=discord
+SSO_4_DISPLAY_NAME=Discord
+SSO_4_ICON=simple-icons:discord
+SSO_4_CLIENT_ID=xxxxxxxxxxxxxxxxxx
+SSO_4_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SSO_4_AUTHORIZATION_URL=https://discord.com/oauth2/authorize
+SSO_4_TOKEN_URL=https://discord.com/api/oauth2/token
+SSO_4_USERINFO_URL=https://discord.com/api/users/@me
+SSO_4_SCOPES=identify,email
+SSO_4_EMAIL_CLAIM=email
+SSO_4_USERNAME_CLAIM=username
+SSO_4_SUB_CLAIM=id
+```
+
+Register the app at <https://discord.com/developers/applications> and add the redirect URI as an OAuth2 redirect.
+
+#### 2.3.5 GitLab (OIDC, works self-hosted)
+
+```bash
+SSO_5_KIND=oidc
+SSO_5_SLUG=gitlab
+SSO_5_DISPLAY_NAME=GitLab
+SSO_5_ICON=simple-icons:gitlab
+SSO_5_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SSO_5_CLIENT_SECRET=gloas-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SSO_5_DISCOVERY_URL=https://gitlab.com/.well-known/openid-configuration
+SSO_5_SCOPES=openid,email,profile
+```
+
+For a self-hosted GitLab instance, replace the discovery URL with `https://gitlab.mycorp.com/.well-known/openid-configuration`.
+
+#### 2.3.6 Keycloak / Authentik / any generic OIDC
+
+```bash
+SSO_6_KIND=oidc
+SSO_6_SLUG=corp
+SSO_6_DISPLAY_NAME=Corp SSO
+SSO_6_ICON=iconoir:key
+SSO_6_CLIENT_ID=flowy
+SSO_6_CLIENT_SECRET=super-secret
+SSO_6_DISCOVERY_URL=https://sso.corp.example.com/realms/corp/.well-known/openid-configuration
+SSO_6_SCOPES=openid,email,profile
+SSO_6_ALLOWED_EMAIL_DOMAINS=corp.example.com
+```
+
+Adjust the realm segment for Authentik (`https://sso.corp.example.com/application/o/<slug>/.well-known/openid-configuration`) or any other OIDC-compliant IdP.
+
+#### 2.3.7 Account linking behaviour
+
+- Flowy does not verify emails at sign-up, so **SSO identities are never auto-linked to an existing Flowy account by email**. Instead, if a user signs in via SSO with an email that already exists, they are asked to sign in with their password and link the SSO identity manually from `Settings > Profile > Linked accounts`.
+- If `ALLOW_SIGNUP=true` **and** the global `REGISTRATION_ENABLED` flag is on, a new account is created transparently on first SSO login. The username is derived from the provider's username claim (falling back to the local part of the email) with a numeric suffix if it collides.
+- Users who have enabled MFA on Flowy still see the MFA challenge after a successful SSO login. SSO does not bypass MFA.
+- An account created through SSO has no password. Its owner can add a password later from `Settings > Profile > Security`.
+- `ALLOWED_EMAIL_DOMAINS` is only enforced when an SSO identity is created or linked. Tightening the allowlist after the fact does not evict users whose original email is no longer in the list; unlink them from `Settings > Profile > Linked accounts` (as the user) or delete the account (as instance owner) if you want to fully lock them out.
+
 ## 3. `docker-compose.yaml` variant (prebuilt images)
 
 This file uses:
 
 - `tensorchord/vchord-postgres:pg18-v1.1.1`
-- `flowy-server:latest`
-- `flowy-web:latest`
+- `xen0xys/flowy-server:latest`
+- `xen0xys/flowy-web:latest`
 
 Commands:
 
@@ -75,7 +280,7 @@ Access:
 - Frontend: `http://localhost:3000`
 - API: `http://localhost:4000`
 
-Important: this variant has no `build` section for `server` and `web`. Make sure `flowy-server:latest` and `flowy-web:latest` are available locally or in your registry.
+Important: this variant has no `build` section for `server` and `web`. Make sure `xen0xys/flowy-server:latest` and `xen0xys/flowy-web:latest` are available locally or in your registry.
 
 ## 4. `docker-compose.dev.yaml` variant (local build)
 
@@ -123,12 +328,15 @@ In production, deploy this file via the Coolify UI with all required `SERVICE_*`
 
 ## 7. Quick troubleshooting
 
-| Symptom                         | Likely cause                           | Fix                                                                          |
-| ------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
-| API healthcheck failing         | Missing `APP_SECRET` or unreachable DB | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server` |
-| Frontend cannot reach API       | Wrong `NUXT_PUBLIC_API_BASE`           | Set the API public URL (Coolify) or `http://localhost:4000` locally          |
-| Postgres auth errors            | Credentials mismatch                   | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify)      |
-| `flowy-server:latest` not found | Image unavailable                      | Use `docker-compose.dev.yaml` or publish images to a registry                |
+| Symptom                                                           | Likely cause                                                 | Fix                                                                                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| API healthcheck failing                                           | Missing `APP_SECRET` or unreachable DB                       | Check `.env`, `DATABASE_URL`, then run `docker compose logs -f flowy-server`                                                                 |
+| Frontend cannot reach API                                         | Wrong `NUXT_PUBLIC_API_BASE`                                 | Set the API public URL (Coolify) or `http://localhost:4000` locally                                                                          |
+| Postgres auth errors                                              | Credentials mismatch                                         | Align `POSTGRES_USER` / `POSTGRES_PASSWORD` (or `SERVICE_*` on Coolify)                                                                      |
+| `xen0xys/flowy-server:latest` not found                           | Image unavailable                                            | Use `docker-compose.dev.yaml` or publish images to a registry                                                                                |
+| SSO login: `redirect_uri_mismatch`                                | `BACKEND_URL` missing or misconfigured                       | Set `BACKEND_URL` to the public backend URL (see §2.3), then restart                                                                         |
+| SSO providers ignored on startup                                  | `SSO_*` vars not propagated to the container                 | For Compose: `.env` is loaded via `env_file:`. For Coolify: add short-form `- SSO_<N>_*` entries in `flowy-server` `environment:` (see §2.2) |
+| Boot fails: `WEBAUTHN_RP_ID must be set explicitly in production` | Variable missing; Docker defaults `NODE_ENV` to `production` | Set `WEBAUTHN_RP_ID=<frontend-hostname>` in `.env` (no scheme, no port)                                                                      |
 
 ---
 

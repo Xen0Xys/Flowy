@@ -2,8 +2,8 @@ import {useAuthStore} from "~/stores/auth.store";
 import {useUserStore} from "~/stores/user.store";
 
 export default defineNuxtRouteMiddleware(async (to) => {
-    const publicPaths = ["/auth/login", "/auth/register", "/auth/mfa"];
-    const isPublic = publicPaths.includes(to.path);
+    const publicPaths = ["/auth/login", "/auth/register", "/auth/mfa", "/auth/sso/complete"];
+    const isPublic = publicPaths.includes(to.path) || to.path.startsWith("/auth/sso/");
 
     const authStore = useAuthStore();
     try {
