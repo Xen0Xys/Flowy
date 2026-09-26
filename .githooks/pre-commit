@@ -1,0 +1,22 @@
+#!/bin/sh
+# Flowy pre-commit hook: enforce root lint before every commit.
+# Installed automatically via `bun install` (see root package.json `prepare`).
+
+set -e
+
+if [ -n "$SKIP_HOOKS" ] || [ -n "$FLOWY_SKIP_HOOKS" ]; then
+    echo "pre-commit: skipped (SKIP_HOOKS set)"
+    exit 0
+fi
+
+if ! command -v bun >/dev/null 2>&1; then
+    echo "pre-commit: 'bun' not found in PATH. Install Bun 1.4.x or run 'bun install' first." >&2
+    exit 1
+fi
+
+echo "pre-commit: running 'bun run lint'..."
+if ! bun run lint; then
+    echo "" >&2
+    echo "pre-commit: lint failed. Run 'bun run lint:fix' to auto-fix, then re-commit." >&2
+    exit 1
+fi

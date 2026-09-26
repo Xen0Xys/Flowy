@@ -9,7 +9,8 @@
     "type": "module",
     "scripts": {
         "lint": "oxlint . && oxfmt --check .",
-        "lint:fix": "oxlint --fix . && oxfmt --write ."
+        "lint:fix": "oxlint --fix . && oxfmt --write .",
+        "prepare": "git config core.hooksPath .githooks || true"
     },
     "devDependencies": {
         "@types/bun": "1.4.2",

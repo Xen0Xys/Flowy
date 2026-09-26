@@ -54,20 +54,31 @@ For the full rule set, see [AGENTS.md](./AGENTS.md).
 
 ## Commits
 
-Commit messages follow the gitmoji convention:
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):
 
 ```
-<gitmoji> Short imperative summary
+<type>(<scope>)?(!)?: <subject>
 ```
+
+- **type** (required): `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+- **scope** (optional): one of `web`, `server`, `prisma`, `docker`, `ci`, `deps`, `docs`, `release`, `seed`, `security`, `i18n`, `auth`, `sso`, `mfa`, `users`, `admin`, `accounting`, `accounts`, `transactions`, `transfers`, `budgets`, `recurring`, `references`, `reports`, `updates`, `import`, `settings`, `onboarding`
+- **!** (optional): marks a breaking change
+- **subject** (required): imperative mood, 100 characters max (Angular convention)
 
 Examples:
 
-- `:sparkles: Add recurring transactions endpoint`
-- `:bug: Fix balance rounding on credit accounts`
-- `:memo: Update deployment guide for Coolify`
-- `:art: Refactor CategoryCombobox to use shared wrapper`
+- `feat(sso): add OIDC callback`
+- `fix(reports): correct cash flow rounding`
+- `docs: rewrite deployment guide for Coolify`
+- `refactor(auth)!: replace jwt payload shape`
+- `chore(deps): bump nuxt to 4.5.2`
 
-Keep each commit focused on a single concern. Clean up noisy history before opening a pull request.
+Keep each commit focused on a single concern. Clean up noisy history before opening a pull request. Existing gitmoji history stays as-is; the new convention only applies to new commits.
+
+Two safety nets enforce the format:
+
+- Local hooks (`.githooks/pre-commit` runs `bun run lint`, `.githooks/commit-msg` validates the message) — installed automatically by `bun install` via the root `prepare` script. Use `git commit --no-verify` only in emergencies.
+- CI job `commit-lint` re-runs the same validation on every pull request.
 
 ## Pull requests
 

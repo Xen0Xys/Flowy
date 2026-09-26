@@ -1,0 +1,78 @@
+#!/bin/sh
+# Flowy commit-msg hook: enforce Conventional Commits with a scope whitelist.
+# Installed automatically via `bun install` (see root package.json `prepare`).
+#
+# Format: <type>(<scope>)?(!)?: <subject>
+#   - type    (required): feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
+#   - scope   (optional): must be in the whitelist below
+#   - !       (optional): marks a breaking change
+#   - subject (required): imperative mood, <= 100 chars (Angular convention)
+#
+# Skipped for: merge, fixup!, squash!, and auto-generated revert commits.
+
+set -e
+
+if [ -n "$SKIP_HOOKS" ] || [ -n "$FLOWY_SKIP_HOOKS" ]; then
+    exit 0
+fi
+
+commit_msg_file="$1"
+if [ -z "$commit_msg_file" ] || [ ! -f "$commit_msg_file" ]; then
+    exit 0
+fi
+
+subject="$(sed -n '1p' "$commit_msg_file")"
+
+case "$subject" in
+    "Merge "*|"Revert \""*|"fixup! "*|"squash! "*|"amend! "*)
+        exit 0
+        ;;
+esac
+
+TYPES='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+SCOPES='web|server|prisma|docker|ci|deps|docs|release|seed|security|i18n|auth|sso|mfa|users|admin|accounting|accounts|transactions|transfers|budgets|recurring|references|reports|updates|import|settings|onboarding'
+PATTERN="^(${TYPES})(\\((${SCOPES})\\))?!?: .+"
+
+print_help() {
+    echo "" >&2
+    echo "Expected format: <type>(<scope>)?(!)?: <subject>" >&2
+    echo "" >&2
+    echo "Allowed types:" >&2
+    echo "  feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert" >&2
+    echo "" >&2
+    echo "Allowed scopes (optional):" >&2
+    echo "  web, server, prisma, docker, ci, deps, docs, release, seed, security, i18n," >&2
+    echo "  auth, sso, mfa, users, admin, accounting, accounts, transactions, transfers," >&2
+    echo "  budgets, recurring, references, reports, updates, import, settings, onboarding" >&2
+    echo "" >&2
+    echo "Examples:" >&2
+    echo "  feat(sso): add OIDC callback" >&2
+    echo "  fix(reports): correct cash flow rounding" >&2
+    echo "  chore(deps): bump nuxt to 4.5.2" >&2
+    echo "  docs: rewrite deployment guide" >&2
+    echo "  refactor(auth)!: replace jwt payload shape" >&2
+    echo "" >&2
+    echo "Bypass (emergencies only): 'git commit --no-verify' or 'SKIP_HOOKS=1 git commit ...'" >&2
+}
+
+if [ -z "$subject" ]; then
+    echo "commit-msg: subject is empty." >&2
+    print_help
+    exit 1
+fi
+
+subject_length=$(printf '%s' "$subject" | wc -c | tr -d ' ')
+if [ "$subject_length" -gt 100 ]; then
+    echo "commit-msg: subject is ${subject_length} chars, max is 100 (Angular convention)." >&2
+    print_help
+    exit 1
+fi
+
+if ! printf '%s' "$subject" | grep -Eq "$PATTERN"; then
+    echo "commit-msg: subject does not match Conventional Commits format." >&2
+    echo "  got: $subject" >&2
+    print_help
+    exit 1
+fi
+
+exit 0

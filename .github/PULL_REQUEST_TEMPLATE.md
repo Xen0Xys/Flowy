@@ -26,4 +26,4 @@
 - [ ] Prisma schema changes include a migration
 - [ ] Documentation updated (README, DEPLOYMENT, CONTRIBUTING) if needed
 - [ ] No `console.log` left in committed code
-- [ ] Commit messages follow the gitmoji convention
+- [ ] Commit messages follow Conventional Commits (`type(scope)?: subject`)
