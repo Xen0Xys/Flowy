@@ -7,7 +7,7 @@ import {
     UnauthorizedException,
 } from "@nestjs/common";
 import crypto from "crypto";
-import {Users} from "../../../../prisma/generated/client";
+import {Prisma, Users} from "../../../../prisma/generated/client";
 import {ConfigKey} from "../../../../prisma/generated/enums";
 import {PrismaService} from "../../helper/prisma.service";
 import {InstanceConfigService} from "../../helper/instance-config.service";
@@ -252,31 +252,40 @@ export class SsoService {
         }
 
         const username = await this.pickUniqueUsername(profile);
-        const created = await this.prisma.$transaction(async (tx) => {
-            const newUser = await tx.users.create({
-                data: {
-                    username,
-                    email: profile.email!,
-                    password: null,
-                    jwt_id: crypto.randomBytes(16).toString("hex"),
-                },
+        let created;
+        try {
+            created = await this.prisma.$transaction(async (tx) => {
+                const newUser = await tx.users.create({
+                    data: {
+                        username,
+                        email: profile.email!,
+                        password: null,
+                        jwt_id: crypto.randomBytes(16).toString("hex"),
+                    },
+                });
+                await tx.userSsoIdentities.create({
+                    data: {
+                        user_id: newUser.id,
+                        provider_slug: provider.slug,
+                        provider_user_id: profile.subject,
+                        email_at_link: profile.email,
+                        last_login_at: new Date(),
+                    },
+                });
+                await tx.config.upsert({
+                    where: {key: ConfigKey.INSTANCE_OWNER},
+                    update: {},
+                    create: {key: ConfigKey.INSTANCE_OWNER, value: newUser.id},
+                });
+                return newUser;
             });
-            await tx.userSsoIdentities.create({
-                data: {
-                    user_id: newUser.id,
-                    provider_slug: provider.slug,
-                    provider_user_id: profile.subject,
-                    email_at_link: profile.email,
-                    last_login_at: new Date(),
-                },
-            });
-            await tx.config.upsert({
-                where: {key: ConfigKey.INSTANCE_OWNER},
-                update: {},
-                create: {key: ConfigKey.INSTANCE_OWNER, value: newUser.id},
-            });
-            return newUser;
-        });
+        } catch (err) {
+            // Two concurrent first-time SSO logins with the same subject can
+            // both pass the "existing identity" and "emailMatch" checks above.
+            // Surface the same identity-conflict message we use in linkIdentity
+            // instead of the filter's generic 409.
+            throw this.translateIdentityUniqueViolation(err, "sso-signup", provider.slug);
+        }
         this.logger.log(`actor=${created.id} action=sso.signup provider=${provider.slug}`);
         return this.finalizeLogin(created);
     }
@@ -309,17 +318,36 @@ export class SsoService {
         if (alreadyLinkedToUser) {
             throw new ConflictException("You already have a linked identity for this provider");
         }
-        const row = await this.prisma.userSsoIdentities.create({
-            data: {
-                user_id: userId,
-                provider_slug: provider.slug,
-                provider_user_id: profile.subject,
-                email_at_link: profile.email,
-                last_login_at: new Date(),
-            },
-        });
-        this.logger.log(`actor=${userId} action=sso.link provider=${provider.slug}`);
-        return this.toIdentityEntity(row);
+        try {
+            const row = await this.prisma.userSsoIdentities.create({
+                data: {
+                    user_id: userId,
+                    provider_slug: provider.slug,
+                    provider_user_id: profile.subject,
+                    email_at_link: profile.email,
+                    last_login_at: new Date(),
+                },
+            });
+            this.logger.log(`actor=${userId} action=sso.link provider=${provider.slug}`);
+            return this.toIdentityEntity(row);
+        } catch (err) {
+            // Two concurrent link callbacks can both pass the existence checks
+            // above and race on this create. Translate the resulting unique
+            // violation into the same messages we would have returned earlier
+            // instead of the filter's generic "already exists" 409.
+            throw this.translateIdentityUniqueViolation(err, userId, provider.slug);
+        }
+    }
+
+    private translateIdentityUniqueViolation(err: unknown, userId: string, providerSlug: string): unknown {
+        if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2002") return err;
+        const target = err.meta?.target;
+        const targetStr = Array.isArray(target) ? target.join(",") : typeof target === "string" ? target : "";
+        this.logger.warn(`sso.link race actor=${userId} provider=${providerSlug} target=${targetStr}`);
+        if (targetStr.includes("user_id")) {
+            return new ConflictException("You already have a linked identity for this provider");
+        }
+        return new ConflictException("This SSO identity is already linked to another account");
     }
 
     private async finalizeLogin(user: Users): Promise<SsoOutcome> {
