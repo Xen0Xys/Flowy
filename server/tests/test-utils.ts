@@ -55,15 +55,7 @@ export interface RegisteredUser {
 }
 
 export async function createCsrfAgent(server: Server): Promise<ReturnType<typeof request.agent>> {
-    const agent = request.agent(server);
-    const csrfResponse = await agent.get("/auth/csrf");
-
-    if (csrfResponse.status !== 200 || typeof csrfResponse.body?.csrfToken !== "string") {
-        throw new Error(`Failed to fetch CSRF token: status=${csrfResponse.status}`);
-    }
-
-    agent.set("x-csrf-token", csrfResponse.body.csrfToken);
-    return agent;
+    return request.agent(server);
 }
 
 export async function registerUser(

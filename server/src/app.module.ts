@@ -16,7 +16,6 @@ import {APP_FILTER, APP_GUARD, APP_INTERCEPTOR} from "@nestjs/core";
 import {AuthModule} from "./modules/auth/auth.module";
 import {MfaModule} from "./modules/auth/mfa/mfa.module";
 import {SsoModule} from "./modules/auth/sso/sso.module";
-import {CsrfGuard} from "./common/guards/csrf.guard";
 import {AppThrottlerGuard} from "./common/guards/app-throttler.guard";
 import {PrismaExceptionFilter} from "./common/filters/prisma-exception.filter";
 import {ThrottlerModule} from "@nestjs/throttler";
@@ -88,15 +87,9 @@ import Joi from "joi";
     ],
     controllers: [AppController],
     providers: [
-        // Throttler runs before Csrf so flooders are rejected without paying
-        // the cost of CSRF token verification.
         {
             provide: APP_GUARD,
             useClass: AppThrottlerGuard,
-        },
-        {
-            provide: APP_GUARD,
-            useClass: CsrfGuard,
         },
         {
             provide: APP_INTERCEPTOR,

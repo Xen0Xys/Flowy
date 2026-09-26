@@ -3,11 +3,7 @@ import {CustomValidationPipe} from "./common/pipes/validation.pipe";
 import {LoggerMiddleware} from "./common/middlewares/logger.middleware";
 import {SwaggerTheme, SwaggerThemeNameEnum} from "swagger-themes";
 import {DocumentBuilder, SwaggerModule} from "@nestjs/swagger";
-import fastifyCsrfProtection from "@fastify/csrf-protection";
-import fastifyCookie from "@fastify/cookie";
 import {FastifyListenOptions} from "fastify/types/instance";
-import fastifyMultipart from "@fastify/multipart";
-import fastifyHelmet from "@fastify/helmet";
 import {NestFactory} from "@nestjs/core";
 import {AppModule} from "./app.module";
 import {Logger} from "@nestjs/common";
@@ -25,6 +21,7 @@ async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
         AppModule,
         new FastifyAdapter({exposeHeadRoutes: true}),
+        {cookies: {secret: process.env.APP_SECRET}},
     );
     await loadServer(app);
 
@@ -46,34 +43,7 @@ export async function loadServer(server: NestFastifyApplication) {
         .map((origin) => origin.trim())
         .filter(Boolean);
 
-    server.enableCors({
-        origin: corsOrigins,
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-    });
-
-    // Middlewares
-    server.use(new LoggerMiddleware().use);
-    await server.register(fastifyCookie as any, {
-        secret: process.env.APP_SECRET,
-    });
-    await server.register(fastifyCsrfProtection as any, {
-        cookieOpts: {
-            path: "/",
-            sameSite: "lax",
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            signed: true,
-        },
-    });
-
-    await server.register(fastifyMultipart as any, {
-        limits: {
-            fileSize: 500 * 1024 * 1024, // 500MB
-        },
-    });
-    await server.register(fastifyHelmet as any, {
+    server.useSecurityHeaders({
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
@@ -88,17 +58,29 @@ export async function loadServer(server: NestFastifyApplication) {
                 upgradeInsecureRequests: [],
             },
         },
-        hsts: {
+        strictTransportSecurity: {
             maxAge: 31536000,
             includeSubDomains: true,
             preload: true,
         },
         referrerPolicy: {policy: "strict-origin-when-cross-origin"},
-        permittedCrossDomainPolicies: false,
+        xPermittedCrossDomainPolicies: false,
         crossOriginEmbedderPolicy: true,
         crossOriginOpenerPolicy: {policy: "same-origin"},
         crossOriginResourcePolicy: {policy: "same-origin"},
     });
+
+    server.enableCsrfProtection({trustedOrigins: corsOrigins});
+
+    server.enableCors({
+        origin: corsOrigins,
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    });
+
+    // Middlewares
+    server.use(new LoggerMiddleware().use);
 
     // Swagger
     const config = new DocumentBuilder()

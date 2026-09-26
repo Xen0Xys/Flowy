@@ -1,0 +1,52 @@
+name: Commit Lint
+
+on:
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    commit-lint:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+            - name: Validate commit messages (Conventional Commits)
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  git fetch --no-tags --depth=1 origin "${BASE_REF}"
+                  BASE_SHA=$(git rev-parse "origin/${BASE_REF}")
+
+                  tmp=$(mktemp)
+                  trap 'rm -f "$tmp"' EXIT
+
+                  failed=0
+                  while IFS= read -r line; do
+                      [ -z "$line" ] && continue
+                      sha="${line%% *}"
+                      subject="${line#* }"
+                      printf '%s' "$subject" > "$tmp"
+                      if sh .githooks/commit-msg "$tmp" >/dev/null 2>&1; then
+                          echo "ok    ${sha:0:8}  $subject"
+                      else
+                          echo "FAIL  ${sha:0:8}  $subject"
+                          failed=1
+                      fi
+                  done < <(git log --no-merges --format='%H %s' "${BASE_SHA}..${HEAD_SHA}")
+
+                  if [ "$failed" -ne 0 ]; then
+                      echo ""
+                      echo "One or more commits do not follow Conventional Commits."
+                      echo "Run '.githooks/commit-msg <file>' locally to see the full error message,"
+                      echo "or see CONTRIBUTING.md for the accepted format and scopes."
+                      exit 1
+                  fi

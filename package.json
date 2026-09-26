@@ -1,6 +1,6 @@
 {
     "name": "flowy-monorepo",
-    "version": "2.0.0-beta.3",
+    "version": "2.0.0-beta.4",
     "license": "AGPL-3.0-only",
     "author": "Tom CZEKAJ aka Xen0Xys",
     "workspaces": [
@@ -9,12 +9,13 @@
     "type": "module",
     "scripts": {
         "lint": "oxlint . && oxfmt --check .",
-        "lint:fix": "oxlint --fix . && oxfmt --write ."
+        "lint:fix": "oxlint --fix . && oxfmt --write .",
+        "prepare": "git config core.hooksPath .githooks || true"
     },
     "devDependencies": {
         "@types/bun": "1.4.2",
-        "oxfmt": "0.68.0",
-        "oxlint": "1.83.0"
+        "oxfmt": "0.70.0",
+        "oxlint": "1.85.0"
     },
     "peerDependencies": {
         "typescript": "6.0.3"

@@ -1,0 +1,3 @@
+# Ensure shell hooks keep LF line endings on every platform so Git for Windows
+# (sh.exe) can execute them.
+.githooks/* text eol=lf

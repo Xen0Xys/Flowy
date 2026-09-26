@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {Throttle} from "@nestjs/throttler";
+import {HttpAdapterHost} from "@nestjs/core";
 import type {FastifyReply, FastifyRequest} from "fastify";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {User} from "../../../common/decorators/user.decorator";
@@ -33,6 +34,7 @@ export class SsoController {
     constructor(
         private readonly ssoService: SsoService,
         private readonly config: SsoConfigService,
+        private readonly adapterHost: HttpAdapterHost,
     ) {}
 
     @Get("providers")
@@ -133,7 +135,7 @@ export class SsoController {
     }
 
     private setAuthCookie(reply: FastifyReply, token: string): void {
-        reply.setCookie(SSO_TOKEN_COOKIE, token, {
+        this.adapterHost.httpAdapter.setCookie(reply, SSO_TOKEN_COOKIE, token, {
             path: "/",
             httpOnly: false,
             sameSite: "lax",
@@ -144,13 +146,18 @@ export class SsoController {
 
     private setMfaCookie(reply: FastifyReply, challengeToken: string, methods: string[]): void {
         const payload = JSON.stringify({challengeToken, methods});
-        reply.setCookie(SSO_MFA_COOKIE, Buffer.from(payload, "utf-8").toString("base64url"), {
-            path: "/",
-            httpOnly: false,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-            maxAge: SSO_MFA_COOKIE_MAX_AGE,
-        });
+        this.adapterHost.httpAdapter.setCookie(
+            reply,
+            SSO_MFA_COOKIE,
+            Buffer.from(payload, "utf-8").toString("base64url"),
+            {
+                path: "/",
+                httpOnly: false,
+                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production",
+                maxAge: SSO_MFA_COOKIE_MAX_AGE,
+            },
+        );
     }
 
     private redirectError(reply: FastifyReply, code: string): void {
