@@ -3,9 +3,11 @@ import {onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {toast} from "vue-sonner";
 import {useRoute, useRouter} from "#app";
-import {useAuthStore} from "@/stores/auth.store";
+import {useAuthStore, type MfaMethod} from "@/stores/auth.store";
 import {useUserStore} from "@/stores/user.store";
 import {SSO_MFA_COOKIE} from "@/utils/sso";
+
+const KNOWN_MFA_METHODS: readonly MfaMethod[] = ["totp", "backup_code", "passkey"];
 
 definePageMeta({
     layout: "auth",
@@ -20,7 +22,7 @@ const {t} = useI18n();
 
 const error = ref<string | null>(null);
 
-function readMfaCookie(): {challengeToken: string; methods: string[]} | null {
+function readMfaCookie(): {challengeToken: string; methods: MfaMethod[]} | null {
     if (import.meta.server) return null;
     const raw = document.cookie
         .split(";")
@@ -32,7 +34,11 @@ function readMfaCookie(): {challengeToken: string; methods: string[]} | null {
         const decoded = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
         const parsed = JSON.parse(decoded);
         if (parsed && typeof parsed.challengeToken === "string" && Array.isArray(parsed.methods)) {
-            return {challengeToken: parsed.challengeToken, methods: parsed.methods};
+            const methods = (parsed.methods as unknown[]).filter(
+                (entry): entry is MfaMethod =>
+                    typeof entry === "string" && (KNOWN_MFA_METHODS as readonly string[]).includes(entry),
+            );
+            return {challengeToken: parsed.challengeToken, methods};
         }
     } catch {
         return null;
@@ -70,7 +76,7 @@ async function handleMfa() {
     }
     authStore.setMfaChallenge({
         challengeToken: payload.challengeToken,
-        methods: payload.methods as any,
+        methods: payload.methods,
     });
     await router.replace("/auth/mfa");
 }
