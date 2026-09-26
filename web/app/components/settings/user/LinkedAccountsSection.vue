@@ -6,6 +6,15 @@ import {useRoute, useRouter} from "#app";
 import {Button} from "@/components/ui/button";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Badge} from "@/components/ui/badge";
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {useSsoStore, type SsoIdentity, type SsoPublicProvider} from "@/stores/sso.store";
 
 const {t, locale} = useI18n();
@@ -17,6 +26,7 @@ const loading = ref(true);
 const identities = ref<SsoIdentity[]>([]);
 const providers = ref<SsoPublicProvider[]>([]);
 const unlinking = ref<string | null>(null);
+const identityToUnlink = ref<SsoIdentity | null>(null);
 
 const linkedSlugs = computed(() => new Set(identities.value.map((identity) => identity.providerSlug)));
 const availableToLink = computed(() => providers.value.filter((provider) => !linkedSlugs.value.has(provider.slug)));
@@ -50,12 +60,18 @@ async function link(slug: string) {
     }
 }
 
-async function unlink(identity: SsoIdentity) {
-    if (!confirm(t("sso.profile.confirmUnlink", {name: identity.providerDisplayName}))) return;
+function requestUnlink(identity: SsoIdentity) {
+    identityToUnlink.value = identity;
+}
+
+async function confirmUnlink() {
+    const identity = identityToUnlink.value;
+    if (!identity) return;
     unlinking.value = identity.id;
     try {
         await store.unlinkIdentity(identity.id);
         identities.value = identities.value.filter((entry) => entry.id !== identity.id);
+        identityToUnlink.value = null;
     } finally {
         unlinking.value = null;
     }
@@ -121,7 +137,7 @@ onMounted(async () => {
                         size="sm"
                         type="button"
                         variant="outline"
-                        @click="unlink(identity)">
+                        @click="requestUnlink(identity)">
                         <Icon
                             v-if="unlinking === identity.id"
                             class="mr-1 size-4"
@@ -151,5 +167,32 @@ onMounted(async () => {
                 </div>
             </div>
         </CardContent>
+
+        <AlertDialog
+            :open="Boolean(identityToUnlink)"
+            @update:open="(open) => !open && !unlinking && (identityToUnlink = null)">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ t("sso.profile.unlinkAction") }}</AlertDialogTitle>
+                    <AlertDialogDescription v-if="identityToUnlink">
+                        {{ t("sso.profile.confirmUnlink", {name: identityToUnlink.providerDisplayName}) }}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel :disabled="Boolean(unlinking)">
+                        {{ t("common.cancel") }}
+                    </AlertDialogCancel>
+                    <Button
+                        :disabled="Boolean(unlinking)"
+                        size="sm"
+                        type="button"
+                        variant="destructive"
+                        @click="confirmUnlink">
+                        <Icon v-if="unlinking" class="mr-1 size-4" name="svg-spinners:180-ring-with-bg" />
+                        {{ t("sso.profile.unlinkAction") }}
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </Card>
 </template>
