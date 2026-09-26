@@ -6,14 +6,11 @@ import {Users} from "../../../prisma/generated/client";
 import {UserEntity} from "../users/user/models/entities/user.entity";
 import {LoginUserEntity} from "../users/user/models/entities/login-user.entity";
 import {MfaChallengeEntity} from "./mfa/models/entities/mfa-challenge.entity";
-import type {MfaMethod} from "./mfa/mfa-factor.interface";
-import {MFA_CHALLENGE_AUDIENCE, MFA_CHALLENGE_EXPIRES_IN, MFA_CHALLENGE_MAX_ATTEMPTS} from "./mfa/mfa.constants";
+import {MfaChallengeService} from "./mfa/mfa-challenge.service";
 import {InstanceConfigService} from "../helper/instance-config.service";
 import {PrismaService} from "../helper/prisma.service";
 
 export type LoginResponse = LoginUserEntity | MfaChallengeEntity;
-
-const MFA_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -23,6 +20,7 @@ export class AuthService {
         private readonly prismaService: PrismaService,
         private readonly instanceConfigService: InstanceConfigService,
         private readonly jwtService: JwtService,
+        private readonly mfaChallengeService: MfaChallengeService,
     ) {}
 
     async generateToken(user: UserEntity): Promise<string> {
@@ -102,8 +100,8 @@ export class AuthService {
         if (!valid) throw new UnauthorizedException("Invalid email or password");
 
         if (user.mfa_enabled) {
-            const methods = await this.getEnrolledMfaMethods(user.id);
-            const challengeToken = await this.generateMfaChallengeToken(user.id);
+            const methods = await this.mfaChallengeService.getEnrolledMethods(user.id);
+            const challengeToken = await this.mfaChallengeService.generateChallengeToken(user.id);
             return new MfaChallengeEntity({challengeToken, methods});
         }
 
@@ -121,42 +119,6 @@ export class AuthService {
                 jwt_id: crypto.randomBytes(16).toString("hex"),
             },
         });
-    }
-
-    private async getEnrolledMfaMethods(userId: string): Promise<MfaMethod[]> {
-        const methods: MfaMethod[] = [];
-        const passkeyCount = await this.prismaService.userPasskeys.count({where: {user_id: userId}});
-        if (passkeyCount > 0) methods.push("passkey");
-
-        const totp = await this.prismaService.userTotpSecret.findUnique({
-            where: {user_id: userId},
-            select: {confirmed_at: true},
-        });
-        if (totp?.confirmed_at) methods.push("totp");
-
-        const unusedBackup = await this.prismaService.mfaBackupCodes.count({
-            where: {user_id: userId, used_at: null},
-        });
-        if (unusedBackup > 0) methods.push("backup_code");
-        return methods;
-    }
-
-    private async generateMfaChallengeToken(userId: string): Promise<string> {
-        // Persist a per-challenge row so we can enforce single-use and cap the
-        // number of attempts. The jti in the JWT is the row primary key.
-        const jti = crypto.randomUUID();
-        await this.prismaService.mfaChallengeTokens.create({
-            data: {
-                id: jti,
-                user_id: userId,
-                attempts_remaining: MFA_CHALLENGE_MAX_ATTEMPTS,
-                expires_at: new Date(Date.now() + MFA_CHALLENGE_TTL_MS),
-            },
-        });
-        return this.jwtService.signAsync(
-            {sub: userId},
-            {audience: MFA_CHALLENGE_AUDIENCE, expiresIn: MFA_CHALLENGE_EXPIRES_IN, jwtid: jti},
-        );
     }
 
     private toUserEntity(user: Users): UserEntity {

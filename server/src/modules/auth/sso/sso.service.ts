@@ -6,7 +6,6 @@ import {
     NotFoundException,
     UnauthorizedException,
 } from "@nestjs/common";
-import {JwtService} from "@nestjs/jwt";
 import crypto from "crypto";
 import {PrismaService} from "../../helper/prisma.service";
 import {InstanceConfigService} from "../../helper/instance-config.service";
@@ -23,10 +22,8 @@ import {
     SSO_STATE_PURPOSE_LOGIN,
     SSO_STATE_TTL_MS,
 } from "./sso.constants";
-import {MFA_CHALLENGE_AUDIENCE, MFA_CHALLENGE_EXPIRES_IN, MFA_CHALLENGE_MAX_ATTEMPTS} from "../mfa/mfa.constants";
+import {MfaChallengeService} from "../mfa/mfa-challenge.service";
 import type {MfaMethod} from "../mfa/mfa-factor.interface";
-
-const MFA_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 export type SsoStartMode = "login" | "link";
 
@@ -56,7 +53,7 @@ export class SsoService {
         private readonly oidcProvider: OidcProviderService,
         private readonly oauth2Provider: OAuth2ProviderService,
         private readonly authService: AuthService,
-        private readonly jwtService: JwtService,
+        private readonly mfaChallengeService: MfaChallengeService,
     ) {}
 
     async startLogin(slug: string): Promise<string> {
@@ -336,8 +333,8 @@ export class SsoService {
         const userEntity = UserService.toUserEntity(user as any);
 
         if (user.mfa_enabled) {
-            const methods = await this.enrolledMfaMethods(user.id);
-            const challengeToken = await this.generateMfaChallengeToken(user.id);
+            const methods = await this.mfaChallengeService.getEnrolledMethods(user.id);
+            const challengeToken = await this.mfaChallengeService.generateChallengeToken(user.id);
             return {kind: "mfa_required", challengeToken, methods};
         }
 
@@ -392,38 +389,6 @@ export class SsoService {
             .replace(/^-+|-+$/g, "");
         if (stripped.length >= 3) return stripped;
         return `user-${crypto.randomBytes(3).toString("hex")}`;
-    }
-
-    private async enrolledMfaMethods(userId: string): Promise<MfaMethod[]> {
-        const methods: MfaMethod[] = [];
-        const passkeyCount = await this.prisma.userPasskeys.count({where: {user_id: userId}});
-        if (passkeyCount > 0) methods.push("passkey");
-        const totp = await this.prisma.userTotpSecret.findUnique({
-            where: {user_id: userId},
-            select: {confirmed_at: true},
-        });
-        if (totp?.confirmed_at) methods.push("totp");
-        const unusedBackup = await this.prisma.mfaBackupCodes.count({
-            where: {user_id: userId, used_at: null},
-        });
-        if (unusedBackup > 0) methods.push("backup_code");
-        return methods;
-    }
-
-    private async generateMfaChallengeToken(userId: string): Promise<string> {
-        const jti = crypto.randomUUID();
-        await this.prisma.mfaChallengeTokens.create({
-            data: {
-                id: jti,
-                user_id: userId,
-                attempts_remaining: MFA_CHALLENGE_MAX_ATTEMPTS,
-                expires_at: new Date(Date.now() + MFA_CHALLENGE_TTL_MS),
-            },
-        });
-        return this.jwtService.signAsync(
-            {sub: userId},
-            {audience: MFA_CHALLENGE_AUDIENCE, expiresIn: MFA_CHALLENGE_EXPIRES_IN, jwtid: jti},
-        );
     }
 
     private toIdentityEntity(row: {
