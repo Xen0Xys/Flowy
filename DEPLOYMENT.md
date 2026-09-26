@@ -257,6 +257,7 @@ Adjust the realm segment for Authentik (`https://sso.corp.example.com/applicatio
 - If `ALLOW_SIGNUP=true` **and** the global `REGISTRATION_ENABLED` flag is on, a new account is created transparently on first SSO login. The username is derived from the provider's username claim (falling back to the local part of the email) with a numeric suffix if it collides.
 - Users who have enabled MFA on Flowy still see the MFA challenge after a successful SSO login. SSO does not bypass MFA.
 - An account created through SSO has no password. Its owner can add a password later from `Settings > Profile > Security`.
+- `ALLOWED_EMAIL_DOMAINS` is only enforced when an SSO identity is created or linked. Tightening the allowlist after the fact does not evict users whose original email is no longer in the list; unlink them from `Settings > Profile > Linked accounts` (as the user) or delete the account (as instance owner) if you want to fully lock them out.
 
 ## 3. `docker-compose.yaml` variant (prebuilt images)
 
