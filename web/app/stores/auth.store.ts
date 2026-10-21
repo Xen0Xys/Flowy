@@ -8,6 +8,7 @@ import {useFamilyStore} from "~/stores/family.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {useTransactionStore} from "~/stores/transaction.store";
 import {useUserStore} from "~/stores/user.store";
+import {COOKIE_TOKEN_KEY, LEGACY_COOKIE_TOKEN_KEY} from "~/utils/auth";
 import {i18nT} from "~/utils/i18n";
 
 export type LoginCredentials = {
@@ -28,8 +29,6 @@ export class MfaChallengeExpiredError extends Error {
         this.name = "MfaChallengeExpiredError";
     }
 }
-
-const COOKIE_TOKEN_KEY = "flowy:token";
 
 function isExpiredChallengeError(err: unknown): boolean {
     const status =
@@ -75,6 +74,12 @@ export const useAuthStore = defineStore("auth", {
         loadFromStorage() {
             try {
                 const cookie = useCookie(COOKIE_TOKEN_KEY);
+                const legacyCookie = useCookie(LEGACY_COOKIE_TOKEN_KEY);
+                if (!cookie.value && legacyCookie.value) {
+                    this.setToken(legacyCookie.value);
+                    legacyCookie.value = null;
+                    return;
+                }
                 this.token = cookie.value ?? null;
             } catch {
                 this.token = null;
@@ -102,6 +107,7 @@ export const useAuthStore = defineStore("auth", {
             try {
                 const cookie = useCookie(COOKIE_TOKEN_KEY);
                 cookie.value = null;
+                useCookie(LEGACY_COOKIE_TOKEN_KEY).value = null;
             } catch {
                 return;
             }

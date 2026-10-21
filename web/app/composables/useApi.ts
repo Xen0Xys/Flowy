@@ -1,6 +1,8 @@
+import {COOKIE_TOKEN_KEY} from "~/utils/auth";
+
 export function useApi() {
     // reactive cookie token (SSR-safe)
-    const token = useCookie("flowy:token");
+    const token = useCookie(COOKIE_TOKEN_KEY);
 
     // optional: read base URL from runtime config if defined
     const config = useRuntimeConfig?.() ?? null;
