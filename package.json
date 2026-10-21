@@ -19,5 +19,8 @@
     },
     "peerDependencies": {
         "typescript": "6.0.3"
+    },
+    "overrides": {
+        "xss": "1.0.15"
     }
 }
