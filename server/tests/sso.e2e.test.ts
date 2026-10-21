@@ -1,16 +1,30 @@
 // oxlint-disable-next-line import/no-unassigned-import
 import "reflect-metadata";
 // @ts-ignore
-import {afterAll, beforeAll, beforeEach, describe, expect, test} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, spyOn, test} from "bun:test";
+import crypto from "crypto";
 import {FastifyAdapter, NestFastifyApplication} from "@nestjs/platform-fastify";
 import {ConfigKey, PrismaClient} from "../prisma/generated/client";
 import {loadServer} from "../src/app";
 import {AppModule} from "../src/app.module";
+import {OAuth2ProviderService} from "../src/modules/auth/sso/providers/oauth2-provider.service";
+import type {SsoNormalizedProfile} from "../src/modules/auth/sso/providers/oidc-provider.service";
+import {SsoCleanupService} from "../src/modules/auth/sso/sso-cleanup.service";
 import {PrismaPg} from "@prisma/adapter-pg";
 import {Test} from "@nestjs/testing";
 import {Server} from "node:http";
 import request from "supertest";
 import {buildRegisterPayload, createCsrfAgent, ensureInstanceConfig} from "./test-utils";
+
+function pkcePair(): {verifier: string; challenge: string} {
+    const verifier = crypto.randomBytes(32).toString("base64url");
+    const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+    return {verifier, challenge};
+}
+
+function hashTicket(ticket: string): string {
+    return crypto.createHash("sha256").update(ticket).digest("hex");
+}
 
 const SSO_ENV_KEYS = [
     "FRONTEND_URL",
@@ -78,6 +92,7 @@ describe("SsoController (e2e)", () => {
     let server: Server;
     let prisma: PrismaClient;
     let agent: ReturnType<typeof request.agent>;
+    let profile: SsoNormalizedProfile;
 
     beforeAll(async () => {
         seedSsoEnv();
@@ -94,9 +109,19 @@ describe("SsoController (e2e)", () => {
         const instance = app.getHttpAdapter().getInstance();
         await instance.ready();
         server = instance.server;
+
+        // Stand-in for the IdP token + userinfo round trip.
+        spyOn(app.get(OAuth2ProviderService), "exchangeCallback").mockImplementation(async () => profile);
     });
 
     beforeEach(async () => {
+        profile = {
+            subject: `remote-${crypto.randomBytes(4).toString("hex")}`,
+            email: `sso-${crypto.randomBytes(4).toString("hex")}@example.com`,
+            username: "sso-user",
+        };
+        await prisma.ssoLoginTickets.deleteMany();
+        await prisma.mfaChallengeTokens.deleteMany();
         await prisma.ssoStates.deleteMany();
         await prisma.userSsoIdentities.deleteMany();
         await prisma.familyInvites.deleteMany();
@@ -129,8 +154,171 @@ describe("SsoController (e2e)", () => {
     });
 
     test("returns 404 for a start on an unknown provider slug", async () => {
-        const res = await agent.get("/auth/sso/does-not-exist/start").redirects(0);
+        const {challenge} = pkcePair();
+        const res = await agent.get(`/auth/sso/does-not-exist/start?challenge=${challenge}`).redirects(0);
         expect(res.status).toBe(404);
+    });
+
+    test("start rejects a missing or malformed client challenge", async () => {
+        const missing = await agent.get("/auth/sso/test-oauth2/start").redirects(0);
+        expect(missing.status).toBe(400);
+        const malformed = await agent.get("/auth/sso/test-oauth2/start?challenge=short").redirects(0);
+        expect(malformed.status).toBe(400);
+        expect(await prisma.ssoStates.count()).toBe(0);
+    });
+
+    async function runLoginFlow(challenge: string): Promise<request.Response> {
+        const start = await agent.get(`/auth/sso/test-oauth2/start?challenge=${challenge}`).redirects(0);
+        expect(start.status).toBe(302);
+        const state = new URL(start.headers.location).searchParams.get("state");
+        expect(state).toBeTruthy();
+        return agent.get(`/auth/sso/test-oauth2/callback?state=${state}&code=provider-code`).redirects(0);
+    }
+
+    function ticketFrom(callback: request.Response): string {
+        expect(callback.status).toBe(302);
+        const location = new URL(callback.headers.location);
+        expect(location.origin + location.pathname).toBe("http://localhost:3000/auth/sso/complete");
+        expect(location.search).toBe("");
+        const ticket = new URLSearchParams(location.hash.slice(1)).get("ticket");
+        expect(typeof ticket).toBe("string");
+        return ticket!;
+    }
+
+    test("callback hands over a fragment ticket that the starting browser exchanges for a session", async () => {
+        const {verifier, challenge} = pkcePair();
+        const callback = await runLoginFlow(challenge);
+        expect(callback.headers["set-cookie"]).toBeUndefined();
+        const ticket = ticketFrom(callback);
+
+        const stored = await prisma.ssoLoginTickets.findMany();
+        expect(stored).toHaveLength(1);
+        expect(stored[0].id).toBe(hashTicket(ticket));
+        expect(stored[0].client_challenge).toBe(challenge);
+
+        const exchange = await agent.post("/auth/sso/exchange").send({ticket, verifier});
+        expect(exchange.status).toBe(200);
+        expect(typeof exchange.body.token).toBe("string");
+        expect(exchange.body.user.email).toBe(profile.email);
+
+        const me = await agent.get("/user/me").set("Authorization", `Bearer ${exchange.body.token}`);
+        expect(me.status).toBe(200);
+    });
+
+    test("ticket is single-use", async () => {
+        const {verifier, challenge} = pkcePair();
+        const ticket = ticketFrom(await runLoginFlow(challenge));
+
+        const first = await agent.post("/auth/sso/exchange").send({ticket, verifier});
+        expect(first.status).toBe(200);
+        const replay = await agent.post("/auth/sso/exchange").send({ticket, verifier});
+        expect(replay.status).toBe(401);
+    });
+
+    test("ticket is rejected without the verifier of the starting browser and burned afterwards", async () => {
+        const {verifier, challenge} = pkcePair();
+        const ticket = ticketFrom(await runLoginFlow(challenge));
+
+        const stolen = await agent.post("/auth/sso/exchange").send({ticket, verifier: pkcePair().verifier});
+        expect(stolen.status).toBe(401);
+        expect(await prisma.ssoLoginTickets.count()).toBe(0);
+
+        const legit = await agent.post("/auth/sso/exchange").send({ticket, verifier});
+        expect(legit.status).toBe(401);
+    });
+
+    test("expired ticket is rejected", async () => {
+        const {verifier, challenge} = pkcePair();
+        const ticket = ticketFrom(await runLoginFlow(challenge));
+        await prisma.ssoLoginTickets.updateMany({data: {expires_at: new Date(Date.now() - 1000)}});
+
+        const exchange = await agent.post("/auth/sso/exchange").send({ticket, verifier});
+        expect(exchange.status).toBe(401);
+    });
+
+    test("exchange validates the payload shape", async () => {
+        const res = await agent.post("/auth/sso/exchange").send({ticket: "nope", verifier: "nope"});
+        expect(res.status).toBe(400);
+    });
+
+    test("exchange returns an MFA challenge when the account requires a second factor", async () => {
+        const {verifier, challenge} = pkcePair();
+        ticketFrom(await runLoginFlow(challenge));
+        await prisma.ssoLoginTickets.deleteMany();
+        await prisma.users.update({where: {email: profile.email!}, data: {mfa_enabled: true}});
+
+        const ticket = ticketFrom(await runLoginFlow(challenge));
+        const exchange = await agent.post("/auth/sso/exchange").send({ticket, verifier});
+        expect(exchange.status).toBe(200);
+        expect(exchange.body.mfaRequired).toBe(true);
+        expect(typeof exchange.body.challengeToken).toBe("string");
+        expect(exchange.body.token).toBeUndefined();
+    });
+
+    test("callback refuses a login state created without a client challenge", async () => {
+        await prisma.ssoStates.create({
+            data: {
+                id: "legacy-state",
+                provider_slug: "test-oauth2",
+                code_verifier: "v".repeat(43),
+                purpose: "login",
+                expires_at: new Date(Date.now() + 60_000),
+            },
+        });
+        const callback = await agent
+            .get("/auth/sso/test-oauth2/callback?state=legacy-state&code=provider-code")
+            .redirects(0);
+        expect(callback.status).toBe(302);
+        const location = new URL(callback.headers.location);
+        expect(location.searchParams.get("status")).toBe("error");
+        expect(location.searchParams.get("code")).toBe("invalid_request");
+        expect(await prisma.ssoLoginTickets.count()).toBe(0);
+    });
+
+    test("link flow still redirects to the profile page without a ticket", async () => {
+        const reg = await agent.post("/auth/register").send(buildRegisterPayload());
+        expect(reg.status).toBe(201);
+        const start = await agent
+            .post("/auth/sso/test-oauth2/link/start")
+            .set("Authorization", `Bearer ${reg.body.token}`);
+        expect(start.status).toBe(201);
+        const state = new URL(start.body.url).searchParams.get("state");
+
+        const callback = await agent
+            .get(`/auth/sso/test-oauth2/callback?state=${state}&code=provider-code`)
+            .redirects(0);
+        expect(callback.status).toBe(302);
+        const location = new URL(callback.headers.location);
+        expect(location.pathname).toBe("/settings/user/profile");
+        expect(location.searchParams.get("sso")).toBe("ok");
+        expect(location.hash).toBe("");
+        expect(await prisma.ssoLoginTickets.count()).toBe(0);
+    });
+
+    test("cleanup purges expired tickets and keeps valid ones", async () => {
+        const reg = await agent.post("/auth/register").send(buildRegisterPayload());
+        const {challenge} = pkcePair();
+        await prisma.ssoLoginTickets.createMany({
+            data: [
+                {
+                    id: hashTicket("expired"),
+                    user_id: reg.body.user.id,
+                    client_challenge: challenge,
+                    expires_at: new Date(Date.now() - 1000),
+                },
+                {
+                    id: hashTicket("valid"),
+                    user_id: reg.body.user.id,
+                    client_challenge: challenge,
+                    expires_at: new Date(Date.now() + 60_000),
+                },
+            ],
+        });
+
+        await app.get(SsoCleanupService).cleanupExpired();
+
+        const remaining = await prisma.ssoLoginTickets.findMany();
+        expect(remaining.map((row) => row.id)).toEqual([hashTicket("valid")]);
     });
 
     test("POST /auth/sso/:slug/link/start requires authentication and rejects unknown slugs", async () => {

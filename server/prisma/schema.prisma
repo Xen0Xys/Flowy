@@ -50,6 +50,7 @@ model Users {
   mfa_challenge_tokens   MfaChallengeTokens[]
   sso_identities         UserSsoIdentities[]
   sso_states             SsoStates[]             @relation("SsoStateLinkUser")
+  sso_login_tickets      SsoLoginTickets[]
   user_settings          UserSettings?
   family_role            UserRoles?
   family_id              String?                 @db.Uuid
@@ -83,18 +84,32 @@ model UserSsoIdentities {
 }
 
 model SsoStates {
-  id            String   @id @db.VarChar(64)
-  provider_slug String   @db.VarChar(64)
-  code_verifier String   @db.VarChar(128)
-  nonce         String?  @db.VarChar(64)
-  purpose       String   @db.VarChar(16)
-  link_user_id  String?  @db.Uuid
-  link_user     Users?   @relation("SsoStateLinkUser", fields: [link_user_id], references: [id], onDelete: Cascade)
-  expires_at    DateTime
-  created_at    DateTime @default(now())
+  id               String   @id @db.VarChar(64)
+  provider_slug    String   @db.VarChar(64)
+  code_verifier    String   @db.VarChar(128)
+  nonce            String?  @db.VarChar(64)
+  purpose          String   @db.VarChar(16)
+  link_user_id     String?  @db.Uuid
+  link_user        Users?   @relation("SsoStateLinkUser", fields: [link_user_id], references: [id], onDelete: Cascade)
+  client_challenge String?  @db.VarChar(64)
+  expires_at       DateTime
+  created_at       DateTime @default(now())
 
   @@index([expires_at])
   @@map("sso_states")
+}
+
+model SsoLoginTickets {
+  id               String   @id @db.VarChar(64)
+  user_id          String   @db.Uuid
+  user             Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  client_challenge String   @db.VarChar(64)
+  expires_at       DateTime
+  created_at       DateTime @default(now())
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("sso_login_tickets")
 }
 
 model UserTotpSecret {

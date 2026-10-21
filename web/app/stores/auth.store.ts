@@ -129,35 +129,52 @@ export const useAuthStore = defineStore("auth", {
                     method: "POST",
                     body: credentials,
                 });
-
-                if (data?.mfaRequired) {
-                    if (!data.challengeToken) {
-                        toast.error(i18nT("auth.store.errors.loginMissingToken"));
-                        throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
-                    }
-                    this.mfaChallenge = {
-                        challengeToken: data.challengeToken,
-                        methods: data.methods ?? ["totp"],
-                    };
-                    return {mfaRequired: true};
-                }
-
-                if (!data || !data.token) {
-                    toast.error(i18nT("auth.store.errors.loginMissingToken"));
-                    throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
-                }
-
-                this.setToken(data.token);
-                this.mfaChallenge = null;
-                const userStore = useUserStore();
-                userStore.user = data.user ?? null;
-                toast.success(i18nT("auth.store.success.connected"));
-                return {mfaRequired: false};
+                return this.applyLoginResponse(data);
             } catch (err: any) {
                 const message = err?.data?.message ?? err?.message ?? i18nT("auth.store.errors.loginFailed");
                 toast.error(message);
                 throw new Error(message, {cause: err});
             }
+        },
+
+        /**
+         * Redeems the single-use ticket handed over by the SSO callback. Errors
+         * are rethrown untouched so the caller can render them inline.
+         */
+        async exchangeSsoTicket(ticket: string, verifier: string): Promise<{mfaRequired: boolean}> {
+            const {apiFetch} = useApi();
+            this.mfaChallenge = null;
+            const data = await apiFetch<any>("/auth/sso/exchange", {
+                method: "POST",
+                body: {ticket, verifier},
+            });
+            return this.applyLoginResponse(data);
+        },
+
+        applyLoginResponse(data: any): {mfaRequired: boolean} {
+            if (data?.mfaRequired) {
+                if (!data.challengeToken) {
+                    toast.error(i18nT("auth.store.errors.loginMissingToken"));
+                    throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
+                }
+                this.mfaChallenge = {
+                    challengeToken: data.challengeToken,
+                    methods: data.methods ?? ["totp"],
+                };
+                return {mfaRequired: true};
+            }
+
+            if (!data || !data.token) {
+                toast.error(i18nT("auth.store.errors.loginMissingToken"));
+                throw new Error(i18nT("auth.store.errors.loginResponseMissingToken"));
+            }
+
+            this.setToken(data.token);
+            this.mfaChallenge = null;
+            const userStore = useUserStore();
+            userStore.user = data.user ?? null;
+            toast.success(i18nT("auth.store.success.connected"));
+            return {mfaRequired: false};
         },
 
         async verifyMfa(payload: {code: string; method: MfaMethod}): Promise<{mfaAutoDisabled: boolean}> {

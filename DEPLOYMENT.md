@@ -99,6 +99,8 @@ BACKEND_URL=https://flowy.example.com/api
 
 `FRONTEND_URL` and `BACKEND_URL` can point to the same host with a path prefix (single-domain setup) or to distinct hosts (frontend and backend on separate subdomains).
 
+The callback hands the session over to the frontend with a single-use ticket bound to the browser tab that started the login (PKCE, RFC 7636), redeemed through `POST /auth/sso/exchange`. No cookie is shared between the two hosts, but `CORS_ORIGINS` must list the frontend origin for that request to pass.
+
 **Common fields** (every provider):
 
 | Variable                        | Required                                                           | Description                                                                                                                             |
@@ -336,6 +338,8 @@ In production, deploy this file via the Coolify UI with all required `SERVICE_*`
 | `xen0xys/flowy-server:latest` not found                           | Image unavailable                                            | Use `docker-compose.dev.yaml` or publish images to a registry                                                                                |
 | SSO login: `redirect_uri_mismatch`                                | `BACKEND_URL` missing or misconfigured                       | Set `BACKEND_URL` to the public backend URL (see §2.3), then restart                                                                         |
 | SSO providers ignored on startup                                  | `SSO_*` vars not propagated to the container                 | For Compose: `.env` is loaded via `env_file:`. For Coolify: add short-form `- SSO_<N>_*` entries in `flowy-server` `environment:` (see §2.2) |
+| SSO login: "started in another tab or browser"                    | The provider page was opened in another tab or browser       | Start the SSO login again and complete it in the same tab                                                                                    |
+| SSO login: "Invalid or expired sign-in link"                      | Login ticket older than 60 s or already used                 | Start the SSO login again                                                                                                                    |
 | Boot fails: `WEBAUTHN_RP_ID must be set explicitly in production` | Variable missing; Docker defaults `NODE_ENV` to `production` | Set `WEBAUTHN_RP_ID=<frontend-hostname>` in `.env` (no scheme, no port)                                                                      |
 
 ---

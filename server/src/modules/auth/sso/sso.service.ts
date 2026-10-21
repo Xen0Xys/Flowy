@@ -11,8 +11,7 @@ import {Prisma, Users} from "../../../../prisma/generated/client";
 import {ConfigKey} from "../../../../prisma/generated/enums";
 import {PrismaService} from "../../helper/prisma.service";
 import {InstanceConfigService} from "../../helper/instance-config.service";
-import {AuthService} from "../auth.service";
-import {UserService} from "../../users/user/user.service";
+import {AuthService, LoginResponse} from "../auth.service";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
 import {SsoConfigService, SsoProviderConfig} from "./sso-config.service";
 import {OidcProviderService, SsoNormalizedProfile} from "./providers/oidc-provider.service";
@@ -23,16 +22,12 @@ import {
     SSO_STATE_PURPOSE_LINK,
     SSO_STATE_PURPOSE_LOGIN,
     SSO_STATE_TTL_MS,
+    SSO_TICKET_TTL_MS,
 } from "./sso.constants";
-import {MfaChallengeService} from "../mfa/mfa-challenge.service";
-import type {MfaMethod} from "../mfa/mfa-factor.interface";
 
 export type SsoStartMode = "login" | "link";
 
-export type SsoOutcome =
-    | {kind: "authenticated"; token: string; user: UserEntity}
-    | {kind: "mfa_required"; challengeToken: string; methods: MfaMethod[]}
-    | {kind: "linked"; identity: SsoIdentityEntity};
+export type SsoOutcome = {kind: "ticket"; ticket: string} | {kind: "linked"; identity: SsoIdentityEntity};
 
 interface SsoStateRow {
     id: string;
@@ -41,7 +36,12 @@ interface SsoStateRow {
     nonce: string | null;
     purpose: string;
     link_user_id: string | null;
+    client_challenge: string | null;
     expires_at: Date;
+}
+
+function sha256(value: string): Buffer {
+    return crypto.createHash("sha256").update(value).digest();
 }
 
 @Injectable()
@@ -55,17 +55,16 @@ export class SsoService {
         private readonly oidcProvider: OidcProviderService,
         private readonly oauth2Provider: OAuth2ProviderService,
         private readonly authService: AuthService,
-        private readonly mfaChallengeService: MfaChallengeService,
     ) {}
 
-    async startLogin(slug: string): Promise<string> {
+    async startLogin(slug: string, clientChallenge: string): Promise<string> {
         const provider = this.requireProvider(slug);
-        return this.buildAuthorizationUrl(provider, SSO_STATE_PURPOSE_LOGIN, null);
+        return this.buildAuthorizationUrl(provider, SSO_STATE_PURPOSE_LOGIN, null, clientChallenge);
     }
 
     async startLink(slug: string, user: UserEntity): Promise<string> {
         const provider = this.requireProvider(slug);
-        return this.buildAuthorizationUrl(provider, SSO_STATE_PURPOSE_LINK, user.id);
+        return this.buildAuthorizationUrl(provider, SSO_STATE_PURPOSE_LINK, user.id, null);
     }
 
     async handleCallback(slug: string, stateParam: string, code: string, callbackUrl: URL): Promise<SsoOutcome> {
@@ -81,9 +80,46 @@ export class SsoService {
             if (state.link_user_id) {
                 throw new BadRequestException("Invalid callback: login state carries a link user id");
             }
-            return this.resolveOrCreateUser(provider, profile);
+            if (!state.client_challenge) {
+                throw new BadRequestException("Invalid callback: login state carries no client challenge");
+            }
+            const user = await this.resolveOrCreateUser(provider, profile);
+            const ticket = await this.issueTicket(user.id, state.client_challenge);
+            return {kind: "ticket", ticket};
         }
         throw new BadRequestException("SSO state has an unknown purpose");
+    }
+
+    /**
+     * Redeems a login ticket issued by the callback. The ticket is consumed
+     * before any check so each one gets a single attempt, then the verifier
+     * must hash to the challenge sent by the browser that started the flow.
+     */
+    async exchangeTicket(ticket: string, verifier: string): Promise<LoginResponse> {
+        const invalid = new UnauthorizedException("Invalid or expired SSO ticket");
+        const row = await this.prisma.ssoLoginTickets
+            .delete({where: {id: sha256(ticket).toString("hex")}})
+            .catch((err: unknown) => {
+                if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") return null;
+                throw err;
+            });
+        if (!row) {
+            this.logger.warn("sso.exchange rejected reason=unknown_ticket");
+            throw invalid;
+        }
+        if (row.expires_at.getTime() < Date.now()) {
+            this.logger.warn(`sso.exchange rejected actor=${row.user_id} reason=expired`);
+            throw invalid;
+        }
+        const expected = Buffer.from(row.client_challenge, "utf-8");
+        const actual = Buffer.from(sha256(verifier).toString("base64url"), "utf-8");
+        if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+            this.logger.warn(`sso.exchange rejected actor=${row.user_id} reason=verifier_mismatch`);
+            throw invalid;
+        }
+        const user = await this.prisma.users.findUnique({where: {id: row.user_id}});
+        if (!user) throw invalid;
+        return this.authService.completeLogin(user);
     }
 
     async listIdentitiesFor(user: UserEntity): Promise<SsoIdentityEntity[]> {
@@ -124,6 +160,7 @@ export class SsoService {
         provider: SsoProviderConfig,
         purpose: string,
         linkUserId: string | null,
+        clientChallenge: string | null,
     ): Promise<string> {
         const stateId = crypto.randomBytes(24).toString("base64url");
         const callbackUrl = this.config.callbackUrl(provider.slug);
@@ -151,6 +188,7 @@ export class SsoService {
                 nonce: nonce,
                 purpose,
                 link_user_id: linkUserId,
+                client_challenge: clientChallenge,
                 expires_at: new Date(Date.now() + SSO_STATE_TTL_MS),
             },
         });
@@ -203,7 +241,20 @@ export class SsoService {
         return row;
     }
 
-    private async resolveOrCreateUser(provider: SsoProviderConfig, profile: SsoNormalizedProfile): Promise<SsoOutcome> {
+    private async issueTicket(userId: string, clientChallenge: string): Promise<string> {
+        const ticket = crypto.randomBytes(32).toString("base64url");
+        await this.prisma.ssoLoginTickets.create({
+            data: {
+                id: sha256(ticket).toString("hex"),
+                user_id: userId,
+                client_challenge: clientChallenge,
+                expires_at: new Date(Date.now() + SSO_TICKET_TTL_MS),
+            },
+        });
+        return ticket;
+    }
+
+    private async resolveOrCreateUser(provider: SsoProviderConfig, profile: SsoNormalizedProfile): Promise<Users> {
         if (!profile.subject) throw new UnauthorizedException("SSO provider returned no subject");
 
         // Branch 1: existing identity → login
@@ -223,7 +274,7 @@ export class SsoService {
                 data: {last_login_at: new Date()},
             });
             this.logger.log(`actor=${user.id} action=sso.login provider=${provider.slug}`);
-            return this.finalizeLogin(user);
+            return user;
         }
 
         if (!profile.email) {
@@ -287,7 +338,7 @@ export class SsoService {
             throw this.translateIdentityUniqueViolation(err, "sso-signup", provider.slug);
         }
         this.logger.log(`actor=${created.id} action=sso.signup provider=${provider.slug}`);
-        return this.finalizeLogin(created);
+        return created;
     }
 
     private async linkIdentity(
@@ -348,19 +399,6 @@ export class SsoService {
             return new ConflictException("You already have a linked identity for this provider");
         }
         return new ConflictException("This SSO identity is already linked to another account");
-    }
-
-    private async finalizeLogin(user: Users): Promise<SsoOutcome> {
-        const userEntity = UserService.toUserEntity(user);
-
-        if (user.mfa_enabled) {
-            const methods = await this.mfaChallengeService.getEnrolledMethods(user.id);
-            const challengeToken = await this.mfaChallengeService.generateChallengeToken(user.id);
-            return {kind: "mfa_required", challengeToken, methods};
-        }
-
-        const token = await this.authService.generateToken(userEntity);
-        return {kind: "authenticated", token, user: userEntity};
     }
 
     private assertDomainAllowed(provider: SsoProviderConfig, email: string): void {

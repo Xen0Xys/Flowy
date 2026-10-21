@@ -11,9 +11,10 @@ export class SsoCleanupService {
     @Cron(CronExpression.EVERY_10_MINUTES)
     async cleanupExpired(): Promise<void> {
         const now = new Date();
-        const result = await this.prisma.ssoStates.deleteMany({where: {expires_at: {lt: now}}});
-        if (result.count > 0) {
-            this.logger.log(`Expired SSO states purged count=${result.count}`);
+        const states = await this.prisma.ssoStates.deleteMany({where: {expires_at: {lt: now}}});
+        const tickets = await this.prisma.ssoLoginTickets.deleteMany({where: {expires_at: {lt: now}}});
+        if (states.count > 0 || tickets.count > 0) {
+            this.logger.log(`Expired SSO states purged count=${states.count} tickets=${tickets.count}`);
         }
     }
 }

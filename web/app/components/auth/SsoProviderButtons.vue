@@ -24,8 +24,8 @@ onMounted(async () => {
     }
 });
 
-function openProvider(slug: string) {
-    const url = store.buildLoginStartUrl(slug);
+async function openProvider(slug: string) {
+    const url = await store.prepareLoginStartUrl(slug);
     window.location.assign(url);
 }
 </script>

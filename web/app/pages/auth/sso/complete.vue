@@ -3,11 +3,8 @@ import {onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {toast} from "vue-sonner";
 import {useRoute, useRouter} from "#app";
-import {useAuthStore, type MfaMethod} from "@/stores/auth.store";
-import {useUserStore} from "@/stores/user.store";
-import {SSO_MFA_COOKIE} from "@/utils/sso";
-
-const KNOWN_MFA_METHODS: readonly MfaMethod[] = ["totp", "backup_code", "passkey"];
+import {useAuthStore} from "@/stores/auth.store";
+import {SSO_VERIFIER_STORAGE_KEY} from "@/utils/sso";
 
 definePageMeta({
     layout: "auth",
@@ -17,68 +14,37 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const userStore = useUserStore();
 const {t} = useI18n();
 
 const error = ref<string | null>(null);
 
-function readMfaCookie(): {challengeToken: string; methods: MfaMethod[]} | null {
-    if (import.meta.server) return null;
-    const raw = document.cookie
-        .split(";")
-        .map((entry) => entry.trim())
-        .find((entry) => entry.startsWith(`${SSO_MFA_COOKIE}=`));
-    if (!raw) return null;
-    try {
-        const value = decodeURIComponent(raw.split("=")[1] ?? "");
-        const decoded = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
-        const parsed = JSON.parse(decoded);
-        if (parsed && typeof parsed.challengeToken === "string" && Array.isArray(parsed.methods)) {
-            const methods = (parsed.methods as unknown[]).filter(
-                (entry): entry is MfaMethod =>
-                    typeof entry === "string" && (KNOWN_MFA_METHODS as readonly string[]).includes(entry),
-            );
-            return {challengeToken: parsed.challengeToken, methods};
-        }
-    } catch {
-        return null;
-    }
-    return null;
+function takeTicket(): string | null {
+    if (!window.location.hash) return null;
+    const ticket = new URLSearchParams(window.location.hash.slice(1)).get("ticket");
+    // Drop the ticket from the address bar and history before anything else.
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    return ticket;
 }
 
-function clearMfaCookie() {
-    if (import.meta.server) return;
-    document.cookie = `${SSO_MFA_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+function takeVerifier(): string | null {
+    const verifier = sessionStorage.getItem(SSO_VERIFIER_STORAGE_KEY);
+    sessionStorage.removeItem(SSO_VERIFIER_STORAGE_KEY);
+    return verifier;
 }
 
-async function handleOk() {
-    authStore.loadFromStorage();
-    if (!authStore.isAuthenticated) {
-        error.value = t("sso.errors.tokenMissing");
+async function handleTicket(ticket: string) {
+    const verifier = takeVerifier();
+    if (!verifier) {
+        error.value = t("sso.errors.sessionMismatch");
         return;
     }
     try {
-        await userStore.fetchProfile();
-    } catch {
-        error.value = t("sso.errors.profileFetch");
-        return;
+        const {mfaRequired} = await authStore.exchangeSsoTicket(ticket, verifier);
+        await router.replace(mfaRequired ? "/auth/mfa" : "/");
+    } catch (err: any) {
+        const status = err?.statusCode ?? err?.status ?? err?.response?.status;
+        error.value = status === 401 || status === 400 ? t("sso.errors.ticketInvalid") : t("sso.errors.internal");
     }
-    toast.success(t("auth.store.success.connected"));
-    await router.replace("/");
-}
-
-async function handleMfa() {
-    const payload = readMfaCookie();
-    clearMfaCookie();
-    if (!payload) {
-        error.value = t("sso.errors.mfaChallengeMissing");
-        return;
-    }
-    authStore.setMfaChallenge({
-        challengeToken: payload.challengeToken,
-        methods: payload.methods,
-    });
-    await router.replace("/auth/mfa");
 }
 
 function handleError(code: string) {
@@ -88,10 +54,12 @@ function handleError(code: string) {
 }
 
 onMounted(async () => {
-    const status = String(route.query.status ?? "").toLowerCase();
-    if (status === "ok") return handleOk();
-    if (status === "mfa") return handleMfa();
-    if (status === "error") return handleError(String(route.query.code ?? "internal"));
+    const ticket = takeTicket();
+    if (String(route.query.status ?? "").toLowerCase() === "error") {
+        takeVerifier();
+        return handleError(String(route.query.code ?? "internal"));
+    }
+    if (ticket) return handleTicket(ticket);
     error.value = t("sso.errors.invalidCallback");
 });
 

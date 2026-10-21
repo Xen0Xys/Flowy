@@ -1,4 +1,5 @@
 import {
+    Body,
     Controller,
     Delete,
     Get,
@@ -16,16 +17,17 @@ import {
 } from "@nestjs/common";
 import {ApiBearerAuth} from "@nestjs/swagger";
 import {Throttle} from "@nestjs/throttler";
-import {HttpAdapterHost} from "@nestjs/core";
 import type {FastifyReply, FastifyRequest} from "fastify";
 import {JwtAuthGuard} from "../../../common/guards/jwt-auth.guard";
 import {User} from "../../../common/decorators/user.decorator";
 import {UserEntity} from "../../users/user/models/entities/user.entity";
+import {LoginResponse} from "../auth.service";
 import {SsoService} from "./sso.service";
 import {SsoConfigService} from "./sso-config.service";
 import {SsoPublicProviderEntity} from "./models/entities/sso-public-provider.entity";
 import {SsoIdentityEntity} from "./models/entities/sso-identity.entity";
-import {SSO_MFA_COOKIE, SSO_MFA_COOKIE_MAX_AGE, SSO_TOKEN_COOKIE} from "./sso.constants";
+import {SsoStartQueryDto} from "./models/dto/sso-start-query.dto";
+import {SsoExchangeDto} from "./models/dto/sso-exchange.dto";
 
 @Controller("auth/sso")
 export class SsoController {
@@ -34,7 +36,6 @@ export class SsoController {
     constructor(
         private readonly ssoService: SsoService,
         private readonly config: SsoConfigService,
-        private readonly adapterHost: HttpAdapterHost,
     ) {}
 
     @Get("providers")
@@ -70,9 +71,20 @@ export class SsoController {
 
     @Get(":slug/start")
     @Throttle({default: {limit: 20, ttl: 60_000}})
-    async startLogin(@Param("slug") slug: string, @Res() reply: FastifyReply): Promise<void> {
-        const url = await this.ssoService.startLogin(slug);
+    async startLogin(
+        @Param("slug") slug: string,
+        @Query() query: SsoStartQueryDto,
+        @Res() reply: FastifyReply,
+    ): Promise<void> {
+        const url = await this.ssoService.startLogin(slug, query.challenge);
         reply.redirect(url, HttpStatus.FOUND);
+    }
+
+    @Post("exchange")
+    @Throttle({default: {limit: 10, ttl: 60_000}})
+    @HttpCode(HttpStatus.OK)
+    async exchangeTicket(@Body() body: SsoExchangeDto): Promise<LoginResponse> {
+        return this.ssoService.exchangeTicket(body.ticket, body.verifier);
     }
 
     @Post(":slug/link/start")
@@ -112,17 +124,12 @@ export class SsoController {
             if (outcome.kind === "linked") {
                 return this.redirectLinkResult(reply, "ok", outcome.identity.providerSlug);
             }
-            if (outcome.kind === "authenticated") {
-                this.setAuthCookie(reply, outcome.token);
+            if (outcome.kind === "ticket") {
+                // The frontend may live on another host than the API, so no
+                // cookie set here would be readable there: hand over a
+                // single-use ticket it redeems through POST /auth/sso/exchange.
                 return reply.redirect(
-                    this.config.frontendRedirectUrl("/auth/sso/complete", {status: "ok"}),
-                    HttpStatus.FOUND,
-                );
-            }
-            if (outcome.kind === "mfa_required") {
-                this.setMfaCookie(reply, outcome.challengeToken, outcome.methods);
-                return reply.redirect(
-                    this.config.frontendRedirectUrl("/auth/sso/complete", {status: "mfa"}),
+                    this.config.frontendRedirectUrl("/auth/sso/complete", {}, {ticket: outcome.ticket}),
                     HttpStatus.FOUND,
                 );
             }
@@ -132,32 +139,6 @@ export class SsoController {
             this.logger.warn(`SSO callback failed slug=${slug} code=${errorCode} err=${error?.message ?? error}`);
             return this.redirectError(reply, errorCode);
         }
-    }
-
-    private setAuthCookie(reply: FastifyReply, token: string): void {
-        this.adapterHost.httpAdapter.setCookie(reply, SSO_TOKEN_COOKIE, token, {
-            path: "/",
-            httpOnly: false,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 60 * 60 * 24 * 30,
-        });
-    }
-
-    private setMfaCookie(reply: FastifyReply, challengeToken: string, methods: string[]): void {
-        const payload = JSON.stringify({challengeToken, methods});
-        this.adapterHost.httpAdapter.setCookie(
-            reply,
-            SSO_MFA_COOKIE,
-            Buffer.from(payload, "utf-8").toString("base64url"),
-            {
-                path: "/",
-                httpOnly: false,
-                sameSite: "lax",
-                secure: process.env.NODE_ENV === "production",
-                maxAge: SSO_MFA_COOKIE_MAX_AGE,
-            },
-        );
     }
 
     private redirectError(reply: FastifyReply, code: string): void {

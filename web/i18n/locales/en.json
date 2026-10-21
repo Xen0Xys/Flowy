@@ -1660,9 +1660,8 @@
             "unknown_provider": "Unknown SSO provider",
             "unauthorized": "Authentication failed",
             "email_conflict": "This email is already registered on this instance. Sign in with your password and link this provider from your profile.",
-            "tokenMissing": "Session cookie missing after SSO callback",
-            "profileFetch": "Failed to load your profile after SSO login",
-            "mfaChallengeMissing": "MFA challenge missing after SSO login",
+            "ticketInvalid": "Invalid or expired sign-in link. Please try again.",
+            "sessionMismatch": "Sign-in was started in another tab or browser. Please start again from this tab.",
             "listIdentities": "Failed to list linked accounts",
             "unlink": "Failed to unlink SSO provider",
             "listAdminProviders": "Failed to list SSO providers"
