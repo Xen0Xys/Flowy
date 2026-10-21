@@ -11,7 +11,8 @@ export default defineNuxtPlugin((nuxtApp) => {
 
         try {
             const data = JSON.stringify({
-                path: route.fullPath,
+                // Path only: query strings and fragments may carry one-shot secrets.
+                path: route.path,
                 duration: duration,
             });
 
