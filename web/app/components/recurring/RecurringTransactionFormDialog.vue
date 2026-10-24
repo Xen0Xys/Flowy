@@ -2,7 +2,7 @@
 import {computed, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import {toast} from "vue-sonner";
-import {ChevronsUpDown} from "lucide-vue-next";
+import {ChevronsUpDown} from "@lucide/vue";
 import {Icon} from "#components";
 import {
     type CreateRecurringTransactionPayload,
@@ -438,12 +438,12 @@ const close = () => emit("update:open", false);
                                 <Label>{{ t("recurring.form.category") }}</Label>
                                 <TransactionReferenceCombobox
                                     v-model="formData.categoryId"
-                                    :items="categoryItems"
-                                    :placeholder="t('recurring.form.categoryPlaceholder')"
-                                    :empty-text="t('recurring.form.categoryEmpty')"
-                                    :none-label="t('common.none')"
-                                    :create-label="t('recurring.form.createCategory')"
                                     :can-create="canCreateReferences"
+                                    :create-label="t('recurring.form.createCategory')"
+                                    :empty-text="t('recurring.form.categoryEmpty')"
+                                    :items="categoryItems"
+                                    :none-label="t('common.none')"
+                                    :placeholder="t('recurring.form.categoryPlaceholder')"
                                     @create="isCreateCategoryDialogOpen = true" />
                             </div>
 
@@ -451,12 +451,12 @@ const close = () => emit("update:open", false);
                                 <Label>{{ t("recurring.form.merchant") }}</Label>
                                 <TransactionReferenceCombobox
                                     v-model="formData.merchantId"
-                                    :items="merchantItems"
-                                    :placeholder="t('recurring.form.merchantPlaceholder')"
-                                    :empty-text="t('recurring.form.merchantEmpty')"
-                                    :none-label="t('common.none')"
-                                    :create-label="t('recurring.form.createMerchant')"
                                     :can-create="canCreateReferences"
+                                    :create-label="t('recurring.form.createMerchant')"
+                                    :empty-text="t('recurring.form.merchantEmpty')"
+                                    :items="merchantItems"
+                                    :none-label="t('common.none')"
+                                    :placeholder="t('recurring.form.merchantPlaceholder')"
                                     @create="isCreateMerchantDialogOpen = true" />
                             </div>
                         </div>
@@ -490,8 +490,8 @@ const close = () => emit("update:open", false);
 
                         <Transition
                             enter-active-class="transition-opacity duration-150"
-                            leave-active-class="transition-opacity duration-100"
                             enter-from-class="opacity-0"
+                            leave-active-class="transition-opacity duration-100"
                             leave-to-class="opacity-0"
                             mode="out-in">
                             <div v-if="isWeekly" key="weekly" class="grid gap-2">
@@ -536,7 +536,7 @@ const close = () => emit("update:open", false);
                                         </Select>
                                     </div>
 
-                                    <div class="grid gap-2" :class="isMonthAnchored ? '' : 'sm:col-span-2'">
+                                    <div :class="isMonthAnchored ? '' : 'sm:col-span-2'" class="grid gap-2">
                                         <Label for="recurring-day-of-month">
                                             {{ t("recurring.form.dayOfMonth") }}
                                         </Label>
@@ -572,9 +572,9 @@ const close = () => emit("update:open", false);
                                 <ComboboxAnchor as-child>
                                     <ComboboxTrigger as-child>
                                         <Button
+                                            class="text-muted-foreground w-full justify-between font-normal"
                                             type="button"
-                                            variant="outline"
-                                            class="text-muted-foreground w-full justify-between font-normal">
+                                            variant="outline">
                                             <span class="text-foreground truncate">{{ formData.timezone }}</span>
                                             <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -621,7 +621,7 @@ const close = () => emit("update:open", false);
             </ScrollArea>
 
             <DialogFooter class="border-border/60 shrink-0 border-t px-6 pt-3 pb-4">
-                <Button variant="outline" type="button" @click="close">{{ t("common.cancel") }}</Button>
+                <Button type="button" variant="outline" @click="close">{{ t("common.cancel") }}</Button>
                 <Button :disabled="!isValid || isSubmitting" type="button" @click="submit">
                     {{ isSubmitting ? t("common.saving") : t("common.save") }}
                 </Button>

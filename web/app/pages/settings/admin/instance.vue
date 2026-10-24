@@ -25,7 +25,7 @@ import {
 import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue";
 import {toast} from "vue-sonner";
 import {useClipboard} from "@vueuse/core";
-import {ChevronsUpDown} from "lucide-vue-next";
+import {ChevronsUpDown} from "@lucide/vue";
 
 definePageMeta({
     middleware: ["admin"],
@@ -363,8 +363,7 @@ async function copyVersions() {
         </div>
 
         <PasswordConfirmDialog
-            :open="ownerChangeDialogOpen"
-            :title="t('settings.instance.changeOwnerTitle')"
+            :confirm-label="t('common.save')"
             :description="
                 pendingOwner
                     ? t('settings.instance.changeOwnerDescriptionWithTarget', {
@@ -373,10 +372,11 @@ async function copyVersions() {
                       })
                     : t('settings.instance.changeOwnerDescription')
             "
-            :confirm-label="t('common.save')"
             :loading="savingOwner"
+            :open="ownerChangeDialogOpen"
+            :title="t('settings.instance.changeOwnerTitle')"
             input-id="instance-owner-change-password"
-            @update:open="(open) => (open ? (ownerChangeDialogOpen = true) : cancelOwnerChange())"
-            @confirm="confirmOwnerChange" />
+            @confirm="confirmOwnerChange"
+            @update:open="(open) => (open ? (ownerChangeDialogOpen = true) : cancelOwnerChange())" />
     </div>
 </template>

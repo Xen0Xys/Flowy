@@ -1,9 +1,9 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {computed} from "vue";
 import {useMediaQuery} from "@vueuse/core";
 import {useI18n} from "vue-i18n";
 import type {DateRange} from "reka-ui";
-import {Calendar as CalendarIcon} from "lucide-vue-next";
+import {Calendar as CalendarIcon} from "@lucide/vue";
 import {CalendarDate, getLocalTimeZone} from "@internationalized/date";
 
 import {cn} from "@/lib/utils";
@@ -162,50 +162,50 @@ const hasSelection = computed(() => Boolean(internalValue.value?.start || intern
             <PopoverTrigger as-child>
                 <Button
                     id="date"
-                    :variant="'outline'"
                     :class="
                         cn(
                             'w-full justify-start text-left font-normal md:w-[260px]',
                             !internalValue?.start && 'text-muted-foreground',
                         )
-                    ">
+                    "
+                    :variant="'outline'">
                     <CalendarIcon class="mr-2 h-4 w-4" />
                     {{ formattedDate }}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent class="w-auto p-0" align="start">
+            <PopoverContent align="start" class="w-auto p-0">
                 <div class="flex flex-col md:flex-row">
                     <div
+                        :aria-label="t('transactions.filters.presets.title')"
                         class="border-b p-2 md:w-40 md:border-r md:border-b-0"
-                        role="group"
-                        :aria-label="t('transactions.filters.presets.title')">
+                        role="group">
                         <div class="grid grid-cols-2 gap-1 md:flex md:flex-col">
                             <Button
                                 v-for="preset in presets"
                                 :key="preset.key"
                                 :variant="isActivePreset(preset) ? 'secondary' : 'ghost'"
-                                size="sm"
                                 class="justify-start"
+                                size="sm"
                                 type="button"
                                 @click="applyPreset(preset)">
                                 {{ preset.label }}
                             </Button>
                             <Button
                                 v-if="hasSelection"
-                                variant="ghost"
-                                size="sm"
                                 class="justify-start"
+                                size="sm"
                                 type="button"
+                                variant="ghost"
                                 @click="clearRange">
-                                <Icon name="iconoir:cancel" class="mr-1 h-3.5 w-3.5" />
+                                <Icon class="mr-1 h-3.5 w-3.5" name="iconoir:cancel" />
                                 {{ t("transactions.filters.presets.clear") }}
                             </Button>
                         </div>
                     </div>
                     <RangeCalendar
                         v-model="internalValue"
-                        initial-focus
                         :number-of-months="isMobile ? 1 : 2"
+                        initial-focus
                         @update:start-value="(startDate) => (internalValue = {start: startDate})" />
                 </div>
             </PopoverContent>

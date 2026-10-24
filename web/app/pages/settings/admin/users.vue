@@ -18,7 +18,7 @@ import {
     useTable,
     type VisibilityState,
 } from "@tanstack/vue-table";
-import {Copy, Eye, EyeOff, KeyRound, MoreHorizontal, RefreshCw, ShieldOff, Trash2} from "lucide-vue-next";
+import {Copy, Eye, EyeOff, KeyRound, MoreHorizontal, RefreshCw, ShieldOff, Trash2} from "@lucide/vue";
 import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -392,8 +392,8 @@ const copyFamilyId = (id: string) => copyUuid(id, "family");
                             name="iconoir:search" />
                         <Input
                             v-model="globalFilter"
-                            class="pl-9"
-                            :placeholder="t('settings.users.searchPlaceholder')" />
+                            :placeholder="t('settings.users.searchPlaceholder')"
+                            class="pl-9" />
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -728,42 +728,42 @@ const copyFamilyId = (id: string) => copyUuid(id, "family");
         </Dialog>
 
         <PasswordConfirmDialog
-            :open="Boolean(deleteDialogUser)"
-            :title="t('settings.users.deleteUser')"
+            :confirm-label="t('common.delete')"
             :description="
                 deleteDialogUser ? t('settings.users.deletePromptWithName', {username: deleteDialogUser.username}) : ''
             "
-            :confirm-label="t('common.delete')"
             :loading="Boolean(deleteDialogUser && deletingId === deleteDialogUser.id)"
+            :open="Boolean(deleteDialogUser)"
+            :title="t('settings.users.deleteUser')"
             input-id="admin-delete-user-password"
-            @update:open="(open) => !open && (deleteDialogUser = null)"
-            @confirm="handleDelete" />
+            @confirm="handleDelete"
+            @update:open="(open) => !open && (deleteDialogUser = null)" />
 
         <PasswordConfirmDialog
-            :open="resetPasswordConfirmOpen"
-            :title="t('settings.users.confirmResetTitle')"
+            :confirm-label="t('settings.users.resetPassword')"
             :description="
                 resetDialogUser ? t('settings.users.confirmResetDescription', {username: resetDialogUser.username}) : ''
             "
-            :confirm-label="t('settings.users.resetPassword')"
             :loading="isResettingCurrentUser"
+            :open="resetPasswordConfirmOpen"
+            :title="t('settings.users.confirmResetTitle')"
             input-id="admin-reset-password-confirm"
-            @update:open="resetPasswordConfirmOpen = $event"
-            @confirm="handleResetPassword" />
+            @confirm="handleResetPassword"
+            @update:open="resetPasswordConfirmOpen = $event" />
 
         <PasswordConfirmDialog
-            :open="Boolean(resetMfaDialogUser)"
-            :title="t('settings.users.mfa.resetAction')"
+            :confirm-label="t('settings.users.mfa.resetAction')"
             :description="
                 resetMfaDialogUser
                     ? t('settings.users.mfa.resetDescription', {username: resetMfaDialogUser.username})
                     : ''
             "
-            :confirm-label="t('settings.users.mfa.resetAction')"
             :loading="Boolean(resetMfaDialogUser && resettingMfaId === resetMfaDialogUser.id)"
+            :open="Boolean(resetMfaDialogUser)"
+            :title="t('settings.users.mfa.resetAction')"
             input-id="admin-reset-mfa-password"
-            @update:open="(open) => !open && (resetMfaDialogUser = null)"
-            @confirm="handleResetMfa" />
+            @confirm="handleResetMfa"
+            @update:open="(open) => !open && (resetMfaDialogUser = null)" />
     </div>
 </template>
 
