@@ -42,7 +42,7 @@
         "@types/bun": "1.4.3",
         "@types/pg": "8.23.1",
         "@types/supertest": "7.2.1",
-        "prisma": "7.10.0",
+        "prisma": "7.10.1",
         "source-map-support": "0.5.21",
         "supertest": "7.3.1",
         "typescript": "6.0.3"
