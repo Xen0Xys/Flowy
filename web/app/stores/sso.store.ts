@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {toast} from "vue-sonner";
 import {useApi} from "~/composables/useApi";
 import {i18nT} from "~/utils/i18n";
+import {computePkceChallenge, generatePkceVerifier, SSO_VERIFIER_STORAGE_KEY} from "~/utils/sso";
 
 export type SsoPublicProvider = {
     slug: string;
@@ -89,10 +90,13 @@ export const useSsoStore = defineStore("sso", {
             }
         },
 
-        buildLoginStartUrl(slug: string): string {
+        async prepareLoginStartUrl(slug: string): Promise<string> {
             const config = useRuntimeConfig?.() ?? null;
             const base = (config?.public?.apiBase as string | undefined) ?? "";
-            return `${base}/auth/sso/${encodeURIComponent(slug)}/start`;
+            const verifier = generatePkceVerifier();
+            sessionStorage.setItem(SSO_VERIFIER_STORAGE_KEY, verifier);
+            const challenge = await computePkceChallenge(verifier);
+            return `${base}/auth/sso/${encodeURIComponent(slug)}/start?challenge=${challenge}`;
         },
 
         async requestLinkStartUrl(slug: string): Promise<string> {

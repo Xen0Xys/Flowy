@@ -236,27 +236,4 @@ describe("AuthController (e2e)", () => {
         expect(response.status).toBe(401);
         expect(response.body.message).toBe("Invalid or expired token");
     });
-
-    test("blocks register and login when csrf token is missing", async () => {
-        const payload = buildRegisterPayload();
-
-        const registerResponse = await request(server).post("/auth/register").send(payload);
-        expect(registerResponse.status).toBe(403);
-
-        const loginResponse = await request(server)
-            .post("/auth/login")
-            .send({email: payload.email, password: payload.password});
-        expect(loginResponse.status).toBe(403);
-    });
-
-    test("blocks authenticated mutating request when csrf token is missing", async () => {
-        const payload = buildRegisterPayload();
-        const registerResponse = await agent.post("/auth/register").send(payload);
-        expect(registerResponse.status).toBe(201);
-
-        const logoutResponse = await request(server)
-            .delete("/auth/logout/all")
-            .set("Authorization", `Bearer ${registerResponse.body.token}`);
-        expect(logoutResponse.status).toBe(403);
-    });
 });

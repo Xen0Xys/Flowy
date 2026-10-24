@@ -39,7 +39,7 @@ import PasswordConfirmDialog from "@/components/common/PasswordConfirmDialog.vue
 import {useRouter} from "#app";
 import {isValidCurrencyCode, isValidEmail, isValidFamilyName, normalizeCurrencyCode} from "@/lib/validation";
 import {CURRENCY_LOCALES_MAP} from "~/lib/currency";
-import {ChevronsUpDown} from "lucide-vue-next";
+import {ChevronsUpDown} from "@lucide/vue";
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
@@ -627,28 +627,28 @@ onMounted(async () => {
         </div>
 
         <PasswordConfirmDialog
-            :open="isDangerDialogOpen"
-            :title="userStore.isFamilyAdmin ? t('settings.family.deleteFamily') : t('settings.family.leaveFamily')"
+            :confirm-label="userStore.isFamilyAdmin ? t('common.delete') : t('settings.family.leave')"
             :description="
                 userStore.isFamilyAdmin
                     ? t('settings.family.deleteFamilyDescription')
                     : t('settings.family.leaveFamilyDescription')
             "
-            :confirm-label="userStore.isFamilyAdmin ? t('common.delete') : t('settings.family.leave')"
             :loading="familyActionLoading"
+            :open="isDangerDialogOpen"
+            :title="userStore.isFamilyAdmin ? t('settings.family.deleteFamily') : t('settings.family.leaveFamily')"
             input-id="family-danger-password"
-            @update:open="isDangerDialogOpen = $event"
-            @confirm="handleDangerZoneConfirm" />
+            @confirm="handleDangerZoneConfirm"
+            @update:open="isDangerDialogOpen = $event" />
 
         <PasswordConfirmDialog
+            :confirm-label="t('settings.family.remove')"
+            :description="t('settings.family.removeMemberDescription')"
+            :loading="Boolean(removingMemberId)"
             :open="Boolean(memberToRemove)"
             :title="t('settings.family.removeMember')"
-            :description="t('settings.family.removeMemberDescription')"
-            :confirm-label="t('settings.family.remove')"
-            :loading="Boolean(removingMemberId)"
             input-id="family-remove-member-password"
-            @update:open="(open) => !open && (memberToRemove = null)"
-            @confirm="confirmRemoveMember" />
+            @confirm="confirmRemoveMember"
+            @update:open="(open) => !open && (memberToRemove = null)" />
 
         <AlertDialog
             :open="Boolean(inviteToRevoke)"

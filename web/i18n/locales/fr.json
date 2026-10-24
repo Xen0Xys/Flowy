@@ -1660,9 +1660,8 @@
             "unknown_provider": "Fournisseur SSO inconnu",
             "unauthorized": "Échec de l'authentification",
             "email_conflict": "Cet email est déjà utilisé sur cette instance. Connectez-vous par mot de passe puis liez ce fournisseur depuis votre profil.",
-            "tokenMissing": "Cookie de session manquant après le callback SSO",
-            "profileFetch": "Impossible de charger votre profil après le login SSO",
-            "mfaChallengeMissing": "Challenge MFA manquant après le login SSO",
+            "ticketInvalid": "Lien de connexion invalide ou expiré. Veuillez réessayer.",
+            "sessionMismatch": "La connexion a été démarrée dans un autre onglet ou navigateur. Veuillez recommencer depuis cet onglet.",
             "listIdentities": "Impossible de lister les comptes liés",
             "unlink": "Impossible de délier le fournisseur SSO",
             "listAdminProviders": "Impossible de lister les fournisseurs SSO"

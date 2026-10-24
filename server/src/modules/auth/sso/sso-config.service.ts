@@ -129,12 +129,20 @@ export class SsoConfigService implements OnModuleInit {
         return `${base}/auth/sso/${encodeURIComponent(slug)}/callback`;
     }
 
-    frontendRedirectUrl(path: string, query: Record<string, string> = {}): string {
+    frontendRedirectUrl(
+        path: string,
+        query: Record<string, string> = {},
+        fragment: Record<string, string> = {},
+    ): string {
         const base = this.frontendUrlValue.replace(/\/+$/, "");
         const url = new URL(`${base}${path.startsWith("/") ? path : `/${path}`}`);
         for (const [key, value] of Object.entries(query)) {
             url.searchParams.set(key, value);
         }
+        // Fragment values never reach a server or a Referer header, which keeps
+        // one-shot secrets out of access logs.
+        const hash = new URLSearchParams(fragment).toString();
+        if (hash) url.hash = hash;
         return url.toString();
     }
 

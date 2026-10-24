@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, nextTick, onMounted, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
+import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {useReferenceStore} from "~/stores/reference.store";
 import {Card, CardContent} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
@@ -26,10 +27,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {Edit, MoreHorizontal, Trash2} from "lucide-vue-next";
+import {Edit, MoreHorizontal, Trash2} from "@lucide/vue";
 import CategoryDialog from "~/components/references/CategoryDialog.vue";
 import MerchantDialog from "~/components/references/MerchantDialog.vue";
-import type {TransactionCategory, TransactionMerchant} from "~/stores/reference.store";
 import {Icon} from "#components";
 
 const referenceStore = useReferenceStore();
@@ -283,15 +283,15 @@ async function confirmBulkDeleteMerchants() {
             <Tabs v-model="activeTab" class="flex min-h-0 flex-1 flex-col gap-4">
                 <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <TabsList>
-                        <TabsTrigger value="categories" class="gap-2">
+                        <TabsTrigger class="gap-2" value="categories">
                             {{ t("settings.references.categories") }}
-                            <Badge variant="secondary" class="ml-0.5">
+                            <Badge class="ml-0.5" variant="secondary">
                                 {{ referenceStore.categories.length }}
                             </Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="merchants" class="gap-2">
+                        <TabsTrigger class="gap-2" value="merchants">
                             {{ t("settings.references.merchants") }}
-                            <Badge variant="secondary" class="ml-0.5">
+                            <Badge class="ml-0.5" variant="secondary">
                                 {{ referenceStore.merchants.length }}
                             </Badge>
                         </TabsTrigger>
@@ -306,7 +306,7 @@ async function confirmBulkDeleteMerchants() {
                     </Button>
                 </div>
 
-                <TabsContent value="categories" class="mt-0 flex min-h-0 flex-1 flex-col">
+                <TabsContent class="mt-0 flex min-h-0 flex-1 flex-col" value="categories">
                     <Card
                         v-if="referenceStore.categories.length === 0"
                         class="flex min-h-0 flex-1 flex-col items-center justify-center">
@@ -335,7 +335,7 @@ async function confirmBulkDeleteMerchants() {
                                 <Icon
                                     class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
                                     name="iconoir:search" />
-                                <Input v-model="searchQuery" class="pl-9" :placeholder="searchPlaceholder" />
+                                <Input v-model="searchQuery" :placeholder="searchPlaceholder" class="pl-9" />
                             </div>
                         </div>
 
@@ -387,8 +387,8 @@ async function confirmBulkDeleteMerchants() {
                                     <TableRow
                                         v-for="category in filteredCategories"
                                         :key="category.id"
-                                        class="hover:bg-muted/50 cursor-pointer"
                                         :data-state="selectedCategoryIds.has(category.id) ? 'selected' : undefined"
+                                        class="hover:bg-muted/50 cursor-pointer"
                                         @click="openCategoryDialog(category)">
                                         <TableCell class="w-10" @click.stop>
                                             <Checkbox
@@ -448,7 +448,7 @@ async function confirmBulkDeleteMerchants() {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="merchants" class="mt-0 flex min-h-0 flex-1 flex-col">
+                <TabsContent class="mt-0 flex min-h-0 flex-1 flex-col" value="merchants">
                     <Card
                         v-if="referenceStore.merchants.length === 0"
                         class="flex min-h-0 flex-1 flex-col items-center justify-center">
@@ -477,7 +477,7 @@ async function confirmBulkDeleteMerchants() {
                                 <Icon
                                     class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
                                     name="iconoir:search" />
-                                <Input v-model="searchQuery" class="pl-9" :placeholder="searchPlaceholder" />
+                                <Input v-model="searchQuery" :placeholder="searchPlaceholder" class="pl-9" />
                             </div>
                         </div>
 
@@ -529,8 +529,8 @@ async function confirmBulkDeleteMerchants() {
                                     <TableRow
                                         v-for="merchant in filteredMerchants"
                                         :key="merchant.id"
-                                        class="hover:bg-muted/50 cursor-pointer"
                                         :data-state="selectedMerchantIds.has(merchant.id) ? 'selected' : undefined"
+                                        class="hover:bg-muted/50 cursor-pointer"
                                         @click="openMerchantDialog(merchant)">
                                         <TableCell class="w-10" @click.stop>
                                             <Checkbox

@@ -100,6 +100,14 @@ export class AuthService {
         const valid = await argon2.verify(user.password, password);
         if (!valid) throw new UnauthorizedException("Invalid email or password");
 
+        return this.completeLogin(user);
+    }
+
+    /**
+     * Final step shared by every primary login (password, SSO): issue an MFA
+     * challenge when the account requires one, a session token otherwise.
+     */
+    async completeLogin(user: Users): Promise<LoginResponse> {
         if (user.mfa_enabled) {
             const methods = await this.mfaChallengeService.getEnrolledMethods(user.id);
             const challengeToken = await this.mfaChallengeService.generateChallengeToken(user.id);

@@ -66,6 +66,7 @@ export default defineNuxtConfig({
             include: [
                 "@internationalized/date",
                 "@lucide/vue",
+                "@simplewebauthn/browser",
                 "@tanstack/vue-table",
                 "@unovis/ts",
                 "@unovis/vue",
@@ -73,8 +74,8 @@ export default defineNuxtConfig({
                 "canvas-confetti",
                 "class-variance-authority",
                 "clsx",
-                "dompurify",
                 "d3-shape",
+                "dompurify",
                 "lucide-vue-next",
                 "reka-ui",
                 "reka-ui/date",

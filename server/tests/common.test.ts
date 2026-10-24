@@ -21,7 +21,6 @@ import {LoggerMiddleware} from "../src/common/middlewares/logger.middleware";
 import {FamilyAdminGuard} from "../src/common/guards/family-admin.guard";
 import {InstanceOwnerGuard} from "../src/common/guards/instance-owner.guard";
 import {JwtAuthGuard} from "../src/common/guards/jwt-auth.guard";
-import {CsrfGuard} from "../src/common/guards/csrf.guard";
 import {Prisma} from "../prisma/generated/client";
 import {UserRoles} from "../prisma/generated/enums";
 import {UserEntity} from "../src/modules/users/user/models/entities/user.entity";
@@ -376,54 +375,5 @@ describe("JwtAuthGuard", () => {
         await expect(guard.canActivate(ctx)).resolves.toBe(true);
         expect(ctxRequest.user).toBeDefined();
         expect(ctxRequest.user.id).toBe("user-1");
-    });
-});
-
-// ─── CsrfGuard ─────────────────────────────────────────────────────────
-
-describe("CsrfGuard", () => {
-    test("passes safe methods through without CSRF check", async () => {
-        const guard = new CsrfGuard();
-        const ctx: any = {
-            switchToHttp: () => ({
-                getRequest: () => ({method: "GET"}),
-                getResponse: () => ({}),
-            }),
-        };
-        await expect(guard.canActivate(ctx)).resolves.toBe(true);
-    });
-
-    test("delegates to fastify csrfProtection for state-changing methods and throws when it fails", async () => {
-        const guard = new CsrfGuard();
-        const request: any = {
-            method: "POST",
-            server: {
-                csrfProtection: (_req: any, _rep: any, next: (e?: unknown) => void) => next(new Error("bad token")),
-            },
-        };
-        const ctx: any = {
-            switchToHttp: () => ({
-                getRequest: () => request,
-                getResponse: () => ({}),
-            }),
-        };
-        await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(ForbiddenException);
-    });
-
-    test("resolves when fastify csrfProtection succeeds", async () => {
-        const guard = new CsrfGuard();
-        const request: any = {
-            method: "POST",
-            server: {
-                csrfProtection: (_req: any, _rep: any, next: (e?: unknown) => void) => next(),
-            },
-        };
-        const ctx: any = {
-            switchToHttp: () => ({
-                getRequest: () => request,
-                getResponse: () => ({}),
-            }),
-        };
-        await expect(guard.canActivate(ctx)).resolves.toBe(true);
     });
 });

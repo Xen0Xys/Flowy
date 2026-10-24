@@ -3,7 +3,7 @@ import {computed, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {CalendarDate, getLocalTimeZone} from "@internationalized/date";
 import type {DateValue} from "reka-ui";
-import {Calendar as CalendarIcon} from "lucide-vue-next";
+import {Calendar as CalendarIcon} from "@lucide/vue";
 import {cn} from "@/lib/utils";
 import {Button} from "@/components/ui/button";
 import {Calendar} from "@/components/ui/calendar";
@@ -77,12 +77,12 @@ const hasValue = computed(() => Boolean(parseModelValue(props.modelValue)));
         <PopoverTrigger as-child>
             <Button
                 :id="id"
-                :disabled="disabled"
-                type="button"
-                variant="outline"
                 :class="
                     cn('w-full justify-start text-left font-normal', !hasValue && 'text-muted-foreground', props.class)
-                ">
+                "
+                :disabled="disabled"
+                type="button"
+                variant="outline">
                 <CalendarIcon class="mr-2 h-4 w-4 shrink-0" />
                 <span class="truncate">{{ formattedDate }}</span>
             </Button>

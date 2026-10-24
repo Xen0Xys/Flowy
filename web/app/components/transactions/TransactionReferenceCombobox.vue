@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed} from "vue";
-import {ChevronsUpDown, Plus} from "lucide-vue-next";
+import {ChevronsUpDown, Plus} from "@lucide/vue";
 import {Icon} from "#components";
 import {Button} from "~/components/ui/button";
 import {
@@ -67,9 +67,9 @@ const displayValue = (value: string | number | boolean | Array<string | number |
                 <Button
                     :id="id"
                     :disabled="disabled"
+                    class="w-full justify-between font-normal"
                     type="button"
-                    variant="outline"
-                    class="w-full justify-between font-normal">
+                    variant="outline">
                     <span class="flex min-w-0 flex-1 items-center gap-2 truncate text-left">
                         <template v-if="selectedItem">
                             <Icon
@@ -88,8 +88,8 @@ const displayValue = (value: string | number | boolean | Array<string | number |
         <ComboboxList
             class="*:data-[slot=input-group]:!m-0 *:data-[slot=input-group]:!rounded-none *:data-[slot=input-group]:!border-x-0 *:data-[slot=input-group]:!border-t-0">
             <ComboboxInput
-                :placeholder="placeholder"
                 :display-value="displayValue"
+                :placeholder="placeholder"
                 class="text-base !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none md:text-sm" />
             <ComboboxEmpty>{{ emptyText }}</ComboboxEmpty>
             <ComboboxViewport>
