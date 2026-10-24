@@ -44,6 +44,7 @@ Notes:
 - `DATABASE_URL` is built automatically in services from Postgres variables.
 - `APP_SECRET` must be a strong random value in real environments (also seeds the MFA TOTP AEAD key, keep it stable across restarts).
 - `APP_PREFIX` maps to the backend `PREFIX` env var; leave empty unless the API is mounted under a subpath.
+- `CORS_ORIGINS` is a comma-separated list of exact origins (`scheme://host[:port]`): no trailing slash, path or wildcard. It also feeds the CSRF trusted origins, so an invalid entry stops the API at startup.
 - **`WEBAUTHN_RP_ID` is required in production** (Docker defaults `NODE_ENV` to `production`). It is the passkey Relying Party ID: hostname only, no scheme, no port. Changing it invalidates every registered passkey, so set it explicitly and keep it stable across deploys. In dev/test only, it is derived from the first `CORS_ORIGINS` hostname.
 - `WEBAUTHN_RP_NAME` and `WEBAUTHN_ORIGINS` are optional. When unset, they default to `APP_NAME` and `CORS_ORIGINS` respectively.
 
