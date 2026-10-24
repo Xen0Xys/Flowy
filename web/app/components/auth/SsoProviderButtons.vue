@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
 import {useI18n} from "vue-i18n";
+import {toast} from "vue-sonner";
 import {Button} from "@/components/ui/button";
 import {useSsoStore, type SsoPublicProvider} from "@/stores/sso.store";
 
@@ -11,6 +12,7 @@ const props = defineProps<{
 const {t} = useI18n();
 const store = useSsoStore();
 const loading = ref(true);
+const redirecting = ref(false);
 const providers = ref<SsoPublicProvider[]>([]);
 
 const mode = computed(() => props.mode ?? "login");
@@ -25,8 +27,15 @@ onMounted(async () => {
 });
 
 async function openProvider(slug: string) {
-    const url = await store.prepareLoginStartUrl(slug);
-    window.location.assign(url);
+    if (redirecting.value) return;
+    redirecting.value = true;
+    try {
+        window.location.assign(await store.prepareLoginStartUrl(slug));
+    } catch {
+        // Web Crypto is unavailable outside secure contexts, and sessionStorage may be disabled.
+        toast.error(t("sso.errors.internal"));
+        redirecting.value = false;
+    }
 }
 </script>
 
@@ -44,6 +53,7 @@ async function openProvider(slug: string) {
                 v-for="provider in providers"
                 :key="provider.slug"
                 :aria-label="t('sso.continueWith', {name: provider.displayName})"
+                :disabled="redirecting"
                 class="w-full justify-center gap-2"
                 type="button"
                 variant="outline"
