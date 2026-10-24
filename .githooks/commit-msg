@@ -23,15 +23,20 @@ fi
 
 subject="$(sed -n '1p' "$commit_msg_file")"
 
+# Real merges only: a regular commit whose subject merely starts with "Merge " is validated.
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+    exit 0
+fi
+
 case "$subject" in
-    "Merge "*|"Revert \""*|"fixup! "*|"squash! "*|"amend! "*)
+    "Revert \""*|"fixup! "*|"squash! "*|"amend! "*)
         exit 0
         ;;
 esac
 
 TYPES='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
 SCOPES='web|server|prisma|docker|ci|deps|docs|release|seed|security|i18n|auth|sso|mfa|users|admin|accounting|accounts|transactions|transfers|budgets|recurring|references|reports|updates|import|settings|onboarding'
-PATTERN="^(${TYPES})(\\((${SCOPES})\\))?!?: .+"
+PATTERN="^(${TYPES})(\\((${SCOPES})\\))?!?: [^ ].*"
 
 print_help() {
     echo "" >&2
@@ -61,7 +66,8 @@ if [ -z "$subject" ]; then
     exit 1
 fi
 
-subject_length=$(printf '%s' "$subject" | wc -c | tr -d ' ')
+# Count characters, not bytes, so accented subjects get the full 100 characters.
+subject_length=$(printf '%s' "$subject" | LC_ALL=C.UTF-8 wc -m | tr -d ' ')
 if [ "$subject_length" -gt 100 ]; then
     echo "commit-msg: subject is ${subject_length} chars, max is 100 (Angular convention)." >&2
     print_help

@@ -23,8 +23,11 @@ jobs:
               run: |
                   set -euo pipefail
 
-                  git fetch --no-tags --depth=1 origin "${BASE_REF}"
+                  # fetch-depth: 0 already fetched every branch with its full history.
                   BASE_SHA=$(git rev-parse "origin/${BASE_REF}")
+                  # Captured before the loop: a failure inside the process substitution
+                  # would escape `set -e` and let the job pass with zero commits checked.
+                  commits=$(git log --no-merges --format='%H %s' "${BASE_SHA}..${HEAD_SHA}")
 
                   tmp=$(mktemp)
                   trap 'rm -f "$tmp"' EXIT
@@ -41,7 +44,7 @@ jobs:
                           echo "FAIL  ${sha:0:8}  $subject"
                           failed=1
                       fi
-                  done < <(git log --no-merges --format='%H %s' "${BASE_SHA}..${HEAD_SHA}")
+                  done <<< "$commits"
 
                   if [ "$failed" -ne 0 ]; then
                       echo ""
