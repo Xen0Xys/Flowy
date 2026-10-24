@@ -21,7 +21,6 @@ async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
         AppModule,
         new FastifyAdapter({exposeHeadRoutes: true}),
-        {cookies: {secret: process.env.APP_SECRET}},
     );
     await loadServer(app);
 
